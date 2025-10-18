@@ -1,0 +1,45 @@
+{
+  "name": "رضوان پایش - پنل مدیریت سازمانی",
+  "short_name": "رضوان پایش",
+  "description": "پنل سازمانی رضوان پایش برای مدیریت کارکنان، حضور و غیاب و مرخصی‌ها.",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/?utm_source=web_app_manifest",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icons/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ورود به داشبورد",
+      "short_name": "داشبورد",
+      "url": "/dashboard",
+      "description": "مشاهده وضعیت کلی کارکنان و آمار حضور"
+    },
+    {
+      "name": "درخواست مرخصی",
+      "short_name": "مرخصی",
+      "url": "/leave-request",
+      "description": "ثبت و پیگیری مرخصی‌ها"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+  /* کامنت: بخش compilerOptions از اینجا حذف شد چون زائد بود */
+}

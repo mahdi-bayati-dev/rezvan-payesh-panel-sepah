@@ -1,0 +1,41 @@
+/* src/index.css */
+@import "tailwindcss";
+
+/* کامنت: تعریف وریانت سفارشی و قدرتمند برای حالت تاریک */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  ✅ کامنت: تمام توکن‌ها اکنون با فرمت مدرن oklch تعریف شده‌اند.
+  این کار مدیریت و هماهنگی رنگ‌ها را در آینده ساده‌تر می‌کند.
+*/
+@theme {
+  /* -- حالت روشن (Light Mode) -- */
+  --color-backgroundL-500: oklch(1 0 0); /* #ffffff */
+  --color-foregroundL: oklch(0.13 0.02 263); /* #0e131b */
+  --color-primaryL: oklch(0.26 0.1 264); /* #181b5b */
+  --color-primary-foregroundL: oklch(1 0 0); /* #ffffff */
+  --color-secondaryL: oklch(0.92 0.05 264); /* #e5e6ff */
+  --color-secondary-foregroundL: oklch(0.26 0.1 264); /* #181b5b */
+  --color-muted-foregroundL: oklch(0.13 0.02 263 / 0.8); /* #0e131bcc */
+  --color-destructiveL: oklch(0.51 0.19 14.5); /* #e02d3c */
+  --color-borderL: oklch(0.91 0.02 265); /* #e1e6ef */
+  --color-blue: oklch(0.47 0.18 265);
+
+   --color-blue-light-25: #f5fbff;
+
+  /* -- حالت تاریک (Dark Mode) - با کنتراست بالا -- */
+  --color-backgroundD: oklch(0.12 0.02 264); /* #0f111a */
+  --color-foregroundD: oklch(0.98 0.01 230); /* #f8fafc */
+  --color-primaryD: oklch(0.92 0.05 264); /* #e5e6ff */
+  --color-primary-foregroundD: oklch(0.26 0.1 264); /* #181b5b */
+  --color-secondaryD: oklch(0.28 0.08 264); /* #242875 */
+  --color-secondary-foregroundD: oklch(0.98 0.01 230); /* #f8fafc */
+  --color-muted-foregroundD: oklch(0.69 0.03 260); /* #9ca3af */
+  --color-destructiveD: oklch(0.74 0.14 14.5); /* #f87171 */
+  --color-borderD: oklch(0.28 0.08 264); /* #242875 */
+}
+
+body {
+  font-family: "Vazirmatn", sans-serif;
+  @apply transition-colors duration-300;
+}
