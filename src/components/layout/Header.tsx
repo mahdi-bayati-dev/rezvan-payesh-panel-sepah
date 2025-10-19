@@ -1,6 +1,6 @@
 // src/components/layout/Header.tsx
 
-import { Menu, Search } from "lucide-react";
+import { Menu} from "lucide-react";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -33,27 +33,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         </span>
       </div>
 
-      <div className="relative max-w-xs">
-        <label htmlFor="search" className="sr-only">
-          جستجو
-        </label>
-        <input
-          type="text"
-          id="search"
-          placeholder="جستجو..."
-          // ✅ استایل‌دهی اینپوت با کلاس‌های جدید
-          className="w-full py-1.5 px-3 pr-10 rounded-lg text-sm bg-inputL text-foregroundL border border-borderL focus:outline-none focus:ring-2 focus:ring-primaryL placeholder:text-muted-foregroundL dark:bg-inputD dark:text-foregroundD dark:border-borderD dark:focus:ring-primaryD dark:placeholder:text-muted-foregroundD"
-        />
-        <span className="absolute inset-y-0 right-2 flex items-center">
-          <button
-            type="submit"
-            aria-label="جستجو"
-            className="p-1.5 rounded-full text-muted-foregroundL hover:bg-secondaryL dark:text-muted-foregroundD dark:hover:bg-secondaryD"
-          >
-            <Search size={18} />
-          </button>
-        </span>
-      </div>
+      
     </header>
   );
 };

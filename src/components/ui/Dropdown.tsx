@@ -1,76 +1,91 @@
-// src/components/ui/Dropdown.tsx
 import { Menu, Transition } from '@headlessui/react';
-import React, { Fragment } from 'react';
+import { Fragment, useRef, useState, useLayoutEffect, type ReactNode } from 'react';
 
 // --- ۱. کامپوننت والد (Wrapper) ---
-// این کامپوننت منطق اصلی را نگه می‌دارد
-const Dropdown = ({ children }: { children: React.ReactNode }) => {
+const Dropdown = ({ children }: { children: ReactNode }) => {
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="relative  inline-block text-left">
             {children}
         </Menu>
     );
 };
 
-// --- ۲. کامپوننت تریگر (دکمه‌ای که منو را باز می‌کند) ---
-const DropdownTrigger = ({ children }: { children: React.ReactNode }) => {
-    return (
-        // از as={Fragment} استفاده می‌کنیم تا دکمه سفارشی خودمان رندر شود
-        <Menu.Button as={Fragment}>{children}</Menu.Button>
-    );
+// --- ۲. کامپوننت تریگر (دکمه بازکننده منو) ---
+const DropdownTrigger = ({ children }: { children: ReactNode }) => {
+    return <Menu.Button as={Fragment}>{children}</Menu.Button>;
 };
 
-// --- ۳. کامپوننت محتوا (باکس شناور منو) ---
-const DropdownContent = ({ children }: { children: React.ReactNode }) => {
+// --- ۳. کامپوننت محتوا (باکس شناور هوشمند) ---
+const DropdownContent = ({ children }: { children: ReactNode }) => {
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState<'bottom' | 'top'>('bottom');
+
+    // از useLayoutEffect برای محاسبات دقیق قبل از نمایش در DOM استفاده می‌کنیم
+useLayoutEffect(() => {
+  if (menuRef.current) {
+    const menuRect = menuRef.current.getBoundingClientRect();
+    const { innerHeight } = window;
+
+    // اگر پایین منو از صفحه بیرون زد ولی فضای کافی در بالا هست
+    if (menuRect.bottom > innerHeight && menuRect.top > menuRect.height) {
+      setPosition('top');
+    } else {
+      setPosition('bottom');
+    }
+  }
+}, []);
+
+
+
+    const positionClasses = {
+        bottom: 'origin-top-left left-0 mt-2',
+        top: 'origin-bottom-left left-0 bottom-full mb-2',
+    };
+
     return (
-        // Transition برای انیمیشن باز و بسته شدن
         <Transition
             as={Fragment}
-            enter="transition ease-out duration-100"
+            enter="transition ease-out duration-150"
             enterFrom="transform opacity-0 scale-95"
             enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
+            leave="transition ease-in duration-100"
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
         >
-            {/* Menu.Items خود باکسی است که ظاهر می‌شود */}
-            <Menu.Items className="absolute z-10 left-0 mt-2 w-48 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                {/* یک div داخلی برای padding */}
+            <Menu.Items
+                ref={menuRef}
+                className={`absolute z-10 w-48 rounded-md shadow-lg bg-white dark:bg-zinc-800 ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none ${positionClasses[position]}`}
+            >
                 <div className="py-1">{children}</div>
             </Menu.Items>
         </Transition>
     );
 };
 
-// --- ۴. کامپوننت آیتم‌های منو (دکمه‌های داخلی) ---
+// --- ۴. کامپوننت آیتم‌های منو (با قابلیت دریافت آیکون) ---
 interface DropdownItemProps {
-    children: React.ReactNode;
+    children: ReactNode;
     onClick: () => void;
-    className?: string; // برای کلاس‌های سفارشی مثل رنگ قرمز
+    className?: string;
+    icon?: ReactNode;
 }
 
-const DropdownItem = ({
-    children,
-    onClick,
-    className = '',
-}: DropdownItemProps) => {
+const DropdownItem = ({ children, onClick, className = '', icon }: DropdownItemProps) => {
     return (
         <Menu.Item>
-            {/* 'active' به ما می‌گوید که آیا کاربر با ماوس یا کیبورد روی این آیتم hover کرده است
-        ما از این برای تغییر 'bg-gray-100' استفاده می‌کنیم
-      */}
             {({ active }) => (
                 <button
                     onClick={onClick}
-                    className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                        } group flex w-full items-center px-4 py-2 text-sm text-right ${className}`}
+                    className={`${active ? 'bg-gray-100 dark:bg-zinc-700' : ''
+                        } group flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 text-right transition-colors duration-150 ${className}`}
                 >
-                    {children}
+                    {icon && <span className="text-gray-500 dark:text-gray-400 group-hover:text-current">{icon}</span>}
+                    <span>{children}</span>
                 </button>
             )}
         </Menu.Item>
     );
 };
 
-// --- ۵. اکسپورت کردن همه بخش‌ها ---
 export { Dropdown, DropdownTrigger, DropdownContent, DropdownItem };
+
