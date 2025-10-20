@@ -54,7 +54,7 @@ useLayoutEffect(() => {
         >
             <Menu.Items
                 ref={menuRef}
-                className={`absolute z-10 w-48 rounded-md shadow-lg bg-white dark:bg-zinc-800 ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none ${positionClasses[position]}`}
+                className={`absolute z-10 w-48 border-0 dark:border-borderD rounded-md shadow-lg bg-white dark:bg-primary-foregroundD ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none ${positionClasses[position]}`}
             >
                 <div className="py-1">{children}</div>
             </Menu.Items>
