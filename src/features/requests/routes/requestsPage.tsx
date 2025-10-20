@@ -1,5 +1,7 @@
 // features/requests/requestsPage.tsx
 import React, { useState, useMemo } from 'react';
+import { Search, CirclePlus } from "lucide-react";
+
 import {
   useReactTable,
   getCoreRowModel,
@@ -79,31 +81,63 @@ const RequestsPage = () => {
 
 
   return (
-    <div className="requests-page-container p-4">
+    // کامنت: استفاده از متغیرهای رنگی CSS در کامپوننت
+    <div
+
+      className="requests-page-container p-4 bg-backgroundL-500 dark:bg-backgroundD rounded-t-2xl"
+    >
       {/* بخش فیلترها در سمت راست (طبق فیگما) */}
       {/* <RequestsFilters onFilterChange={...} /> */}
 
       <main className="table-content">
+
         {/* هدر جدول (جستجو و دکمه جدید) */}
         <div className="flex justify-between items-center mb-4">
-          <input
-            type="search"
-            placeholder="جستجو..."
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            className="p-2 border rounded"
-          />
-          <button className="bg-blue-600 text-white px-4 py-2 rounded">
-            + درخواست جدید
-          </button>
+          <div>
+            <h2 className='text-lg font-bold text-borderD dark:text-borderL'>
+              درخواست ها
+            </h2>
+          </div>
+          <div className='flex gap-4 items-center'>
+
+            <div className="relative max-w-xs">
+              <label htmlFor="search" className="sr-only">
+                جستجو
+              </label>
+              <input
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                type="text"
+                id="search"
+                placeholder="جستجو..."
+                className="w-full py-1.5 px-3 pr-10 rounded-lg text-sm bg-inputL text-foregroundL border border-borderL focus:outline-none focus:ring-2 focus:ring-primaryL placeholder:text-muted-foregroundL dark:bg-inputD dark:text-foregroundD dark:border-borderD dark:focus:ring-primaryD dark:placeholder:text-muted-foregroundD"
+              />
+              <span className="absolute inset-y-0 right-2 flex items-center">
+                <button
+                  type="submit"
+                  aria-label="جستجو"
+                  className="p-1.5 rounded-full text-muted-foregroundL hover:bg-secondaryL dark:text-muted-foregroundD dark:hover:bg-secondaryD"
+                >
+                  <Search size={18} />
+                </button>
+              </span>
+            </div>
+            <button
+
+              className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm"
+            >
+              <CirclePlus size={20} /> درخواست جدید
+            </button>
+          </div>
         </div>
 
-        {/* رندر کردن جدول عمومی */}
-        <div className="border rounded-lg overflow-hidden">
+
+        <div className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
           <DataTable table={table} />
         </div>
 
-        {/* رندر کردن صفحه‌بندی عمومی */}
+
+
         <DataTablePagination table={table} />
       </main>
     </div>
