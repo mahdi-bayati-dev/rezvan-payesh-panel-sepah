@@ -22,6 +22,18 @@
   --color-blue: oklch(0.47 0.18 265);
 
    --color-blue-light-25: #f5fbff;
+   /* متغیرهای معنایی بَج (حالت روشن) */
+  --color-destructiveL-foreground: oklch(0.51 0.19 14.5); /* #e02d3c (متغیر destructiveL شما) */
+  --color-destructiveL-background: oklch(0.95 0.05 14.5); /* derived from red-100 */
+  
+  --color-infoL-foreground: oklch(0.47 0.18 265); /* #2563eb (متغیر blue شما) */
+  --color-infoL-background: oklch(0.95 0.05 265); /* #f5fbff (متغیر blue-light-25 شما) */
+  
+  --color-successL-foreground: oklch(0.4 0.15 145); /* derived from green-800 */
+  --color-successL-background: oklch(0.95 0.05 145); /* derived from green-100 */
+  
+  --color-warningL-foreground: oklch(0.5 0.1 80); /* derived from yellow-800 */
+  --color-warningL-background: oklch(0.97 0.05 80); /* derived from yellow-100 */
 
   /* -- حالت تاریک (Dark Mode) - با کنتراست بالا -- */
   --color-backgroundD: oklch(0.12 0.02 264); /* #0f111a */
@@ -33,6 +45,18 @@
   --color-muted-foregroundD: oklch(0.69 0.03 260); /* #9ca3af */
   --color-destructiveD: oklch(0.74 0.14 14.5); /* #f87171 */
   --color-borderD: oklch(0.28 0.08 264); /* #242875 */
+  /* متغیرهای معنایی بَج (حالت تاریک) */
+  --color-destructiveD-foreground: oklch(0.74 0.14 14.5); /* #f87171 (متغیر destructiveD شما) */
+  --color-destructiveD-background: oklch(0.25 0.08 14.5); /* derived from dark red */
+
+  --color-infoD-foreground: oklch(0.7 0.1 265); /* derived from light blue text */
+  --color-infoD-background: oklch(0.2 0.08 265); /* derived from dark blue */
+  
+  --color-successD-foreground: oklch(0.7 0.15 145); /* derived from light green text */
+  --color-successD-background: oklch(0.2 0.08 145); /* derived from dark green */
+
+  --color-warningD-foreground: oklch(0.8 0.1 80); /* derived from light yellow text */
+  --color-warningD-background: oklch(0.25 0.08 80); /* derived from dark yellow */
 }
 
 body {

@@ -1,14 +1,24 @@
 // src/components/layout/Header.tsx
 
-import { Menu} from "lucide-react";
+import { Menu } from "lucide-react";
+import { useAppSelector } from "@/store";
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
+
+  const theme = useAppSelector((state) => state.ui.theme)
+
+
+  // 🔹 تعیین مسیر لوگو بر اساس تم
+  const logoSrc =
+    theme === "dark"
+      ? "./img/img-header/logo-2.png"
+      : "./img/img-header/logo-1.png";
+
   return (
-    // ✅ کلاس‌ها با متغیرهای CSS هماهنگ شدند
     <header className="flex items-center justify-between px-4 z-10 bg-backgroundL border-b border-borderL shadow-sm transition-colors duration-300 dark:bg-backgroundD dark:border-borderD">
       <div className="flex items-center gap-4">
         <button
@@ -21,7 +31,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         <div className="flex items-center">
           <img
             className="max-w-20 max-h-16"
-            src="./img/img-header/logo-1.png"
+            src={logoSrc}
             alt=""
           />
           <h1 className="hidden md:block text-lg font-bold text-primaryL dark:text-primaryD">
@@ -33,7 +43,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         </span>
       </div>
 
-      
+
     </header>
   );
 };
