@@ -35,11 +35,10 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <button
               key={button.key}
               onClick={() => onFilterChange(button.key)}
-              className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                activeFilter === button.key
-                  ? "bg-backgroundL-500 text-primaryL dark:bg-primaryD dark:text-secondary-foregroundL shadow-sm"
-                  : "text-secondary-foregroundL dark:text-muted-foregroundD hover:bg-borderL dark:hover:bg-borderD"
-              }`}
+              className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors duration-200 ${activeFilter === button.key
+                ? "bg-backgroundL-500 text-primaryL dark:bg-primaryD dark:text-secondary-foregroundL shadow-sm"
+                : "text-secondary-foregroundL dark:text-muted-foregroundD hover:bg-borderL dark:hover:bg-borderD"
+                }`}
             >
               {button.label}
             </button>
@@ -51,11 +50,12 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       {/* کامنت: تمام divهای مربوط به آیکون حذف شدند */}
       <div className="relative mt-4 md:mt-0 w-full md:w-auto">
         <PersianDatePickerInput
+          label="تاریخ"
           value={selectedDate}
           onChange={onDateChange}
           placeholder="انتخاب تاریخ"
           // کامنت: این کلاس به div اصلی (rmdp-container) اعمال می‌شود تا عرض کامل بگیرد
-          containerClassName="w-full" 
+          containerClassName="w-full"
         />
       </div>
     </div>

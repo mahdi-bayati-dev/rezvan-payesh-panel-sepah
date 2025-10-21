@@ -1,10 +1,10 @@
 // features/requests/components/RequestsColumnDefs.tsx
 import { type ColumnDef } from '@tanstack/react-table';
 import type { Request } from '@/features/requests/types/index';
-import ActionsMenuCell from '@/features/requests/components/ActionsMenuCell';
-import UserAvatarCell from '@/features/requests/components/UserAvatarCell';
-import StatusBadgeCell from '@/features/requests/components/StatusBadgeCell';
-import CategoryBadgeCell from '@/features/requests/components/CategoryBadgeCell';
+import ActionsMenuCell from '@/features/requests/components/mainRequests/ActionsMenuCell';
+import UserAvatarCell from '@/features/requests/components/mainRequests/UserAvatarCell';
+import StatusBadgeCell from '@/features/requests/components/mainRequests/StatusBadgeCell';
+import CategoryBadgeCell from '@/features/requests/components/mainRequests/CategoryBadgeCell';
 
 // === تعریف ستون‌ها ===
 
