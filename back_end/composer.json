@@ -12,6 +12,7 @@
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "*",
         "owen-it/laravel-auditing": "^14.0",
+        "spatie/laravel-permission": "^6.21",
         "staudenmeir/laravel-adjacency-list": "^1.25"
     },
     "require-dev": {

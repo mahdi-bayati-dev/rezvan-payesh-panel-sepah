@@ -14,19 +14,6 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string("user_name")->unique();
-            $table->string('name');
-            $table->string("family_name");
-            $table->string("phone_number")->unique()->index();
-            $table->string("house_number");
-            $table->string("sos_number");
-            $table->boolean("is_married")->default(false);
-            $table->text("address");
-            $table->string("father_name");
-            $table->date("birth_date");
-            $table->string("gender");
-            $table->string("nationality_code")->unique()->index();
-            $table->enum('education_level', ['diploma','advanced_diploma', 'bachelor', 'master','doctorate','post_doctorate']);
-            $table->date("starting_job");
             $table->enum("status",["active","inactive"]);
             $table->string('email')->unique();
             $table->string('password');
