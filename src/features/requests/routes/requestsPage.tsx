@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'; // ۱. useEffect را اضافه کنید
 import { Search, CirclePlus } from 'lucide-react';
-
+import { Link } from 'react-router-dom'; // ✅ ۱. کامپوننت Link ایمپورت شد
 import {
   useReactTable,
   getCoreRowModel,
@@ -23,8 +23,8 @@ import { type DateObject } from 'react-multi-date-picker'; // ✅ ۱. ایمپو
 
 // موارد مخصوص فیچر
 import { MOCK_REQUESTS } from '@/features/requests/data/mockData';
-import { requestsColumns } from '@/features/requests/components/RequestsColumnDefs';
-import RequestsFilter from '@/features/requests/components/RequestsFilter'; // ۳. کامپوننت فیلتر را وارد کنید
+import { requestsColumns } from '@/features/requests/components/mainRequests/RequestsColumnDefs';
+import RequestsFilter from '@/features/requests/components/mainRequests/RequestsFilter'; // ۳. کامپوننت فیلتر را وارد کنید
 
 const RequestsPage = () => {
   // --- مدیریت State ها برای جدول ---
@@ -160,9 +160,9 @@ const RequestsPage = () => {
               />
             </div>
 
-            <button className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center">
+            <Link to='/requests/new' className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center">
               <CirclePlus size={20} /> درخواست جدید
-            </button>
+            </Link>
           </div>
         </div>
 

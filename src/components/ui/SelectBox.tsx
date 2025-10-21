@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react'; // آیکون برای chevron
 export type SelectOption = {
     id: string | number;
     name: string;
+    error?: string; // برای نمایش خطای اعتبارسنجی
 };
 
 interface SelectBoxProps {
@@ -27,6 +28,8 @@ interface SelectBoxProps {
      * اختیاری: برای غیرفعال کردن سلکت باکس
      */
     disabled?: boolean;
+    error?: string;
+    
 }
 
 const SelectBox = ({
@@ -34,14 +37,15 @@ const SelectBox = ({
     placeholder,
     options,
     value,
+    error,
     onChange,
     disabled = false,
 }: SelectBoxProps) => {
     return (
-        
+
         <Listbox as="div" className="w-full" value={value || undefined} onChange={onChange} disabled={disabled}>
 
-       
+
             <Listbox.Label className="block text-sm font-medium text-right mb-1 text-foregroundL dark:text-foregroundD">
                 {label}
             </Listbox.Label>
@@ -106,7 +110,13 @@ const SelectBox = ({
                     </Listbox.Options>
                 </Transition>
             </div>
+            {error && (
+                <p className="mt-1 text-xs text-right text-destructiveL dark:text-destructiveD">
+                    {error}
+                </p>
+            )}
         </Listbox>
+
     );
 };
 
