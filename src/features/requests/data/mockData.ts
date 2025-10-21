@@ -1,5 +1,32 @@
 // features/requests/data/mockData.ts
 import { type Request } from "@/features/requests/types/index";
+// وارد کردن تایپ استاندارد از کامپوننت ماژولار
+import type { SelectOption } from "@/components/ui/SelectBox";
+
+export const mockOrganizations: SelectOption[] = [
+  { id: "org1", name: "سازمان الف" },
+  { id: "org2", name: "سازمان ب" },
+  { id: "org3", name: "سازمان ج" },
+];
+
+export const mockCategories: SelectOption[] = [
+  { id: "cat1", name: "ماموریت" },
+  { id: "cat2", name: "مرخصی" },
+  { id: "cat3", name: "تجهیزات" },
+];
+
+export const mockRequestTypes: SelectOption[] = [
+  { id: "type1", name: "پاس روز" },
+  { id: "type2", name: "پاس شیر" },
+  { id: "type3", name: "درخواست کالا" },
+];
+
+export const mockStatuses: SelectOption[] = [
+  { id: "stat1", name: "تایید شده" },
+  { id: "stat2", name: "رد شده" },
+  { id: "stat3", name: "در حال بررسی" },
+  { id: "stat4", name: "پاسخ داده نشده" },
+];
 
 // یک آرایه بزرگ از داده‌های فیک
 export const MOCK_REQUESTS: Request[] = [
@@ -16,7 +43,7 @@ export const MOCK_REQUESTS: Request[] = [
     category: "ماموریت",
     requestType: "پاس روز",
     status: "تایید شده",
-    date: "03 مهرماه 1404",
+    date: "1404/07/03",
   },
   {
     id: "2",

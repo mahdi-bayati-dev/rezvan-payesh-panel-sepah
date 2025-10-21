@@ -1,4 +1,3 @@
-// src/components/ui/DataTable/DataTablePagination.tsx
 import { Fragment } from "react";
 import { type Table } from "@tanstack/react-table";
 import { Listbox, Transition } from "@headlessui/react";
@@ -18,74 +17,67 @@ interface DataTablePaginationProps<TData> {
 export function DataTablePagination<TData>({
   table,
 }: DataTablePaginationProps<TData>) {
-  // ✅ گزینه‌های مربوط به تعداد نمایش آیتم‌ها در هر صفحه
   const pageSizeOptions = [10, 20, 30, 40, 50];
 
   return (
     <div
-      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border mt-2 transition-colors duration-300
-               dark:bg-backgroundD dark:border-borderD"
-      style={{
-        borderColor: "borderL",
-        backgroundColor: "backgroundL-500",
-      }}
+      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border mt-2 transition-colors duration-300
+      bg-backgroundL-500 dark:bg-backgroundD border-borderL dark:border-borderD"
     >
-      {/* ✅ نمایش تعداد ردیف‌های انتخاب‌شده */}
-      <div className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
+      {/* ✅ تعداد ردیف‌های انتخاب‌شده */}
+      {/* <div className="text-xs sm:text-sm text-muted-foregroundL dark:text-muted-foregroundD text-center sm:text-right">
         {table.getFilteredSelectedRowModel().rows.length} از{" "}
         {table.getFilteredRowModel().rows.length} ردیف انتخاب شده است.
-      </div>
+      </div> */}
 
-      <div className="flex items-center space-x-2 sm:space-x-4">
-        {/* ✅ انتخاب تعداد نمایش در هر صفحه با Headless UI */}
-        <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 w-full sm:w-auto">
+        {/* ✅ انتخاب تعداد ردیف در صفحه */}
+        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
           <span className="text-foregroundL dark:text-foregroundD">ردیف در صفحه:</span>
           <Listbox
             value={table.getState().pagination.pageSize}
-            onChange={(value) => {
-              table.setPageSize(Number(value));
-            }}
+            onChange={(value) => table.setPageSize(Number(value))}
           >
-            <div className="relative">
-              {/* دکمه اصلی که مقدار انتخاب شده را نمایش می‌دهد */}
-              <Listbox.Button className="relative w-28 cursor-pointer rounded-md bg-white dark:text-backgroundL-500 dark:bg-zinc-800 py-1.5 pl-3 pr-10 text-left border dark:border-borderD focus:outline-none focus-visible:border-primaryL focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm">
+            <div className="relative w-24">
+              <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:text-backgroundL-500 dark:bg-zinc-800 py-1.5 pl-3 pr-8 text-left border dark:border-borderD text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primaryL">
                 <span className="block truncate">{table.getState().pagination.pageSize}</span>
-                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                  <ChevronsUpDown
-                    className="h-5 w-5 text-gray-400"
-                    aria-hidden="true"
-                  />
+                <span className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1">
+                  <ChevronsUpDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 </span>
               </Listbox.Button>
-              {/* انیمیشن باز و بسته شدن لیست */}
               <Transition
                 as={Fragment}
                 leave="transition ease-in duration-100"
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                {/* گزینه‌های لیست */}
-                <Listbox.Options className="absolute bottom-full mb-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-zinc-800 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+                <Listbox.Options className="absolute bottom-full mb-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-zinc-800 py-1 text-xs sm:text-sm shadow-lg ring-1 ring-black/5 focus:outline-none">
                   {pageSizeOptions.map((pageSize) => (
                     <Listbox.Option
                       key={pageSize}
                       className={({ active }) =>
-                        `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-amber-100 text-amber-900 dark:bg-zinc-700 dark:text-amber-300' : 'text-gray-900 dark:text-gray-200'
+                        `relative cursor-default select-none py-2 pl-8 pr-3 ${
+                          active
+                            ? "bg-amber-100 text-amber-900 dark:bg-zinc-700 dark:text-amber-300"
+                            : "text-gray-900 dark:text-gray-200"
                         }`
                       }
                       value={pageSize}
                     >
                       {({ selected }) => (
                         <>
-                          <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                          <span
+                            className={`block truncate ${
+                              selected ? "font-medium" : "font-normal"
+                            }`}
+                          >
                             {pageSize}
                           </span>
-                          {/* نمایش آیکون چک در صورت انتخاب بودن */}
-                          {selected ? (
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-amber-600 dark:text-amber-400">
-                              <Check className="h-5 w-5" aria-hidden="true" />
+                          {selected && (
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-2 text-amber-600 dark:text-amber-400">
+                              <Check className="h-4 w-4" aria-hidden="true" />
                             </span>
-                          ) : null}
+                          )}
                         </>
                       )}
                     </Listbox.Option>
@@ -96,11 +88,9 @@ export function DataTablePagination<TData>({
           </Listbox>
         </div>
 
-
         {/* ✅ کنترل‌های صفحه‌بندی */}
-        <div className="flex items-center gap-2 text-sm">
-          {/* شماره صفحه */}
-          <span className="px-3 text-foregroundL dark:text-foregroundD">
+        <div className="flex flex-wrap justify-center sm:justify-end items-center gap-2 text-xs sm:text-sm">
+          <span className="px-2 text-foregroundL dark:text-foregroundD">
             صفحه{" "}
             <strong className="text-primaryL dark:text-primaryD">
               {table.getState().pagination.pageIndex + 1}
@@ -108,34 +98,35 @@ export function DataTablePagination<TData>({
             از {table.getPageCount()}
           </span>
 
-          {/* دکمه‌ها */}
-          <PaginationButton
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-            icon={<ChevronsLeft className="w-4 h-4" />}
-          />
-          <PaginationButton
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            icon={<ChevronLeft className="w-4 h-4" />}
-          />
-          <PaginationButton
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            icon={<ChevronRight className="w-4 h-4" />}
-          />
-          <PaginationButton
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-            icon={<ChevronsRight className="w-4 h-4" />}
-          />
+          <div className="flex gap-1">
+            <PaginationButton
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              icon={<ChevronsLeft className="w-4 h-4" />}
+            />
+            <PaginationButton
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              icon={<ChevronLeft className="w-4 h-4" />}
+            />
+            <PaginationButton
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              icon={<ChevronRight className="w-4 h-4" />}
+            />
+            <PaginationButton
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              icon={<ChevronsRight className="w-4 h-4" />}
+            />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* 🔹 کامپوننت دکمه‌ی تکرارشونده برای صفحه‌بندی */
+/* 🔹 دکمه صفحه‌بندی */
 function PaginationButton({
   onClick,
   disabled,
@@ -149,16 +140,9 @@ function PaginationButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="p-2 rounded-md border transition-all duration-200 
-               hover:bg-secondaryL
-               disabled:opacity-50 disabled:cursor-not-allowed
-               dark:border-borderD
-               dark:hover:bg-secondaryD"
-      style={{ borderColor: "borderL" }}
+      className="p-1.5 sm:p-2 rounded-md border border-borderL dark:border-borderD transition-all duration-200 hover:bg-secondaryL dark:hover:bg-secondaryD disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <span className="text-primaryL dark:text-primaryD">
-        {icon}
-      </span>
+      <span className="text-primaryL dark:text-primaryD">{icon}</span>
     </button>
   );
 }

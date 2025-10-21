@@ -1,32 +1,33 @@
 // features/requests/components/RequestsColumnDefs.tsx
 import { type ColumnDef } from '@tanstack/react-table';
 import type { Request } from '@/features/requests/types/index';
-import ActionsMenuCell from '@/features/requests/components/ActionsMenuCell';
-import UserAvatarCell from '@/features/requests/components/UserAvatarCell';
-import StatusBadgeCell from '@/features/requests/components/StatusBadgeCell';
+import ActionsMenuCell from '@/features/requests/components/mainRequests/ActionsMenuCell';
+import UserAvatarCell from '@/features/requests/components/mainRequests/UserAvatarCell';
+import StatusBadgeCell from '@/features/requests/components/mainRequests/StatusBadgeCell';
+import CategoryBadgeCell from '@/features/requests/components/mainRequests/CategoryBadgeCell';
 
 // === تعریف ستون‌ها ===
 
 export const requestsColumns: ColumnDef<Request>[] = [
     // 1. ستون انتخاب (Checkbox)
-    {
-        id: 'select',
-        header: ({ table }) => (
-            <input
-                type="checkbox"
-                checked={table.getIsAllRowsSelected()}
-                onChange={table.getToggleAllRowsSelectedHandler()}
-            />
-        ),
-        cell: ({ row }) => (
-            <input
-                type="checkbox"
-                checked={row.getIsSelected()}
-                onChange={row.getToggleSelectedHandler()}
-                disabled={!row.getCanSelect()}
-            />
-        ),
-    },
+    // {
+    //     id: 'select',
+    //     header: ({ table }) => (
+    //         <input
+    //             type="checkbox"
+    //             checked={table.getIsAllRowsSelected()}
+    //             onChange={table.getToggleAllRowsSelectedHandler()}
+    //         />
+    //     ),
+    //     cell: ({ row }) => (
+    //         <input
+    //             type="checkbox"
+    //             checked={row.getIsSelected()}
+    //             onChange={row.getToggleSelectedHandler()}
+    //             disabled={!row.getCanSelect()}
+    //         />
+    //     ),
+    // },
 
     // 2. ستون مشخصات (رندر سفارشی)
     {
@@ -46,6 +47,10 @@ export const requestsColumns: ColumnDef<Request>[] = [
     {
         accessorKey: 'category',
         header: 'دسته بندی',
+        cell: ({ row }) => {
+            // استفاده از کامپوننت آداپتور جدید
+            return <CategoryBadgeCell category={row.original.category} />;
+        },
     },
     {
         accessorKey: 'requestType',

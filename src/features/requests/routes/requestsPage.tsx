@@ -1,148 +1,182 @@
 // features/requests/requestsPage.tsx
-import React, { useState, useMemo } from 'react';
-import { Search, CirclePlus } from "lucide-react";
 
+import { useState, useMemo, useEffect } from 'react'; // ۱. useEffect را اضافه کنید
+import { Search, CirclePlus } from 'lucide-react';
+import { Link } from 'react-router-dom'; // ✅ ۱. کامپوننت Link ایمپورت شد
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel, // برای صفحه‌بندی کلاینت-ساید
-  getSortedRowModel, // برای مرتب‌سازی کلاینت-ساید
-  getFilteredRowModel, // برای فیلتر کلاینت-ساید
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
   type SortingState,
   type ColumnFiltersState,
   type PaginationState,
   type RowSelectionState,
 } from '@tanstack/react-table';
 
-// وارد کردن کامپوننت‌های عمومی
+// کامپوننت‌های عمومی
 import { DataTable } from '@/components/ui/DataTable';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
+import { type SelectOption } from '@/components/ui/SelectBox'; // ۲. تایپ SelectOption را وارد کنید
+import { type DateObject } from 'react-multi-date-picker'; // ✅ ۱. ایمپورت تایپ DateObject
 
-// وارد کردن موارد مخصوص این فیچر
-import { MOCK_REQUESTS } from '@/features/requests//data/mockData';
-import { requestsColumns } from '@/features/requests/components/RequestsColumnDefs';
-// import { RequestsFilters } from './components/RequestsFilters';
+// موارد مخصوص فیچر
+import { MOCK_REQUESTS } from '@/features/requests/data/mockData';
+import { requestsColumns } from '@/features/requests/components/mainRequests/RequestsColumnDefs';
+import RequestsFilter from '@/features/requests/components/mainRequests/RequestsFilter'; // ۳. کامپوننت فیلتر را وارد کنید
 
 const RequestsPage = () => {
-  // --- مدیریت State ها برای کلاینت-ساید ---
-  // (وقتی API بیاید، اینها به state های سرورساید تبدیل می‌شوند)
-
+  // --- مدیریت State ها برای جدول ---
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0, // صفحه اول
-    pageSize: 10,  // نمایش 10 مورد
+    pageIndex: 0,
+    pageSize: 10,
   });
+  const [date, setDate] = useState<DateObject | null>(null); // ✅ ۲. استیت تاریخ اضافه شد
 
-  // استفاده از useMemo برای جلوگیری از رندر مجدد داده‌ها و ستون‌ها
+  // --- ۴. مدیریت State ها برای فیلترها (Lifting State Up) ---
+  const [globalFilter, setGlobalFilter] = useState(''); // فیلتر جستجوی عمومی
+  const [organization, setOrganization] = useState<SelectOption | null>(null);
+  const [category, setCategory] = useState<SelectOption | null>(null);
+  const [requestType, setRequestType] = useState<SelectOption | null>(null);
+  const [status, setStatus] = useState<SelectOption | null>(null);
+
+  // داده‌ها و ستون‌ها
   const data = useMemo(() => MOCK_REQUESTS, []);
   const columns = useMemo(() => requestsColumns, []);
 
-  // --- مقداردهی اولیه TanStack Table ---
+  // --- مقداردهی اولیه جدول ---
   const table = useReactTable({
-    data: data, // داده‌های فیک
-    columns: columns, // ستون‌های تعریف شده
-
-    // --- فعال‌سازی پردازش کلاینت-ساید ---
-    // اینها توابع کمکی هستند که جدول خودش آنها را اجرا می‌کند
+    data: data,
+    columns: columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(), // فعال‌سازی صفحه‌بندی
-    getSortedRowModel: getSortedRowModel(), // فعال‌سازی مرتب‌سازی
-    getFilteredRowModel: getFilteredRowModel(), // فعال‌سازی فیلترینگ
-
-    // --- اتصال State ها ---
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
-      columnFilters,
+      columnFilters, // اتصال state فیلتر ستون‌ها
       pagination,
       rowSelection,
     },
-
-    // --- آپدیت کردن State ها ---
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: setColumnFilters, // اتصال setter
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
-
-    // فعال کردن انتخاب سطر (اختیاری)
     enableRowSelection: true,
   });
 
-  // یک state ساده برای جستجوی گلوبال (مثل فیگما)
-  const [globalFilter, setGlobalFilter] = useState('');
-
-  // اتصال جستجوی ما به جدول
-  // این کد باعث می‌شود ستون "مشخصات" جستجو شود
-  React.useEffect(() => {
-    // 'requester' همان accessorKey ستون مشخصات است
-    table.getColumn('requester')?.setFilterValue(globalFilter);
-  }, [globalFilter, table]);
 
 
+  // --- ۵. اتصال فیلترها به جدول ---
+  useEffect(() => {
+    const newFilters: ColumnFiltersState = [];
+
+
+    // الف) فیلتر جستجوی عمومی (فقط در صورتی که مقداری داشته باشد)
+    if (globalFilter) {
+      newFilters.push({ id: 'requester', value: globalFilter });
+    }
+
+    // ب) فیلترهای SelectBox (اینها از قبل درست بودند)
+    if (organization) {
+      // (accessorKey ستون سازمان 'organization' است)
+      newFilters.push({ id: 'organization', value: organization.name });
+    }
+    if (category) {
+      // (accessorKey ستون دسته‌بندی 'category' است)
+      newFilters.push({ id: 'category', value: category.name });
+    }
+    if (requestType) {
+      // (accessorKey ستون نوع 'requestType' است)
+      newFilters.push({ id: 'requestType', value: requestType.name });
+    }
+    if (status) {
+      // (accessorKey ستون وضعیت 'status' است)
+      newFilters.push({ id: 'status', value: status.name });
+    }
+    if (date) {
+      // نکته: این فیلتر زمانی کار می‌کند که فرمت تاریخ در MOCK_REQUESTS
+      // با فرمت خروجی date.format() (یعنی "YYYY/MM/DD") یکی باشد.
+      newFilters.push({ id: 'date', value: date.format() });
+    }
+
+    // ج) اعمال همزمان همه‌ی فیلترها
+    setColumnFilters(newFilters);
+  }, [
+    globalFilter,
+    organization,
+    category,
+    requestType,
+    status,
+    date,
+    setColumnFilters,
+  ]);
   return (
-    // کامنت: استفاده از متغیرهای رنگی CSS در کامپوننت
-    <div
+    // ۶. تغییر لایه‌بندی صفحه برای نمایش ستون فیلتر
+    <div className="flex flex-col md:flex-row-reverse  ">
+      {/* ستون فیلترها (سایدبار) */}
+      <div className="w-full md:w-64 lg:w-72">
+        <RequestsFilter
+          organization={organization}
+          onOrganizationChange={setOrganization}
+          category={category}
+          onCategoryChange={setCategory}
+          requestType={requestType}
+          onRequestTypeChange={setRequestType}
+          status={status}
+          onStatusChange={setStatus}
+          date={date}
+          onDateChange={setDate}
+        />
+      </div>
 
-      className="requests-page-container p-4 bg-backgroundL-500 dark:bg-backgroundD rounded-t-2xl"
-    >
-      {/* بخش فیلترها در سمت راست (طبق فیگما) */}
-      {/* <RequestsFilters onFilterChange={...} /> */}
-
-      <main className="table-content">
-
+      {/* محتوای اصلی (جدول) */}
+      <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-2 py-4">
         {/* هدر جدول (جستجو و دکمه جدید) */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <div>
-            <h2 className='text-lg font-bold text-borderD dark:text-borderL'>
+            <h2 className="text-lg font-bold text-borderD dark:text-borderL">
               درخواست ها
             </h2>
           </div>
-          <div className='flex gap-4 items-center'>
 
-            <div className="relative max-w-xs">
-              <label htmlFor="search" className="sr-only">
-                جستجو
-              </label>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
+            {/* اینپوت جستجو */}
+            <div className="relative w-full sm:w-60">
               <input
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                type="text"
-                id="search"
-                placeholder="جستجو..."
+                placeholder="جستجو در مشخصات..."
                 className="w-full py-1.5 px-3 pr-10 rounded-lg text-sm bg-inputL text-foregroundL border border-borderL focus:outline-none focus:ring-2 focus:ring-primaryL placeholder:text-muted-foregroundL dark:bg-inputD dark:text-foregroundD dark:border-borderD dark:focus:ring-primaryD dark:placeholder:text-muted-foregroundD"
               />
-              <span className="absolute inset-y-0 right-2 flex items-center">
-                <button
-                  type="submit"
-                  aria-label="جستجو"
-                  className="p-1.5 rounded-full text-muted-foregroundL hover:bg-secondaryL dark:text-muted-foregroundD dark:hover:bg-secondaryD"
-                >
-                  <Search size={18} />
-                </button>
-              </span>
-            </div>
-            <button
 
-              className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm"
-            >
+              <Search
+                size={18}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL dark:text-muted-foregroundD pointer-events-none"
+              />
+            </div>
+
+            <Link to='/requests/new' className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center">
               <CirclePlus size={20} /> درخواست جدید
-            </button>
+            </Link>
           </div>
         </div>
 
-
+        {/* جدول داده‌ها */}
         <div className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
           <DataTable table={table} />
         </div>
 
-
-
+        {/* صفحه‌بندی */}
         <DataTablePagination table={table} />
       </main>
     </div>
+
   );
 };
 
-
-export default RequestsPage
+export default RequestsPage;
