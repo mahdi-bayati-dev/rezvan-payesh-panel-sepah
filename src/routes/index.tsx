@@ -14,9 +14,13 @@ const LoginPage = lazy(() => import("@/features/auth/routes/LoginPage"));
 const RequestsPage = lazy(
   () => import("@/features/requests/routes/requestsPage")
 );
-const NewRequestPage= lazy(
-  ()=>import("@/features/requests/routes/NewRequestPage")
+const NewRequestPage = lazy(
+  () => import("@/features/requests/routes/NewRequestPage")
 )
+
+const RequestDetailPage = lazy(
+  () => import("@/features/requests/routes/RequestDetailPage") // این فایل را در قدم ۳ می‌سازیم
+);
 
 // تعریف ساختار مسیرها (بقیه کد شما از قبل درست بود)
 export const router = createBrowserRouter([
@@ -46,7 +50,16 @@ export const router = createBrowserRouter([
         path: "/requests/new",
         element: (
           <Suspense fallback={<Spinner />}>
-            <NewRequestPage /> 
+            <NewRequestPage />
+          </Suspense>
+        ),
+      },
+      {
+        // آدرس روت با یک پارامتر داینامیک به نام requestId
+        path: "/requests/:requestId", 
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <RequestDetailPage />
           </Suspense>
         ),
       },

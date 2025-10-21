@@ -5,14 +5,19 @@ import {
     DropdownContent,
     DropdownItem,
 } from '@/components/ui/Dropdown';
+import { useNavigate } from 'react-router-dom';
 
 interface ActionsMenuCellProps {
     requestId: string;
 }
 
 const ActionsMenuCell = ({ requestId }: ActionsMenuCellProps) => {
+    const navigate = useNavigate()
+
     const handleEdit = () => console.log('Edit', requestId);
-    const handleView = () => console.log('View', requestId);
+    const handleView = () => {
+        navigate(`/requests/${requestId}`)
+    };
     const handleDelete = () => console.log('Delete', requestId);
 
     return (
