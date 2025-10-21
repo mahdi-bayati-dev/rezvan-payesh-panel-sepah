@@ -44,7 +44,7 @@ export const RequestActionsPanel = ({
 
     return (
         <div className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
-            <h3 className="text-lg font-bold text-right mb-6">گزینه ها</h3>
+            <h3 className="text-lg font-bold text-right mb-6 dark:text-backgroundL-500">گزینه ها</h3>
             <div className="flex flex-col gap-y-6">
 
                 {/* ۴. اتصال SelectBox به پراپ‌های والد */}
@@ -89,7 +89,7 @@ export const RequestActionsPanel = ({
                     <button
                         onClick={onCancel}
                         disabled={isSubmitting}
-                        className="flex-1 flex cursor-pointer items-center justify-center gap-2 hover:bg-destructiveL text-backgroundD border border-borderL px-1 py-1 rounded-xl text-sm font-medium disabled:opacity-50"
+                        className="flex-1 flex cursor-pointer items-center justify-center gap-2 hover:bg-destructiveL text-backgroundD border border-borderL px-1 py-1 rounded-xl text-sm font-medium disabled:opacity-50 dark:text-backgroundL-500"
                     >
                         <X size={18} />
                         لغو

@@ -135,7 +135,7 @@ const RequestsPage = () => {
       </div>
 
       {/* محتوای اصلی (جدول) */}
-      <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-2 py-4">
+      <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD px-1 py-2">
         {/* هدر جدول (جستجو و دکمه جدید) */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <div>

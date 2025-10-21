@@ -81,10 +81,10 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     };
 
     return (
-        <div className="pr-2 w-full">
+        <div className="pr-1 w-full">
             {/* ۸. اتصال فرم */}
             <form onSubmit={handleSubmit(onSave)}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-4">
 
                     {/* ستون راست - قابل ویرایش */}
                     <div className="flex flex-col gap-y-4">
