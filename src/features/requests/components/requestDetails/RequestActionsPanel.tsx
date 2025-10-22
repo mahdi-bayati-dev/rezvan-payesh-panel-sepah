@@ -2,6 +2,7 @@ import type { Request } from "@/features/requests/types";
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import Textarea from '@/components/ui/Textarea';
 import { Printer, X, Check, Settings2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // داده‌های فیک برای وضعیت (بدون تغییر)
 const mockStatuses: SelectOption[] = [
@@ -41,6 +42,12 @@ export const RequestActionsPanel = ({
     isSubmitting,
 }: RequestActionsPanelProps) => {
 
+    const navigate = useNavigate();
+    // ✅ ۳. تابع برای رفتن به صفحه تنظیمات
+    const handleGoToSettings = () => {
+        navigate('/requests/export-settings');
+    };
+
 
     return (
         <div className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
@@ -69,9 +76,13 @@ export const RequestActionsPanel = ({
 
                 {/* ✅ ۶. اضافه کردن آیکون به دکمه‌ها */}
                 <div className="flex items-center gap-2 transition-all">
-                    
+
                     <button
-                        className=" border border-borderL rounded-2xl p-2 cursor-pointer hover:bg-blue hover:text-backgroundL-500">
+                        onClick={handleGoToSettings} // <--- اتصال onClick
+                        aria-label="تنظیمات خورجی گزارش"
+                        className=" border border-borderL rounded-2xl p-2 cursor-pointer hover:bg-blue hover:text-backgroundL-500 dark:border-borderD"
+                        disabled={isSubmitting} // دکمه تنظیمات هم غیرفعال شود
+                    >
                         <Settings2 />
                     </button>
                     <button

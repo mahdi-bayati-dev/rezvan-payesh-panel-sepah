@@ -22,6 +22,10 @@ const RequestDetailPage = lazy(
   () => import("@/features/requests/routes/RequestDetailPage") // این فایل را در قدم ۳ می‌سازیم
 );
 
+const ExportSettingsPage = lazy(
+  () => import("@/features/requests/components/requestDetails/ExportSettingsPage") // این فایل را در مرحله ۳ می‌سازیم
+);
+
 // تعریف ساختار مسیرها (بقیه کد شما از قبل درست بود)
 export const router = createBrowserRouter([
   {
@@ -60,6 +64,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<Spinner />}>
             <RequestDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/requests/export-settings", // آدرس صفحه جدید
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <ExportSettingsPage />
           </Suspense>
         ),
       },
