@@ -19,12 +19,16 @@ const NewRequestPage = lazy(
 )
 
 const RequestDetailPage = lazy(
-  () => import("@/features/requests/routes/RequestDetailPage") // این فایل را در قدم ۳ می‌سازیم
+  () => import("@/features/requests/routes/RequestDetailPage")
 );
 
 const ExportSettingsPage = lazy(
-  () => import("@/features/requests/components/requestDetails/ExportSettingsPage") // این فایل را در مرحله ۳ می‌سازیم
+  () => import("@/features/requests/routes/ExportSettingsPage")
 );
+
+const TableSettingsPage = lazy(
+  () => import('@/features/requests/routes/TableSettingsPage')
+)
 
 // تعریف ساختار مسیرها (بقیه کد شما از قبل درست بود)
 export const router = createBrowserRouter([
@@ -60,7 +64,7 @@ export const router = createBrowserRouter([
       },
       {
         // آدرس روت با یک پارامتر داینامیک به نام requestId
-        path: "/requests/:requestId", 
+        path: "/requests/:requestId",
         element: (
           <Suspense fallback={<Spinner />}>
             <RequestDetailPage />
@@ -68,7 +72,15 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "/requests/export-settings", // آدرس صفحه جدید
+        path: "/requests/settings-table",
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <TableSettingsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/requests/export-settings",
         element: (
           <Suspense fallback={<Spinner />}>
             <ExportSettingsPage />
