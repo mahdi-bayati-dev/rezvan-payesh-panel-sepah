@@ -53,7 +53,7 @@ export const SidebarContent = () => (
         <div className="flex items-center gap-2">
           <img
             alt="پروفایل کاربر"
-            src="https://images.unsplash.com/photo-1600486913747-55e5470d6f40?w=100"
+            src="/img/avatars/2.png"
             className="size-10 rounded-full object-cover"
           />
           <div>
