@@ -13,6 +13,7 @@ class LeaveType extends Model
 
     protected $fillable = [
         'name',
+        'parent_id'
     ];
 
     /**
