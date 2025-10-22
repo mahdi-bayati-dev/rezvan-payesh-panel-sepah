@@ -14,8 +14,20 @@ const LoginPage = lazy(() => import("@/features/auth/routes/LoginPage"));
 const RequestsPage = lazy(
   () => import("@/features/requests/routes/requestsPage")
 );
-const NewRequestPage= lazy(
-  ()=>import("@/features/requests/routes/NewRequestPage")
+const NewRequestPage = lazy(
+  () => import("@/features/requests/routes/NewRequestPage")
+)
+
+const RequestDetailPage = lazy(
+  () => import("@/features/requests/routes/RequestDetailPage")
+);
+
+const ExportSettingsPage = lazy(
+  () => import("@/features/requests/routes/ExportSettingsPage")
+);
+
+const TableSettingsPage = lazy(
+  () => import('@/features/requests/routes/TableSettingsPage')
 )
 
 // تعریف ساختار مسیرها (بقیه کد شما از قبل درست بود)
@@ -46,7 +58,32 @@ export const router = createBrowserRouter([
         path: "/requests/new",
         element: (
           <Suspense fallback={<Spinner />}>
-            <NewRequestPage /> 
+            <NewRequestPage />
+          </Suspense>
+        ),
+      },
+      {
+        // آدرس روت با یک پارامتر داینامیک به نام requestId
+        path: "/requests/:requestId",
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <RequestDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/requests/settings-table",
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <TableSettingsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/requests/export-settings",
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <ExportSettingsPage />
           </Suspense>
         ),
       },

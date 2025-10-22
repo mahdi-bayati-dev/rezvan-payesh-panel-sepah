@@ -21,19 +21,19 @@ const DropdownContent = ({ children }: { children: ReactNode }) => {
     const [position, setPosition] = useState<'bottom' | 'top'>('bottom');
 
     // از useLayoutEffect برای محاسبات دقیق قبل از نمایش در DOM استفاده می‌کنیم
-useLayoutEffect(() => {
-  if (menuRef.current) {
-    const menuRect = menuRef.current.getBoundingClientRect();
-    const { innerHeight } = window;
+    useLayoutEffect(() => {
+        if (menuRef.current) {
+            const menuRect = menuRef.current.getBoundingClientRect();
+            const { innerHeight } = window;
 
-    // اگر پایین منو از صفحه بیرون زد ولی فضای کافی در بالا هست
-    if (menuRect.bottom > innerHeight && menuRect.top > menuRect.height) {
-      setPosition('top');
-    } else {
-      setPosition('bottom');
-    }
-  }
-}, []);
+            // اگر پایین منو از صفحه بیرون زد ولی فضای کافی در بالا هست
+            if (menuRect.bottom > innerHeight && menuRect.top > menuRect.height) {
+                setPosition('top');
+            } else {
+                setPosition('bottom');
+            }
+        }
+    }, []);
 
 
 
@@ -54,7 +54,7 @@ useLayoutEffect(() => {
         >
             <Menu.Items
                 ref={menuRef}
-                className={`absolute z-10 w-48 border-0 dark:border-borderD rounded-md shadow-lg bg-white dark:bg-primary-foregroundD ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none ${positionClasses[position]}`}
+                className={`absolute z-10 w-48 border-0 dark:border-borderD rounded-md shadow-lg bg-white dark:bg-primary-foregroundD ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none  ${positionClasses[position]}`}
             >
                 <div className="py-1">{children}</div>
             </Menu.Items>
@@ -62,7 +62,7 @@ useLayoutEffect(() => {
     );
 };
 
-// --- ۴. کامپوننت آیتم‌های منو (با قابلیت دریافت آیکون) ---
+// --- ۴. کامپوننت آیتم‌های منو ) ---
 interface DropdownItemProps {
     children: ReactNode;
     onClick: () => void;
@@ -77,7 +77,7 @@ const DropdownItem = ({ children, onClick, className = '', icon }: DropdownItemP
                 <button
                     onClick={onClick}
                     className={`${active ? 'bg-gray-100 dark:bg-zinc-700' : ''
-                        } group flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 text-right transition-colors duration-150 ${className}`}
+                        } group flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 cursor-pointer dark:text-gray-300 text-right transition-colors duration-150 ${className}`}
                 >
                     {icon && <span className="text-gray-500 dark:text-gray-400 group-hover:text-current">{icon}</span>}
                     <span>{children}</span>

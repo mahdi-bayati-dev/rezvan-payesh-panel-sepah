@@ -11,12 +11,9 @@ const SidebarNavItem = ({ item }: { item: NavItem }) => {
       <NavLink
         to={item.href}
         className={({ isActive }) =>
-          `flex items-center gap-x-3 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            isActive
-              ? // ✅ استایل فعال با کلاس‌های صحیح
-                "bg-secondaryL text-secondary-foregroundL dark:bg-secondaryD dark:text-secondary-foregroundD"
-              : // ✅ استایل غیرفعال با کلاس‌های صحیح
-                "text-muted-foregroundL hover:bg-secondaryL hover:text-secondary-foregroundL dark:text-muted-foregroundD dark:hover:bg-secondaryD dark:hover:text-secondary-foregroundD"
+          `flex items-center gap-x-3 rounded-lg px-4 py-2 text-sm font-medium transition-transform  duration-200 ease-in-out ${isActive
+            ? "bg-secondaryL text-secondary-foregroundL dark:bg-secondaryD dark:text-secondary-foregroundD "
+            : "text-muted-foregroundL hover:bg-secondaryL hover:text-secondary-foregroundL dark:text-muted-foregroundD dark:hover:bg-secondaryD dark:hover:text-secondary-foregroundD hover:scale-105 hover:shadow-md"
           }`
         }
       >
@@ -53,7 +50,7 @@ export const SidebarContent = () => (
         <div className="flex items-center gap-2">
           <img
             alt="پروفایل کاربر"
-            src="https://images.unsplash.com/photo-1600486913747-55e5470d6f40?w=100"
+            src="/img/avatars/2.png"
             className="size-10 rounded-full object-cover"
           />
           <div>

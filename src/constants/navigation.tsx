@@ -1,6 +1,6 @@
 // src/constants/navigation.ts
 
-import { LayoutDashboard, Users, FileText, BarChart, Shield, History } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Clock3, VectorSquare, SquareChartGantt, Cog, Network, Mails, Puzzle, ListCheck } from "lucide-react";   //Users
 
 // تعریف تایپ برای هر آیتم از منو
 export interface NavItem {
@@ -17,28 +17,50 @@ export const mainNavItems: NavItem[] = [
     icon: <LayoutDashboard size={20} />,
   },
   {
-    label: "کارمندان",
-    href: "/users",
-    icon: <Users size={20} />,
-  },
-  {
     label: "درخواست‌ها",
     href: "/requests",
-    icon: <FileText size={20} />,
+    icon: <Mails size={20} />,
   },
   {
-    label: "گزارش‌ها",
+    label: "گزارش ها",
     href: "/reports",
-    icon: <BarChart size={20} />,
+    icon: <ListCheck size={20} />,
   },
   {
-    label: "مدیریت ادمین‌ها",
-    href: "/admin-management",
-    icon: <Shield size={20} />,
+    label: "گروه کاری",
+    href: "/users",
+    icon: <VectorSquare size={20} />,
+  },
+
+  {
+    label: "سازمان",
+    href: "/organization",
+    icon: <Network size={20} />,
   },
   {
-    label: "تاریخچه",
-    href: "/history",
-    icon: <History size={20} />,
+    label: "تاریخچه فعالیت ها",
+    href: "/activity-history",
+    icon: <Clock3 size={20} />,
   },
+  {
+    label: "الگوی کاری",
+    href: "/work-pattern",
+    icon: <SquareChartGantt size={20} />,
+  },
+  {
+    label: "تقویم کاری",
+    href: "/calendarDays",
+    icon: <CalendarDays size={20} />,
+  },
+  {
+    label: "مدیریت دستگاه ها",
+    href: "/device-management",
+    icon: <Cog size={20} />,
+  },
+  {
+    label: "مدیریت ادمین ها",
+    href: "/calendarDays",
+    icon: <Puzzle size={20} />,
+  },
+
 ];
