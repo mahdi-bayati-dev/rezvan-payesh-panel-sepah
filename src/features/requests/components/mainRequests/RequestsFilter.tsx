@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
-import { X, SlidersHorizontal } from "lucide-react";
+import { X, SlidersHorizontal, CirclePlus, Settings2 } from "lucide-react";
+import { Link } from 'react-router-dom';
 import { Fragment } from "react";
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 import {
@@ -99,10 +100,20 @@ const RequestsFilter = ({
           placeholder="انتخاب کنید"
           inputClassName="py-2.5 pr-10 pl-3"
           containerClassName="w-full"
-          label="تاریخ" 
+          label="تاریخ"
 
         />
       </div>
+      <Link to='/requests/new' className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center">
+        <CirclePlus size={20} /> درخواست جدید
+      </Link>
+      <Link
+        to='/requests/settings-table'
+        className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center"
+      >
+        <Settings2 size={20} /> تنظیمات
+      </Link>
+
     </div>
   );
 
