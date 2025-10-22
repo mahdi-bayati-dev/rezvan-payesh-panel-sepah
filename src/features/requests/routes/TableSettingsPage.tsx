@@ -1,11 +1,11 @@
 import { useState } from "react";
-import {  Plus, Save, X } from 'lucide-react'; 
+import { Plus, Save, X } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import GroupRow from "../components/TableSettingsPage/GroupRow";
 
 
 
-const TableSettingsPag = () => {
+const TableSettingsPage = () => {
     const navigate = useNavigate()
     // فیک
     const [groups, setGroups] = useState([
@@ -16,9 +16,20 @@ const TableSettingsPag = () => {
     ]);
 
     // (توابع Handler برای دکمه‌ها - فعلاً فقط لاگ می‌گیرند)
-    const handleAddGroup = () => console.log("افزودن گروه جدید");
-    const handleEditGroup = (id: string) => console.log("ویرایش گروه:", id);
-    const handleDeleteGroup = (id: string) => console.log("حذف گروه:", id);
+    const handleAddGroup = () => {
+        const newGroup = { id: String(groups.length + 1), name: 'گروه جدید' };
+        setGroups([...groups, newGroup]);
+    };
+    const handleEditGroup = (id: string) => {
+        const updatedGroups = groups.map(group =>
+            group.id === id ? { ...group, name: 'نام ویرایش شده' } : group
+        );
+        setGroups(updatedGroups);
+    };
+    const handleDeleteGroup = (id: string) => {
+        const filteredGroups = groups.filter(group => group.id !== id);
+        setGroups(filteredGroups);
+    };
     const handleSaveChanges = () => {
         console.log("ذخیره تنظیمات...");
         alert("تنظیمات ذخیره شد (شبیه‌سازی)");
@@ -88,4 +99,4 @@ const TableSettingsPag = () => {
     )
 }
 
-export default TableSettingsPag
+export default TableSettingsPage
