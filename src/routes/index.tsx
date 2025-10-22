@@ -29,6 +29,9 @@ const ExportSettingsPage = lazy(
 const TableSettingsPage = lazy(
   () => import('@/features/requests/routes/TableSettingsPage')
 )
+const ActivityReportPage = lazy(
+  () => import("@/features/reports/routes/activityReportPage")
+);
 
 // تعریف ساختار مسیرها (بقیه کد شما از قبل درست بود)
 export const router = createBrowserRouter([
@@ -84,6 +87,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<Spinner />}>
             <ExportSettingsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/reports", // آدرس صفحه گزارش‌ها
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <ActivityReportPage />
           </Suspense>
         ),
       },
