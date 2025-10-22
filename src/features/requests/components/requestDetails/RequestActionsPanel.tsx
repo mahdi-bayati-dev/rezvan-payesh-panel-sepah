@@ -80,7 +80,7 @@ export const RequestActionsPanel = ({
                     <button
                         onClick={handleGoToSettings} // <--- اتصال onClick
                         aria-label="تنظیمات خورجی گزارش"
-                        className=" border border-borderL rounded-2xl p-2 cursor-pointer hover:bg-blue hover:text-backgroundL-500 dark:border-borderD"
+                        className=" border border-borderL rounded-2xl p-2 cursor-pointer hover:bg-blue hover:text-backgroundL-500 dark:border-borderD dark:text-backgroundL-500"
                         disabled={isSubmitting} // دکمه تنظیمات هم غیرفعال شود
                     >
                         <Settings2 />
