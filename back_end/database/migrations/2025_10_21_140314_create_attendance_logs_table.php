@@ -18,6 +18,7 @@ return new class extends Migration
                   ->onDelete('cascade');
 
             $table->foreignId("device_id")
+                ->nullable()
                 ->constrained("devices")
                 ->onDelete('set null')
                 ->onUpdate('cascade');
