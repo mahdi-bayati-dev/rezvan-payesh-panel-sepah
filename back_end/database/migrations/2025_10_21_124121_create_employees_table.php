@@ -32,7 +32,15 @@ return new class extends Migration
             $table->foreignId("work_group_id")->nullable()
                 ->constrained("work_groups")
                 ->onDelete('set null')
-                ->onUpdate('cascade');;
+                ->onUpdate('cascade');
+
+            $table->foreignId('shift_schedule_id')
+                  ->nullable()
+                  ->constrained('shift_schedules')
+                  ->onDelete('set null')
+                  ->comment('برنامه کاری اختصاصی کارمند (override گروه)');
+
+
 
             $table->string("nationality_code")->unique()->index();
             $table->enum('education_level', ['diploma','advanced_diploma', 'bachelor', 'master','doctorate','post_doctorate']);

@@ -13,11 +13,18 @@ class WorkGroup extends Model
     protected $fillable = [
         'name',
         'work_pattern_id',
+        'shift_schedule_id',
     ];
 
     public function workPattern(): BelongsTo
     {
         return $this->belongsTo(WorkPattern::class);
+    }
+
+
+    public function shiftSchedule(): BelongsTo
+    {
+        return $this->belongsTo(ShiftSchedule::class);
     }
 
     public function employee() : HasMany

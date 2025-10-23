@@ -31,7 +31,8 @@ class Employees extends Model
         'house_number',
         'sos_number',
         'address',
-        'work_group_id'
+        'work_group_id',
+        'shift_schedule_id'
     ];
 
     protected $casts = [
@@ -109,5 +110,13 @@ class Employees extends Model
         return $this->belongsTo(WorkGroup::class);
     }
 
+
+    /**
+     * برنامه کاری اختصاصی کارمند (اگر null باشد، از گروه ارث می‌برد)
+     */
+    public function shiftSchedule(): BelongsTo // <-- اضافه شد
+    {
+        return $this->belongsTo(ShiftSchedule::class);
+    }
 
 }

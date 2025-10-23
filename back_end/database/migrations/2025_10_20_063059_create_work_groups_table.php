@@ -14,10 +14,20 @@ return new class extends Migration
         Schema::create('work_groups', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+
+            // اتصال به الگوی کاری (شیفت پیش‌فرض، اگر برنامه کاری نداشت)
             $table->foreignId("work_pattern_id")->nullable()
                 ->constrained("work_patterns")
                 ->onDelete('set null')
                 ->onUpdate('cascade');
+
+
+            // <-- جدید: اتصال به برنامه کاری -->
+            $table->foreignId('shift_schedule_id')
+                  ->nullable()
+                  ->constrained('shift_schedules')
+                  ->onDelete('set null')
+                  ->comment('برنامه کاری پیش‌فرض برای این گروه');
             $table->timestamps();
         });
     }
