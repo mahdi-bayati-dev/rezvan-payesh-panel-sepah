@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\api\AttendanceLogController;
-use App\Http\Controllers\api\AuthController;
+use App\Http\Controllers\Api\AttendanceLogController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\WorkPatternController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
