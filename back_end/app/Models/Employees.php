@@ -31,6 +31,7 @@ class Employees extends Model
         'house_number',
         'sos_number',
         'address',
+        'work_group_id'
     ];
 
     protected $casts = [
@@ -99,6 +100,14 @@ class Employees extends Model
         // نکته: باید مدل و میگریشن 'AttendanceLog' را بسازید
     }
 
+
+    /**
+     * هر کارمند به یک گروه کاری تعلق دارد.
+     */
+    public function workGroup(): BelongsTo
+    {
+        return $this->belongsTo(WorkGroup::class);
+    }
 
 
 }
