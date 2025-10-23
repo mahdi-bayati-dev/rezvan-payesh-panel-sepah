@@ -72,7 +72,11 @@ const chartData = [
   { name: "بخش ۷", value: 228 },
   { name: "بخش ۸", value: 150 },
   { name: "بخش ۹", value: 231 },
+  { name: "بخش ۱۰", value: 120 },
   { name: "بخش ۱۰", value: 138 },
+  { name: "بخش ۱۰", value: 148 },
+  { name: "بخش ۱۰", value: 138 },
+  { name: "بخش ۱۰", value: 180 },
 ];
 
 const DashboardPage = () => {
