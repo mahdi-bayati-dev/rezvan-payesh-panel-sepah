@@ -21,6 +21,7 @@ class AttendanceLog extends Model
         'source_type',
         'edited_by_user_id',
         'remarks',
+        'device_id'
     ];
 
 

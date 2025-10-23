@@ -17,6 +17,11 @@ return new class extends Migration
                   ->constrained('employees')
                   ->onDelete('cascade');
 
+            $table->foreignId("device_id")
+                ->constrained("devices")
+                ->onDelete('set null')
+                ->onUpdate('cascade');
+
             $table->string('source_name')->nullable();
 
             $table->enum('source_type', ['auto', 'manual'])->default('auto');
