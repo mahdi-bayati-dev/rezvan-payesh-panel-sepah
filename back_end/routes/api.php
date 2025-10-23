@@ -15,7 +15,7 @@ Route::middleware('auth:api')->group(function () {
         return "test";
     });
     Route::get("/me", function () {
-        return json_encode(auth()->user());
+        return response()->json(auth()->user());
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 });
