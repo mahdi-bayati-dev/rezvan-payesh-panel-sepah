@@ -5,6 +5,7 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
     label: string;
     error?: string; // برای نمایش خطای اعتبارسنجی
     containerClassName?: string;
+    icon?: React.ReactNode;
 }
 
 
