@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\WorkPatternCollection;
 use App\Models\WorkPattern;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +22,7 @@ class WorkPatternController extends Controller
             })
             ->orderBy('name')
             ->paginate(15);
-        return response()->json($workPatterns);
+        return new WorkPatternCollection($workPatterns);
     }
 
     /**

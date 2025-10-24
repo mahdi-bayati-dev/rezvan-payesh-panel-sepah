@@ -19,9 +19,5 @@ class DatabaseSeeder extends Seeder
                 DeviceSeeder::class,
                 RoleSeeder::class,
             ]);
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
     }
 }
