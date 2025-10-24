@@ -43,6 +43,10 @@ const EmployeeReportsPage = lazy(
   () => import('@/features/reports/routes/EmployeeReportsPage')
 );
 
+const NewActivityRegistrationPage = lazy(
+  () => import('@/features/reports/routes/NewReportPage')
+);
+
 // تعریف ساختار مسیرها (بقیه کد شما از قبل درست بود)
 export const router = createBrowserRouter([
   {
@@ -118,8 +122,19 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'reports/employee/:employeeId', 
-        element: <EmployeeReportsPage />,
+        path: '/reports/employee/:employeeId',
+
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <EmployeeReportsPage />
+          </Suspense>)
+      },
+      {
+        path: '/reports/new',
+
+        element: (<Suspense fallback={<Spinner />}>
+          <NewActivityRegistrationPage />
+        </Suspense >)
       },
     ],
   },
