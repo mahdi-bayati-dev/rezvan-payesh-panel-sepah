@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
@@ -25,5 +26,7 @@ class RoleSeeder extends Seeder
 //        Permission::create(['name' => 'manage users']);
         $super_admin = Role::create(['name' => 'super_admin']);
         $super_admin->givePermissionTo(Permission::all());
+        $user = User::where("username", "admin")->first();
+        $user->assignRole('super_admin');
     }
 }
