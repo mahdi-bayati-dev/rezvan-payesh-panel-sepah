@@ -60,13 +60,18 @@ class GenerateEmployeeShifts implements ShouldQueue
         }
 
         $holidays = Holiday::whereBetween('date', [$this->startDate, $this->endDate])
-            ->pluck('date')
-            ->map(fn($date) => $date->toDateString());
+            ->get()
+            ->keyBy(fn($holiday) => $holiday->date->toDateString());
 
         $approvedLeaves = LeaveRequest::approved()
-            ->where(function($q)
+            ->where(function($query)
             {
-
+                $query->whereBetween('start_time', [$this->startDate, $this->endDate])
+                    ->orWhereBetween('end_time', [$this->startDate, $this->endDate])
+                    ->orWhere(function ($q) {
+                        $q->where('start_time', '<', $this->startDate)
+                            ->where('end_time', '>', $this->endDate);
+                    });
             })
             ->get(['employee_id', 'start_time', 'end_time']);
 
@@ -85,9 +90,13 @@ class GenerateEmployeeShifts implements ShouldQueue
         foreach ($period as $date) {
             $dateString = $date->toDateString();
 
+            $isWeekend = ($date->dayOfWeek === Carbon::FRIDAY);
+
+            $holiday = $holidays[$dateString] ?? null;
             // ۵. بررسی تعطیل رسمی
 
-            if ($holidays->contains($dateString)) {
+            if ($holiday || $isWeekend)
+            {
                 foreach ($employees as $employee) {
                     EmployeeShift::updateOrCreate(
                         [
@@ -191,16 +200,18 @@ class GenerateEmployeeShifts implements ShouldQueue
         {
              throw new \InvalidArgumentException("طول چرخه باید بزرگتر از صفر باشد.");
         }
-        if ($date->lt($cycleStartDate)) {
+        $normalizedCycleStartDate = $cycleStartDate->copy()->startOfDay();
+        if ($date->lt($normalizedCycleStartDate)) {
 
-            throw new \InvalidArgumentException("تاریخ مورد نظر قبل از تاریخ شروع چرخه است.");
-
+            throw new \InvalidArgumentException(
+            "تاریخ مورد نظر ({$date->toDateString()}) قبل از تاریخ شروع چرخه ({$normalizedCycleStartDate->toDateString()}) است."
+            );
         }
         else
         {
-            $diffInDays = $cycleStartDate->diffInDays($date);
+            $diffInDays = $normalizedCycleStartDate->diffInDays($date);
             // محاسبه روز موثر با آفست
-            $effectiveDay = ($diffInDays + $employeeOffset) % $cycleLength;
+           $effectiveDay = ($diffInDays + $employeeOffset) % $cycleLength;
         }
 
         // شماره روز از 1 شروع می‌شود
