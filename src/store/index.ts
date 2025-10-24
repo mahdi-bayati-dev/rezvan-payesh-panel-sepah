@@ -8,21 +8,18 @@ import {
 
 // reducer های هر slice را وارد می‌کنیم
 import themeReducer from "./slices/uiSlice";
-
+import authReducer from "@/store/slices/authSlice"; // مسیر فایل authSlice خودتان
 
 export const store = configureStore({
-  // تمام reducer ها را اینجا ثبت می‌کنیم
   reducer: {
     ui: themeReducer,
-    
+    auth: authReducer,
   },
 });
 
-// ✅ نکته حرفه‌ای: تعریف تایپ‌های سراسری برای state و dispatch
-// این کار باعث می‌شود در کل برنامه از هوک‌های تایپ‌شده استفاده کنیم و از type-safety بهره‌مند شویم.
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-// ✅ ساخت هوک‌های سفارشی و تایپ‌شده به جای استفاده از useDispatch و useSelector خام
+// هوک‌های سفارشی و تایپ‌شده (بدون تغییر، عالی هستند)
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
