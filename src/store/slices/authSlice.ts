@@ -124,7 +124,7 @@ const authSlice = createSlice({
           state.error = null;
         }
       )
-      .addCase(checkAuthStatus.rejected, (state, action) => {
+      .addCase(checkAuthStatus.rejected, (state) => {
         state.initialAuthCheckStatus = "failed";
         state.user = null;
       })
