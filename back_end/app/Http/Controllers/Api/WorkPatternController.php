@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\WorkPatternCollection;
+use App\Http\Resources\WorkPatternResource;
 use App\Models\WorkPattern;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -30,19 +31,24 @@ class WorkPatternController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:work_patterns,name',
-            'type' => ['required', Rule::in(['fixed', 'floating'])],  // اگر نوع 'fixed' بود، زمان شروع و پایان اجباری است
-            'start_time' => 'required_if:type,fixed|nullable|date_format:H:i',
-            'end_time' => 'required_if:type,fixed|nullable|date_format:H:i|after:start_time',
-            'work_duration_minutes' => 'required|integer|min:1|max:1440', // حداقل ۱ دقیقه، حداکثر ۲۴ ساعت
-        ]);
+        $validator = Validator::make($request->all(),
+            [
+                'name' => 'required|string|max:255|unique:work_patterns,name',
+                'type' => ['required', Rule::in(['fixed', 'floating'])],
+                'start_time' => 'required_if:type,fixed|nullable|date_format:H:i',
+                'end_time' => 'required_if:type,fixed|nullable|date_format:H:i',
+                'work_duration_minutes' => 'required|integer|min:1|max:1440',
+            ]);
         if ($validator->fails())
         {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
         $validatedData = $validator->validated();
+        if ($validatedData['type'] === 'fixed' && $validatedData['start_time'] === $validatedData['end_time'])
+        {
+             return response()->json(['errors' => ['end_time' => ['End time cannot be the same as start time for fixed shifts.']]], 422);
+        }
 
         if ($validatedData['type'] === 'floating')
         {
@@ -52,7 +58,9 @@ class WorkPatternController extends Controller
 
         $workPattern = WorkPattern::create($validatedData);
 
-        return response()->json($workPattern, 201);
+        return (new WorkPatternResource($workPattern))
+                ->response()
+                ->setStatusCode(201);
     }
 
     /**
@@ -74,7 +82,7 @@ class WorkPatternController extends Controller
                 'name' => ['required', 'string', 'max:255', Rule::unique('work_patterns')->ignore($workPattern->id)],
                 'type' => ['required', Rule::in(['fixed', 'floating'])],
                 'start_time' => 'required_if:type,fixed|nullable|date_format:H:i',
-                'end_time' => 'required_if:type,fixed|nullable|date_format:H:i|after:start_time',
+                'end_time' => 'required_if:type,fixed|nullable|date_format:H:i',
                 'work_duration_minutes' => 'required|integer|min:1|max:1440',
             ]);
 
@@ -84,6 +92,10 @@ class WorkPatternController extends Controller
         }
         $validatedData = $validator->validated();
 
+        if ($validatedData['type'] === 'fixed' && $validatedData['start_time'] === $validatedData['end_time'])
+        {
+             return response()->json(['errors' => ['end_time' => ['End time cannot be the same as start time for fixed shifts.']]], 422);
+        }
         if ($validatedData['type'] === 'floating')
         {
             $validatedData['start_time'] = null;
@@ -92,7 +104,7 @@ class WorkPatternController extends Controller
 
         $workPattern->update($validatedData);
 
-        return response()->json($workPattern);
+        return new WorkPatternResource($workPattern);
     }
 
     /**

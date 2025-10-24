@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkPatternController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,8 @@ Route::middleware('auth:api')->group(function () {
 
 
     Route::apiResource('work-patterns', WorkPatternController::class);
+
+    Route::apiResource('work-groups', WorkGroupController::class);
 });
 
 
