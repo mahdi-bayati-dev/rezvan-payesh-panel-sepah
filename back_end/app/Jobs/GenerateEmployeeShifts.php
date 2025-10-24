@@ -1,0 +1,225 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Models\Employees;
+use App\Models\EmployeeShift;
+use App\Models\Holiday;
+use App\Models\LeaveRequest;
+use App\Models\ShiftSchedule;
+use App\Models\WorkGroup;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+
+class GenerateEmployeeShifts implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    protected Carbon $startDate;
+    protected Carbon $endDate;
+
+
+    /**
+     * Create a new job instance.
+     */
+    public function __construct(protected int $scheduleId, Carbon $startDate, Carbon $endDate)
+    {
+        $this->startDate = $startDate->startOfDay();
+        $this->endDate = $endDate->endOfDay();
+    }
+
+    /**
+     * Execute the job.
+     */
+    public function handle(): void
+    {
+        Log::info("شروع جاب GenerateEmployeeShifts برای برنامه ID: {$this->scheduleId}, دوره: " . $this->startDate->toDateString() . " تا " . $this->endDate->toDateString());
+
+        // ۱. گرفتن تمام برنامه‌های شیفتی فعال
+
+        $schedule = ShiftSchedule::with(['slots'])
+            ->find($this->scheduleId);
+
+        if (!$schedule)
+        {
+            Log::error("برنامه شیفتی با ID {$this->scheduleId} یافت نشد.");
+            return;
+        }
+
+        if (!$schedule->cycle_start_date)
+        {
+            Log::error("برنامه شیفتی با ID {$this->scheduleId} تاریخ شروع چرخه ندارد.");
+            return;
+        }
+
+        $holidays = Holiday::whereBetween('date', [$this->startDate, $this->endDate])
+            ->pluck('date')
+            ->map(fn($date) => $date->toDateString());
+
+        $approvedLeaves = LeaveRequest::approved()
+            ->where(function($q)
+            {
+
+            })
+            ->get(['employee_id', 'start_time', 'end_time']);
+
+        $leaveMap = $this->buildLeaveMap($approvedLeaves);
+
+
+        // ۳. پیدا کردن تمام کارمندانی که باید از این برنامه پیروی کنند
+
+        $employees = $this->getEmployeesForSchedule($schedule);
+
+
+        // ۴. حلقه روی هر روز در دوره زمانی مشخص شده
+
+        $period = CarbonPeriod::create($this->startDate, $this->endDate);
+
+        foreach ($period as $date) {
+            $dateString = $date->toDateString();
+
+            // ۵. بررسی تعطیل رسمی
+
+            if ($holidays->contains($dateString)) {
+                foreach ($employees as $employee) {
+                    EmployeeShift::updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'date' => $date
+                        ],
+                        [
+                            'work_pattern_id' => null,
+                            'is_off_day' => true,
+                            'shift_schedule_id' => $schedule->id,
+                            'source' => 'holiday'
+                        ]
+                    );
+                }
+                continue; // برو به روز بعد
+            }
+
+            // ۶. حلقه روی کارمندان این برنامه
+            foreach ($employees as $employee) {
+
+                // ۷. بررسی مرخصی
+                if (isset($leaveMap[$employee->id][$dateString]))
+                {
+                    EmployeeShift::updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'date' => $date
+                        ],
+                        [
+                            'work_pattern_id' => null,
+                            'is_off_day' => true,
+                            'shift_schedule_id' => $schedule->id,
+                            'source' => 'leave'
+                        ]
+                    );
+                    continue;
+                }
+
+                // ۸. محاسبه روز در چرخه
+
+                try
+                {
+                    $dayInCycle = $this->calculateDayInCycle($date, $schedule->cycle_start_date, $schedule->cycle_length_days, $employee->shift_offset ?? 0);
+                }
+                catch (\Exception $exception)
+                {
+                    Log::error("خطا در محاسبه روز چرخه برای کارمند {$employee->id} در تاریخ {$dateString} برای برنامه {$schedule->id}: " . $exception->getMessage());
+                     continue;
+                }
+
+                // ۹. پیدا کردن اسلات
+
+                $slot = $schedule->slots->firstWhere('day_in_cycle', $dayInCycle);
+                if (!$slot)
+                {
+                     Log::warning("اسلات برای روز {$dayInCycle} در برنامه {$schedule->id} یافت نشد. کارمند: {$employee->id}, تاریخ: {$dateString}");
+                     continue;
+                }
+
+                // ۱۰. ثبت شیفت
+
+                EmployeeShift::updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'date' => $date
+                    ],
+                    [
+                        'work_pattern_id' => $slot->work_pattern_id,
+                        'is_off_day' => is_null($slot->work_pattern_id),
+                        'shift_schedule_id' => $schedule->id,
+                        'source' => 'scheduled',
+                    ]
+                );
+            }
+        }
+        Log::info("پایان جاب GenerateEmployeeShifts برای برنامه ID: {$this->scheduleId}, دوره: " . $this->startDate->toDateString() . " تا " . $this->endDate->toDateString());
+    }
+
+    protected function getEmployeesForSchedule(ShiftSchedule $schedule): Collection
+    {
+        // کارمندانی که مستقیما به این schedule وصل هستند
+        $directEmployees = Employees::where('shift_schedule_id', $schedule->id)->get();
+
+        // گروه‌هایی که به این schedule وصل هستند
+        $groupIds = WorkGroup::where('shift_schedule_id', $schedule->id)->pluck('id');
+
+        // کارمندان اون گروه‌ها که برنامه اختصاصی ندارن
+        $groupEmployees = Employees::whereIn('work_group_id', $groupIds)
+                                   ->whereNull('shift_schedule_id')
+                                   ->get();
+
+        // ترکیب دو لیست و حذف موارد تکراری
+        return $directEmployees->merge($groupEmployees)->unique('id');
+    }
+    /**
+     * محاسبه شماره روز در چرخه بر اساس تاریخ، تاریخ شروع چرخه، طول چرخه و آفست کارمند
+     */
+    protected function calculateDayInCycle(Carbon $date, Carbon $cycleStartDate, int $cycleLength, int $employeeOffset): int
+    {
+        if ($cycleLength <= 0)
+        {
+             throw new \InvalidArgumentException("طول چرخه باید بزرگتر از صفر باشد.");
+        }
+        if ($date->lt($cycleStartDate)) {
+
+            throw new \InvalidArgumentException("تاریخ مورد نظر قبل از تاریخ شروع چرخه است.");
+
+        }
+        else
+        {
+            $diffInDays = $cycleStartDate->diffInDays($date);
+            // محاسبه روز موثر با آفست
+            $effectiveDay = ($diffInDays + $employeeOffset) % $cycleLength;
+        }
+
+        // شماره روز از 1 شروع می‌شود
+        return $effectiveDay + 1;
+    }
+
+
+    /**
+     * ساخت مپ برای دسترسی سریع به مرخصی‌ها
+     */
+    protected function buildLeaveMap($leaves): array
+    {
+        $map = [];
+        foreach ($leaves as $leave) {
+            $period = CarbonPeriod::create($leave->start_time, $leave->end_time);
+            foreach ($period as $date) {
+                $map[$leave->employee_id][$date->toDateString()] = true;
+            }
+        }
+        return $map;
+    }
+}

@@ -32,7 +32,8 @@ class Employees extends Model
         'sos_number',
         'address',
         'work_group_id',
-        'shift_schedule_id'
+        'shift_schedule_id',
+        'shift_offset'
     ];
 
     protected $casts = [
