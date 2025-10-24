@@ -30,7 +30,17 @@ const TableSettingsPage = lazy(
   () => import('@/features/requests/routes/TableSettingsPage')
 )
 const ActivityReportPage = lazy(
-  () => import("@/features/reports/routes/activityReportPage")
+  () => import("@/features/reports/routes/reportPage")
+);
+const ActivityReportPageDetails = lazy(
+  () => import("@/features/reports/routes/reportPageDetails")
+);
+const ErrorPage = lazy(
+  () => import('@/routes/ErrorPage')
+);
+
+const EmployeeReportsPage = lazy(
+  () => import('@/features/reports/routes/EmployeeReportsPage')
 );
 
 // تعریف ساختار مسیرها (بقیه کد شما از قبل درست بود)
@@ -38,6 +48,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
+    errorElement: <ErrorPage />,
     children: [
       {
         path: "/",
@@ -97,6 +108,18 @@ export const router = createBrowserRouter([
             <ActivityReportPage />
           </Suspense>
         ),
+      },
+      {
+        path: "/reports/:reportId",
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <ActivityReportPageDetails />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'reports/employee/:employeeId', 
+        element: <EmployeeReportsPage />,
       },
     ],
   },
