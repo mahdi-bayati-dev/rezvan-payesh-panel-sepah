@@ -1,19 +1,25 @@
 import { useState } from "react";
 import { Filter, Plus } from "lucide-react";
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
+import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
 import {
   activityTypeOptions,
   trafficAreaOptions,
 } from "@/features/reports/data/mockData";
+import { type DateObject } from 'react-multi-date-picker';
 
 interface ActivityFiltersProps {
   onFilterChange: (filters: {
     activityType: SelectOption | null;
     trafficArea: SelectOption | null;
+    date: DateObject | null; // ۴. تاریخ به آبجکت فیلتر اضافه شد
   }) => void;
+  date: DateObject | null;
+  onDateChange: (date: DateObject | null) => void;
 }
 
-export function ActivityFilters({ onFilterChange }: ActivityFiltersProps) {
+export function ActivityFilters({ onFilterChange, date,
+  onDateChange, }: ActivityFiltersProps) {
   const [activityType, setActivityType] = useState<SelectOption | null>(
     activityTypeOptions[0]
   );
@@ -23,12 +29,12 @@ export function ActivityFilters({ onFilterChange }: ActivityFiltersProps) {
 
   const handleActivityChange = (value: SelectOption) => {
     setActivityType(value);
-    onFilterChange({ activityType: value, trafficArea });
+    onFilterChange({ activityType: value, trafficArea, date });
   };
 
   const handleAreaChange = (value: SelectOption) => {
     setTrafficArea(value);
-    onFilterChange({ activityType, trafficArea: value });
+    onFilterChange({ activityType, trafficArea: value, date });
   };
 
   const handleAddActivity = () => {
@@ -67,6 +73,15 @@ export function ActivityFilters({ onFilterChange }: ActivityFiltersProps) {
           onChange={handleAreaChange}
         />
       </div>
+      <PersianDatePickerInput
+        value={date}
+        onChange={onDateChange}
+        placeholder="انتخاب کنید"
+        inputClassName="py-2.5 pr-10 pl-3"
+        containerClassName="w-full"
+        label="تاریخ"
+
+      />
 
       {/* دکمه خروجی */}
       <button
