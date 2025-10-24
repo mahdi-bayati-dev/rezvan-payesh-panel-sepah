@@ -1,18 +1,10 @@
 // این فایل ستون‌های جدول گزارش را تعریف می‌کند
-// این کامپوننت مستقیماً از کامپوننت‌های ماژولار Badge و Dropdown شما استفاده می‌کند
-
 import { type ColumnDef } from '@tanstack/react-table';
-import { MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { type ActivityLog } from '@/features/reports/types/index';
-// ایمپورت کامپوننت‌های ماژولار شما از پوشه ui
-// مسیر ایمپورت را بر اساس ساختار واقعی پروژه خود تنظیم کنید
+import { ActionsMenuCell } from '@/features/reports/components/reportsPage/ActionsMenuCell';
+
 import Badge, { type BadgeVariant } from '@/components/ui/Badge';
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownContent,
-  DropdownItem,
-} from '@/components/ui/Dropdown';
+
 
 // مپ کردن نوع فعالیت به نوع ظاهری Badge
 const activityVariantMap: Record<ActivityLog['activityType'], BadgeVariant> = {
@@ -103,43 +95,13 @@ export const columns: ColumnDef<ActivityLog>[] = [
   {
     id: 'actions',
     header: '',
+    // ۲. ساده‌سازی کامل سلول
+    // دیگر نیازی به پارامتر 'table' نیست
     cell: ({ row }) => {
-      // در اینجا می‌توانید منطق ویرایش و حذف را پیاده‌سازی کنید
-      const handleEdit = () => {
-        console.log('Edit row:', row.original);
-      };
-      const handleDelete = () => {
-        console.log('Delete row:', row.original);
-      };
-
-      return (
-        <div className="text-left">
-          <Dropdown>
-            <DropdownTrigger>
-              <button
-                type="button"
-                className="p-2 rounded-md hover:bg-secondaryL dark:hover:bg-secondaryD
-                           text-muted-foregroundL dark:text-muted-foregroundD transition-colors"
-              >
-                <MoreVertical className="w-5 h-5" />
-              </button>
-            </DropdownTrigger>
-            <DropdownContent>
-              <DropdownItem onClick={handleEdit} icon={<Edit className="w-4 h-4" />}>
-                ویرایش
-              </DropdownItem>
-              <DropdownItem
-                onClick={handleDelete}
-                icon={<Trash2 className="w-4 h-4" />}
-                className="text-destructiveL dark:text-destructiveD"
-              >
-                حذف
-              </DropdownItem>
-            </DropdownContent>
-          </Dropdown>
-        </div>
-      );
+      // ۳. رندر مستقیم کامپوننت و پاس دادن داده ردیف
+      return <ActionsMenuCell log={row.original} />;
     },
   },
 ];
+
 
