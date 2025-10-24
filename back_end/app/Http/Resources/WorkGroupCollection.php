@@ -14,6 +14,31 @@ class WorkGroupCollection extends ResourceCollection
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'data' => WorkGroupResource::collection($this->collection),
+            'links' => $this->links(),
+            'meta' => $this->meta(),
+        ];
+    }
+    protected function links(): array
+    {
+        return [
+            'first' => $this->url(1),
+            'last' => $this->url($this->lastPage()),
+            'prev' => $this->previousPageUrl(),
+            'next' => $this->nextPageUrl(),
+        ];
+    }
+    protected function meta(): array
+    {
+        return [
+            'current_page' => $this->currentPage(),
+            'from' => $this->firstItem(),
+            'last_page' => $this->lastPage(),
+            'path' => $this->path(),
+            'per_page' => $this->perPage(),
+            'to' => $this->lastItem(),
+            'total' => $this->total(),
+        ];
     }
 }
