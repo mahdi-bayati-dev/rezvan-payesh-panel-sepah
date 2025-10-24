@@ -21,7 +21,7 @@ import { type SelectOption } from '@/components/ui/SelectBox';
 // Features
 import { type ActivityLog } from '../types';
 import { mockActivityLogs } from '@/features/reports/data/mockData';
-import { columns } from '@/features/reports/components/reportsPage/activityTableColumns';
+import { columns } from '@/features/reports/components/reportsPage/TableColumns';
 import { ActivityFilters } from '@/features/reports/components/reportsPage/activityFilters';
 
 // =============================

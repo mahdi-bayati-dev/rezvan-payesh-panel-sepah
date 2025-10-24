@@ -25,13 +25,7 @@ import {
     mockRequestTypes,
 } from '@/features/requests/data/mockData';
 
-// کامپوننت فقط خواندنی (برای ضمیمه)
-// const ReadOnlyRow = ({ label, value }: { label: string; value: string }) => (
-//     <div className="flex justify-between items-center text-sm py-4 border-b border-borderL dark:border-borderD last:border-b-0">
-//         <span className="text-muted-foregroundL dark:text-muted-foregroundD">{label}</span>
-//         <span className="font-medium text-foregroundL dark:text-foregroundD text-left">{value}</span>
-//     </div>
-// );
+
 
 interface RequestInfoCardProps {
     request: Request;
