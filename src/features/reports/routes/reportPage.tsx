@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { DateObject } from "react-multi-date-picker";
 import {
     useReactTable,
     getCoreRowModel,
@@ -21,7 +23,7 @@ import { type SelectOption } from '@/components/ui/SelectBox';
 // Features
 import { type ActivityLog } from '../types';
 import { mockActivityLogs } from '@/features/reports/data/mockData';
-import { columns } from '@/features/reports/components/reportsPage/activityTableColumns';
+import { columns } from '@/features/reports/components/reportsPage/TableColumns';
 import { ActivityFilters } from '@/features/reports/components/reportsPage/activityFilters';
 
 // =============================
@@ -44,6 +46,8 @@ import { ActivityFilters } from '@/features/reports/components/reportsPage/activ
 // 🧾 Component
 // =============================
 export default function ActivityReportPage() {
+    const [date, setDate] = useState<DateObject | null>(null); // ✅ ۲. استیت تاریخ اضافه شد
+
     const [data] = useState<ActivityLog[]>(() => [...mockActivityLogs]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
@@ -52,7 +56,7 @@ export default function ActivityReportPage() {
         pageIndex: 0,
         pageSize: 10,
     });
-
+    const navigate = useNavigate()
     const pagination = useMemo(() => ({ pageIndex, pageSize }), [pageIndex, pageSize]);
 
     const table = useReactTable({
@@ -70,6 +74,11 @@ export default function ActivityReportPage() {
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
+
+    const handelNewReport = () => {
+        navigate('/reports/new')
+
+    }
 
     // =============================
     // 🎛 Handle Column Filters
@@ -95,8 +104,8 @@ export default function ActivityReportPage() {
     return (
         <div className="flex flex-col md:flex-row-reverse gap-6 p-4 md:p-6">
             {/* Sidebar Filters */}
-            <aside className="w-full md:w-80 flex-shrink-0">
-                <ActivityFilters onFilterChange={handleFilterChange} />
+            <aside className=" mx-auto">
+                <ActivityFilters date={date} onDateChange={setDate} onFilterChange={handleFilterChange} />
             </aside>
 
             {/* Main Content */}
@@ -126,8 +135,9 @@ export default function ActivityReportPage() {
 
                         {/* Add Button */}
                         <button
+                            onClick={handelNewReport}
                             type="button"
-                            className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-lg bg-primaryL text-primary-foregroundL dark:bg-primaryD dark:text-primary-foregroundD transition-colors hover:bg-primaryL/90 dark:hover:bg-primaryD/90 text-sm font-medium"
+                            className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-lg bg-primaryL text-primary-foregroundL dark:bg-primaryD dark:text-primary-foregroundD transition-colors  dark:hover:bg-primaryD/90 text-sm font-medium hover:bg-successD-foreground cursor-pointer"
                         >
                             <Plus className="w-5 h-5" />
                             <span>ثبت فعالیت</span>
