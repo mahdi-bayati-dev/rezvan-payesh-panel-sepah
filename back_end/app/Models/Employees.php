@@ -33,7 +33,8 @@ class Employees extends Model
         'address',
         'work_group_id',
         'shift_schedule_id',
-        'shift_offset'
+        'shift_offset',
+        'work_pattern_id'
     ];
 
     protected $casts = [
@@ -118,6 +119,11 @@ class Employees extends Model
     public function shiftSchedule(): BelongsTo // <-- اضافه شد
     {
         return $this->belongsTo(ShiftSchedule::class);
+    }
+
+    public function workPattern(): BelongsTo
+    {
+        return $this->belongsTo(WorkPattern::class);
     }
 
 }

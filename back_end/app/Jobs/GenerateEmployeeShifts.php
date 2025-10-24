@@ -80,7 +80,7 @@ class GenerateEmployeeShifts implements ShouldQueue
 
         // ۳. پیدا کردن تمام کارمندانی که باید از این برنامه پیروی کنند
 
-        $employees = $this->getEmployeesForSchedule($schedule);
+        $employees = $this->getEmployeesForSchedule($schedule)->load('workPattern');
 
 
         // ۴. حلقه روی هر روز در دوره زمانی مشخص شده
@@ -130,6 +130,23 @@ class GenerateEmployeeShifts implements ShouldQueue
                             'is_off_day' => true,
                             'shift_schedule_id' => $schedule->id,
                             'source' => 'leave'
+                        ]
+                    );
+                    continue;
+                }
+
+                if ($employee->work_pattern_id)
+                {
+                    EmployeeShift::updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'date' => $dateString
+                        ],
+                        [
+                            'work_pattern_id' => $employee->work_pattern_id,
+                            'is_off_day' => false,
+                            'shift_schedule_id' => null,
+                            'source' => 'manual'
                         ]
                     );
                     continue;
