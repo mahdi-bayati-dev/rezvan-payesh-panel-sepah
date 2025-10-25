@@ -17,7 +17,7 @@ const LoginForm = () => {
   // --- ۱. اتصال به Redux ---
   const dispatch = useAppDispatch(); // هوک dispatch تایپ شده
   // انتخاب وضعیت‌های مورد نیاز از state ریداکس
-  const authStatus = useAppSelector((state) => state.auth.status);
+  const authStatus = useAppSelector((state) => state.auth.loginStatus);
   const authError = useAppSelector((state) => state.auth.error);
   const isLoading = authStatus === 'loading'; // محاسبه وضعیت لودینگ
 
