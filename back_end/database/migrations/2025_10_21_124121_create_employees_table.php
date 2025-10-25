@@ -45,6 +45,7 @@ return new class extends Migration
             $table->string("nationality_code")->unique()->index();
             $table->enum('education_level', ['diploma','advanced_diploma', 'bachelor', 'master','doctorate','post_doctorate']);
             $table->date("starting_job");
+            $table->softDeletes();
             $table->timestamps();
         });
     }

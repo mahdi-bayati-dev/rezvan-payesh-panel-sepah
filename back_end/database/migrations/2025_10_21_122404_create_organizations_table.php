@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('parent_id')->nullable()->constrained('organizations')->onDelete('set null');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

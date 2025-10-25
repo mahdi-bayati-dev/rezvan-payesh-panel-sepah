@@ -36,7 +36,7 @@ class WorkPatternController extends Controller
                 'name' => 'required|string|max:255|unique:work_patterns,name',
                 'type' => ['required', Rule::in(['fixed', 'floating'])],
                 'start_time' => 'required_if:type,fixed|nullable|date_format:H:i',
-                'end_time' => 'required_if:type,fixed|nullable|date_format:H:i',
+                'end_time' => 'required_if:type,fixed|nullable|date_format:H:i|after:start_time',
                 'work_duration_minutes' => 'required|integer|min:1|max:1440',
             ]);
         if ($validator->fails())
@@ -82,7 +82,7 @@ class WorkPatternController extends Controller
                 'name' => ['required', 'string', 'max:255', Rule::unique('work_patterns')->ignore($workPattern->id)],
                 'type' => ['required', Rule::in(['fixed', 'floating'])],
                 'start_time' => 'required_if:type,fixed|nullable|date_format:H:i',
-                'end_time' => 'required_if:type,fixed|nullable|date_format:H:i',
+                'end_time' => 'required_if:type,fixed|nullable|date_format:H:i|after:start_time',
                 'work_duration_minutes' => 'required|integer|min:1|max:1440',
             ]);
 

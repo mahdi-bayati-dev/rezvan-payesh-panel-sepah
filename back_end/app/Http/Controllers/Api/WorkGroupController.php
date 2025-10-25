@@ -17,6 +17,7 @@ class WorkGroupController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', WorkGroup::class);
         $workGroups = WorkGroup::with(['workPattern', 'shiftSchedule'])
             ->orderBy('name')
             ->paginate(15);

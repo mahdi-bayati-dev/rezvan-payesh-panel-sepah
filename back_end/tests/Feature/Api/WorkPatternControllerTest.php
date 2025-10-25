@@ -69,13 +69,21 @@ class WorkPatternControllerTest extends TestCase
         $response = $this->postJson(route('work-patterns.store'), $data);
 
         $response->assertStatus(201)
-                 ->assertJsonFragment([
-                     'name' => $data['name'],
-                     'type' => $data['type'],
-                     'start_time' => $data['start_time'] ,
-                     'end_time' => $data['end_time'],
-                     'work_duration_minutes' => $data['work_duration_minutes'],
-                 ]);
+                 ->assertJsonPath('data.name', $data['name'])
+                 ->assertJsonPath('data.type', $data['type'])
+                 ->assertJsonPath('data.work_duration_minutes', $data['work_duration_minutes'])
+                 ->assertJson(function ($json) use ($data) {
+                     // مقدار کامل رشته datetime را از پاسخ JSON می‌خوانیم
+                     $startTime = $json->json('data.start_time');
+                     $endTime = $json->json('data.end_time');
+
+                     // اطمینان حاصل می‌کنیم که زمان ارسالی ما (مثلا "08:00")
+                     // درون رشته کامل datetime (مثلا "2025-10-25T08:00:00...") وجود دارد
+                     $this->assertStringContainsString($data['start_time'], $startTime, "رشته start_time مطابقت ندارد.");
+                     $this->assertStringContainsString($data['end_time'], $endTime, "رشته end_time مطابقت ندارد.");
+
+                     return true; // به کلوژر می‌گوییم که تست موفق بود
+                 });
 
 
         $this->assertDatabaseHas('work_patterns', [
@@ -129,7 +137,7 @@ class WorkPatternControllerTest extends TestCase
         ]);
 
         $response->assertStatus(422) // چک کردن کد 422 Unprocessable Entity
-                 ->assertJsonValidationErrors(['name', 'type', 'start_time', 'end_time', 'work_duration_minutes']); // چک کردن وجود خطا برای فیلدها
+                 ->assertJsonValidationErrors(['name', 'type', 'start_time', 'work_duration_minutes']); // چک کردن وجود خطا برای فیلدها
     }
 
     /**

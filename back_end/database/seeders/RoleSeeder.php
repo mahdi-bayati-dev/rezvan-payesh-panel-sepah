@@ -17,7 +17,8 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::create(['name' => 'admin']);
+        Role::create(['name' => 'org-admin-l2']);
+        Role::create(['name' => 'org-admin-l3']);
         Role::create(['name' => 'user']);
         Permission::create(['name' => 'create config']);
         Permission::create(['name' => 'leader']);
