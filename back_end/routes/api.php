@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\ScheduleSlotController;
 use App\Http\Controllers\Api\ShiftScheduleController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkPatternController;
 use Illuminate\Http\Request;
@@ -23,6 +24,8 @@ Route::middleware('auth:api')->group(function () {
     })->name('api.me');;
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 
+    //users
+    Route::apiResource('users', UserController::class);
 
     Route::apiResource('work-patterns', WorkPatternController::class);
 
