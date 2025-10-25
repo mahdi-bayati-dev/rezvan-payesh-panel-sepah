@@ -6,6 +6,9 @@ import { loginSchema, type LoginFormData } from '@/features/auth/schema/loginSch
 import { useAppDispatch, useAppSelector } from '@/hook/reduxHooks'; // هوک‌های تایپ شده Redux (باید در پروژه تعریف شوند)
 import { loginUser } from '@/store/slices/authSlice'; // ایمپورت Async Thunk
 import Input from '@/components/ui/Input'; // ایمپورت کامپوننت Input ماژولار
+import { toast } from 'react-toastify';
+import type { Id as ToastId } from 'react-toastify';
+import { useEffect, useRef } from "react";
 
 const LoginForm = () => {
   const theme = useAppSelector((state) => state.ui.theme)
@@ -21,8 +24,9 @@ const LoginForm = () => {
   const authError = useAppSelector((state) => state.auth.error);
   const isLoading = authStatus === 'loading'; // محاسبه وضعیت لودینگ
 
-  // --- ۲. اتصال به React Hook Form ---
+  //  React Hook Form 
   const {
+    reset,
     register,
     handleSubmit,
     formState: { errors },
@@ -33,17 +37,46 @@ const LoginForm = () => {
       password: '',
     },
   });
-
-  // --- ۳. تابع onSubmit ---
-  // این تابع زمانی که فرم معتبر باشد توسط handleSubmit فراخوانی می‌شود
+  const loadingToastId = useRef<ToastId | null>(null);
+  // -onSubmit 
   const onSubmit: SubmitHandler<LoginFormData> = (data) => {
     // dispatch کردن Async Thunk با داده‌های فرم
-    console.log('==>',data);
+    console.log('==>', data);
 
     dispatch(loginUser(data));
     console.log(data);
-    
+
   };
+
+  useEffect(() => {
+    if (authStatus === 'loading') {
+      // ۲. ذخیره مستقیم ID بازگشتی از toast.loading در ref
+      loadingToastId.current = toast.loading("در حال بررسی اطلاعات...", { rtl: true });
+    } else if (authStatus === 'succeeded') {
+      // ۳. بررسی و بستن نوتیفیکیشن لودینگ با استفاده از ref.current
+      if (loadingToastId.current) {
+        toast.dismiss(loadingToastId.current);
+        loadingToastId.current = null; // پاک کردن ref
+      }
+      toast.success("ورود با موفقیت انجام شد!", { rtl: true });
+      reset();
+    } else if (authStatus === 'failed' && authError) {
+      // ۳. بررسی و بستن نوتیفیکیشن لودینگ
+      if (loadingToastId.current) {
+        toast.dismiss(loadingToastId.current);
+        loadingToastId.current = null; // پاک کردن ref
+      }
+      toast.error(authError, { rtl: true });
+    }
+
+    // Cleanup function: بستن نوتیفیکیشن لودینگ اگر کامپوننت unmount شود
+    return () => {
+      if (loadingToastId.current) {
+        toast.dismiss(loadingToastId.current);
+      }
+    }
+    // وابستگی‌ها بدون تغییر
+  }, [authStatus, authError, reset]);
 
   return (
     // استایل‌های کلی فرم (بدون تغییر زیاد)

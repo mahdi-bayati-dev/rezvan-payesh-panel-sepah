@@ -1,44 +1,47 @@
 import axios from "axios";
+import { store } from "@/store"; // ۱. ایمپورت store برای دسترسی به state (روش پیشرفته‌تر)
 
-// ۱. خواندن آدرس پایه API از متغیر محیطی
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
 
-// ۲. ساخت یک instance جدید از Axios با تنظیمات پیش‌فرض
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // (HttpOnly)
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
   },
 });
 
-
 // Request Interceptor:
 axiosInstance.interceptors.request.use(
   (config) => {
-    // در اینجا می‌توانید تنظیمات config را قبل از ارسال تغییر دهید
-    // مثلاً:
-    // const token = localStorage.getItem('some_other_token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
-    console.log("Starting Request:", config.method?.toUpperCase(), config.url);
+    // ۲. خواندن توکن از Redux state (روش بهتر از localStorage مستقیم)
+    const token = store.getState().auth.accessToken; // دسترسی به state از store
+
+    // ۳. اگر توکن وجود داشت، هدر Authorization را اضافه کن
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    console.log(
+      "Starting Request:",
+      config.method?.toUpperCase(),
+      config.url,
+      token ? "with token" : "without token"
+    );
     return config;
   },
   (error) => {
-    // مدیریت خطای پیش از ارسال درخواست
     console.error("Request Error Interceptor:", error);
     return Promise.reject(error);
   }
 );
 
-// Response Interceptor:
-// می‌توانید پاسخ‌های دریافتی یا خطاها را به صورت سراسری مدیریت کنید
+// Response Interceptor (بدون تغییر زیاد، فقط لاگ‌اوت در 401 را می‌توان فعال کرد)
 axiosInstance.interceptors.response.use(
   (response) => {
     console.log("Response Received:", response.status, response.config.url);
-    return response; // پاسخ را برای استفاده بعدی برگردان
+    return response;
   },
   (error) => {
     console.error(
@@ -48,22 +51,23 @@ axiosInstance.interceptors.response.use(
       error.response?.data
     );
 
-    // مثال: مدیریت خطای 401 (Unauthorized) به صورت سراسری
+    // ۴. مدیریت خطای 401 برای Bearer Token
     if (error.response && error.response.status === 401) {
-      // کاربر احراز هویت نشده یا کوکی منقضی شده است
       console.warn(
-        "Unauthorized request detected (401). Redirecting to login..."
+        "Unauthorized request detected (401). Token might be invalid or expired. Logging out..."
       );
-      // در اینجا می‌توانید کاربر را به صفحه لاگین هدایت کنید
-      // یا یک اکشن Redux برای لاگ‌اوت dispatch کنید
-      // window.location.href = '/login'; // (روش ساده اما باعث رفرش کامل می‌شود)
-      // store.dispatch(logout()); // (اگر به store دسترسی دارید)
+      // ۵. dispatch کردن اکشن clearToken یا logoutUser از store
+      // (برای جلوگیری از loop، چک کنید که درخواست اصلی login نبوده باشد)
+      if (!error.config.url?.endsWith("/login")) {
+        store.dispatch({ type: "auth/clearToken" }); // dispatch اکشن ساده برای پاک کردن توکن
+        // یا
+        // import { logoutUser } from '@/store/slices/authSlice';
+        // store.dispatch(logoutUser()); // dispatch کردن thunk لاگ‌اوت
+        // window.location.href = '/login'; // ریدایرکت مستقیم (کمتر توصیه می‌شود)
+      }
     }
-
-    // خطا را برای مدیریت در catch مربوط به createAsyncThunk برگردان
     return Promise.reject(error);
   }
 );
 
-// ۴. اکسپورت instance پیکربندی شده برای استفاده در سایر فایل‌ها
 export default axiosInstance;

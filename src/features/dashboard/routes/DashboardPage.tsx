@@ -86,7 +86,7 @@ const DashboardPage = () => {
   const [selectedDate, setSelectedDate] = useState<DateObject | null>(
     new DateObject({ calendar: persian, locale: persian_fa })
   );
-  console.log(selectedDate);
+  
 
 
   return (
