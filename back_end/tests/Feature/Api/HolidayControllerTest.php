@@ -57,26 +57,31 @@ class HolidayControllerTest extends TestCase
     // --- تست‌های متد index ---
 
     #[Test] public function admin_can_list_holidays(): void
-    {
-        // ساخت چند تعطیلی نمونه
-        Holiday::factory()->count(5)->create();
-        $holidayInRange = Holiday::factory()->create(['date' => Carbon::now()->addDays(10)->toDateString()]);
+{
 
-        $this->assertEquals(6, Holiday::count());
-        // درخواست بدون فیلتر
-        $response = $this->actingAsAdmin()->getJson(route('holidays.index'));
-        dump($response->getContent());
-        $response->assertStatus(200);
-        $response->assertJsonCount(6, 'data');
+    Holiday::factory()->create(['date' => Carbon::now()->addDays(2)->toDateString()]);
+    // یکی دقیقا داخل بازه (همونی که انتظار داریم پیدا بشه)
+    $holidayInRange = Holiday::factory()->create(['date' => Carbon::now()->addDays(10)->toDateString()]);
+    // یکی بعد از بازه
+    Holiday::factory()->create(['date' => Carbon::now()->addDays(20)->toDateString()]);
+    // === جمعا ۳ رکورد ===
 
-        // درخواست با فیلتر تاریخ
-        $startDate = Carbon::now()->addDays(5)->toDateString();
-        $endDate = Carbon::now()->addDays(15)->toDateString();
-        $responseFiltered = $this->actingAsAdmin()->getJson(route('holidays.index', ['start_date' => $startDate, 'end_date' => $endDate]));
-        $responseFiltered->assertStatus(200)
-                        ->assertJsonCount(1) // فقط باید holidayInRange برگردد
-                        ->assertJsonFragment(['date' => $holidayInRange->date->format('Y-m-d')]);
-    }
+    // درخواست بدون فیلتر
+    $response = $this->actingAsAdmin()->getJson(route('holidays.index'));
+    $response->assertStatus(200)
+             // حالا انتظار ۳ تا نتیجه در کلید 'data' داریم
+             ->assertJsonCount(3, 'data'); // <-- این را به ۳ تغییر دهید
+
+    // درخواست با فیلتر تاریخ (بازه ۵ تا ۱۵ روز آینده)
+    $startDate = Carbon::now()->addDays(5)->toDateString();
+    $endDate = Carbon::now()->addDays(15)->toDateString();
+    $responseFiltered = $this->actingAsAdmin()->getJson(route('holidays.index', ['start_date' => $startDate, 'end_date' => $endDate]));
+
+    $responseFiltered->assertStatus(200)
+                    // حالا باید فقط ۱ نتیجه برگرده
+                    ->assertJsonCount(1, 'data') // <-- خط ۷۷: انتظار ۱ نتیجه در 'data' (این درست بود)
+                    ->assertJsonPath('data.0.date', $holidayInRange->date->format('Y-m-d')); // چک کن همون رکورده
+}
 
     #[Test] public function normal_user_cannot_list_holidays(): void
     {

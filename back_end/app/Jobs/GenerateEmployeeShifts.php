@@ -140,6 +140,7 @@ class GenerateEmployeeShifts implements ShouldQueue
 
                 if ($employee->work_pattern_id)
                 {
+                    $dedicatedPattern = $employee->workPattern;
                     EmployeeShift::updateOrCreate(
                         [
                             'employee_id' => $employee->id,
@@ -150,8 +151,8 @@ class GenerateEmployeeShifts implements ShouldQueue
                             'is_off_day' => false,
                             'shift_schedule_id' => null,
                             'source' => 'manual',
-                            'expected_start_time' => null,
-                            'expected_end_time' => null,
+                            'expected_start_time' => $dedicatedPattern?->start_time,
+                            'expected_end_time' => $dedicatedPattern?->end_time,
                         ]
                     );
                     continue;
