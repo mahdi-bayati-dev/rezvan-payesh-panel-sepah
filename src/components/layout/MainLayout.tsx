@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-// ✅ کامنت: SidebarContent را از فایل خودش وارد می‌کنیم
 import { Sidebar, SidebarContent } from "./Sidebar";
 import { Header } from "./Header";
 
@@ -11,6 +10,7 @@ export const MainLayout = () => {
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
+
       <Header onMenuClick={() => setSidebarOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
