@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HolidayController;
+use App\Http\Controllers\Api\ScheduleSlotController;
+use App\Http\Controllers\Api\ShiftScheduleController;
 use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkPatternController;
 use Illuminate\Http\Request;
@@ -25,6 +27,15 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('work-patterns', WorkPatternController::class);
 
     Route::apiResource('work-groups', WorkGroupController::class);
+
+    //shift
+
+    Route::apiResource('shift-schedules', ShiftScheduleController::class);
+
+    // روت‌های تودرتو برای مدیریت اسلات‌های یک برنامه شیفتی خاص
+    Route::prefix('shift-schedules/{shiftSchedule}/slots')->group(function () {
+        Route::patch('/{scheduleSlot}', [ScheduleSlotController::class, 'update']);
+    });
 
     //Holiday
     Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');
