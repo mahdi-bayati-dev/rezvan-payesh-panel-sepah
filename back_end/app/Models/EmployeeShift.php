@@ -20,8 +20,10 @@ class EmployeeShift extends Model
         'date',
         'work_pattern_id', // ID شیفتی که به این روز اختصاص داده شده
         'is_off_day',
-        'shift_schedule_id', // برنامه‌ای که این شیفت از آن تولید شده
-        'source',          // منبع (scheduled, manual, leave, holiday)
+        'shift_schedule_id',
+        'source',
+        'expected_start_time',
+        'expected_end_time',
     ];
 
     protected $casts = [

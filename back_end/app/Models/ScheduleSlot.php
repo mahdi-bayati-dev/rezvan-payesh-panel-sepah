@@ -14,8 +14,14 @@ class ScheduleSlot extends Model
         [
             'shift_schedule_id',
             'day_in_cycle',
-            'work_pattern_id'
+            'work_pattern_id',
+            'override_start_time',
+            'override_end_time',
         ];
+    protected $casts = [
+        'override_start_time' => 'datetime:H:i',
+        'override_end_time'   => 'datetime:H:i',
+    ];
 
 
     public function schedule(): BelongsTo

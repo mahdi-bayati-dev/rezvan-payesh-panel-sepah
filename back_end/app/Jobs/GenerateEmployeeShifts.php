@@ -44,8 +44,7 @@ class GenerateEmployeeShifts implements ShouldQueue
 
         // ۱. گرفتن تمام برنامه‌های شیفتی فعال
 
-        $schedule = ShiftSchedule::with(['slots'])
-            ->find($this->scheduleId);
+        $schedule = ShiftSchedule::with(['slots.workPattern'])->find($this->scheduleId);
 
         if (!$schedule)
         {
@@ -107,7 +106,9 @@ class GenerateEmployeeShifts implements ShouldQueue
                             'work_pattern_id' => null,
                             'is_off_day' => true,
                             'shift_schedule_id' => $schedule->id,
-                            'source' => 'holiday'
+                            'source' => 'holiday',
+                            'expected_start_time' => null,
+                            'expected_end_time' => null,
                         ]
                     );
                 }
@@ -129,7 +130,9 @@ class GenerateEmployeeShifts implements ShouldQueue
                             'work_pattern_id' => null,
                             'is_off_day' => true,
                             'shift_schedule_id' => $schedule->id,
-                            'source' => 'leave'
+                            'source' => 'leave',
+                            'expected_start_time' => null,
+                            'expected_end_time' => null,
                         ]
                     );
                     continue;
@@ -146,7 +149,9 @@ class GenerateEmployeeShifts implements ShouldQueue
                             'work_pattern_id' => $employee->work_pattern_id,
                             'is_off_day' => false,
                             'shift_schedule_id' => null,
-                            'source' => 'manual'
+                            'source' => 'manual',
+                            'expected_start_time' => null,
+                            'expected_end_time' => null,
                         ]
                     );
                     continue;
@@ -172,21 +177,49 @@ class GenerateEmployeeShifts implements ShouldQueue
                      Log::warning("اسلات برای روز {$dayInCycle} در برنامه {$schedule->id} یافت نشد. کارمند: {$employee->id}, تاریخ: {$dateString}");
                      continue;
                 }
+                $workPattern = $slot->workPattern;
 
                 // ۱۰. ثبت شیفت
+                if ($workPattern) {
+                    // زمان شروع: اگر override_start_time در اسلات هست، از آن استفاده کن، وگرنه از الگو
 
-                EmployeeShift::updateOrCreate(
-                    [
-                        'employee_id' => $employee->id,
-                        'date' => $date
-                    ],
-                    [
-                        'work_pattern_id' => $slot->work_pattern_id,
-                        'is_off_day' => is_null($slot->work_pattern_id),
-                        'shift_schedule_id' => $schedule->id,
-                        'source' => 'scheduled',
-                    ]
-                );
+                    $startTime = $slot->override_start_time ?? $workPattern->start_time;
+
+                    $endTime = $slot->override_end_time ?? $workPattern->end_time;
+
+
+                    EmployeeShift::updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'date' => $date
+                        ],
+                        [
+                            'work_pattern_id' => $slot->work_pattern_id,
+                            'is_off_day' => is_null($slot->work_pattern_id),
+                            'shift_schedule_id' => $schedule->id,
+                            'expected_start_time' => $startTime?->format('H:i'),
+                            'expected_end_time' => $endTime?->format('H:i'),
+                            'source' => 'scheduled',
+                        ]
+                    );
+                }
+                else
+                {
+                    EmployeeShift::updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'date' => $dateString
+                        ],
+                        [
+                            'work_pattern_id' => null,
+                            'is_off_day' => true,
+                            'shift_schedule_id' => $schedule->id,
+                            'source' => 'scheduled',
+                            'expected_start_time' => null,
+                            'expected_end_time' => null,
+                        ]
+                    );
+                }
             }
         }
         Log::info("پایان جاب GenerateEmployeeShifts برای برنامه ID: {$this->scheduleId}, دوره: " . $this->startDate->toDateString() . " تا " . $this->endDate->toDateString());
