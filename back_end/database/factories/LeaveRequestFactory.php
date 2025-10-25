@@ -32,7 +32,7 @@ class LeaveRequestFactory extends Factory
             'end_time' => $endDate,
             'reason' => $this->faker->sentence(), // دلیل مرخصی
             'status' => $this->faker->randomElement(['pending', 'approved', 'rejected']), // وضعیت تصادفی
-            'approved_by_user_id' => function (array $attributes) {
+            'processed_by_user_id' => function (array $attributes) {
                 // فقط اگر وضعیت 'approved' یا 'rejected' بود، یک تایید کننده بده
                 return in_array($attributes['status'], ['approved', 'rejected'])
                     ? User::factory() // یا User::inRandomOrder()->first()?->id
@@ -53,7 +53,7 @@ class LeaveRequestFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'approved',
-            'approved_by_user_id' => User::factory(), // یا User::inRandomOrder()->first()?->id
+            'processed_by_user_id' => User::factory(), // یا User::inRandomOrder()->first()?->id
             'rejection_reason' => null,
         ]);
     }
@@ -65,7 +65,7 @@ class LeaveRequestFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'rejected',
-            'approved_by_user_id' => User::factory(), // یا User::inRandomOrder()->first()?->id
+            'processed_by_user_id' => User::factory(), // یا User::inRandomOrder()->first()?->id
             'rejection_reason' => $this->faker->sentence(),
         ]);
     }
@@ -77,7 +77,7 @@ class LeaveRequestFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'pending',
-            'approved_by_user_id' => null,
+            'processed_by_user_id' => null,
             'rejection_reason' => null,
         ]);
     }
