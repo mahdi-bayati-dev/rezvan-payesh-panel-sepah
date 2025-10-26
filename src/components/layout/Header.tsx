@@ -30,7 +30,9 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           <img
             className="max-w-20 max-h-16"
             src={logoSrc}
-            alt=""
+            alt="لوگوی شهرداری کرمان"
+            loading="lazy"
+            decoding="async"
           />
           <h1 className="hidden md:block text-lg font-bold text-primaryL dark:text-primaryD">
             رضـــوان پایش
