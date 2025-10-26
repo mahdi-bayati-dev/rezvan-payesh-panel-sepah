@@ -25,7 +25,7 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         $user = $request->user();
-        $userEmployeeProfile = $user->employees;
+        $userEmployeeProfile = $user->employee;
 
         $query = User::with(['employee.organization', 'roles']);
 
@@ -74,6 +74,13 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $creatingUser = $request->user();
+        $allowedRoles = ['user'];
+        $allowedOrgCheck = true;
+        if ($creatingUser->hasRole('super-admin'))
+        {
+            $allowedRoles = Role::pluck('name')->all();
+            $allowedOrgCheck = false;
+        }
         $creatingUserEmployee = $creatingUser->employee;
 
         $validator = Validator::make($request->all(), [
@@ -81,7 +88,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', Password::defaults()],
-            'role' => ['required', 'string', Rule::exists('roles', 'name')], // نقش باید وجود داشته باشد
+            'role' => ['required', 'string', Rule::in($allowedRoles)],
             'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
 
             // Employee fields
@@ -121,27 +128,22 @@ class UserController extends Controller
         $validatedData = $validator->validated();
         $employeeData = $validatedData['employee'];
         $targetOrgId = $employeeData['organization_id'];
-        $targetRoleName = $validatedData['role'];
 
-        // 3. Authorize Scope: آیا ادمین اجازه ایجاد کاربر در این سازمان و با این نقش را دارد؟
-        if (!$this->canAdminManageOrg($creatingUser, $targetOrgId))
+        if ($allowedOrgCheck && !$this->canAdminManageOrg($creatingUser, $targetOrgId))
         {
              return response()->json(['message' => 'Unauthorized scope for organization.'], 403);
         }
-        if (!$this->canAdminAssignRole($creatingUser, $targetRoleName))
-        {
-             return response()->json(['message' => 'Unauthorized role assignment.'], 403);
-        }
         // 4. Create User and Employee in Transaction
-        $user = DB::transaction(function () use ($validatedData, $employeeData, $targetRoleName) {
+        $user = DB::transaction(function () use ($validatedData, $employeeData) {
             $user = User::create([
-                'user_name' => $validatedData['name'],
+                'user_name' => $validatedData['user_name'],
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
                 'status' => $validatedData['status'],
             ]);
 
-            $user->employeess()->create([
+            $user->employee()->create(
+                [
                 'first_name' => $employeeData['first_name'],
                 'last_name' => $employeeData['last_name'],
                 'personnel_code' => $employeeData['personnel_code'],
@@ -171,7 +173,7 @@ class UserController extends Controller
 
             ]);
 
-            $user->assignRole($targetRoleName);
+            $user->assignRole($validatedData['role']);
 
             return $user;
         });
@@ -196,20 +198,22 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
         $updatingUser = $request->user();
+        $canChangeRole = $updatingUser->hasRole('super-admin') && $updatingUser->id !== $user->id;
+        $allowedOrgCheck = !$updatingUser->hasRole('super-admin');
         $updatingUserEmployee = $updatingUser->employee;
 
         $validator = Validator::make($request->all(), [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', Password::defaults()],
-            'role' => ['sometimes', 'required', 'string', Rule::exists('roles', 'name')],
+            'role' => ['sometimes', 'required', 'string', Rule::exists('roles', 'name'),Rule::prohibitedIf(!$canChangeRole)],
             'employee.status' => ['sometimes', 'required', 'string', Rule::in(['active', 'inactive'])],
 
             // Employee fields
             'employee.first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'employee.last_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'employee.personnel_code' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('employees', 'personnel_code')->ignore($user->employees?->id)], // کد پرسنلی یکتا
-            'employee.organization_id' => ['sometimes', 'required', 'integer', Rule::exists('organizations', 'id')],
+            'employee.personnel_code' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('employees', 'personnel_code')->ignore($user->employee?->id)], // کد پرسنلی یکتا
+            'employee.organization_id' => ['sometimes', 'required', 'integer', Rule::exists('organizations', 'id'),Rule::prohibitedIf(!$updatingUser->hasRole('super-admin'))],
             'employee.position' => ['nullable', 'string', 'max:255'],
             'employee.starting_job' => ['nullable', 'date'],
 
@@ -218,13 +222,13 @@ class UserController extends Controller
             // اطلاعات شخصی
             'employee.father_name' => ['nullable', 'string', 'max:255'],
             'employee.birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'employee.nationality_code' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'nationality_code')->ignore($user->employees?->id)],
+            'employee.nationality_code' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'nationality_code')->ignore($user->employee?->id)],
             'employee.gender' => ['sometimes', 'required', 'string', Rule::in(['male', 'female'])],
             'employee.is_married' => ['sometimes', 'required', 'boolean'],
             'employee.education_level' => ['nullable', 'string', 'max:255',Rule::in(['diploma','advanced_diploma', 'bachelor', 'master','doctorate','post_doctorate']),],
 
             // اطلاعات تماس
-            'employee.phone_number' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'phone_number')->ignore($user->employees?->id)],
+            'employee.phone_number' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'phone_number')->ignore($user->employee?->id)],
             'employee.house_number' => ['nullable', 'string', 'max:50'],
             'employee.sos_number' => ['nullable', 'string', 'max:20'],
             'employee.address' => ['nullable', 'string', 'max:1000'],
@@ -243,15 +247,13 @@ class UserController extends Controller
 
          $validatedData = $validator->validated();
          $employeeData = $validatedData['employee'] ?? [];
-         $targetOrgId = $employeeData['organization_id'] ?? $user->employees?->organization_id;
-         $targetRoleName = $validatedData['role'] ?? $user->roles->first()?->name;
-         
-         if (isset($employeeData['organization_id']) && $employeeData['organization_id'] !== $user->employees?->organization_id) 
+
+         if ($allowedOrgCheck && isset($employeeData['organization_id']) && $employeeData['organization_id'] !== $user->employee?->organization_id)
          {
-             if (!$this->canAdminManageOrg($updatingUser, $employeeData['organization_id'])) 
-             {
-                 return response()->json(['message' => 'Unauthorized scope for organization change.'], 403);
-             }
+              if (!$this->canAdminManageOrg($updatingUser, $employeeData['organization_id']))
+              {
+                  return response()->json(['message' => 'Unauthorized scope for organization change.'], 403);
+              }
          }
          // اگر نقش تغییر کرده، چک کن مجاز است؟
          if (isset($validatedData['role']) && $validatedData['role'] !== $user->roles->first()?->name)
@@ -260,13 +262,10 @@ class UserController extends Controller
               {
                    return response()->json(['message' => 'Users cannot change their own role.'], 403);
               }
-              if (!$this->canAdminAssignRole($updatingUser, $validatedData['role'])) {
-                   return response()->json(['message' => 'Unauthorized role assignment.'], 403);
-              }
          }
 
          // 4. Update User and Employee in Transaction
-         DB::transaction(function () use ($user, $validatedData, $employeeData, $targetRoleName) {
+         DB::transaction(function () use ($user, $validatedData, $employeeData) {
              // Update User fields
              $userDataToUpdate = [];
              if (isset($validatedData['name'])) $userDataToUpdate['name'] = $validatedData['name'];
@@ -275,12 +274,13 @@ class UserController extends Controller
              if (!empty($userDataToUpdate)) $user->update($userDataToUpdate);
 
              // Update Employee fields if provided
-             if (!empty($employeeData) && $user->employees) {
-                 $user->employees->update($employeeData);
+             if (!empty($employeeData) && $user->employee) {
+                 $user->employee->update($employeeData);
              }
 
              // Update Role if changed and authorized
-             if (isset($validatedData['role']) && $validatedData['role'] !== $user->roles->first()?->name) {
+             if (isset($validatedData['role']) && request()->user()->hasRole('super-admin'))
+             {
                  $user->syncRoles([$validatedData['role']]);
              }
          });
@@ -298,7 +298,8 @@ class UserController extends Controller
         $this->authorize('delete', $user);
 
         // 2. Prevent self-deletion
-        if (request()->user()->id === $user->id) {
+        if (request()->user()->id === $user->id)
+        {
             return response()->json(['message' => 'Users cannot delete themselves.'], 403);
         }
 
@@ -312,45 +313,20 @@ class UserController extends Controller
      */
     protected function canAdminManageOrg(User $admin, int $targetOrgId): bool
     {
-        if ($admin->hasRole('super-admin')) return true;
-
-        $adminEmployee = $admin->employee;
-        if (!$adminEmployee?->organization_id) return false; // Admin needs an organization
+        $adminEmployee = $admin->employees;
+        if (!$adminEmployee?->organization_id) return false;
 
         $adminOrg = $adminEmployee->organization;
         $targetOrg = Organization::find($targetOrgId);
 
-        if (!$targetOrg) return false; // Target organization must exist
+        if (!$targetOrg) return false;
 
         if ($admin->hasRole('org-admin-l2')) {
-            // L2 can manage self and descendants
             return $adminOrg->isAncestorOf($targetOrg);
         }
-
         if ($admin->hasRole('org-admin-l3')) {
-            // L3 can only manage self
             return $adminOrg->id === $targetOrg->id;
         }
-
         return false;
     }
-
-    /**
-     * Check if the admin can assign the target role based on hierarchy.
-     */
-     protected function canAdminAssignRole(User $admin, string $targetRoleName): bool
-     {
-         if ($admin->hasRole('super-admin')) return true;
-
-         $allowedRoles = [];
-         if ($admin->hasRole('org-admin-l2')) {
-             // L2 can assign L3 or user roles
-             $allowedRoles = ['org-admin-l3', 'user'];
-         } elseif ($admin->hasRole('org-admin-l3')) {
-             // L3 can only assign user role
-             $allowedRoles = ['user'];
-         }
-
-         return in_array($targetRoleName, $allowedRoles);
-     }
 }

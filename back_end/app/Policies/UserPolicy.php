@@ -69,7 +69,12 @@ class UserPolicy
         }
 
         // بررسی دسترسی سلسله مراتبی برای ویرایش دیگران
-        return $this->view($user, $model);
+        $canView = $this->view($user, $model);
+        $targetIsAdmin = $model->hasAnyRole(['super-admin', 'org-admin-l2', 'org-admin-l3']);
+        if ($user->hasAnyRole(['org-admin-l2', 'org-admin-l3'])) {
+             return $canView && !$targetIsAdmin;
+        }
+        return false;
     }
 
     /**
@@ -85,8 +90,14 @@ class UserPolicy
         {
             return false;
         }
-        // ادمین‌ها فقط می‌توانند کاربرانی را حذف کنند که اجازه دیدنشان را دارند
-        return $this->view($user, $model);
+       $canView = $this->view($user, $model);
+        $targetIsAdmin = $model->hasAnyRole(['super-admin', 'org-admin-l2', 'org-admin-l3']);
+
+        if ($user->hasAnyRole(['org-admin-l2', 'org-admin-l3']))
+        {
+             return $canView && !$targetIsAdmin;
+        }
+        return false;
     }
 
     /**
