@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             [
                 DeviceSeeder::class,
                 RoleSeeder::class,
+                EmployeeWorkSeeder::class,
             ]);
         $user = User::where("user_name", "admin")->first();
         $user->assignRole('super_admin');
