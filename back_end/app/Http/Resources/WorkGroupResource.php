@@ -15,12 +15,15 @@ class WorkGroupResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+
             'id' => $this->id,
             'name' => $this->name,
-            'work_pattern_id' => $this->work_pattern_id,
-            'work_pattern_name' => $this->whenLoaded('workPattern', fn() => $this->workPattern?->name),
+            'week_pattern_id' => $this->week_pattern_id,
             'shift_schedule_id' => $this->shift_schedule_id,
-            'shift_schedule_name' => $this->whenLoaded('shiftSchedule', fn() => $this->shiftSchedule?->name),
+
+            'week_pattern' => new WeekPatternResource($this->whenLoaded('weekPattern')),
+            'shift_schedule' => new ShiftScheduleResource($this->whenLoaded('shiftSchedule')),
+
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

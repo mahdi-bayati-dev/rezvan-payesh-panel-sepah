@@ -63,8 +63,9 @@ class AuthServiceProvider extends ServiceProvider
         Passport::refreshTokensExpireIn(CarbonInterval::days(30));
         Passport::personalAccessTokensExpireIn(CarbonInterval::months(6));
 
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole('super-admin') ? true : null;
+        Gate::before(function ($user, $ability)
+        {
+            return $user->hasRole('super_admin') ? true : null;
         });
 
         Gate::define('access-organization', function (User $user, Organization $organization) {

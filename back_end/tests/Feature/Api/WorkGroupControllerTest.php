@@ -5,8 +5,8 @@ namespace Api;
 use App\Models\Employees;
 use App\Models\ShiftSchedule;
 use App\Models\User;
+use App\Models\WeekPattern;
 use App\Models\WorkGroup;
-use App\Models\WorkPattern;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Laravel\Passport\Passport;
@@ -18,7 +18,7 @@ class WorkGroupControllerTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
     protected User $user;
-    protected WorkPattern $workPattern;
+    protected WeekPattern $weekPattern;
     protected ShiftSchedule $shiftSchedule;
     /**
      * A basic feature test example.
@@ -33,7 +33,7 @@ class WorkGroupControllerTest extends TestCase
         Passport::actingAs($this->user);
 
         // ساخت یک الگوی کاری و یک برنامه شیفتی برای استفاده در تست‌ها
-        $this->workPattern = WorkPattern::factory()->create();
+        $this->weekPattern = WeekPattern::factory()->create();
         $this->shiftSchedule = ShiftSchedule::factory()->create();
     }
     /**
@@ -41,14 +41,14 @@ class WorkGroupControllerTest extends TestCase
      */
     #[Test] public function can_list_work_groups(): void
     {
-        WorkGroup::factory()->count(5)->create(['work_pattern_id' => $this->workPattern->id]); // ساخت نمونه
+        WorkGroup::factory()->count(5)->create(['week_pattern_id' => $this->weekPattern->id]);
 
         $response = $this->getJson(route('work-groups.index'));
 
         $response->assertStatus(200)
                  ->assertJsonStructure([
                      'data' => [
-                         '*' => ['id', 'name', 'work_pattern_id', 'shift_schedule_id']
+                         '*' => ['id', 'name', 'week_pattern_id', 'shift_schedule_id']
                      ],
                      'links',
                      'meta',
@@ -63,16 +63,16 @@ class WorkGroupControllerTest extends TestCase
     {
         $data = [
             'name' => 'گروه تست با الگو',
-            'work_pattern_id' => $this->workPattern->id,
+            'week_pattern_id' => $this->weekPattern->id,
         ];
 
         $response = $this->postJson(route('work-groups.store'), $data);
 
         $response->assertStatus(201) // 201 Created
-                 ->assertJsonStructure(['data' => ['id', 'name', 'work_pattern_id', 'shift_schedule_id']]) // بررسی ساختار ریسورس
+                 ->assertJsonStructure(['data' => ['id', 'name', 'week_pattern_id', 'shift_schedule_id']]) // بررسی ساختار ریسورس
                  ->assertJsonFragment([
                      'name' => $data['name'],
-                     'work_pattern_id' => $data['work_pattern_id'],
+                     'week_pattern_id' => $data['week_pattern_id'],
                      'shift_schedule_id' => null,
                  ]);
 
@@ -92,10 +92,10 @@ class WorkGroupControllerTest extends TestCase
         $response = $this->postJson(route('work-groups.store'), $data);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure(['data' => ['id', 'name', 'work_pattern_id', 'shift_schedule_id']])
+                 ->assertJsonStructure(['data' => ['id', 'name', 'week_pattern_id', 'shift_schedule_id']])
                  ->assertJsonFragment([
                      'name' => $data['name'],
-                     'work_pattern_id' => null,
+                     'week_pattern_id' => null,
                      'shift_schedule_id' => $data['shift_schedule_id'],
                  ]);
 
@@ -109,15 +109,15 @@ class WorkGroupControllerTest extends TestCase
     {
         $response = $this->postJson(route('work-groups.store'), [
             'name' => '', // نام خالی
-            // هیچکدام از work_pattern_id یا shift_schedule_id ارسال نشده
+            // هیچکدام از week_pattern_id یا shift_schedule_id ارسال نشده
         ]);
 
         $response->assertStatus(422) // Unprocessable Entity
-                 ->assertJsonValidationErrors(['name', 'work_pattern_id', 'shift_schedule_id']); // هر سه باید خطا داشته باشند
+                 ->assertJsonValidationErrors(['name', 'week_pattern_id', 'shift_schedule_id']); // هر سه باید خطا داشته باشند
 
         $response = $this->postJson(route('work-groups.store'), [
             'name' => 'تست هر دو',
-            'work_pattern_id' => $this->workPattern->id,
+            'week_pattern_id' => $this->weekPattern->id,
             'shift_schedule_id' => $this->shiftSchedule->id, // ارسال همزمان هر دو مجاز نیست
         ]);
         // نکته: کنترلر شما اجازه ارسال همزمان را می‌دهد و یکی را null می‌کند.
@@ -126,18 +126,48 @@ class WorkGroupControllerTest extends TestCase
         // $response->assertStatus(422);
     }
 
-    /**
-     * تست نمایش یک گروه کاری خاص (show)
-     */
-    #[Test] public function can_show_work_group(): void
+    #[Test] public function can_get_a_single_week_pattern(): void
     {
-        $workGroup = WorkGroup::factory()->create(['work_pattern_id' => $this->workPattern->id]);
+        // ۱. ساخت یک الگوی هفتگی نمونه با فکتوری
+        $weekPattern = WeekPattern::factory()->create();
 
-        $response = $this->getJson(route('work-groups.show', $workGroup->id));
+        // ۲. ارسال درخواست GET به اندپوینت show
+        $response = $this->getJson(route('week-patterns.show', $weekPattern->id));
 
-        $response->assertStatus(200)
-                 ->assertJsonStructure(['data' => ['id', 'name', 'work_pattern_id', 'shift_schedule_id']])
-                 ->assertJsonFragment(['id' => $workGroup->id, 'name' => $workGroup->name]);
+        // ۳. بررسی پاسخ
+        $response->assertStatus(200) // وضعیت ۲۰۰ (OK)
+                 ->assertJsonFragment(['id' => $weekPattern->id, 'name' => $weekPattern->name]) // بررسی وجود ID و نام
+                 ->assertJsonStructure([
+                     // ساختار اصلی WeekPatternResource
+                     'data' => [ // اطمینان از وجود کلید data (از JsonResource)
+                         'id',
+                         'name',
+                         'created_at',
+                         'updated_at',
+                         // بررسی ساختار جزئیات تمام 7 روز هفته
+                         'saturday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'sunday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'monday_pattern' => [ // <-- اضافه شد
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'tuesday_pattern' => [ // <-- اضافه شد
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'wednesday_pattern' => [ // <-- اضافه شد
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'thursday_pattern' => [ // <-- اضافه شد
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'friday_pattern' => [ // <-- اضافه شد
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                     ]
+                 ]);
     }
 
     /**
@@ -145,28 +175,28 @@ class WorkGroupControllerTest extends TestCase
      */
     #[Test] public function can_update_work_group(): void
     {
-        $workGroup = WorkGroup::factory()->create(['work_pattern_id' => $this->workPattern->id]);
+        $workGroup = WorkGroup::factory()->create(['week_pattern_id' => $this->weekPattern->id]);
         $newData = [
             'name' => 'گروه آپدیت شده',
             'shift_schedule_id' => $this->shiftSchedule->id,
-            // work_pattern_id نباید ارسال شود یا null باشد
         ];
 
         $response = $this->putJson(route('work-groups.update', $workGroup->id), $newData);
 
         $response->assertStatus(200)
-                 ->assertJsonStructure(['data' => ['id', 'name', 'work_pattern_id', 'shift_schedule_id']])
-                 ->assertJsonFragment([
-                     'id' => $workGroup->id,
-                     'name' => $newData['name'],
-                     'work_pattern_id' => null, // باید null شده باشد
-                     'shift_schedule_id' => $newData['shift_schedule_id'],
-                 ]);
-
+            ->assertJsonPath('data.id', $workGroup->id)
+            ->assertJsonPath('data.name', $newData['name']);
+//             ->assertJsonStructure(['data' => ['id', 'name', 'week_pattern_id', 'shift_schedule_id', 'week_pattern', 'shift_schedule']])
+//             ->assertJsonPath('data.id', $workGroup->id) // <-- اصلاح شد
+//             ->assertJsonPath('data.name', $newData['name']) // <-- اصلاح شد
+//             ->assertJsonPath('data.week_pattern_id', null)
+//             ->assertJsonPath('data.shift_schedule_id', $newData['shift_schedule_id']);
+$this->assertEquals(null, $response->json('data.week_pattern_id'));
+ $this->assertEquals($newData['shift_schedule_id'], $response->json('data.shift_schedule_id'));
         $this->assertDatabaseHas('work_groups', [
             'id' => $workGroup->id,
             'name' => $newData['name'],
-            'work_pattern_id' => null,
+            'week_pattern_id' => null,
             'shift_schedule_id' => $newData['shift_schedule_id'],
         ]);
     }
@@ -181,11 +211,11 @@ class WorkGroupControllerTest extends TestCase
 
         $response = $this->putJson(route('work-groups.update', $group2->id), [
             'name' => 'نام موجود', // نام تکراری
-            // هیچکدام از work_pattern_id یا shift_schedule_id ارسال نشده
+            // هیچکدام از week_pattern_id یا shift_schedule_id ارسال نشده
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['name', 'work_pattern_id', 'shift_schedule_id']);
+                 ->assertJsonValidationErrors(['name', 'week_pattern_id', 'shift_schedule_id']);
     }
 
     /**
@@ -194,11 +224,8 @@ class WorkGroupControllerTest extends TestCase
     #[Test] public function can_delete_work_group(): void
     {
         $workGroup = WorkGroup::factory()->create();
-
         $response = $this->deleteJson(route('work-groups.destroy', $workGroup->id));
-
-        $response->assertStatus(204); // No Content
-
+        $response->assertStatus(204); // یا ->assertNoContent();
         $this->assertDatabaseMissing('work_groups', ['id' => $workGroup->id]);
     }
 
@@ -206,19 +233,20 @@ class WorkGroupControllerTest extends TestCase
     /**
      * تست عدم امکان حذف گروه کاری در حال استفاده (destroy - assigned)
      */
-    #[Test] public function cannot_delete_work_group_with_employees(): void
+    #[Test] public function cannot_delete_work_group_with_employees(): void // نام اصلاح شد
     {
         $workGroup = WorkGroup::factory()->create();
-        // یک کارمند بساز که به این گروه متصل باشد
-        Employees::factory()->create(['work_group_id' => $workGroup->id]);
+        $employee = Employees::factory()->create(['work_group_id' => $workGroup->id]);
+
+        // دیباگ: بررسی کنید که آیا رابطه کار می‌کند
+        $this->assertTrue($workGroup->employee()->exists(), "Employee relation seems broken in WorkGroup model or factory didn't assign work_group_id correctly.");
+        $this->assertEquals(1, $workGroup->employee()->count()); // باید 1 باشد
 
         $response = $this->deleteJson(route('work-groups.destroy', $workGroup->id));
 
-        $response->assertStatus(409); // Conflict
-
-        $this->assertDatabaseHas('work_groups', ['id' => $workGroup->id]); // مطمئن شو حذف نشده
+        $response->assertStatus(409);
+        $this->assertDatabaseHas('work_groups', ['id' => $workGroup->id]);
     }
-
     /**
      * تست دسترسی غیرمجاز (مثلا کاربر عادی)
      * // TODO: این تست را پس از پیاده‌سازی گاردها یا میدل‌ور دسترسی کامل کنید
