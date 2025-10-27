@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\WeekPatternCollection;
+use App\Http\Resources\WeekPatternResource;
 use App\Jobs\PruneOrphanWorkPatterns;
 use App\Models\WeekPattern;
 use App\Models\WorkPattern;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
+use Throwable;
 
 class WeekPatternController extends Controller
 {
@@ -23,7 +28,7 @@ class WeekPatternController extends Controller
             'tuesdayPattern', 'wednesdayPattern', 'thursdayPattern', 'fridayPattern'
         ])->orderBy('name')->paginate(15);
 
-        return response()->json($weekPatterns);
+        return new WeekPatternCollection($weekPatterns);
     }
 
     /**
@@ -75,7 +80,7 @@ class WeekPatternController extends Controller
         ];
         if (!isset($map[$dayOfWeek]))
         {
-            throw new \InvalidArgumentException("Invalid day_of_week value: $dayOfWeek");
+            throw new InvalidArgumentException("Invalid day_of_week value: $dayOfWeek");
         }
         return $map[$dayOfWeek];
     }
@@ -102,6 +107,7 @@ class WeekPatternController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * @throws Throwable
      */
     public function store(Request $request)
     {
@@ -137,9 +143,11 @@ class WeekPatternController extends Controller
                     'saturdayPattern', 'sundayPattern', 'mondayPattern',
                     'tuesdayPattern', 'wednesdayPattern', 'thursdayPattern', 'fridayPattern'
                 ]);
-            return response()->json($weekPattern, 201);
+            return (new WeekPatternResource($weekPattern))
+                    ->response()
+                    ->setStatusCode(201);
         }
-        catch (\Exception $e)
+        catch (Exception $e)
         {
             DB::rollBack();
             return response()->json(['message' => 'Failed to create week pattern', 'error' => $e->getMessage()], 500);
@@ -155,13 +163,13 @@ class WeekPatternController extends Controller
             'saturdayPattern', 'sundayPattern', 'mondayPattern',
             'tuesdayPattern', 'wednesdayPattern', 'thursdayPattern', 'fridayPattern'
         ]);
-        return response()->json($weekPattern);
+        return new WeekPatternResource($weekPattern);
     }
-
 
 
     /**
      * Update the specified resource in storage.
+     * @throws Throwable
      */
     public function update(Request $request, WeekPattern $weekPattern)
     {
@@ -198,10 +206,10 @@ class WeekPatternController extends Controller
                     'saturdayPattern', 'sundayPattern', 'mondayPattern',
                     'tuesdayPattern', 'wednesdayPattern', 'thursdayPattern', 'fridayPattern'
                 ]);
-            return response()->json($weekPattern);
+            return new WeekPatternResource($weekPattern);
 
         }
-        catch (\Exception $e)
+        catch (Exception $e)
         {
             DB::rollBack();
             return response()->json(['message' => 'Failed to update week pattern', 'error' => $e->getMessage()], 500);

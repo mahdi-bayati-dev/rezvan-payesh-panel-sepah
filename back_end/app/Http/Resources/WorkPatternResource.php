@@ -14,15 +14,13 @@ class WorkPatternResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-         return [
+        return [
             'id' => $this->id,
             'name' => $this->name,
             'type' => $this->type,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
-            'work_duration_minutes' => $this->work_duration_minutes,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'work_duration_minutes' => (int)$this->work_duration_minutes,
         ];
     }
 }

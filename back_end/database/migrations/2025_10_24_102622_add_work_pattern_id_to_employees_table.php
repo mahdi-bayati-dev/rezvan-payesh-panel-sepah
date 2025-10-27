@@ -16,7 +16,7 @@ return new class extends Migration
                   ->nullable()
                   ->after('shift_offset')
                   ->comment('الگوی کاری اختصاصی برای نادیده گرفتن برنامه شیفتی')
-                  ->constrained('week_pattern')
+                  ->constrained('week_patterns')
                   ->onDelete('set null');
         });
     }

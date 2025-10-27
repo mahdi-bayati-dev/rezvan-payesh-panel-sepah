@@ -2,9 +2,13 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Employees;
 use App\Models\User;
+use App\Models\WeekPattern;
 use App\Models\WorkGroup;
 use App\Models\WorkPattern;
+use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Laravel\Passport\Passport;
@@ -15,244 +19,285 @@ use Tests\TestCase;
 class WorkPatternControllerTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
-    protected User $user;
 
+    protected User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $superAdminRole = Role::firstOrCreate(['name' => 'super_admin']);
-
-        // ساخت یک کاربر ادمین برای تست‌ها
+        // ایجاد یک کاربر ادمین برای احراز هویت در تست‌ها
         $this->user = User::factory()->create();
-        $this->user->assignRole($superAdminRole);
+        $DatabaseSeeder = new DatabaseSeeder();
+        $DatabaseSeeder->call(RoleSeeder::class);
+        $this->user->assignRole("super_admin");
         Passport::actingAs($this->user);
-
     }
 
     /**
-     * تست دریافت لیست الگوهای کاری (index)
+     * ساخت داده‌های نمونه برای ارسال در درخواست‌های store و update
      */
-    #[Test] public function can_list_work_patterns(): void
+    private function createSampleWeekData(string $name): array
     {
-        // چند الگوی نمونه بساز
-        WorkPattern::factory()->count(5)->create();
+        return [
+            'name' => $name,
+            'days' => [
+                ['day_of_week' => 0, 'is_working_day' => true, 'start_time' => '08:00', 'end_time' => '16:00', 'work_duration_minutes' => 480], // Sat
+                ['day_of_week' => 1, 'is_working_day' => true, 'start_time' => '08:00', 'end_time' => '16:00', 'work_duration_minutes' => 480], // Sun
+                ['day_of_week' => 2, 'is_working_day' => true, 'start_time' => '08:00', 'end_time' => '16:00', 'work_duration_minutes' => 480], // Mon
+                ['day_of_week' => 3, 'is_working_day' => true, 'start_time' => '08:00', 'end_time' => '16:00', 'work_duration_minutes' => 480], // Tue
+                ['day_of_week' => 4, 'is_working_day' => true, 'start_time' => '08:00', 'end_time' => '16:00', 'work_duration_minutes' => 480], // Wed
+                ['day_of_week' => 5, 'is_working_day' => true, 'start_time' => '08:00', 'end_time' => '12:00', 'work_duration_minutes' => 240], // Thu
+                ['day_of_week' => 6, 'is_working_day' => false, 'start_time' => null, 'end_time' => null, 'work_duration_minutes' => 0],   // Fri (Rest)
+            ]
+        ];
+    }
 
-        // درخواست GET به API
-        $response = $this->getJson(route('work-patterns.index'));
+    public function can_get_list_of_week_patterns()
+    {
+        // ساخت ۳ الگوی هفتگی نمونه با استفاده از فکتوری
+        WeekPattern::factory()->count(3)->create();
+
+        // ارسال درخواست GET به اندپوینت index
+        $response = $this->getJson(route('week-patterns.index'));
 
         // بررسی پاسخ
         $response->assertStatus(200)
                  ->assertJsonStructure([
                      'data' => [
-                         '*' => ['id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes']
+                         '*' => [
+                             'id',
+                             'name',
+                             'saturday_pattern_id',
+                             'sunday_pattern_id',
+                             'monday_pattern_id',      
+                             'tuesday_pattern_id',     
+                             'wednesday_pattern_id',   
+                             'thursday_pattern_id',    
+                             'friday_pattern_id',
+                             'created_at',
+                             'updated_at',
+
+                             'saturday_pattern' => [
+                                 'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                             ],
+                             'sunday_pattern' => [
+                                 'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                             ],
+                             'monday_pattern' => [      
+                                 'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                             ],
+                             'tuesday_pattern' => [     
+                                 'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                             ],
+                             'wednesday_pattern' => [   
+                                 'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                             ],
+                             'thursday_pattern' => [   
+                                 'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                             ],
+                             'friday_pattern' => [     
+                                 'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                             ],
+                         ]
                      ],
                      'links',
                      'meta',
                  ])
-                 ->assertJsonCount(5, 'data');
+                 ->assertJsonCount(3, 'data');
     }
 
-    /**
-     * تست ایجاد الگوی کاری ثابت (store - fixed)
-     */
-    #[Test] public function can_create_fixed_work_pattern(): void
+    #[Test] public function can_create_a_new_week_pattern()
     {
-        $data = [
-            'name' => 'شیفت اداری تست',
+        // داده‌های نمونه برای ارسال
+        $data = $this->createSampleWeekData('برنامه اداری جدید');
+
+        // ارسال درخواست POST
+        $response = $this->postJson(route('week-patterns.store'), $data);
+
+        // بررسی پاسخ
+        $response->assertStatus(201) // وضعیت ۲0۱ (Created)
+                 ->assertJsonFragment(['name' => 'برنامه اداری جدید']) // بررسی وجود نام در پاسخ
+                 ->assertJsonStructure([
+                     // ساختار اصلی WeekPatternResource
+                     'data' => [ // اطمینان از وجود کلید data (از JsonResource)
+                         'id',
+                         'name',
+                         'created_at',
+                         'updated_at',
+                         // بررسی ساختار جزئیات هر روز (که از WorkPatternResource می‌آید)
+                         'saturday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'sunday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'monday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'tuesday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'wednesday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'thursday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'friday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                     ]
+                 ]);
+
+        // بررسی اینکه الگوهای اتمی مورد نیاز در دیتابیس ساخته شده‌اند
+        // (با استفاده از مشخصات کلیدی که findOrCreateAtomicPattern استفاده می‌کند)
+        $this->assertDatabaseHas('work_patterns', [
             'type' => 'fixed',
             'start_time' => '08:00',
-            'end_time' => '17:00',
-            'work_duration_minutes' => 480,
-        ];
-
-        $response = $this->postJson(route('work-patterns.store'), $data);
-
-        $response->assertStatus(201)
-                 ->assertJsonPath('data.name', $data['name'])
-                 ->assertJsonPath('data.type', $data['type'])
-                 ->assertJsonPath('data.work_duration_minutes', $data['work_duration_minutes'])
-                 ->assertJson(function ($json) use ($data) {
-                     // مقدار کامل رشته datetime را از پاسخ JSON می‌خوانیم
-                     $startTime = $json->json('data.start_time');
-                     $endTime = $json->json('data.end_time');
-
-                     // اطمینان حاصل می‌کنیم که زمان ارسالی ما (مثلا "08:00")
-                     // درون رشته کامل datetime (مثلا "2025-10-25T08:00:00...") وجود دارد
-                     $this->assertStringContainsString($data['start_time'], $startTime, "رشته start_time مطابقت ندارد.");
-                     $this->assertStringContainsString($data['end_time'], $endTime, "رشته end_time مطابقت ندارد.");
-
-                     return true; // به کلوژر می‌گوییم که تست موفق بود
-                 });
-
-
+            'end_time' => '16:00',
+            'work_duration_minutes' => 480
+        ]);
         $this->assertDatabaseHas('work_patterns', [
-            'name' => $data['name'],
-            'type' => $data['type'],
-        ]);
-    }
-
-    /**
-     * تست ایجاد الگوی کاری شناور (store - floating)
-     */
-    #[Test] public function can_create_floating_work_pattern(): void
-    {
-        $data = [
-            'name' => 'شیفت شناور تست',
-            'type' => 'floating',
-            'work_duration_minutes' => 480,
-        ];
-
-        $response = $this->postJson(route('work-patterns.store'), $data);
-
-        $response->assertStatus(201)
-                 ->assertJsonFragment([
-                     'name' => $data['name'],
-                     'type' => $data['type'],
-                     'start_time' => null, // باید null ذخیره شده باشه
-                     'end_time' => null,   // باید null ذخیره شده باشه
-                     'work_duration_minutes' => $data['work_duration_minutes'],
-                 ]);
-
-        $this->assertDatabaseHas('work_patterns', [
-            'name' => $data['name'],
-            'type' => $data['type'],
-            'start_time' => null,
-            'end_time' => null,
-        ]);
-    }
-
-    /**
-     * تست اعتبارسنجی ناموفق در ایجاد (store - validation fails)
-     */
-    #[Test] public function create_work_pattern_validation_fails(): void
-    {
-        $response = $this->postJson(route('work-patterns.store'), [
-            // داده‌های ناقص یا نامعتبر
-            'name' => '', // نام خالی
-            'type' => 'invalid-type', // نوع نامعتبر
-            'start_time' => 'abc', // فرمت نامعتبر
-            'end_time' => '08:00', // قبل از start_time (که ارسال نشده)
-            'work_duration_minutes' => 0, // کمتر از مینیمم
-        ]);
-
-        $response->assertStatus(422) // چک کردن کد 422 Unprocessable Entity
-                 ->assertJsonValidationErrors(['name', 'type', 'start_time', 'work_duration_minutes']); // چک کردن وجود خطا برای فیلدها
-    }
-
-    /**
-     * تست نمایش یک الگوی کاری خاص (show)
-     */
-    #[Test] public function can_show_work_pattern(): void
-    {
-        $pattern = WorkPattern::factory()->create();
-
-        $response = $this->getJson(route('work-patterns.show', $pattern->id));
-
-        $response->assertStatus(200)
-                 ->assertJsonFragment(['id' => $pattern->id, 'name' => $pattern->name]);
-    }
-
-    /**
-     * تست به‌روزرسانی الگوی کاری (update)
-     */
-    #[Test] public function can_update_work_pattern(): void
-    {
-        $pattern = WorkPattern::factory()->create(['type' => 'fixed', 'start_time' => '08:00', 'end_time' => '16:00']);
-        $newData = [
-            'name' => 'شیفت آپدیت شده',
-            'type' => 'floating',
-            // start_time و end_time نباید باشند چون type عوض شده
-            'work_duration_minutes' => 360,
-        ];
-
-        $response = $this->putJson(route('work-patterns.update', $pattern->id), $newData);
-
-        $response->assertStatus(200)
-                 ->assertJsonFragment([
-                     'id' => $pattern->id,
-                     'name' => $newData['name'],
-                     'type' => $newData['type'],
-                     'start_time' => null, // باید null شده باشه
-                     'end_time' => null,
-                     'work_duration_minutes' => $newData['work_duration_minutes'],
-                 ]);
-
-        $this->assertDatabaseHas('work_patterns', [
-            'id' => $pattern->id,
-            'name' => $newData['name'],
-            'type' => $newData['type'],
-            'start_time' => null,
-        ]);
-    }
-
-    /**
-     * تست اعتبارسنجی ناموفق در به‌روزرسانی (update - validation fails)
-     */
-    #[Test] public function update_work_pattern_validation_fails(): void
-    {
-        $pattern1 = WorkPattern::factory()->create(['name' => 'نام موجود']);
-        $pattern2 = WorkPattern::factory()->create(); // الگویی که می‌خواهیم آپدیت کنیم
-
-        $response = $this->putJson(route('work-patterns.update', $pattern2->id), [
-            'name' => 'نام موجود', // نام تکراری
             'type' => 'fixed',
-            'start_time' => '18:00',
-            'end_time' => '10:00', // end_time قبل از start_time
-            'work_duration_minutes' => '', // خالی
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'work_duration_minutes' => 240
+        ]);
+        $this->assertDatabaseHas('work_patterns', [
+            'type' => 'fixed',
+            'work_duration_minutes' => 0,
+            'start_time' => null,
+            'end_time' => null
         ]);
 
-        $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['name', 'end_time', 'work_duration_minutes']);
+
+        $this->assertDatabaseHas('week_patterns', ['name' => 'برنامه اداری جدید']);
     }
 
-    /**
-     * تست حذف الگوی کاری (destroy)
-     */
-    #[Test] public function can_delete_work_pattern(): void
+    #[Test] public function cannot_create_week_pattern_with_invalid_data()
     {
-        $pattern = WorkPattern::factory()->create();
+        // ۱. نام تکراری
+        WeekPattern::factory()->create(['name' => 'نام تکراری']);
+        $data = $this->createSampleWeekData('نام تکراری');
+        $response = $this->postJson(route('week-patterns.store'), $data);
+        $response->assertStatus(422)->assertJsonValidationErrors('name');
 
-        $response = $this->deleteJson(route('work-patterns.destroy', $pattern->id));
+        // ۲. آرایه روزها ناقص (کمتر از ۷ روز)
+        $data = $this->createSampleWeekData('برنامه ناقص');
+        unset($data['days'][0]); // حذف شنبه
+        $response = $this->postJson(route('week-patterns.store'), $data);
+        $response->assertStatus(422)->assertJsonValidationErrors('days');
 
-        $response->assertStatus(204); // چک کردن کد 204 No Content
-
-        $this->assertDatabaseMissing('work_patterns', ['id' => $pattern->id]);
+        // ۳. روز هفته تکراری
+        $data = $this->createSampleWeekData('روز تکراری');
+        $data['days'][1]['day_of_week'] = 0; // یکشنبه را هم شنبه می‌کنیم
+        $response = $this->postJson(route('week-patterns.store'), $data);
+        $response->assertStatus(422)->assertJsonValidationErrors(['days.1.day_of_week']); // Expecting error on the second day_of_week
     }
 
-
-    /**
-     * تست عدم امکان حذف الگوی کاری در حال استفاده (destroy - assigned)
-     */
-    #[Test] public function cannot_delete_assigned_work_pattern(): void
+    #[Test] public function can_get_a_single_week_pattern()
     {
-        $pattern = WorkPattern::factory()->create();
-        // یک گروه کاری بساز که از این الگو استفاده کند
-        WorkGroup::factory()->create(['work_pattern_id' => $pattern->id]);
+        // ۱. ساخت یک الگوی هفتگی نمونه با فکتوری
+        $weekPattern = WeekPattern::factory()->create();
 
-        $response = $this->deleteJson(route('work-patterns.destroy', $pattern->id));
+        // ۲. ارسال درخواست GET به اندپوینت show
+        $response = $this->getJson(route('week-patterns.show', $weekPattern->id));
 
-        $response->assertStatus(409); // چک کردن کد 409 Conflict
-
-        $this->assertDatabaseHas('work_patterns', ['id' => $pattern->id]); // مطمئن شو حذف نشده
+        // ۳. بررسی پاسخ
+        $response->assertStatus(200) // وضعیت ۲۰۰ (OK)
+                 ->assertJsonFragment(['id' => $weekPattern->id, 'name' => $weekPattern->name]) // بررسی وجود ID و نام
+                 ->assertJsonStructure([
+                     // ساختار اصلی WeekPatternResource
+                     'data' => [ // اطمینان از وجود کلید data (از JsonResource)
+                         'id',
+                         'name',
+                         'created_at',
+                         'updated_at',
+                         // بررسی ساختار جزئیات تمام 7 روز هفته
+                         'saturday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'sunday_pattern' => [
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'monday_pattern' => [ 
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'tuesday_pattern' => [ 
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'wednesday_pattern' => [ 
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'thursday_pattern' => [ 
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                         'friday_pattern' => [ 
+                             'id', 'name', 'type', 'start_time', 'end_time', 'work_duration_minutes'
+                         ],
+                     ]
+                 ]);
     }
 
-    /**
-     * تست دسترسی غیرمجاز (مثلا کاربر عادی)
-     */
-    #[Test] public function unauthorized_user_cannot_access_work_patterns(): void
+    #[Test] public function can_update_a_week_pattern()
     {
-         // ساخت کاربر عادی بدون نقش ادمین
-        $normalUser = User::factory()->create();
-        Passport::actingAs($normalUser); // لاگین به عنوان کاربر عادی
+        $weekPattern = WeekPattern::factory()->create();
+        $data = $this->createSampleWeekData('نام آپدیت شده');
+        // تغییر روز شنبه به استراحت
+        $data['days'][0] = ['day_of_week' => 0, 'is_working_day' => false, 'start_time' => null, 'end_time' => null, 'work_duration_minutes' => 0];
 
-        // تست یک اندپوینت (مثلا index)
-        $response = $this->getJson(route('work-patterns.index'));
+        $response = $this->putJson(route('week-patterns.update', $weekPattern->id), $data);
 
-        // اگر دسترسی‌ها در کنترلر پیاده‌سازی شده باشند، باید 403 Forbidden برگرداند
-         // $response->assertStatus(403);
+        $response->assertStatus(200)
+                 ->assertJsonFragment(['name' => 'نام آپدیت شده']);
 
-         // بعد از پیاده‌سازی دسترسی‌ها، assertStatus(403) رو فعال کن
-         $this->assertTrue(true); // فعلا این رو میذاریم تا تست خطا نده
+        // بررسی اینکه شنبه به روز استراحت تغییر کرده است (با فرض اینکه الگوی استراحت ID=X دارد)
+        $updatedWeekPattern = WeekPattern::find($weekPattern->id);
+        $restPattern = WorkPattern::where('work_duration_minutes', 0)->first();
+        $this->assertEquals($restPattern->id, $updatedWeekPattern->saturday_pattern_id);
+        $this->assertDatabaseHas('week_patterns', ['id' => $weekPattern->id, 'name' => 'نام آپدیت شده']);
+    }
+
+    #[Test] public function cannot_update_week_pattern_with_invalid_data()
+    {
+        $weekPattern = WeekPattern::factory()->create();
+        $otherPattern = WeekPattern::factory()->create(['name' => 'نام دیگر']);
+
+        // ۱. نام تکراری (متعلق به الگوی دیگر)
+        $data = $this->createSampleWeekData($otherPattern->name); // استفاده از نام الگوی دیگر
+        $response = $this->putJson(route('week-patterns.update', $weekPattern->id), $data);
+        $response->assertStatus(422)->assertJsonValidationErrors('name');
+    }
+
+    #[Test] public function can_delete_an_unused_week_pattern()
+    {
+        $weekPattern = WeekPattern::factory()->create();
+
+        $response = $this->deleteJson(route('week-patterns.destroy', $weekPattern->id));
+
+        $response->assertStatus(204);
+        $this->assertDatabaseMissing('week_patterns', ['id' => $weekPattern->id]);
+    }
+
+    #[Test] public function cannot_delete_a_week_pattern_assigned_to_work_group()
+    {
+        $weekPattern = WeekPattern::factory()->create();
+        WorkGroup::factory()->create(['week_pattern_id' => $weekPattern->id]); // تخصیص به گروه کاری
+
+        $response = $this->deleteJson(route('week-patterns.destroy', $weekPattern->id));
+
+        $response->assertStatus(409); // Conflict
+        $this->assertDatabaseHas('week_patterns', ['id' => $weekPattern->id]); // نباید حذف شده باشد
+    }
+
+    #[Test] public function cannot_delete_a_week_pattern_assigned_to_employee()
+    {
+        $weekPattern = WeekPattern::factory()->create();
+        Employees::factory()->create(['week_pattern_id' => $weekPattern->id]); // تخصیص مستقیم به کارمند
+
+        $response = $this->deleteJson(route('week-patterns.destroy', $weekPattern->id));
+
+        $response->assertStatus(409); // Conflict
+        $this->assertDatabaseHas('week_patterns', ['id' => $weekPattern->id]); // نباید حذف شده باشد
     }
 }

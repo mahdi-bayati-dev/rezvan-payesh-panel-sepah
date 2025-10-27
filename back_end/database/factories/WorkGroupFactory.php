@@ -3,11 +3,13 @@
 namespace Database\Factories;
 
 use App\Models\ShiftSchedule;
+use App\Models\WeekPattern;
+use App\Models\WorkGroup;
 use App\Models\WorkPattern;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\WorkGroup>
+ * @extends Factory<WorkGroup>
  */
 class WorkGroupFactory extends Factory
 {
@@ -21,8 +23,8 @@ class WorkGroupFactory extends Factory
         return [
             'name' => 'گروه کاری ' . $this->faker->unique()->companySuffix() . ' ' . $this->faker->randomNumber(2),
 
-             'work_pattern_id' => $this->faker->boolean(70)
-                                     ? WorkPattern::factory()
+             'week_pattern_id' => $this->faker->boolean(70)
+                                     ? WeekPattern::factory()
                                      : null,
 //            'shift_schedule_id' => $this->faker->boolean(30);
             //                         ? ShiftSchedule::factory()
@@ -35,10 +37,10 @@ class WorkGroupFactory extends Factory
     /**
       * حالت خاص برای اتصال به یک الگوی کاری مشخص
       */
-     public function withWorkPattern(WorkPattern $pattern = null): static
+     public function withWeekPattern(WeekPattern $pattern = null): static
      {
          return $this->state(fn (array $attributes) => [
-             'work_pattern_id' => $pattern?->id ?? WorkPattern::factory(),
+             'week_pattern_id' => $pattern?->id ?? WeekPattern::factory(),
              'shift_schedule_id' => null, // اگر الگوی ثابت دارد، برنامه چرخشی نداشته باشد
          ]);
      }
