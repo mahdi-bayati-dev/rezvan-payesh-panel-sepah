@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employees extends Model
 {
-    use HasFactory;
+    use HasFactory,softDeletes;
 
     protected $fillable = [
         'user_id',
@@ -34,7 +35,7 @@ class Employees extends Model
         'work_group_id',
         'shift_schedule_id',
         'shift_offset',
-        'work_pattern_id'
+        'week_pattern_id'
     ];
 
     protected $casts = [
@@ -121,9 +122,9 @@ class Employees extends Model
         return $this->belongsTo(ShiftSchedule::class);
     }
 
-    public function workPattern(): BelongsTo
+    public function weekPattern(): BelongsTo
     {
-        return $this->belongsTo(WorkPattern::class);
+        return $this->belongsTo(WeekPattern::class);
     }
 
 }

@@ -16,8 +16,9 @@ return new class extends Migration
             $table->string('name');
 
             // اتصال به الگوی کاری (شیفت پیش‌فرض، اگر برنامه کاری نداشت)
-            $table->foreignId("work_pattern_id")->nullable()
-                ->constrained("work_patterns")
+            $table->foreignId("week_pattern_id")
+                ->nullable()
+                ->constrained("week_patterns")
                 ->onDelete('set null')
                 ->onUpdate('cascade');
 

@@ -2,23 +2,55 @@
 
 namespace App\Providers;
 
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use App\Models\AttendanceLog;
+use App\Models\Employees;
+use App\Models\Holiday;
+use App\Models\LeaveRequest;
 use App\Models\Organization;
+use App\Models\ScheduleSlot;
+use App\Models\ShiftSchedule;
 use App\Models\User;
+use App\Models\WorkGroup;
+use App\Models\WorkPattern;
+use App\Policies\AttendanceLogPolicy;
+use App\Policies\EmployeePolicy;
+use App\Policies\HolidayPolicy;
+use App\Policies\LeaveRequestPolicy;
+use App\Policies\OrganizationPolicy;
+use App\Policies\ScheduleSlotPolicy;
+use App\Policies\ShiftSchedulePolicy;
+use App\Policies\UserPolicy;
+use App\Policies\WorkGroupPolicy;
+use App\Policies\WorkPatternPolicy;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
 use Spatie\Permission\Models\Role;
 
+
 class AuthServiceProvider extends ServiceProvider
 {
+    protected $policies = [
+        Employees::class => EmployeePolicy::class,
+        Organization::class => OrganizationPolicy::class,
+        User::class => UserPolicy::class,
+        WorkGroup::class => WorkGroupPolicy::class,
+        WorkPattern::class => WorkPatternPolicy::class,
+        AttendanceLog::class  => AttendanceLogPolicy::class,
+        LeaveRequest::class => LeaveRequestPolicy::class,
+        Holiday::class => HolidayPolicy::class,
+        ScheduleSlot::class => ScheduleSlotPolicy::class,
+        ShiftSchedule::class => ShiftSchedulePolicy::class,
+
+    ];
 
     /**
      * Register services.
      */
     public function register(): void
     {
-        //
+
     }
 
     /**
@@ -50,5 +82,7 @@ class AuthServiceProvider extends ServiceProvider
                 ->whereIn(config('permission.table_names.model_has_roles') . '.team_id', $organizationIdsToScan)
                 ->exists();
         });
+
+        $this->registerPolicies();
     }
 }

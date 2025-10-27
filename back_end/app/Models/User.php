@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\Contracts\OAuthenticatable;
@@ -16,7 +17,7 @@ class User extends Authenticatable implements OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
 
-    use HasFactory, Notifiable,HasApiTokens, HasRoles;
+    use HasFactory, Notifiable,HasApiTokens, HasRoles, softDeletes;
     /**
      * The attributes that are mass assignable.
      *
@@ -52,7 +53,7 @@ class User extends Authenticatable implements OAuthenticatable
         ];
     }
 
-    public function employeeProfile(): HasOne
+    public function employee(): HasOne
     {
         return $this->hasOne(Employees::class);
     }

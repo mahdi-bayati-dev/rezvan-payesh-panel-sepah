@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('employees', function (Blueprint $table) {
-            $table->foreignId('work_pattern_id')
+            $table->foreignId('week_pattern_id')
                   ->nullable()
                   ->after('shift_offset')
                   ->comment('الگوی کاری اختصاصی برای نادیده گرفتن برنامه شیفتی')
-                  ->constrained('work_patterns')
+                  ->constrained('week_patterns')
                   ->onDelete('set null');
         });
     }

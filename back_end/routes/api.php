@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\ScheduleSlotController;
 use App\Http\Controllers\Api\ShiftScheduleController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkPatternController;
 use Illuminate\Http\Request;
@@ -18,13 +20,16 @@ Route::post('/login', [AuthController::class, 'login'])->name('api.login');
 Route::middleware('auth:api')->group(function () {
     Route::get("/me", function (Request $request) {
         $user = $request->user();
-        $user->load(['employeeProfile']);
+        $user->load(['employee']);
         return response()->json($user);
     })->name('api.me');;
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 
+    //users
+    Route::apiResource('users', UserController::class);
 
-    Route::apiResource('work-patterns', WorkPatternController::class);
+    //week pattern
+    Route::apiResource('week-patterns', WeekPatternController::class);
 
     Route::apiResource('work-groups', WorkGroupController::class);
 
