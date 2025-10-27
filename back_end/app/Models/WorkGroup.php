@@ -12,13 +12,13 @@ class WorkGroup extends Model
     use HasFactory;
     protected $fillable = [
         'name',
-        'work_pattern_id',
+        'week_pattern_id',
         'shift_schedule_id',
     ];
 
-    public function workPattern(): BelongsTo
+    public function weekPattern(): BelongsTo
     {
-        return $this->belongsTo(WorkPattern::class);
+        return $this->belongsTo(WeekPattern::class);
     }
 
 

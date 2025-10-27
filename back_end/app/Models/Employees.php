@@ -35,7 +35,7 @@ class Employees extends Model
         'work_group_id',
         'shift_schedule_id',
         'shift_offset',
-        'work_pattern_id'
+        'week_pattern_id'
     ];
 
     protected $casts = [
@@ -122,9 +122,9 @@ class Employees extends Model
         return $this->belongsTo(ShiftSchedule::class);
     }
 
-    public function workPattern(): BelongsTo
+    public function weekPattern(): BelongsTo
     {
-        return $this->belongsTo(WorkPattern::class);
+        return $this->belongsTo(WeekPattern::class);
     }
 
 }
