@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Carbon;
 
 class WorkPattern extends Model
 {
@@ -20,9 +22,31 @@ class WorkPattern extends Model
 
     protected $casts = [
         'type' => 'string',
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
     ];
+
+    /**
+     * فرمت کردن start_time به H:i
+     */
+    protected function startTime(): Attribute
+    {
+        return Attribute::make(
+            // $value مقداری است که از دیتابیس می‌آید
+            get: fn ($value) => $value ? Carbon::parse($value)->format('H:i') : null,
+            // $value مقداری است که از ریکوئست می‌آید (H:i)
+            set: fn ($value) => $value ? Carbon::parse($value)->format('H:i:s') : null
+        );
+    }
+
+    /**
+     * فرمت کردن end_time به H:i
+     */
+    protected function endTime(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? Carbon::parse($value)->format('H:i') : null,
+            set: fn ($value) => $value ? Carbon::parse($value)->format('H:i:s') : null
+        );
+    }
 
     public function workGroups(): HasMany
     {

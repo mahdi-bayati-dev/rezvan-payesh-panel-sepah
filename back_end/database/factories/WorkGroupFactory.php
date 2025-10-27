@@ -20,17 +20,16 @@ class WorkGroupFactory extends Factory
      */
     public function definition(): array
     {
+        $hasWeekPattern = $this->faker->boolean(70);
         return [
             'name' => 'گروه کاری ' . $this->faker->unique()->companySuffix() . ' ' . $this->faker->randomNumber(2),
 
-             'week_pattern_id' => $this->faker->boolean(70)
+             'week_pattern_id' => $hasWeekPattern
                                      ? WeekPattern::factory()
                                      : null,
-//            'shift_schedule_id' => $this->faker->boolean(30);
-            //                         ? ShiftSchedule::factory()
-            //                         : null,
-
-              'shift_schedule_id' => null,
+            'shift_schedule_id' => !$hasWeekPattern
+                ? ShiftSchedule::factory()
+                : null,
         ];
     }
 
@@ -41,18 +40,21 @@ class WorkGroupFactory extends Factory
      {
          return $this->state(fn (array $attributes) => [
              'week_pattern_id' => $pattern?->id ?? WeekPattern::factory(),
-             'shift_schedule_id' => null, // اگر الگوی ثابت دارد، برنامه چرخشی نداشته باشد
+             'shift_schedule_id' => null,
          ]);
      }
 
      /**
       * حالت خاص برای اتصال به یک برنامه شیفتی مشخص
+      * (اصلاح شده)
       */
       public function withShiftSchedule(ShiftSchedule $schedule = null): static
       {
           return $this->state(fn (array $attributes) => [
               'shift_schedule_id' => $schedule?->id ?? ShiftSchedule::factory(),
-              'work_pattern_id' => null,
+              'week_pattern_id' => null,
           ]);
       }
+
+
 }
