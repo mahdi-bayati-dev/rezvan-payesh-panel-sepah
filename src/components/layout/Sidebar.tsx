@@ -7,7 +7,7 @@ import { UserProfile } from './UserProfile';
 
 // کامپوننت SidebarNavItem (بدون تغییر)
 const SidebarNavItem = ({ item }: { item: NavItem }) => {
-  // ... (کد قبلی شما عالی است) ...
+
   return (
     <li>
       <NavLink
@@ -58,7 +58,7 @@ export const SidebarContent = () => (
 export const Sidebar = () => {
   return (
     // display: none روی المان والد اعمال می‌شود، پس SidebarContent نیازی به hidden ندارد
-    <aside className="hidden md:flex md:flex-shrink-0 md:w-64"> {/* عرض ثابت برای سایدبار */}
+    <aside className="hidden md:flex md:flex-shrink-0 md:w-60"> {/* عرض ثابت برای سایدبار */}
       <SidebarContent />
     </aside>
   );
