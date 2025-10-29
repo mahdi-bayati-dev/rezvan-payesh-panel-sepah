@@ -33,6 +33,28 @@ class UserFactory extends Factory
         ];
     }
 
+    public function withRole(string $role): static
+    {
+        return $this->state([
+            // اگر فیلدهای خاصی برای roleهای مختلف دارید
+            'status' => 'active',
+        ]);
+    }
+
+
+    public function forRole(string $role): static
+    {
+        $position = match($role) {
+            'org-admin-l2' => 'Organization Admin Level 2',
+            'org-admin-l3' => 'Organization Admin Level 3',
+            'user' => 'Regular Employee',
+            default => 'user'
+        };
+
+        return $this->state([
+            'position' => $position,
+        ]);
+    }
 
 
 }

@@ -22,45 +22,43 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
+
         $this->authorize('viewAny', User::class);
 
-        $user = $request->user();
-        $userEmployeeProfile = $user->employee;
+        $currentUser = $request->user();
+        $currentUserEmployee = $currentUser->employee;
 
-        $query = User::with(['employee.organization', 'roles']);
+        $query = User::with(['employee', 'roles']); // فقط employee و roles
 
-        // 3. Apply Scope Filtering based on Role
-        if ($user->hasRole('org-admin-l2'))
-        {
-            if ($userEmployeeProfile?->organization)
-            {
-                 $adminOrg = $userEmployeeProfile->organization;
-                 // دریافت ID های سازمان ادمین و تمام زیرمجموعه‌ها
-                 $allowedOrgIds = $adminOrg->descendants()->pluck('id')->push($adminOrg->id);
-                 $query->whereHas('employee', function ($q) use ($allowedOrgIds) {
-                     $q->whereIn('organization_id', $allowedOrgIds);
-                 });
+        if ($currentUser->hasRole('org-admin-l2')) {
+            if ($currentUserEmployee?->organization) {
+                $adminOrg = $currentUserEmployee->organization;
+                $allowedOrgIds = $adminOrg->descendants()->pluck('id')->push($adminOrg->id);
+                $query->whereHas('employee', function ($q) use ($allowedOrgIds) {
+                    $q->whereIn('organization_id', $allowedOrgIds);
+                });
             }
             else
             {
-                 $query->whereRaw('1 = 0'); // ادمین L2 بدون سازمان، کسی را نبیند
+                $query->whereRaw('1 = 0');
             }
+            $query->where('id', '!=', $currentUser->id);
         }
-        elseif ($user->hasRole('org-admin-l3'))
+        elseif ($currentUser->hasRole('org-admin-l3'))
         {
-            if ($userEmployeeProfile?->organization_id)
+            if ($currentUserEmployee?->organization_id)
             {
-                // ادمین L3 فقط کاربران سازمان خودش را می‌بیند
-                 $query->whereHas('employee', function ($q) use ($userEmployeeProfile)
-                 {
-                     $q->where('organization_id', $userEmployeeProfile->organization_id);
-                 });
+                $query->whereHas('employee', function ($q) use ($currentUserEmployee) {
+                    $q->where('organization_id', $currentUserEmployee->organization_id);
+                });
             }
             else
             {
-                  $query->whereRaw('1 = 0'); // ادمین L3 بدون سازمان، کسی را نبیند
+                $query->whereRaw('1 = 0');
             }
+            $query->where('id', '!=', $currentUser->id);
         }
+
         $users = $query->paginate(15);
 
         return new UserCollection($users);
@@ -76,7 +74,7 @@ class UserController extends Controller
         $creatingUser = $request->user();
         $allowedRoles = ['user'];
         $allowedOrgCheck = true;
-        if ($creatingUser->hasRole('super-admin'))
+        if ($creatingUser->hasRole('super_admin'))
         {
             $allowedRoles = Role::pluck('name')->all();
             $allowedOrgCheck = false;
@@ -85,7 +83,7 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             // User fields
-            'name' => ['required', 'string', 'max:255'],
+            'user_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', Password::defaults()],
             'role' => ['required', 'string', Rule::in($allowedRoles)],
@@ -134,15 +132,15 @@ class UserController extends Controller
              return response()->json(['message' => 'Unauthorized scope for organization.'], 403);
         }
         // 4. Create User and Employee in Transaction
-        $user = DB::transaction(function () use ($validatedData, $employeeData) {
-            $user = User::create([
+        $currentUser = DB::transaction(function () use ($validatedData, $employeeData) {
+            $newUser = User::create([
                 'user_name' => $validatedData['user_name'],
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
                 'status' => $validatedData['status'],
             ]);
 
-            $user->employee()->create(
+            $newUser->employee()->create(
                 [
                 'first_name' => $employeeData['first_name'],
                 'last_name' => $employeeData['last_name'],
@@ -173,12 +171,12 @@ class UserController extends Controller
 
             ]);
 
-            $user->assignRole($validatedData['role']);
+            $newUser->assignRole($validatedData['role']);
 
-            return $user;
+            return $newUser;
         });
 
-        return new UserResource($user->load(['employee.organization', 'roles']));
+        return new UserResource($currentUser->load(['employee.organization', 'roles']));
     }
 
     /**
@@ -198,12 +196,12 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
         $updatingUser = $request->user();
-        $canChangeRole = $updatingUser->hasRole('super-admin') && $updatingUser->id !== $user->id;
-        $allowedOrgCheck = !$updatingUser->hasRole('super-admin');
+        $canChangeRole = $updatingUser->hasRole('super_admin') && $updatingUser->id !== $user->id;
+        $allowedOrgCheck = !$updatingUser->hasRole('super_admin');
         $updatingUserEmployee = $updatingUser->employee;
 
         $validator = Validator::make($request->all(), [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'user_name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', Password::defaults()],
             'role' => ['sometimes', 'required', 'string', Rule::exists('roles', 'name'),Rule::prohibitedIf(!$canChangeRole)],
@@ -213,7 +211,7 @@ class UserController extends Controller
             'employee.first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'employee.last_name' => ['sometimes', 'required', 'string', 'max:255'],
             'employee.personnel_code' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('employees', 'personnel_code')->ignore($user->employee?->id)], // کد پرسنلی یکتا
-            'employee.organization_id' => ['sometimes', 'required', 'integer', Rule::exists('organizations', 'id'),Rule::prohibitedIf(!$updatingUser->hasRole('super-admin'))],
+            'employee.organization_id' => ['sometimes', 'required', 'integer', Rule::exists('organizations', 'id'),Rule::prohibitedIf(!$updatingUser->hasRole('super_admin'))],
             'employee.position' => ['nullable', 'string', 'max:255'],
             'employee.starting_job' => ['nullable', 'date'],
 
@@ -258,7 +256,7 @@ class UserController extends Controller
          // اگر نقش تغییر کرده، چک کن مجاز است؟
          if (isset($validatedData['role']) && $validatedData['role'] !== $user->roles->first()?->name)
          {
-              if ($updatingUser->id === $user->id && !$updatingUser->hasRole('super-admin'))
+              if ($updatingUser->id === $user->id && !$updatingUser->hasRole('super_admin'))
               {
                    return response()->json(['message' => 'Users cannot change their own role.'], 403);
               }
@@ -268,7 +266,7 @@ class UserController extends Controller
          DB::transaction(function () use ($user, $validatedData, $employeeData) {
              // Update User fields
              $userDataToUpdate = [];
-             if (isset($validatedData['name'])) $userDataToUpdate['name'] = $validatedData['name'];
+             if (isset($validatedData['user_name'])) $userDataToUpdate['user_name'] = $validatedData['user_name'];
              if (isset($validatedData['email'])) $userDataToUpdate['email'] = $validatedData['email'];
              if (!empty($validatedData['password'])) $userDataToUpdate['password'] = Hash::make($validatedData['password']);
              if (!empty($userDataToUpdate)) $user->update($userDataToUpdate);
@@ -279,7 +277,7 @@ class UserController extends Controller
              }
 
              // Update Role if changed and authorized
-             if (isset($validatedData['role']) && request()->user()->hasRole('super-admin'))
+             if (isset($validatedData['role']) && request()->user()->hasRole('super_admin'))
              {
                  $user->syncRoles([$validatedData['role']]);
              }
@@ -297,6 +295,7 @@ class UserController extends Controller
         // 1. Authorize: آیا کاربر اجازه حذف این کاربر را دارد؟
         $this->authorize('delete', $user);
 
+
         // 2. Prevent self-deletion
         if (request()->user()->id === $user->id)
         {
@@ -313,7 +312,7 @@ class UserController extends Controller
      */
     protected function canAdminManageOrg(User $admin, int $targetOrgId): bool
     {
-        $adminEmployee = $admin->employees;
+        $adminEmployee = $admin->employee;
         if (!$adminEmployee?->organization_id) return false;
 
         $adminOrg = $adminEmployee->organization;
@@ -321,8 +320,11 @@ class UserController extends Controller
 
         if (!$targetOrg) return false;
 
-        if ($admin->hasRole('org-admin-l2')) {
-            return $adminOrg->isAncestorOf($targetOrg);
+        if ($admin->hasRole('org-admin-l2'))
+        {
+
+           return $adminOrg->descendantsAndSelf()->where('id', $targetOrg->id)->exists();
+
         }
         if ($admin->hasRole('org-admin-l3')) {
             return $adminOrg->id === $targetOrg->id;

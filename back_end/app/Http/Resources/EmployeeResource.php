@@ -14,10 +14,34 @@ class EmployeeResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        if (!$this->resource) {
+            return [];
+        }
+
         return [
-            'data' => UserResource::collection($this->collection),
-            'links' => $this->links(),
-            'meta' => $this->meta(),
+            'id' => $this->id,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'personnel_code' => $this->personnel_code,
+            'position' => $this->position,
+            'starting_job' => $this->starting_job,
+
+            // استفاده از whenLoaded برای organization
+            'organization' => $this->whenLoaded('organization', function () {
+                return new OrganizationResource($this->organization);
+            }),
+
+            // بقیه فیلدها...
+            'father_name' => $this->father_name,
+            'birth_date' => $this->birth_date,
+            'nationality_code' => $this->nationality_code,
+            'gender' => $this->gender,
+            'is_married' => $this->is_married,
+            'education_level' => $this->education_level,
+            'phone_number' => $this->phone_number,
+            'house_number' => $this->house_number,
+            'sos_number' => $this->sos_number,
+            'address' => $this->address,
         ];
     }
     protected function links(): array

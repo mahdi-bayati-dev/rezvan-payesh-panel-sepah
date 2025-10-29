@@ -5,8 +5,10 @@ namespace Tests\Feature\Api;
 use App\Models\Employees;
 use App\Models\Organization;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Passport\Passport;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
@@ -33,15 +35,12 @@ class UserControllerTest extends TestCase
     protected User $userInOtherOrg;
 
 
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        // 1. ساخت نقش‌ها
-        $this->superAdminRole = Role::firstOrCreate(['name' => 'super_admin']);
-        $this->adminL2Role = Role::firstOrCreate(['name' => 'org-admin-l2']);
-        $this->adminL3Role = Role::firstOrCreate(['name' => 'org-admin-l3']);
-        $this->userRole = Role::firstOrCreate(['name' => 'user']);
+        $this->seed([RoleSeeder::class]);
 
         // 2. ساخت ساختار سازمانی
         $this->orgL1 = Organization::factory()->create(['name' => 'Org L1']);
@@ -56,8 +55,7 @@ class UserControllerTest extends TestCase
         $this->normalUserInL3 = $this->createUserWithEmployee('user', $this->orgL3); // کاربر عادی در Org L3
         $this->userInOtherOrg = $this->createUserWithEmployee('user', $this->otherOrg); // کاربر عادی در سازمان دیگر
 
-        // به عنوان superAdmin لاگین کن برای اکثر تست‌ها
-        Passport::actingAs($this->superAdmin);
+
     }
 
     // Helper function to create user with employee profile
@@ -66,10 +64,10 @@ class UserControllerTest extends TestCase
         $user = User::factory()->create();
         Employees::factory()->create([
             'user_id' => $user->id,
-            'organization_id' => $organization?->id, // می‌تواند null باشد برای super-admin?
+            'organization_id' => $organization?->id,
         ]);
         $user->assignRole($roleName);
-        return $user->refresh(); // اطمینان از بارگیری روابط
+        return $user->refresh();
     }
 
 
@@ -83,19 +81,41 @@ class UserControllerTest extends TestCase
                  ->assertJsonCount(5, 'data'); // باید همه ۵ کاربر ساخته شده را ببیند
     }
 
-    #[Test] public function admin_l2_can_list_users_in_own_org_and_descendants(): void
+    #[Test]
+    public function admin_l2_can_list_users_in_own_org_and_descendants(): void
     {
-        Passport::actingAs($this->adminL2); // لاگین به عنوان ادمین L2 (سازمان Org L2)
+        Passport::actingAs($this->adminL2);
         $response = $this->getJson(route('users.index'));
 
         $response->assertStatus(200)
-                 ->assertJsonCount(2, 'data') // باید adminL3 و normalUserInL3 را ببیند (چون Org L3 زیرمجموعه Org L2 است)
-                 ->assertJsonMissing(['id' => $this->userInOtherOrg->id]) // نباید کاربر سازمان دیگر را ببیند
-                 ->assertJsonMissing(['id' => $this->superAdmin->id]); // نباید سوپر ادمین را ببیند
+            ->assertJsonCount(2, 'data'); // فقط ۲ کاربر دیگر (نه خودش)
 
-        $returned_ids = collect($response->json('data'))->pluck('id');
-        $this->assertTrue($returned_ids->contains($this->adminL3->id));
-        $this->assertTrue($returned_ids->contains($this->normalUserInL3->id));
+        $data = $response->json('data');
+        $userIds = collect($data)->pluck('id');
+
+        $this->assertFalse($userIds->contains($this->adminL2->id), 'Should not see self');
+        $this->assertFalse($userIds->contains($this->superAdmin->id), 'Should not see super admin');
+        $this->assertFalse($userIds->contains($this->userInOtherOrg->id), 'Should not see user in other org');
+        $this->assertTrue($userIds->contains($this->adminL3->id), 'Should see admin L3 in descendant org');
+        $this->assertTrue($userIds->contains($this->normalUserInL3->id), 'Should see normal user in descendant org');
+    }
+
+    #[Test]
+    public function admin_l2_cannot_see_self_in_user_list(): void
+    {
+        Passport::actingAs($this->adminL2);
+        $response = $this->getJson(route('users.index'));
+
+        $response->assertStatus(200)
+            ->assertJsonCount(2, 'data');
+
+        // بررسی اینکه آرایه data شامل id کاربر جاری نیست
+        $data = $response->json('data');
+        $userIds = collect($data)->pluck('id');
+
+        $this->assertFalse($userIds->contains($this->adminL2->id), 'Admin L2 should not see themselves in the list');
+        $this->assertTrue($userIds->contains($this->adminL3->id));
+        $this->assertTrue($userIds->contains($this->normalUserInL3->id));
     }
 
     #[Test] public function admin_l3_can_list_users_in_own_org_only(): void
@@ -125,7 +145,7 @@ class UserControllerTest extends TestCase
         $response = $this->postJson(route('users.store'), $data);
         $response->assertStatus(201)
                  ->assertJsonPath('data.roles.0', 'org-admin-l2')
-                 ->assertJsonPath('data.employee.organization_id', $this->orgL1->id);
+                 ->assertJsonPath('data.employee.organization.id', $this->orgL1->id);
         $this->assertDatabaseHas('users', ['email' => $data['email']]);
     }
 
@@ -136,7 +156,7 @@ class UserControllerTest extends TestCase
         $response = $this->postJson(route('users.store'), $data);
         $response->assertStatus(201)
                  ->assertJsonPath('data.roles.0', 'user')
-                 ->assertJsonPath('data.employee.organization_id', $this->orgL3->id);
+                 ->assertJsonPath('data.employee.organization.id', $this->orgL3->id);
     }
 
     #[Test] public function admin_l2_cannot_create_admin_user(): void
@@ -196,29 +216,29 @@ class UserControllerTest extends TestCase
     {
         Passport::actingAs($this->superAdmin);
         $response = $this->putJson(route('users.update', $this->normalUserInL3->id), [
-            'name' => 'Updated Name',
+            'user_name' => 'Updated Name',
             'role' => 'org-admin-l3', // ارتقا نقش
             'employee' => [
                 'organization_id' => $this->orgL2->id, // تغییر سازمان
             ]
         ]);
         $response->assertStatus(200)
-                 ->assertJsonPath('data.name', 'Updated Name')
+                 ->assertJsonPath('data.user_name', 'Updated Name')
                  ->assertJsonPath('data.roles.0', 'org-admin-l3')
-                 ->assertJsonPath('data.employee.organization_id', $this->orgL2->id);
+                 ->assertJsonPath('data.employee.organization.id', $this->orgL2->id);
     }
 
     #[Test] public function admin_l2_can_update_normal_user_in_scope_but_not_role_or_org(): void
     {
         Passport::actingAs($this->adminL2); // ادمین L2 در Org L2
          $response = $this->putJson(route('users.update', $this->normalUserInL3->id), [
-            'name' => 'Updated By L2',
+            'user_name' => 'Updated By L2',
             'employee' => [
                 'first_name' => 'Updated First Name',
             ]
         ]);
         $response->assertStatus(200)
-                 ->assertJsonPath('data.name', 'Updated By L2')
+                 ->assertJsonPath('data.user_name', 'Updated By L2')
                  ->assertJsonPath('data.employee.first_name', 'Updated First Name');
 
          // تلاش برای تغییر نقش (باید توسط ولیدیشن رد شود)
@@ -242,7 +262,7 @@ class UserControllerTest extends TestCase
         Passport::actingAs($this->adminL2);
          // تلاش برای ویرایش adminL3 (که در scope هست اما ادمینه)
         $response = $this->putJson(route('users.update', $this->adminL3->id), [
-            'name' => 'Try Update Admin',
+            'user_name' => 'Try Update Admin',
         ]);
         $response->assertStatus(403); // Policy باید رد کند
     }
@@ -251,11 +271,11 @@ class UserControllerTest extends TestCase
     {
         Passport::actingAs($this->normalUserInL3);
          $response = $this->putJson(route('users.update', $this->normalUserInL3->id), [
-            'name' => 'My Updated Name',
+            'user_name' => 'My Updated Name',
             'password' => 'newpassword123',
             'employee' => ['first_name' => 'MyNewFirstName']
         ]);
-        $response->assertStatus(200)->assertJsonPath('data.name', 'My Updated Name');
+        $response->assertStatus(200)->assertJsonPath('data.user_name', 'My Updated Name');
         $this->assertTrue(Hash::check('newpassword123', $this->normalUserInL3->refresh()->password));
 
          // تلاش برای تغییر نقش خود
@@ -274,11 +294,16 @@ class UserControllerTest extends TestCase
         Passport::actingAs($this->superAdmin);
         $response = $this->deleteJson(route('users.destroy', $this->adminL2->id));
         $response->assertStatus(204);
-        $this->assertDatabaseMissing('users', ['id' => $this->adminL2->id]);
+        $this->assertSoftDeleted('users', [
+            'id' => $this->adminL2->id
+        ]);
 
          // تلاش برای حذف خود
         $response = $this->deleteJson(route('users.destroy', $this->superAdmin->id));
         $response->assertStatus(403); // Controller باید جلوی حذف خود را بگیرد
+        $this->assertNotSoftDeleted('users', [
+            'id' => $this->superAdmin->id
+        ]);
     }
 
     #[Test] public function admin_l2_can_delete_normal_user_in_scope(): void
@@ -286,7 +311,9 @@ class UserControllerTest extends TestCase
         Passport::actingAs($this->adminL2);
         $response = $this->deleteJson(route('users.destroy', $this->normalUserInL3->id));
         $response->assertStatus(204);
-         $this->assertDatabaseMissing('users', ['id' => $this->normalUserInL3->id]);
+        $this->assertSoftDeleted('users', [
+            'id' => $this->normalUserInL3->id
+        ]);
     }
 
     #[Test] public function admin_l2_cannot_delete_admin_user_in_scope(): void
@@ -314,25 +341,125 @@ class UserControllerTest extends TestCase
         $response = $this->deleteJson(route('users.destroy', $this->adminL3->id));
         $response->assertStatus(403);
     }
+    #[Test]
+    public function soft_deleted_user_cannot_be_retrieved_or_updated(): void
+    {
+        // اول کاربر را حذف کن
+        $this->adminL2->delete();
+        $this->assertSoftDeleted($this->adminL2);
+
+        Passport::actingAs($this->superAdmin);
+
+        // نباید در لیست بیاید
+        $this->getJson(route('users.index'))
+            ->assertStatus(200)
+            ->assertJsonMissing(['id' => $this->adminL2->id]);
+
+        // نباید Show شود (باید 404 بدهد)
+        $this->getJson(route('users.show', $this->adminL2->id))->assertStatus(404);
+
+        // نباید Update شود (باید 404 بدهد)
+        $this->putJson(route('users.update', $this->adminL2->id), ['user_name' => 'Ghost'])
+            ->assertStatus(404);
+
+        // نباید دوباره Delete شود (بسته به پیاده‌سازی، 404 یا 204)
+        $this->deleteJson(route('users.destroy', $this->adminL2->id))->assertStatus(404);
+    }
+
+    #[Test]
+    public function soft_deleted_user_cannot_login(): void
+    {
+        // این تست به لاجیک Auth شما بستگی دارد، اما فرض کلی این است
+        $password = 'password123';
+        $user = $this->createUserWithEmployee('user', $this->orgL3, $password);
+
+        $user->delete(); // کاربر را حذف کن
+        $this->assertSoftDeleted($user);
+
+        // تلاش برای لاگین با Passport (یا Sanctum)
+        $response = $this->postJson(route('passport.token'), [ // یا هر روت لاگین دیگری که دارید
+            'username' => $user->email,
+            'password' => $password,
+        ]);
+
+        // باید 400 (Invalid Request) یا 401 (Unauthorized) بدهد، نه 200
+        $response->assertStatus(400);
+        // یا اگر لاجیک لاگین شما ایمیل و پسورد را چک می‌کند و بعد
+        // کاربر را برمی‌گرداند و *بعد* می‌بیند حذف شده، شاید 401/403 بدهد.
+    }
+    #[Test]
+    public function store_user_fails_with_duplicate_email(): void
+    {
+        Passport::actingAs($this->superAdmin);
+
+        // یک کاربر با ایمیل موجود $this->adminL2->email بساز
+        $data = $this->getUserPayload('user', $this->orgL1->id);
+        $data['email'] = $this->adminL2->email; // استفاده از ایمیل تکراری
+
+        $response = $this->postJson(route('users.store'), $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('email');
+    }
+
+    #[Test]
+    public function store_user_fails_with_non_existent_organization(): void
+    {
+        Passport::actingAs($this->superAdmin);
+
+        $data = $this->getUserPayload('user', 9999); // ID سازمانی که وجود ندارد
+
+        $response = $this->postJson(route('users.store'), $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('employee.organization_id');
+    }
+
+    #[Test]
+    public function guest_cannot_list_users(): void
+    {
+
+        $response = $this->getJson(route('users.index'));
+        $response->assertStatus(401); // Unauthorized
+    }
+
+    #[Test]
+    public function admin_l2_can_create_normal_user_in_OWN_org(): void
+    {
+        Passport::actingAs($this->adminL2); // ادمین L2 در Org L2
+
+        // ایجاد کاربر عادی در Org L2 (دقیقا سازمان خودش)
+        $data = $this->getUserPayload('user', $this->orgL2->id);
+
+        $response = $this->postJson(route('users.store'), $data);
+        $response->assertStatus(201)
+            ->assertJsonPath('data.roles.0', 'user')
+            ->assertJsonPath('data.employee.organization.id', $this->orgL2->id);
+    }
 
     // --- Helper for Payload ---
     private function getUserPayload(string $role, int $orgId): array
     {
-         return [
-            'name' => $this->faker->name(),
-            'email' => $this->faker->unique()->safeEmail(),
+        $userData = User::factory()
+            ->make()
+            ->toArray();
+
+        $employeeData = Employees::factory()
+            ->forOrganization($orgId)
+            ->forRole($role)
+            ->withRequiredFields()
+            ->make()
+            ->toArray();
+
+        return [
+            'user_name' => $userData['user_name'],
+            'email' => $userData['email'],
             'password' => 'password',
             'role' => $role,
-             'status' => 'active',
-            'employee' => [
-                'first_name' => $this->faker->firstName(),
-                'last_name' => $this->faker->lastName(),
-                'personnel_code' => $this->faker->unique()->numerify('EMP#####'),
-                'organization_id' => $orgId,
-                'gender' => $this->faker->randomElement(['male', 'female']), // اضافه شد چون لازم بود
-                'is_married' => $this->faker->boolean(), // اضافه شد چون لازم بود
-                // بقیه فیلدهای employee می‌توانند nullable باشند
-            ]
+            'status' => 'active',
+            'employee' => $employeeData
         ];
     }
+
+
 }

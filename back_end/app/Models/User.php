@@ -23,6 +23,7 @@ class User extends Authenticatable implements OAuthenticatable
      *
      * @var list<string>
      */
+    protected $guard_name = 'api';
     protected $fillable = [
         'user_name',
         'status',
