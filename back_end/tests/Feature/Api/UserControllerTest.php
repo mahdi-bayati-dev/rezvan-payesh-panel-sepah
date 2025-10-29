@@ -55,8 +55,7 @@ class UserControllerTest extends TestCase
         $this->normalUserInL3 = $this->createUserWithEmployee('user', $this->orgL3); // کاربر عادی در Org L3
         $this->userInOtherOrg = $this->createUserWithEmployee('user', $this->otherOrg); // کاربر عادی در سازمان دیگر
 
-        // به عنوان superAdmin لاگین کن برای اکثر تست‌ها
-        Passport::actingAs($this->superAdmin);
+
     }
 
     // Helper function to create user with employee profile
@@ -419,7 +418,7 @@ class UserControllerTest extends TestCase
     #[Test]
     public function guest_cannot_list_users(): void
     {
-        passport::;
+
         $response = $this->getJson(route('users.index'));
         $response->assertStatus(401); // Unauthorized
     }
