@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -17,41 +19,20 @@ class AuthController extends Controller
         ]);
 
         $credentials = $request->only('user_name', 'password');
-
-        if (Auth::attempt($credentials)) {
-            /** @var User $user */
-            $user = Auth::user();
-
-            if ($user->status !== 'active') {
-                return response()->json([
-                    'error' => 'Unauthorized',
-                    'message' => 'حساب کاربری شما غیرفعال است.'
-                ], 401);
-            }
-            $tokenResult = $user->createToken('AuthToken');
-            $token = $tokenResult->accessToken;
-            $expiresAt = $tokenResult->token->expires_at;
-            return response()->json([
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'expires_at' => $expiresAt->toDateTimeString(),
-                'user' =>
-                    [
-                        'id' => $user->id,
-                        'user_name' => $user->user_name,
-                        'email' => $user->email,
-                        'roles' => $user->getRoleNames(),
-//                        'permissions' => $user->getAllPermissions()->pluck('name'),
-                    ]
-            ]);
-        }
-        else
+        $user = User::where('email', $request->email)->first();
+        if (!$user || !Hash::check($request->password, $user->password))
         {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => 'نام کاربری یا رمز عبور نامعتبر است.'
-            ], 401);
+
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
+       $token = $user->createToken('AppName-AuthToken')->accessToken;
+
+       // ۵. توکن را به همراه اطلاعات کاربر برگردان
+       return response()->json([
+           'message' => 'Login successful',
+           'user' => $user,
+           'token' => $token,
+       ]);
 
    }
 
