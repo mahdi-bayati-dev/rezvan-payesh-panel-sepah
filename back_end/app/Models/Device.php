@@ -17,7 +17,7 @@ class Device extends Model
         'type',
         'status',
         'last_heartbeat_at',
-        'last_known_ip', // <-- این رو اضافه کردیم
+        'last_known_ip',
     ];
 
     protected $hidden = [

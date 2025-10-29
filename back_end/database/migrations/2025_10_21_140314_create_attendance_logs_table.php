@@ -33,6 +33,7 @@ return new class extends Migration
                   ->onDelete('set null');
 
             $table->text('remarks')->nullable();
+            $table->boolean("is_allowed")->default(false);
 
             $table->timestamp('timestamp');
 

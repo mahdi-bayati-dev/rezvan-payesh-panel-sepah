@@ -10,8 +10,13 @@ class AttendanceLog extends Model
 {
     use HasFactory;
 
-    public const TYPE_CHECK_IN = 'check_in';
-    public const TYPE_CHECK_OUT = 'check_out';
+    public const TYPE_CHECK_IN = 'check-in';
+    public const TYPE_CHECK_OUT = 'check-out';
+
+    public const SOURCE_DEVICE = 'device';
+    public const SOURCE_MANUAL_ADMIN = 'manual_admin';
+    public const SOURCE_MANUAL_ADMIN_EDIT = 'manual_admin_edit';
+
 
     protected $fillable = [
         'employee_id',
@@ -21,7 +26,8 @@ class AttendanceLog extends Model
         'source_type',
         'edited_by_user_id',
         'remarks',
-        'device_id'
+        'device_id',
+        'is_allowed'
     ];
 
 
