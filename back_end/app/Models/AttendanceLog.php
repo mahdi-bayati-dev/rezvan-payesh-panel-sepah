@@ -13,6 +13,11 @@ class AttendanceLog extends Model
     public const TYPE_CHECK_IN = 'check_in';
     public const TYPE_CHECK_OUT = 'check_out';
 
+    public const SOURCE_DEVICE = 'auto';
+    public const SOURCE_MANUAL_ADMIN = 'manual';
+    public const SOURCE_MANUAL_ADMIN_EDIT = 'manual_edit';
+
+
     protected $fillable = [
         'employee_id',
         'event_type',
@@ -21,7 +26,8 @@ class AttendanceLog extends Model
         'source_type',
         'edited_by_user_id',
         'remarks',
-        'device_id'
+        'device_id',
+        'is_allowed'
     ];
 
 

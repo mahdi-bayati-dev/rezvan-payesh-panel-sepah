@@ -19,7 +19,7 @@ class DeviceFactory extends Factory
     public function definition(): array
     {
        $type = Arr::random(['ai_service', 'camera', 'manual_kiosk']);
-        // وضعیت دستگاه رو تصادفی انتخاب می‌کنیم
+
         $status = Arr::random(['online', 'offline', 'maintenance']);
 
         return [

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HolidayController;
@@ -24,6 +25,9 @@ Route::middleware('auth:api')->group(function () {
         return response()->json($user);
     })->name('api.me');;
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
+
+    //admin attend
+    Route::apiResource('admin/attendance-logs', AdminAttendanceLogController::class);
 
     //users
     Route::apiResource('users', UserController::class);

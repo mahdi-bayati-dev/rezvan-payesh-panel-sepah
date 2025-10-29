@@ -25,7 +25,7 @@ return new class extends Migration
 
             $table->string('source_name')->nullable();
 
-            $table->enum('source_type', ['auto', 'manual'])->default('auto');
+            $table->enum('source_type', ['auto', 'manual','manual_edit'])->default('auto');
 
             $table->foreignId('edited_by_user_id')
                   ->nullable()
@@ -33,6 +33,7 @@ return new class extends Migration
                   ->onDelete('set null');
 
             $table->text('remarks')->nullable();
+            $table->boolean("is_allowed")->default(false);
 
             $table->timestamp('timestamp');
 
