@@ -84,7 +84,7 @@ class EmployeeWorkSeeder extends Seeder
             'week_pattern_id' => null, // برنامه را از گروه ارث می‌برد
             'shift_schedule_id' => null,
             'shift_offset' => 0,
-            // ... سایر فیلدها
+
         ]);
 
         // کارمند ۲: در گروه تولید، برنامه را از گروه ارث می‌برد
@@ -97,7 +97,7 @@ class EmployeeWorkSeeder extends Seeder
             'week_pattern_id' => null, // برنامه را از گروه ارث می‌برد
             'shift_schedule_id' => null,
             'shift_offset' => 0,
-            // ... سایر فیلدها
+
         ]);
 
         // کارمند ۳: در گروه اداری، اما برنامه اختصاصی تمام‌وقت دارد (override)
