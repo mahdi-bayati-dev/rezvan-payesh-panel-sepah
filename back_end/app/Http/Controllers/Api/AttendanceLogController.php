@@ -44,7 +44,7 @@ class AttendanceLogController extends Controller
             'event_type' => $validated['event_type'],
             'timestamp' => $validated['timestamp'],
             'device_id' => $device->id,
-            'source_name' => $validator->source_name,
+            'source_name' => $validated['source_name'],
             'source_type' => AttendanceLog::SOURCE_DEVICE,
             'edited_by_user_id' => null,
             'remarks' => null,

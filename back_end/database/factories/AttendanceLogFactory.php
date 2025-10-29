@@ -21,7 +21,7 @@ class AttendanceLogFactory extends Factory
      */
     public function definition(): array
     {
-        $device = Device::factory();
+        $device = Device::factory()->create();
 
         return [
             // فرض می‌کنیم EmployeesFactory هم دارید
@@ -30,9 +30,9 @@ class AttendanceLogFactory extends Factory
             'timestamp' => fake()->dateTimeBetween('-30 days', 'now'), // لاگ در 30 روز گذشته
 
             // حالت پیش‌فرض: لاگ از دستگاه آمده
-            'source_name' => $device->name,
+            'source_name' => 'section 1',
             'source_type' => AttendanceLog::SOURCE_DEVICE,
-            'device_id' => $device,
+            'device_id' => $device->id,
 
             // این لاگ تمیز است و ویرایش نشده
             'edited_by_user_id' => null,
