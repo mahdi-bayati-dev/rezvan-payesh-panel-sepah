@@ -56,17 +56,16 @@ export default function WorkPatternPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // --- ۱. فچ کردن لیست الگوها ---
-  // ✅ تغییر ۱: استفاده از هوک useWorkPatterns که داده‌ها را تبدیل می‌کند
   const {
     data: listData, // کامنت: listData حالا آبجکت { patterns, meta, links } است
     isLoading: isLoadingList,
     isError: isListError,
     error: listError
-  } = useWorkPatterns(currentPage); // ✅ هوک صحیح
+  } = useWorkPatterns(currentPage); 
 
-  // ✅ تغییر ۲: دسترسی به پراپرتی patterns (که WorkPatternUI[] است)
-  const patternsList = listData?.patterns || []; // ⬅️ قبلاً listData?.data بود
-  const paginationMeta = listData?.meta; // ⬅️ این درست بود
+
+  const patternsList = listData?.patterns || []; 
+  const paginationMeta = listData?.meta; 
 
   // --- ۲. فچ کردن جزئیات الگوی انتخاب شده ---
   const {
@@ -102,7 +101,7 @@ export default function WorkPatternPage() {
         )}
         <div className="flex-1 min-h-0">
           <WorkPatternList
-            patterns={patternsList} // ✅ حالا patternsList از نوع WorkPatternUI[] است
+            patterns={patternsList} 
             selectedPatternId={selectedPatternId}
             onSelectPattern={handleSelectPattern}
             isLoading={isLoadingList}
@@ -118,7 +117,7 @@ export default function WorkPatternPage() {
         )}
       </div>
 
-      {/* ستون وسط: شماتیک (بدون تغییر) */}
+      {/* ستون وسط: شماتیک ) */}
       <div className="lg:col-span-7 h-full min-h-[400px]">
         {isDetailsError && selectedPatternId && (
           <Alert variant="destructive" className="mb-4">
@@ -132,7 +131,7 @@ export default function WorkPatternPage() {
         />
       </div>
 
-      {/* ستون چپ: گزینه‌ها (بدون تغییر) */}
+      {/* ستون چپ: گزینه‌ها ) */}
       <div className="lg:col-span-2 ">
         <WorkPatternActions />
       </div>

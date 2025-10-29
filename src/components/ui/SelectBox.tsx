@@ -54,12 +54,12 @@ const SelectBox = ({
             <div className="relative">
                 <Listbox.Button
                     className="relative w-full cursor-default rounded-lg py-2.5 pr-3 pl-10 text-right
-                               border border-borderL 
-                               bg-backgroundL-500 
-                               focus:outline-none focus:ring-2 focus:ring-primaryL
-                               dark:border-borderD
-                               dark:bg-backgroundD
-                               dark:focus:ring-primaryD"
+                     border border-borderL 
+                     bg-backgroundL-500 
+                     focus:outline-none focus:ring-2 focus:ring-primaryL
+                     dark:border-borderD
+                     dark:bg-backgroundD
+                     dark:focus:ring-primaryD"
                 >
                     <span
                         className={`block truncate ${value ? 'text-foregroundL dark:text-foregroundD' : 'text-muted-foregroundL dark:text-muted-foregroundD'}`}

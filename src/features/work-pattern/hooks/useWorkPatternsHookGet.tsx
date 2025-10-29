@@ -45,8 +45,8 @@ const transformApiPatternToUi = (apiPattern: WeekPatternDetail): WorkPatternUI =
 
             return {
                 dayOfWeekName: name,
-                dayIndex: index, // ✅ کامنت: اندیس برای مرتب‌سازی اضافه شد
-                atomicPattern: atomicPattern, // ✅ کامنت: اصلاح نام فیلد (قبلا pattern بود)
+                dayIndex: index, 
+                atomicPattern: atomicPattern, 
                 is_working_day: isWorking,
                 start_time: atomicPattern?.start_time || null,
                 end_time: atomicPattern?.end_time || null,
@@ -93,10 +93,10 @@ export const useWorkPatterns = (page: number = 1, type?: string) => {
 
         // ✅ کامنت: اکنون تایپ data (PaginatedWeekPatternsApiResponse) 
         // با تابع transformApiPatternToUi کاملاً هماهنگ است
-        select: (data: PaginatedWeekPatternsListApiResponse): { // ✅ اصلاح شد
+        select: (data: PaginatedWeekPatternsListApiResponse): { 
             patterns: WorkPatternUI[],
-            meta: PaginatedWeekPatternsListApiResponse['meta'], // ✅ اصلاح شد
-            links: PaginatedWeekPatternsListApiResponse['links'] // ✅ اصلاح شد
+            meta: PaginatedWeekPatternsListApiResponse['meta'], 
+            links: PaginatedWeekPatternsListApiResponse['links'] 
 
         } => ({
             patterns: data.data.map(transformApiPatternToUi), // تبدیل هر الگو
