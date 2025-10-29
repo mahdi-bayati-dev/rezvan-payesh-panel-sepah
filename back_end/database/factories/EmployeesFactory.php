@@ -60,6 +60,20 @@ class EmployeesFactory extends Factory
         ];
     }
 
+
+    public function forRole(string $role): static
+    {
+        $position = match($role) {
+            'org-admin-l2' => 'Organization Admin Level 2',
+            'org-admin-l3' => 'Organization Admin Level 3',
+            'user' => 'Regular Employee',
+            default => 'user'
+        };
+
+        return $this->state([
+            'position' => $position,
+        ]);
+    }
     /**
      * حالت خاص برای اتصال کارمند به یک گروه کاری مشخص
      */
@@ -90,4 +104,20 @@ class EmployeesFactory extends Factory
              'shift_offset' => $offset,
          ]);
      }
+
+    public function forOrganization(int $organizationId): static
+    {
+        return $this->state([
+            'organization_id' => $organizationId,
+        ]);
+    }
+
+    public function withRequiredFields(): static
+    {
+        return $this->state([
+            'gender' => 'male',
+            'is_married' => false,
+        ]);
+    }
+
 }

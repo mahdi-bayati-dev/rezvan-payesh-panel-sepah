@@ -40,7 +40,7 @@ class UserPolicy
 
         if ($user->hasRole('org-admin-l2')) {
             // ادمین L2 می‌تواند کاربران سازمان خودش و زیرمجموعه‌ها را ببیند
-            return $adminOrg && $targetOrg && $adminOrg->isAncestorOf($targetOrg);
+            return $adminOrg && $targetOrg && $targetOrg->ancestors()->where('id', $adminOrg->id)->exists();
         }
 
         if ($user->hasRole('org-admin-l3')) {
