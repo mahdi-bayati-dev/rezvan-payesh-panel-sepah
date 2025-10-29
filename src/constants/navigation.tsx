@@ -26,6 +26,11 @@ export const mainNavItems: NavItem[] = [
     href: "/reports",
     icon: <ListCheck size={20} />,
   },
+    {
+    label: "الگوی کاری",
+    href: "/work-patterns",
+    icon: <SquareChartGantt size={20} />,
+  },
   {
     label: "گروه کاری",
     href: "/users",
@@ -42,11 +47,7 @@ export const mainNavItems: NavItem[] = [
     href: "/activity-history",
     icon: <Clock3 size={20} />,
   },
-  {
-    label: "الگوی کاری",
-    href: "/work-pattern",
-    icon: <SquareChartGantt size={20} />,
-  },
+
   {
     label: "تقویم کاری",
     href: "/calendarDays",

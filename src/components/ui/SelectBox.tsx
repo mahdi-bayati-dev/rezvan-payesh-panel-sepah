@@ -29,7 +29,7 @@ interface SelectBoxProps {
      */
     disabled?: boolean;
     error?: string;
-    
+
 }
 
 const SelectBox = ({
@@ -54,12 +54,12 @@ const SelectBox = ({
             <div className="relative">
                 <Listbox.Button
                     className="relative w-full cursor-default rounded-lg py-2.5 pr-3 pl-10 text-right
-                               border border-borderL 
-                               bg-backgroundL-500 
-                               focus:outline-none focus:ring-2 focus:ring-primaryL
-                               dark:border-borderD
-                               dark:bg-backgroundD
-                               dark:focus:ring-primaryD"
+                     border border-borderL 
+                     bg-backgroundL-500 
+                     focus:outline-none focus:ring-2 focus:ring-primaryL
+                     dark:border-borderD
+                     dark:bg-backgroundD
+                     dark:focus:ring-primaryD"
                 >
                     <span
                         className={`block truncate ${value ? 'text-foregroundL dark:text-foregroundD' : 'text-muted-foregroundL dark:text-muted-foregroundD'}`}
@@ -82,10 +82,10 @@ const SelectBox = ({
                 >
                     <Listbox.Options
                         className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md 
-                                     py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 
-                                     focus:outline-none sm:text-sm
-                                     bg-backgroundL-500
-                                     dark:bg-backgroundD"
+                                     py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 
+                                     focus:outline-none sm:text-sm
+                                     bg-backgroundL-500
+                                     dark:bg-backgroundD"
                     >
                         {options.map((option) => (
                             <Listbox.Option
