@@ -1,5 +1,5 @@
 import { CirclePlus, Eye, SlidersHorizontal, Check, X } from 'lucide-react';
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 // interface WorkPatternActionsProps {
 //   selectedGroupId?: string | number | null;
@@ -7,9 +7,11 @@ import { CirclePlus, Eye, SlidersHorizontal, Check, X } from 'lucide-react';
 // }
 
 export const WorkPatternActions = () => {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  const handleAddGroup = () => console.log('افزودن گروه کاری');
+  const handleAddGroup = () =>
+    navigate("/work-patterns/add-to-work-pattern")
+     console.log('افزودن گروه کاری');
   const handleViewAssignments = () => console.log('مشاهده تخصیص الگو به گروه');
   const handleAssignShift = () => console.log('تخصیص اتوماتیک شیفت');
   const handleConfirm = () => console.log('تایید - (نیاز به تعریف کاربرد)');
@@ -24,10 +26,10 @@ export const WorkPatternActions = () => {
           <li>
             <button
               onClick={handleAddGroup}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primaryL text-primary-foregroundL cursor-pointer dark:bg-primaryD dark:text-primary-foregroundD hover:bg-primaryL/90 dark:hover:bg-primaryD/90 transition-colors text-sm font-medium"
+              className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-primaryL text-primary-foregroundL cursor-pointer dark:bg-primaryD dark:text-primary-foregroundD hover:bg-primaryL/90 dark:hover:bg-primaryD/90 transition-colors text-xs font-medium"
             >
               <CirclePlus size={16} />
-              افزودن گروه کاری
+              افزودن کاربر / گروه کاری
             </button>
           </li>
           <li>

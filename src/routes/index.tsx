@@ -18,6 +18,7 @@ const EmployeeReportsPage = lazy(() => import("@/features/reports/routes/Employe
 const NewActivityRegistrationPage = lazy(() => import("@/features/reports/routes/NewReportPage"));
 const WorkPatternPage = lazy(() => import("@/features/work-pattern/routes/WorkPatternPage"));
 const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewWeekPatternPage").then((mod) => ({ default: (mod as any).NewWeekPatternForm || (mod as any).default })));
+const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddToWorkPatternPage"))
 
 const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
 
@@ -124,6 +125,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<Spinner />}>
                 < NewWorkPatternPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "work-patterns/add-to-work-pattern",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < AddToWorkPattern />
               </Suspense>
             ),
           },
