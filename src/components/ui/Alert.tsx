@@ -79,6 +79,9 @@ const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttrib
             {...props}
         >
             {children}
+            <br />
+                        لطفا صفحه را رفرش کنید یا شبکه ای خود را بررسی کنید
+
         </div>
     )
 );
