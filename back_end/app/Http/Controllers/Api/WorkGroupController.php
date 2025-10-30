@@ -18,11 +18,11 @@ class WorkGroupController extends Controller
     public function index(Request $request)
     {
         $this->authorize('viewAny', WorkGroup::class);
-        $weekGroups = WorkGroup::with(['weekPattern', 'shiftSchedule'])
+        $work_groups = WorkGroup::with(['weekPattern', 'shiftSchedule'])
             ->orderBy('name')
             ->paginate(15);
 
-        return new WorkGroupCollection($weekGroups);
+        return new WorkGroupCollection($work_groups);
     }
 
     /**
@@ -54,9 +54,9 @@ class WorkGroupController extends Controller
              return response()->json(['errors' => ['week_pattern_id' => ['Either a week pattern or a shift schedule is required.']]], 422);
         }
 
-        $weekGroup = WorkGroup::create($validatedData);
+        $work_groups = WorkGroup::create($validatedData);
 
-        return (new WorkGroupResource($weekGroup->load(['weekPattern', 'shiftSchedule'])))
+        return (new WorkGroupResource($work_groups->load(['weekPattern', 'shiftSchedule'])))
                 ->response()
                 ->setStatusCode(201);
     }
@@ -64,19 +64,19 @@ class WorkGroupController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(WorkGroup $weekGroup)
+    public function show(WorkGroup $work_group)
     {
-       return new WorkGroupResource($weekGroup->loadMissing(['weekPattern', 'shiftSchedule']));
+       return new WorkGroupResource($work_group->loadMissing(['weekPattern', 'shiftSchedule']));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, WorkGroup $weekGroup)
+    public function update(Request $request, WorkGroup $work_group)
     {
         $validator = Validator::make($request->all(),
             [
-                'name' => ['required', 'string', 'max:255', Rule::unique('work_groups')->ignore($weekGroup->id)],
+                'name' => ['required', 'string', 'max:255', Rule::unique('work_groups')->ignore($work_group->id)],
                 'week_pattern_id' => 'nullable|required_without:shift_schedule_id|exists:week_patterns,id',
                 'shift_schedule_id' => 'nullable|required_without:week_pattern_id|exists:shift_schedules,id',
             ]);
@@ -100,9 +100,9 @@ class WorkGroupController extends Controller
              return response()->json(['errors' => ['week_pattern_id' => ['Either a week pattern or a shift schedule is required.']]], 422);
         }
 
-        $weekGroup->update($validatedData);
+        $work_group->update($validatedData);
 
-        return new WorkGroupResource($weekGroup->load(['weekPattern', 'shiftSchedule']));
+        return new WorkGroupResource($work_group->load(['weekPattern', 'shiftSchedule']));
     }
 
     /**
