@@ -38,7 +38,7 @@ const DropdownContent = ({ children }: { children: ReactNode }) => {
 
 
     const positionClasses = {
-        bottom: 'origin-top-left left-0 mt-2',
+        bottom: 'origin-top-left left-0 ',
         top: 'origin-bottom-left left-0 bottom-full mb-2',
     };
 
@@ -54,7 +54,7 @@ const DropdownContent = ({ children }: { children: ReactNode }) => {
         >
             <Menu.Items
                 ref={menuRef}
-                className={`absolute z-10 w-48 border-0 dark:border-borderD rounded-md shadow-lg bg-white dark:bg-primary-foregroundD ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none  ${positionClasses[position]}`}
+                className={`absolute z-10 w-44 border-0 dark:border-borderD rounded-md shadow-lg bg-white dark:bg-primary-foregroundD ring-1 ring-borderL ring-opacity-5 dark:ring-white/10 focus:outline-none  ${positionClasses[position]}`}
             >
                 <div className="py-1">{children}</div>
             </Menu.Items>
@@ -77,7 +77,7 @@ const DropdownItem = ({ children, onClick, className = '', icon }: DropdownItemP
                 <button
                     onClick={onClick}
                     className={`${active ? 'bg-gray-100 dark:bg-zinc-700' : ''
-                        } group flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 cursor-pointer dark:text-gray-300 text-right transition-colors duration-150 ${className}`}
+                        } group flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 cursor-pointer dark:text-gray-300 text-right transition-colors duration-150 ${className}`}
                 >
                     {icon && <span className="text-gray-500 dark:text-gray-400 group-hover:text-current">{icon}</span>}
                     <span>{children}</span>
