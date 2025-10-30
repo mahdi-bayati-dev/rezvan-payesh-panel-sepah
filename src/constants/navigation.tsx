@@ -33,7 +33,7 @@ export const mainNavItems: NavItem[] = [
   },
   {
     label: "گروه کاری",
-    href: "/users",
+    href: "/work-group",
     icon: <VectorSquare size={20} />,
   },
 
