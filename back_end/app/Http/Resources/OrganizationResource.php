@@ -18,18 +18,18 @@ class OrganizationResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'parent_id' => $this->parent_id,
-
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
 
 
-
-            'parent' => new self($this->whenLoaded('parent')),
-
-            'children' => self::collection($this->whenLoaded('children')),
+            'employees_count' => $this->whenCounted('employees'),
 
 
             'employees' => EmployeeResource::collection($this->whenLoaded('employees')),
+
+
+            'children' => OrganizationResource::collection($this->whenLoaded('children')),
+            'descendants' => OrganizationResource::collection($this->whenLoaded('descendants')),
         ];
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HolidayController;
+use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ScheduleSlotController;
 use App\Http\Controllers\Api\ShiftScheduleController;
 use App\Http\Controllers\Api\UserController;
@@ -36,6 +37,10 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('week-patterns', WeekPatternController::class);
 
     Route::apiResource('work-groups', WorkGroupController::class);
+
+    //organizations
+    Route::apiResource('organizations', OrganizationController::class);
+
 
     //shift
 
