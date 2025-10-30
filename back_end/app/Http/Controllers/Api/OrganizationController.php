@@ -27,7 +27,8 @@ class OrganizationController extends Controller
 
         if ($user->hasRole('super_admin')) {
 
-            $organizations = Organization::tree()->get();
+            $allOrgs = Organization::tree()->get();
+            $organizations = $allOrgs->toTree();
             return OrganizationResource::collection($organizations);
         }
 
