@@ -30,7 +30,8 @@ class OrganizationPolicy
 
         if ($user->hasRole('org-admin-l2')) {
             // ادمین L2 می‌تواند سازمان خودش و تمام زیرمجموعه‌هایش را ببیند
-            return $adminOrg->isAncestorOf($organization);
+
+            return $adminOrg->descendantsAndSelf()->where('id', $organization->id)->exists();
         }
 
         if ($user->hasRole('org-admin-l3')) {
