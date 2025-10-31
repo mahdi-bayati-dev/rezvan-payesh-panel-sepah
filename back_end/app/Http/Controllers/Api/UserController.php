@@ -28,7 +28,7 @@ class UserController extends Controller
         $currentUser = $request->user();
         $currentUserEmployee = $currentUser->employee;
 
-        $query = User::with(['employee', 'roles']); // فقط employee و roles
+        $query = User::with(['employee.organization', 'roles']); // فقط employee و roles
 
         if ($currentUser->hasRole('org-admin-l2')) {
             if ($currentUserEmployee?->organization) {

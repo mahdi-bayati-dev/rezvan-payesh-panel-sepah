@@ -44,25 +44,4 @@ class EmployeeResource extends JsonResource
             'address' => $this->address,
         ];
     }
-    protected function links(): array
-    {
-        return [
-            'first' => $this->url(1),
-            'last' => $this->url($this->lastPage()),
-            'prev' => $this->previousPageUrl(),
-            'next' => $this->nextPageUrl(),
-        ];
-    }
-    protected function meta(): array
-    {
-        return [
-            'current_page' => $this->currentPage(),
-            'from' => $this->firstItem(),
-            'last_page' => $this->lastPage(),
-            'path' => $this->path(),
-            'per_page' => $this->perPage(),
-            'to' => $this->lastItem(),
-            'total' => $this->total(),
-        ];
-    }
 }

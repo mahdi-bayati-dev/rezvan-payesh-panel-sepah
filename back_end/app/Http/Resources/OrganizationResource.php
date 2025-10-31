@@ -29,13 +29,11 @@ class OrganizationResource extends JsonResource
 
 
             'children' => $this->when(
-                // چک کن آیا اتریبیوت children روی مدل ست شده؟
                 property_exists($this, 'children') || $this->relationLoaded('children'),
-                // اگر ست شده، آن را (که خودش یک کالکشن است) به ریسورس بده
+
                 fn () => OrganizationResource::collection($this->children)
             ),
             'descendants' => $this->when(
-                // این را هم برای متد index ادمین L2 اصلاح می‌کنیم
                 property_exists($this, 'descendants') || $this->relationLoaded('descendants'),
                 fn () => OrganizationResource::collection($this->descendants)
             ),
