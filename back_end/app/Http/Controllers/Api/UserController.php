@@ -59,7 +59,31 @@ class UserController extends Controller
             $query->where('id', '!=', $currentUser->id);
         }
 
-        $users = $query->paginate(15);
+        $query->when($request->input('search'), function ($q, $searchTerm)
+        {
+            $q->where(function ($subQuery) use ($searchTerm) {
+                $subQuery->where('user_name', 'like', "%{$searchTerm}%")
+                     ->orWhere('email', 'like', "%{$searchTerm}%");
+                $subQuery->orWhereHas('employee', function ($employeeQuery) use ($searchTerm) {
+                    $employeeQuery->where('first_name', 'like', "%{$searchTerm}%")
+                        ->orWhere('last_name', 'like', "%{$searchTerm}%")
+                        ->orWhere('personnel_code', 'like', "%{$searchTerm}%");
+            });
+            });
+        });
+
+        $query->when($request->input('role'), function ($q, $roleName) {
+            $q->whereHas('roles', function ($roleQuery) use ($roleName) {
+                $roleQuery->where('name', $roleName);
+            });
+        });
+
+        $query->when($request->input('organization_id'), function ($q, $orgId) {
+            $q->whereHas('employee', function ($employeeQuery) use ($orgId) {
+                $employeeQuery->where('organization_id', $orgId);
+            });
+        });
+        $users = $query->paginate(15)->withQueryString();
 
         return new UserCollection($users);
     }
