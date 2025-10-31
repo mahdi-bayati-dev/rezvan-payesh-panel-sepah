@@ -84,8 +84,8 @@ class EmployeeWorkSeeder extends Seeder
             'week_pattern_id' => null, // برنامه را از گروه ارث می‌برد
             'shift_schedule_id' => null,
             'shift_offset' => 0,
-
         ]);
+
 
         // کارمند ۲: در گروه تولید، برنامه را از گروه ارث می‌برد
         $user2 = User::factory()->create(['email' => 'employee2@example.com']);
@@ -112,7 +112,9 @@ class EmployeeWorkSeeder extends Seeder
             'shift_offset' => 0,
             // ... سایر فیلدها
         ]);
-
+        $user1->assignRole("user");
+        $user2->assignRole("user");
+        $user3->assignRole("user");
         // می‌توانید کارمندان بیشتری با فکتوری بسازید
         $otherUsers = User::factory()->count(10)->create();
         $otherUsers->each(function ($user) use ($adminGroup, $productionGroup) {
@@ -123,6 +125,7 @@ class EmployeeWorkSeeder extends Seeder
                 'week_pattern_id' => null,
                 'shift_schedule_id' => null,
             ]);
+            $user->assignRole("user");
         });
     }
 }
