@@ -19,6 +19,9 @@ const NewActivityRegistrationPage = lazy(() => import("@/features/reports/routes
 const WorkPatternPage = lazy(() => import("@/features/work-pattern/routes/WorkPatternPage"));
 const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewWeekPatternPage").then((mod) => ({ default: (mod as any).NewWeekPatternForm || (mod as any).default })));
 const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddToWorkPatternPage"))
+const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
+const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/workGroupDetailPage"))
+const NewWorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/NewWorkGroupPage"))
 
 const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
 
@@ -113,7 +116,7 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: "work-patterns",
+            path: "/work-patterns",
             element: (
               <Suspense fallback={<Spinner />}>
                 <WorkPatternPage />
@@ -121,7 +124,7 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: "work-patterns/new-work-patterns",
+            path: "/work-patterns/new-work-patterns",
             element: (
               <Suspense fallback={<Spinner />}>
                 < NewWorkPatternPage />
@@ -129,10 +132,34 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: "work-patterns/add-to-work-pattern",
+            path: "/work-patterns/add-to-work-pattern",
             element: (
               <Suspense fallback={<Spinner />}>
                 < AddToWorkPattern />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/work-group",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < WorkGroupPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/work-group/:id",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < WorkGroupDetailPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/work-group/new",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < NewWorkGroupDetailPage />
               </Suspense>
             ),
           },

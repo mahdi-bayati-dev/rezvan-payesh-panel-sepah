@@ -93,7 +93,7 @@ const SelectBox = ({
                                 className={({ active }) =>
                                     `relative cursor-default select-none py-2 px-4 ${active
                                         ? 'bg-secondaryL text-secondary-foregroundL dark:bg-secondaryD dark:text-secondary-foregroundD'
-                                        : 'text-foregroundL dark:text-foregroundD'
+                                        : 'text-foregroundL dark:text-foregroundD bg-backgroundL-500 dark:bg-backgroundD'
                                     }`
                                 }
                                 value={option}
