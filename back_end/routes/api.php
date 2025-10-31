@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkPatternController;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,8 +23,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::middleware('auth:api')->group(function () {
     Route::get("/me", function (Request $request) {
         $user = $request->user();
-        $user->load(['employee']);
-        return response()->json($user);
+        return new UserResource($user->loadMissing(['employee.organization', 'roles']));
     })->name('api.me');;
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 
