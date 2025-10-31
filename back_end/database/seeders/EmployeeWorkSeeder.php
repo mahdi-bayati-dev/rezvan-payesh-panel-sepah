@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Employees;
+use App\Models\Organization;
 use App\Models\User;
 use App\Models\WeekPattern;
 use App\Models\WorkGroup;
@@ -32,6 +33,15 @@ class EmployeeWorkSeeder extends Seeder
             ['name' => 'روز استراحت']
         );
 
+        $softwareUnit = Organization::where('name', 'واحد نرم‌افزار')->first();
+        $hrUnit = Organization::where('name', 'واحد منابع انسانی')->first();
+
+        if (!$softwareUnit || !$hrUnit)
+        {
+            $defaultOrg = Organization::first() ?? Organization::factory()->create(['name' => 'سازمان پیش‌فرض']);
+            $softwareUnit = $softwareUnit ?: $defaultOrg;
+            $hrUnit = $hrUnit ?: $defaultOrg;
+        }
         // --- ۲. ساخت الگوهای کاری هفتگی (Week Patterns) ---
 
         // الگوی اداری استاندارد
@@ -80,6 +90,7 @@ class EmployeeWorkSeeder extends Seeder
             'user_id' => $user1->id,
             'first_name' => 'علی',
             'last_name' => 'رضایی',
+            'organization_id' => $hrUnit->id,
             'work_group_id' => $adminGroup->id,
             'week_pattern_id' => null, // برنامه را از گروه ارث می‌برد
             'shift_schedule_id' => null,
@@ -91,6 +102,7 @@ class EmployeeWorkSeeder extends Seeder
         $user2 = User::factory()->create(['email' => 'employee2@example.com']);
         Employees::factory()->create([
             'user_id' => $user2->id,
+            'organization_id' => $softwareUnit->id,
             'first_name' => 'زهرا',
             'last_name' => 'احمدی',
             'work_group_id' => $productionGroup->id,
@@ -104,6 +116,7 @@ class EmployeeWorkSeeder extends Seeder
         $user3 = User::factory()->create(['email' => 'employee3@example.com']);
         Employees::factory()->create([
             'user_id' => $user3->id,
+            'organization_id' => $hrUnit->id,
             'first_name' => 'محمد',
             'last_name' => 'حسینی',
             'work_group_id' => $adminGroup->id, // عضو گروه اداری است
@@ -115,12 +128,14 @@ class EmployeeWorkSeeder extends Seeder
         $user1->assignRole("user");
         $user2->assignRole("user");
         $user3->assignRole("user");
+
         // می‌توانید کارمندان بیشتری با فکتوری بسازید
         $otherUsers = User::factory()->count(10)->create();
-        $otherUsers->each(function ($user) use ($adminGroup, $productionGroup) {
+        $otherUsers->each(function ($user) use ($adminGroup, $productionGroup, $hrUnit, $softwareUnit) {
+            $isAminGroup = fake()->boolean();
             Employees::factory()->create([
                 'user_id' => $user->id,
-
+                'organization_id' => $isAminGroup ? $hrUnit->id : $softwareUnit->id,
                 'work_group_id' => fake()->randomElement([$adminGroup->id, $productionGroup->id]),
                 'week_pattern_id' => null,
                 'shift_schedule_id' => null,
