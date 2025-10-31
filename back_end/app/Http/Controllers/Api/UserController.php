@@ -79,9 +79,21 @@ class UserController extends Controller
         });
 
         $query->when($request->input('organization_id'), function ($q, $orgId) {
-            $q->whereHas('employee', function ($employeeQuery) use ($orgId) {
-                $employeeQuery->where('organization_id', $orgId);
-            });
+            $organization = Organization::find($orgId);
+            if ($organization) {
+                $orgIdsToSearch = $organization->descendantsAndSelf()->pluck('id');
+                $q->whereHas('employee', function ($employeeQuery) use ($orgIdsToSearch) {
+                    $employeeQuery->whereIn('organization_id', $orgIdsToSearch);
+                });
+            }
+            else
+            {
+                $q->whereHas('employee', function ($employeeQuery) use ($orgId) {
+                    $employeeQuery->where('organization_id', $orgId);
+                });
+            }
+
+
         });
         $users = $query->paginate(15)->withQueryString();
 
