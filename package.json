@@ -20,6 +20,8 @@
     "axios": "^1.12.2",
     "lucide-react": "^0.545.0",
     "react": "^19.1.1",
+    "react-arborist": "^3.4.3",
+    "react-complex-tree": "^2.6.1",
     "react-date-object": "^2.1.9",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.65.0",

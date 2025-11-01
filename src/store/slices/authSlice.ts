@@ -16,6 +16,17 @@ interface User {
   roles: string[];
 }
 
+interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  expires_at: string;
+  user: User;
+}
+
+interface MeResponse {
+  data: User;
+}
+
 // ۱. تعریف ساختار پاسخ کامل API لاگین (شامل توکن)
 interface LoginResponse {
   access_token: string;
@@ -67,9 +78,9 @@ export const checkAuthStatus = createAsyncThunk(
     }
     // اگر توکن داشتیم، interceptor آن را اضافه می‌کند
     try {
-      const response = await axiosInstance.get<User>("/me");
+      const response = await axiosInstance.get<MeResponse>("/me");
       console.log("Auth check successful:", response.data);
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error("Auth check failed:", error);
       let errorMessage = "توکن نامعتبر یا منقضی شده است.";
@@ -196,42 +207,43 @@ const authSlice = createSlice({
       .addCase(checkAuthStatus.pending, (state) => {
         state.initialAuthCheckStatus = "loading";
       })
+      // --- اصلاحیه کلیدی ۳ ---
+      // PayloadAction حالا خود User است، نه { data: User }
       .addCase(
         checkAuthStatus.fulfilled,
         (state, action: PayloadAction<User>) => {
           state.initialAuthCheckStatus = "succeeded";
-          state.user = action.payload; // کاربر معتبر است
+          // --- اصلاحیه کلیدی ۴ ---
+          // action.payload حالا خود آبجکت کاربر است
+          state.user = action.payload;
           state.error = null;
-          // توکن از قبل باید در state باشد
         }
       )
       .addCase(checkAuthStatus.rejected, (state) => {
         state.initialAuthCheckStatus = "failed";
         state.user = null;
-        state.accessToken = null; // ۱۳. اگر بررسی ناموفق بود، توکن را هم پاک کن
-        // state.error = action.payload as string;
+        state.accessToken = null;
       })
       // --- loginUser ---
       .addCase(loginUser.pending, (state) => {
         state.loginStatus = "loading";
         state.error = null;
       })
-      // ۱۴. دریافت پاسخ کامل LoginResponse
       .addCase(
         loginUser.fulfilled,
         (state, action: PayloadAction<LoginResponse>) => {
           state.loginStatus = "succeeded";
-          state.user = action.payload.user; // ذخیره کاربر
-          state.accessToken = action.payload.access_token; // ذخیره توکن در state
+          // (این بخش از قبل درست بود)
+          state.user = action.payload.user;
+          state.accessToken = action.payload.access_token;
           state.error = null;
-          // وضعیت اولیه بررسی هم حالا succeeded می‌شود چون کاربر لاگین کرد
           state.initialAuthCheckStatus = "succeeded";
         }
       )
       .addCase(loginUser.rejected, (state, action) => {
         state.loginStatus = "failed";
         state.user = null;
-        state.accessToken = null; // ۱۵. اگر لاگین ناموفق بود، توکن را پاک کن
+        state.accessToken = null;
         state.error = action.payload as string;
       })
       // --- logoutUser ---
@@ -239,20 +251,18 @@ const authSlice = createSlice({
         state.logoutStatus = "loading";
       })
       .addCase(logoutUser.fulfilled, (state) => {
-        // ریست کردن کامل وضعیت
-        Object.assign(state, initialState, {
-          accessToken: null,
-          initialAuthCheckStatus: "failed",
-        }); // ریست کامل به جز وضعیت اولیه
-      })
-      .addCase(logoutUser.rejected, (state, action) => {
-        state.logoutStatus = "failed";
-        // ۱۶. حتی اگر API خطا داد، state را ریست می‌کنیم
         Object.assign(state, initialState, {
           accessToken: null,
           initialAuthCheckStatus: "failed",
         });
-        state.error = action.payload as string; // فقط خطا را نگه می‌داریم
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.logoutStatus = "failed";
+        Object.assign(state, initialState, {
+          accessToken: null,
+          initialAuthCheckStatus: "failed",
+        });
+        state.error = action.payload as string;
       });
   },
 });

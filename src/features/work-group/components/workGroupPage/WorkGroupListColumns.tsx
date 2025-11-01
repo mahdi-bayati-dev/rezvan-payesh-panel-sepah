@@ -1,4 +1,3 @@
-"use client"; // (اگر از Next.js App Router استفاده می‌کنید)
 
 import { type ColumnDef } from "@tanstack/react-table";
 // ۱. تایپ WorkGroup حالا آپدیت شده

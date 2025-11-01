@@ -22,6 +22,9 @@ const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddTo
 const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/workGroupDetailPage"))
 const NewWorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/NewWorkGroupPage"))
+const OrganizationPage = lazy(() => import('@/features/Organization/routes/OrganizationPage'))
+const OrganizationDetailPage = lazy(() => import('@/features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
+const AssignUserPage = lazy(() => import('@/features/User/components/AssignUserPage'))
 
 const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
 
@@ -163,6 +166,31 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          {
+            path: "/organizations",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < OrganizationPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/organizations/:id",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < OrganizationDetailPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/organizations/:id/assign-user",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <AssignUserPage />
+              </Suspense>
+            ),
+          },
+
         ],
       },
     ],
