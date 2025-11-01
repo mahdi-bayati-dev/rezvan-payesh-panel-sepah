@@ -168,7 +168,7 @@ function OrganizationPage() {
             {/* کانتینر درخت */}
             <div
                 className="w-full p-4 rounded-lg border border-borderL dark:border-borderD 
-						 	 	 	 	 	bg-backgroundL-500 dark:bg-backgroundD overflow-auto pb-32"
+				bg-backgroundL-500 dark:bg-backgroundD overflow-auto pb-48 "
             >
 
                 {(organizationsData && organizationsData.length > 0) ? (

@@ -115,7 +115,7 @@ export function UserListPage({ organizationId }: UserListPageProps) {
 
     // (یک دکمه موقت تا زمانی که کامپوننت دکمه خودتان را ایمپورت کنید)
     const TempButton = ({ children, ...props }: any) => (
-        <button className="flex items-center gap-2 justify-center px-4 py-2 border rounded-md text-sm hover:bg-secondaryL dark:hover:bg-secondaryD p-2" {...props}>
+        <button className="flex items-center gap-2 justify-center px-4 py-2 border rounded-md text-sm hover:bg-secondaryL dark:hover:bg-secondaryD p-2 dark:text-backgroundL-500 cursor-pointer" {...props}>
             {children}
         </button>
     );
@@ -161,7 +161,7 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                     <TempButton
                         variant="primary"
                         onClick={() => navigate(`/organizations/${organizationId}/assign-user`)}
-                        className="w-full sm:w-auto bg-primaryL text-white dark:bg-primaryD p-2 rounded-2xl flex gap-2 items-center hover:bg-successD-foreground cursor-pointer" // (استایل دکمه اصلی)
+                        className="w-full sm:w-auto bg-primaryL text-white dark:bg-primaryD p-2 rounded-lg flex gap-2 items-center hover:bg-successD-foreground cursor-pointer  dark:text-infoD-background"
                     >
                         <UserPlus className="h-4 w-4 ml-2" />
                         تخصیص کارمند به این سازمان

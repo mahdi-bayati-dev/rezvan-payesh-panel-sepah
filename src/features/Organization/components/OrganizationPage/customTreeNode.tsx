@@ -92,14 +92,14 @@ export const OrganizationNode = ({
                 >
                     {hasChildren && (
                         isExpanded ?
-                            <ChevronDown className="h-4 w-4" /> :
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4 dark:text-primaryD cursor-pointer" /> :
+                            <ChevronRight className="h-4 w-4 dark:text-primaryD cursor-pointer" />
                     )}
                 </div>
 
                 {/* ۲. آیکون و نام سازمان (بدون تغییر) */}
-                <Building className="h-4 w-4 mr-2 text-muted-foregroundL dark:text-muted-foregroundD" />
-                <span className="truncate">{node.name}</span>
+                <Building className="h-4 w-4 mr-2 text-muted-foregroundL dark:text-primaryD" />
+                <span className="truncate dark:text-primaryD">{node.name}</span>
 
                 {/* ۳. فاصله انداز (بدون تغییر) */}
                 <div className="flex-grow" />
@@ -110,7 +110,7 @@ export const OrganizationNode = ({
                         <Dropdown>
                             <DropdownTrigger>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <MoreHorizontal className="h-4 w-4 cursor-pointer dark:text-primaryD" />
                                 </Button>
                             </DropdownTrigger>
                             <DropdownContent>
