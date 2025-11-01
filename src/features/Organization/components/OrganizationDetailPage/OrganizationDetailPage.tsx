@@ -2,7 +2,7 @@
 import { useParams } from 'react-router-dom';
 
 // --- ۱. ایمپورت کامپوننت جدید لیست کاربران ---
-import { UserListPage } from '@/features/User/components/UserListPage';
+import { UserListPage } from '@/features/User/components/userList/UserListPage';
 import { Loader2 } from 'lucide-react';
 
 /**

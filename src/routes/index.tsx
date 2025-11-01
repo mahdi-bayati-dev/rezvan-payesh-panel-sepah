@@ -24,7 +24,8 @@ const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/work
 const NewWorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/NewWorkGroupPage"))
 const OrganizationPage = lazy(() => import('@/features/Organization/routes/OrganizationPage'))
 const OrganizationDetailPage = lazy(() => import('@/features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
-const AssignUserPage = lazy(() => import('@/features/User/components/AssignUserPage'))
+const AssignUserPage = lazy(() => import('@/features/User/components/AssignUser/AssignUserPage'))
+const UserProfilePage = lazy(() => import('@/features/User/components/userPage/UserProfilePage'))
 
 const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
 
@@ -187,6 +188,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<Spinner />}>
                 <AssignUserPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/organizations/users/:userId",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <UserProfilePage />
               </Suspense>
             ),
           },
