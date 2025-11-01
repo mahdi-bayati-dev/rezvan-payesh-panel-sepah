@@ -39,7 +39,7 @@ export const mainNavItems: NavItem[] = [
 
   {
     label: "سازمان",
-    href: "/organization",
+    href: "/organizations",
     icon: <Network size={20} />,
   },
   {
