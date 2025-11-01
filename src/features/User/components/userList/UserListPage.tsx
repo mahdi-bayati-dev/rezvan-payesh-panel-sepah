@@ -1,3 +1,4 @@
+"use client";
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; // (useNavigate برای دکمه‌ها)
@@ -20,9 +21,9 @@ import Input from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button'; // ✅ استفاده از کامپوننت Button شما
 
 // --- ۳. هوک‌ها و تایپ‌های ما (با مسیر نسبی) ---
-import { useUsers } from '../hooks/hook';
+import { useUsers } from '@/features/User/hooks/hook';
 import { columns } from './UserTableColumns';
-import { useOrganization } from '../../Organization/hooks/useOrganizations';
+import { useOrganization } from '@/features/Organization/hooks/useOrganizations';
 
 // --- ۴. آیکون‌ها ---
 import { Search, ArrowRight, Loader2, UserPlus } from 'lucide-react';
@@ -111,7 +112,7 @@ export function UserListPage({ organizationId }: UserListPageProps) {
         );
     }
 
-    
+    // ✅ تعریف TempButton حذف شد
 
     return (
         <div className="p-4 md:p-8 space-y-6" dir="rtl">
@@ -138,11 +139,11 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                 <div className='flex items-center gap-2'>
                     {/* ✅ استفاده از Button شما */}
                     <Button
-                        variant="link"
+                        variant="outline"
                         size="md"
                         onClick={() => navigate('/organizations')}
                     >
-                        <ArrowRight className="h-4 w-4 ml-2 dark:text-primaryD" />
+                        <ArrowRight className="h-4 w-4 ml-2" />
                         بازگشت
                     </Button>
 
@@ -154,7 +155,7 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pr-10" // (برای RTL)
                         />
-                        <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL dark:text-primaryD" />
+                        <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL" />
                     </div>
                 </div>
 

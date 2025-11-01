@@ -1,11 +1,12 @@
 // (لطفاً مسیر axiosInstance را بر اساس پروژه خودتان تنظیم کنید)
-import axiosInstance from "@/lib/AxiosConfig";
+import axiosInstance from "../../../lib/AxiosConfig"; // ✅ مسیر نسبی
 import {
   type UserListResponse,
   type FetchUsersParams,
   type User,
-} from "@/features/User/types";
-
+  // ✅ تایپ فرم
+} from "@/features/User/types/index"; // ✅ مسیر نسبی
+import type { UserProfileFormData } from "@/features/User/Schema/userProfileFormSchema";
 /**
  * دریافت لیست کاربران (فیلتر شده و صفحه‌بندی شده)
  * GET /api/users
@@ -13,8 +14,7 @@ import {
 export const fetchUsers = async (
   params: FetchUsersParams
 ): Promise<UserListResponse> => {
-  // ساخت آبجکت پارامترهای کوئری
-  // اطمینان حاصل می‌کنیم که فقط پارامترهای تعریف شده ارسال شوند
+  // ... (کد موجود شما)
   const queryParams = new URLSearchParams({
     page: String(params.page),
     per_page: String(params.per_page),
@@ -29,20 +29,13 @@ export const fetchUsers = async (
   if (params.role) {
     queryParams.append("role", params.role);
   }
-
-  // ارسال درخواست
-  // API پاسخ را با ساختار { data: [], links: {}, meta: {} } برمی‌گرداند
   const { data } = await axiosInstance.get(`/users?${queryParams.toString()}`);
-  console.log(data);
-
   return data;
 };
 
 /**
  * به‌روزرسانی سازمان یک کاربر (فقط Super Admin)
  * PUT /api/users/{userId}
- * @param userId شناسه کاربری که باید آپدیت شود
- * @param organizationId شناسه سازمان جدید
  */
 export const updateUserOrganization = async ({
   userId,
@@ -51,15 +44,43 @@ export const updateUserOrganization = async ({
   userId: number;
   organizationId: number;
 }): Promise<User> => {
+  // ... (کد موجود شما)
   const payload = {
     employee: {
       organization_id: organizationId,
     },
   };
-
-  // API یک UserResource کامل برمی‌گرداند
   const { data } = await axiosInstance.put(`/users/${userId}`, payload);
-  // بر اساس مستندات API، پاسخ در data.data نیست، بلکه خود UserResource است
-  // (لطفاً این بخش را چک کنید، اگر پاسخ شما { data: UserResource } بود، data.data را برگردانید)
-  return data;
+
+
+  return data; // API شما UserResource را برمی‌گرداند
+};
+
+// --- ✅ توابع جدید ---
+
+/**
+ * دریافت اطلاعات تکی کاربر (برای صفحه پروفایل)
+ * GET /api/users/{userId}
+ */
+export const fetchUserById = async (userId: number): Promise<User> => {
+  // API یک UserResource کامل برمی‌گرداند
+  const { data } = await axiosInstance.get(`/users/${userId}`);
+    console.log('====>',data);
+  return data.data;
+};
+
+/**
+ * به‌روزرسانی اطلاعات پروفایل کاربر
+ * PUT /api/users/{userId}
+ */
+export const updateUserProfile = async ({
+  userId,
+  payload,
+}: {
+  userId: number;
+  payload: UserProfileFormData; // از تایپ Zod استفاده می‌کنیم
+}): Promise<User> => {
+  // API شما اجازه ارسال بخشی از فیلدها را می‌دهد (PATCH/PUT)
+  const { data } = await axiosInstance.put(`/users/${userId}`, payload);
+  return data; // UserResource به‌روز شده را برمی‌گرداند
 };

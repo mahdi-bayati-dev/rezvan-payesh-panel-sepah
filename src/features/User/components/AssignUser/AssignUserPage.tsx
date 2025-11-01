@@ -25,8 +25,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
 // --- ۳. هوک‌ها و تایپ‌های ما (با مسیر نسبی) ---
 import { type User } from '@/features/User/types/index';
-import { useUsers, useUpdateUserOrganization } from '../hooks/hook';
-import { useOrganization } from '../../Organization/hooks/useOrganizations';
+import { useUsers, useUpdateUserOrganization } from '@/features/User/hooks/hook';
+import { useOrganization } from '@/features/Organization//hooks/useOrganizations';
 
 // --- آیکون‌ها ---
 import { Search, ArrowRight, Loader2, UserPlus, Check, Info } from 'lucide-react';
