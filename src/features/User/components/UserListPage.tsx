@@ -1,34 +1,33 @@
-"use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // <-- useNavigate
+import { useNavigate } from 'react-router-dom'; // (useNavigate برای دکمه‌ها)
 import {
     useReactTable,
     getCoreRowModel,
     getPaginationRowModel,
     type PaginationState,
 } from "@tanstack/react-table";
+
+// --- ۱. ایمپورت‌های Redux (با مسیر نسبی) ---
+// (مسیرها را بر اساس ساختار پروژه خودتان تنظیم کنید)
 import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
 
-// --- کامپوننت‌های جدول شما ---
-// (مسیرها را بر اساس پروژه خودتان تنظیم کنید و از حروف کوچک استفاده کنید)
+// --- ۲. کامپوننت‌های UI شما (با مسیر نسبی و حروف کوچک) ---
 import { DataTable } from '@/components/ui/DataTable/index';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
 import Input from '@/components/ui/Input';
-// import { Button } from '@/components/ui/button'; // (اگر دکمه دارید)
+import { Button } from '@/components/ui/Button'; // ✅ استفاده از کامپوننت Button شما
 
-// --- هوک‌ها و تایپ‌های ما ---
-// import { type User } from '@/features/User/types/index';
-import { useUsers } from '@/features/User/hooks/hook';
+// --- ۳. هوک‌ها و تایپ‌های ما (با مسیر نسبی) ---
+import { useUsers } from '../hooks/hook';
 import { columns } from './UserTableColumns';
-// (هوک سازمان برای گرفتن نام در هدر)
-import { useOrganization } from '@/features/Organization/hooks/useOrganizations';
+import { useOrganization } from '../../Organization/hooks/useOrganizations';
 
-// --- آیکون‌ها ---
+// --- ۴. آیکون‌ها ---
 import { Search, ArrowRight, Loader2, UserPlus } from 'lucide-react';
 
-// (یک هوک ساده debounce برای بهینه‌سازی جستجو)
+// (هوک Debounce)
 const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
     useEffect(() => {
@@ -64,7 +63,6 @@ export function UserListPage({ organizationId }: UserListPageProps) {
 
     // --- ۲. مدیریت State جستجو ---
     const [searchTerm, setSearchTerm] = useState("");
-    // از debounce استفاده می‌کنیم تا جلوی درخواست‌های مکرر API در حین تایپ را بگیریم
     const debouncedSearch = useDebounce(searchTerm, 500); // 500ms تأخیر
 
     // --- ۳. فچ کردن داده‌های سازمان (فقط برای نمایش نام) ---
@@ -86,7 +84,7 @@ export function UserListPage({ organizationId }: UserListPageProps) {
     // داده‌های کاربران (آرایه)
     const users = useMemo(() => userResponse?.data ?? [], [userResponse]);
     // تعداد کل صفحات
-    const pageCount = useMemo(() => userResponse?.meta.last_page ?? 0, [userResponse]);
+    const pageCount = useMemo(() => userResponse?.meta?.last_page ?? 0, [userResponse]);
 
     // --- ۵. راه‌اندازی TanStack Table ---
     const table = useReactTable({
@@ -113,13 +111,7 @@ export function UserListPage({ organizationId }: UserListPageProps) {
         );
     }
 
-    // (یک دکمه موقت تا زمانی که کامپوننت دکمه خودتان را ایمپورت کنید)
-    const TempButton = ({ children, ...props }: any) => (
-        <button className="flex items-center gap-2 justify-center px-4 py-2 border rounded-md text-sm hover:bg-secondaryL dark:hover:bg-secondaryD p-2 dark:text-backgroundL-500 cursor-pointer" {...props}>
-            {children}
-        </button>
-    );
-
+    
 
     return (
         <div className="p-4 md:p-8 space-y-6" dir="rtl">
@@ -137,35 +129,46 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                         لیست کارمندان تخصیص‌یافته به این واحد سازمانی (و زیرمجموعه‌ها).
                     </p>
                 </div>
-                <TempButton asChild >
-                    <Link to="/organizations" className='flex gap-2 items-center'>
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                        بازگشت به چارت
-                    </Link>
-                </TempButton>
             </div>
 
-            {/* نوار ابزار: جستجو */}
-            <div className="flex justify-between items-center">
-                <div className="relative w-full max-w-sm">
-                    <Input
-                        label=''
-                        placeholder="جستجو در نام، ایمیل، کد پرسنلی..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pr-10" // (برای RTL)
-                    />
-                    <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL" />
+            {/* نوار ابزار: جستجو و دکمه‌ها */}
+            {/* ✅ بهبود UI: قرار دادن نوار ابزار در یک کانتینر مجزا */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 rounded-lg border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD">
+                {/* بخش جستجو و بازگشت */}
+                <div className='flex items-center gap-2'>
+                    {/* ✅ استفاده از Button شما */}
+                    <Button
+                        variant="link"
+                        size="md"
+                        onClick={() => navigate('/organizations')}
+                    >
+                        <ArrowRight className="h-4 w-4 ml-2 dark:text-primaryD" />
+                        بازگشت
+                    </Button>
+
+                    <div className="relative w-full max-w-sm">
+                        <Input
+                            label=''
+                            placeholder="جستجو در نام، ایمیل، کد پرسنلی..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pr-10" // (برای RTL)
+                        />
+                        <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL dark:text-primaryD" />
+                    </div>
                 </div>
+
+                {/* بخش دکمه تخصیص (فقط Super Admin) */}
                 {isSuperAdmin && (
-                    <TempButton
+                    // ✅ استفاده از Button شما
+                    <Button
                         variant="primary"
+                        size="md"
                         onClick={() => navigate(`/organizations/${organizationId}/assign-user`)}
-                        className="w-full sm:w-auto bg-primaryL text-white dark:bg-primaryD p-2 rounded-lg flex gap-2 items-center hover:bg-successD-foreground cursor-pointer  dark:text-infoD-background"
                     >
                         <UserPlus className="h-4 w-4 ml-2" />
                         تخصیص کارمند به این سازمان
-                    </TempButton>
+                    </Button>
                 )}
             </div>
 
