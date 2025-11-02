@@ -1,5 +1,6 @@
 <?php
 
+use App\Events\TestSoketiConnection;
 use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
@@ -21,6 +22,15 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 
 Route::middleware('auth:api')->group(function () {
+
+    Route::get('/test-soketi', function () {
+
+        event(new TestSoketiConnection('اتصال امن Soketi/WSS با موفقیت برقرار شد.'));
+        return response()->json(['status' => 'Event sent! Check Soketi logs.']);
+    });
+
+
+
     Route::get("/me", function (Request $request) {
         $user = $request->user();
         return new UserResource($user->loadMissing(['employee.organization', 'roles']));
