@@ -21,7 +21,7 @@ class AttendanceLogCreated implements ShouldBroadcast
      */
     public function __construct(public AttendanceLog $log)
     {
-        $this->log = $log->load('employee.organization.parent');
+        $this->log = $log->load('employee.organization.ancestors');
     }
 
     /**
