@@ -45,6 +45,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['employee_id', 'timestamp']);
+            $table->unique(['employee_id', 'timestamp']);
         });
     }
 
