@@ -21,7 +21,7 @@ class AttendanceLogCreated implements ShouldBroadcast
      */
     public function __construct(public AttendanceLog $log)
     {
-        $this->log = $log->load('employee.organization.parent');
+        $this->log = $log->load('employee.organization.ancestors');
     }
 
     /**
@@ -33,10 +33,10 @@ class AttendanceLogCreated implements ShouldBroadcast
     {
         $channels = [];
         $channels[] = new PrivateChannel('super-admin-global');
-        if (!$this->log->employees || !$this->log->employees->organization) {
+        if (!$this->log->employee || !$this->log->employee->organization) {
             return $channels;
         }
-        $organization = $this->log->employees->organization;
+        $organization = $this->log->employee->organization;
         $channels[] = new PrivateChannel('l3-channel.' . $organization->id);
 
 
@@ -45,7 +45,7 @@ class AttendanceLogCreated implements ShouldBroadcast
         while ($currentOrg && $depth_counter < 20)
         {
             $channels[] = new PrivateChannel('l2-channel.' . $currentOrg->id);
-            $currentOrg = $currentOrg->parent();
+            $currentOrg = $currentOrg->parent;
             \Log::info(json_encode($currentOrg));
             $depth_counter++;
         }
