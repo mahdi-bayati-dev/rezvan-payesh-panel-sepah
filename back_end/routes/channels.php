@@ -26,7 +26,7 @@ Broadcast::channel('super-admin-global', function (User $user)
 
     if ($user->hasRole('super_admin'))
     {
-        return ['id' => $user->id, 'name' => $user->name, 'role' => 'super_admin'];
+        return true;
     }
 
     return false;
