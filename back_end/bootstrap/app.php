@@ -17,9 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(CheckLicenseStatus::class);
-        $middleware->api(prepend: [
-            \Laravel\Passport\Http\Middleware\CreateFreshApiToken::class,
-        ]);
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
