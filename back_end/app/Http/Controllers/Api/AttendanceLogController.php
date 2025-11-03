@@ -7,6 +7,7 @@ use App\Models\AttendanceLog;
 use App\Models\Device;
 use App\Models\Employees;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +40,27 @@ class AttendanceLogController extends Controller
 
         $employee = Employees::where('personnel_code', $validated['personnel_code'])->first();
 
+        $logTimestamp = Carbon::parse($validated['timestamp']);
+
+        $schedule = $employee->getWorkScheduleFor($logTimestamp);
+        $lateness_minutes = null;
+        $early_departure_minutes = null;
+
+        if ($schedule)
+        {
+            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN)
+            {
+                $diff = $schedule->expected_start->diffInMinutes($logTimestamp, false);
+                $lateness_minutes = $diff > 0 ? $diff : 0;
+
+            }
+            elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT)
+            {
+                $diff = $logTimestamp->diffInMinutes($schedule->expected_end, false);
+                $early_departure_minutes = $diff > 0 ? $diff : 0;
+            }
+        }
+
         $log = AttendanceLog::create([
             'employee_id' => $employee->id,
             'event_type' => $validated['event_type'],
@@ -48,6 +70,9 @@ class AttendanceLogController extends Controller
             'source_type' => AttendanceLog::SOURCE_DEVICE,
             'edited_by_user_id' => null,
             'remarks' => null,
+            'lateness_minutes' => $lateness_minutes,
+            'early_departure_minutes' => $early_departure_minutes,
+
         ]);
 
         return response()->json([

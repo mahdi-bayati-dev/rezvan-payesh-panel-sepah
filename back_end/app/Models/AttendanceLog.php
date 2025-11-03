@@ -27,7 +27,9 @@ class AttendanceLog extends Model
         'edited_by_user_id',
         'remarks',
         'device_id',
-        'is_allowed'
+        'is_allowed',
+        'lateness_minutes',
+        'early_departure_minutes',
     ];
 
 
