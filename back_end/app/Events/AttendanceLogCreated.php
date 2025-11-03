@@ -33,11 +33,10 @@ class AttendanceLogCreated implements ShouldBroadcast
     {
         $channels = [];
         $channels[] = new PrivateChannel('super-admin-global');
-        $organization = $this->log->employee->organization;
-        if (!$organization)
-        {
+        if (!$this->log->employee || !$this->log->employee->organization) {
             return $channels;
         }
+        $organization = $this->log->employee->organization;
         $channels[] = new PrivateChannel('l3-channel.' . $organization->id);
 
 
