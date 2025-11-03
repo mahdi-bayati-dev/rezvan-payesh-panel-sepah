@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
 
@@ -21,5 +22,10 @@ class Organization extends Model
     public function employees(): HasMany
     {
         return $this->hasMany(Employees::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'parent_id')->withDefault();
     }
 }

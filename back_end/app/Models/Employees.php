@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Employees extends Model
 {
@@ -125,6 +126,67 @@ class Employees extends Model
     public function weekPattern(): BelongsTo
     {
         return $this->belongsTo(WeekPattern::class);
+    }
+    public function employeeShifts(): HasMany
+    {
+        return $this->hasMany(EmployeeShift::class);
+    }
+
+    public function getWorkScheduleFor(Carbon $datetime): ?object
+    {
+        $date = $datetime->toDateString();
+
+
+        $specificShift = $this->employeeShifts()->where('date', $date)->first();
+
+        if ($specificShift && $specificShift->scheduleSlot) {
+            $slot = $specificShift->scheduleSlot;
+            return (object) [
+                'expected_start' => Carbon::parse($date . ' ' . $slot->start_time),
+                'expected_end'   => Carbon::parse($date . ' ' . $slot->end_time)
+            ];
+        }
+
+        $this->loadMissing(['weekPattern', 'workGroup.weekPattern']);
+        $weekPattern = $this->weekPattern;
+
+        if (!$weekPattern && $this->workGroup)
+        {
+            $weekPattern = $this->workGroup->weekPattern;
+        }
+
+        if (!$weekPattern)
+        {
+            return null;
+        }
+
+        // ۳. اسلات زمانی برای آن روز هفته را پیدا کن
+        $dayOfWeekName = $datetime->format('l');
+        $relationName = strtolower($dayOfWeekName) . 'Pattern';
+        $weekPattern->loadMissing([
+            'saturdayPattern.scheduleSlot', 'sundayPattern.scheduleSlot',
+            'mondayPattern.scheduleSlot', 'tuesdayPattern.scheduleSlot',
+            'wednesdayPattern.scheduleSlot', 'thursdayPattern.scheduleSlot',
+            'fridayPattern.scheduleSlot'
+        ]);
+
+        $workPattern = $weekPattern->{$relationName};
+
+        if (!$workPattern)
+        {
+            return null;
+        }
+        $slot = $workPattern->scheduleSlot;
+
+        if (!$slot)
+        {
+            return null;
+        }
+
+        return (object) [
+            'expected_start' => Carbon::parse($date . ' ' . $slot->start_time),
+            'expected_end'   => Carbon::parse($date . ' ' . $slot->end_time)
+        ];
     }
 
 }
