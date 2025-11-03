@@ -17,9 +17,9 @@ class AttendanceLogController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'device_api_key' => ['required', 'string'],
-            'personnel_code' => ['required', 'string', 'exists:employees,personnel_code'], // اطمینان از وجود کارمند
+            'personnel_code' => ['required', 'string', 'exists:employees,personnel_code'],
             'event_type' => ['required', 'string', Rule::in([AttendanceLog::TYPE_CHECK_IN, AttendanceLog::TYPE_CHECK_OUT])],
-            'timestamp' => ['required', 'date_format:Y-m-d H:i:s'],
+            'timestamp' => ['required', 'date_format:Y-m-d H:i'],
             'source_name'=> ['required', 'string'],
         ]);
         if ($validator->fails())
