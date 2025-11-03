@@ -16,7 +16,7 @@ return new class extends Migration
 
             $table->date('date')->unique();
 
-            $table->string('name');
+            $table->string('name')->nullable();
 
             $table->boolean('is_official')->default(true);
 

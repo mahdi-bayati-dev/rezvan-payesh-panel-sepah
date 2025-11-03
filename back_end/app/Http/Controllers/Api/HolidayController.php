@@ -54,7 +54,8 @@ class HolidayController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'date' => 'required|date_format:Y-m-d|unique:holidays,date', // تاریخ باید یکتا باشد
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
+            'is_official' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -62,12 +63,9 @@ class HolidayController extends Controller
         }
 
         $validatedData = $validator->validated();
-        // تعطیلاتی که ادمین اضافه می‌کنه رو غیررسمی در نظر می‌گیریم
-        $validatedData['is_official'] = false;
 
         $holiday = Holiday::create($validatedData);
 
-        // return response()->json($holiday, 201); // پاسخ ساده
         return (new HolidayResource($holiday))
                 ->response()
                 ->setStatusCode(201);
