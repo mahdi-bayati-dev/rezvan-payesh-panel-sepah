@@ -136,6 +136,12 @@ class Employees extends Model
     {
         $date = $datetime->toDateString();
 
+        $isHoliday = Holiday::where('date', $date)->exists();
+        if ($isHoliday)
+        {
+            return null;
+        }
+
 
         $specificShift = $this->employeeShifts()->where('date', $date)->first();
 
@@ -160,32 +166,24 @@ class Employees extends Model
             return null;
         }
 
-        // ۳. اسلات زمانی برای آن روز هفته را پیدا کن
         $dayOfWeekName = $datetime->format('l');
         $relationName = strtolower($dayOfWeekName) . 'Pattern';
-        $weekPattern->loadMissing([
-            'saturdayPattern.scheduleSlot', 'sundayPattern.scheduleSlot',
-            'mondayPattern.scheduleSlot', 'tuesdayPattern.scheduleSlot',
-            'wednesdayPattern.scheduleSlot', 'thursdayPattern.scheduleSlot',
-            'fridayPattern.scheduleSlot'
-        ]);
+        $weekPattern->loadMissing([$relationName]);
 
-        $workPattern = $weekPattern->{$relationName};
+        $workPatternForDay = $weekPattern->{$relationName};
 
-        if (!$workPattern)
+        if (!$workPatternForDay)
         {
             return null;
         }
-        $slot = $workPattern->scheduleSlot;
-
-        if (!$slot)
+        if ($workPatternForDay->type === 'off' || !$workPatternForDay->start_time || !$workPatternForDay->end_time)
         {
             return null;
         }
 
         return (object) [
-            'expected_start' => Carbon::parse($date . ' ' . $slot->start_time),
-            'expected_end'   => Carbon::parse($date . ' ' . $slot->end_time)
+            'expected_start' => Carbon::parse($date . ' ' . $workPatternForDay->start_time),
+            'expected_end'   => Carbon::parse($date . ' ' . $workPatternForDay->end_time)
         ];
     }
 
