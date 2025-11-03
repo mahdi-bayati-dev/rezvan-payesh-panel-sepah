@@ -24,6 +24,7 @@ use App\Policies\UserPolicy;
 use App\Policies\WorkGroupPolicy;
 use App\Policies\WorkPatternPolicy;
 use Carbon\CarbonInterval;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Passport\Passport;
 use Spatie\Permission\Models\Role;
@@ -62,6 +63,7 @@ class AuthServiceProvider extends ServiceProvider
         Passport::tokensExpireIn(CarbonInterval::days(15));
         Passport::refreshTokensExpireIn(CarbonInterval::days(30));
         Passport::personalAccessTokensExpireIn(CarbonInterval::months(6));
+        Broadcast::routes(['middleware' => 'auth:api']);
 
         Gate::before(function ($user, $ability)
         {
