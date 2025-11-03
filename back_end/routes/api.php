@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkPatternController;
+use App\Http\Middleware\CheckLicenseStatus;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 
-Route::middleware('auth:api')->group(function () {
+Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
 
     Route::get('/test-soketi', function () {
 
