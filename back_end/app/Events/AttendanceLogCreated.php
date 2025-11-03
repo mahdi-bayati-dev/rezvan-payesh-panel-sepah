@@ -41,10 +41,13 @@ class AttendanceLogCreated implements ShouldBroadcast
 
 
         $currentOrg = $organization;
-        while ($currentOrg)
+        $depth_counter = 0;
+        while ($currentOrg && $depth_counter < 20)
         {
             $channels[] = new PrivateChannel('l2-channel.' . $currentOrg->id);
-            $currentOrg = $currentOrg->parent;
+            $currentOrg = $currentOrg->parent();
+            \Log::info(json_encode($currentOrg));
+            $depth_counter++;
         }
 
 
