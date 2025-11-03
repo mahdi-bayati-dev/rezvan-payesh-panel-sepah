@@ -26,7 +26,7 @@ export const mainNavItems: NavItem[] = [
     href: "/reports",
     icon: <ListCheck size={20} />,
   },
-    {
+  {
     label: "الگوی کاری",
     href: "/work-patterns",
     icon: <SquareChartGantt size={20} />,
@@ -43,16 +43,17 @@ export const mainNavItems: NavItem[] = [
     icon: <Network size={20} />,
   },
   {
+    label: "تقویم کاری",
+    href: "/work-calender",
+    icon: <CalendarDays size={20} />,
+  },
+  {
     label: "تاریخچه فعالیت ها",
     href: "/activity-history",
     icon: <Clock3 size={20} />,
   },
 
-  {
-    label: "تقویم کاری",
-    href: "/calendarDays",
-    icon: <CalendarDays size={20} />,
-  },
+
   {
     label: "مدیریت دستگاه ها",
     href: "/device-management",
