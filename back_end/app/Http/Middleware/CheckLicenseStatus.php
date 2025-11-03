@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Response as ResponseFacade;
 
 class CheckLicenseStatus
 {
@@ -144,7 +145,7 @@ class CheckLicenseStatus
     }
     private function abort(string $code, string $message): Response
     {
-        return response()->json([
+        return ResponseFacade::json([
             'error_code' => $code,
             'message' => $message
         ], 499);
