@@ -63,7 +63,7 @@ class AuthServiceProvider extends ServiceProvider
         Passport::tokensExpireIn(CarbonInterval::days(15));
         Passport::refreshTokensExpireIn(CarbonInterval::days(30));
         Passport::personalAccessTokensExpireIn(CarbonInterval::months(6));
-        Broadcast::routes(['middleware' => 'auth:api']);
+//        Broadcast::routes(['middleware' => 'auth:api']);
 
         Gate::before(function ($user, $ability)
         {
