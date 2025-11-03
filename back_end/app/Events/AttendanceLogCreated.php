@@ -11,6 +11,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceLogCreated implements ShouldBroadcast
 {
@@ -40,15 +41,17 @@ class AttendanceLogCreated implements ShouldBroadcast
         $channels[] = new PrivateChannel('l3-channel.' . $organization->id);
 
 
-        $currentOrg = $organization;
+        $allAncestors = $organization->ancestors;
+        $allAncestors->push($organization);
         $depth_counter = 0;
-        while ($currentOrg && $depth_counter < 20)
+        foreach ($allAncestors as $org)
         {
-            $channels[] = new PrivateChannel('l2-channel.' . $currentOrg->id);
-            $currentOrg = $currentOrg->parent;
-            \Log::info(json_encode($currentOrg));
-            $depth_counter++;
+            if ($org && $org->id && $depth_counter < 20) {
+                $channels[] = new PrivateChannel('l2-channel.' . $org->id);
+                $depth_counter++;
+            }
         }
+        Log::info('[BroadcastOn] Final channels: ' . json_encode($channels));
 
 
         return array_unique($channels);
