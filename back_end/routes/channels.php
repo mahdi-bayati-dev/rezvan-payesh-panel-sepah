@@ -22,14 +22,7 @@ Broadcast::channel('l2-channel.{organizationId}', function (User $user, int $org
 
 Broadcast::channel('super-admin-global', function (User $user)
 {
-    \Log::info('[BROADCAST AUTH] User authenticated with ID: ' . $user->id);
-
-    if ($user->hasRole('super_admin'))
-    {
-        return true;
-    }
-
-    return false;
+    return $user->hasRole('super_admin');
 });
 
 
