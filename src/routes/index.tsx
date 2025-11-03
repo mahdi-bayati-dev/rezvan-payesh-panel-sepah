@@ -26,6 +26,7 @@ const OrganizationPage = lazy(() => import('@/features/Organization/routes/Organ
 const OrganizationDetailPage = lazy(() => import('@/features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
 const AssignUserPage = lazy(() => import('@/features/User/components/AssignUser/AssignUserPage'))
 const UserProfilePage = lazy(() => import('@/features/User/components/userPage/UserProfilePage'))
+const WorkCalendarPage = lazy(() => import('@/features/work-calendar/routes/WorkCalendarPage'))
 
 const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
 
@@ -196,6 +197,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<Spinner />}>
                 <UserProfilePage />
+              </Suspense>
+            ),
+          },
+                    {
+            path: "/work-calender",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <WorkCalendarPage />
               </Suspense>
             ),
           },
