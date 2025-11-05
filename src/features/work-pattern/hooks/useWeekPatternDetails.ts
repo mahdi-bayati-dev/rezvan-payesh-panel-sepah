@@ -79,6 +79,9 @@ const transformDetailsApiToUi = (apiData: WeekPatternDetail): WorkPatternUI => {
     organizationName: apiData.organization_name,
     type: overallType,
     daily_schedules: daily_schedules,
+    // ✅✅✅ اصلاح خطای (TS2741) ✅✅✅
+    // کامنت: فیلد اجباری pattern_type را به خروجی اضافه می‌کنیم.
+    pattern_type: "WEEK_PATTERN",
   };
 };
 

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+// import { useNavigate } from 'react-router-dom'; // ✅ خطای ۱۲: حذف شد (استفاده نشده)
 import {
   useReactTable,
   getCoreRowModel,
@@ -6,76 +7,64 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 import clsx from 'clsx'
+import { toast } from 'react-toastify';
 
-// کامنت: ایمپورت‌ها با حروف کوچک اصلاح شدند
-import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
-import Input from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+// ✅ ۱. ایمپورت هوک‌های واقعی (User و Work Pattern)
+import { useUsers, useUpdateUserWorkPattern } from '@/features/User/hooks/hook';
+import { type User } from '@/features/User/types/index';
+import { useWorkPatternsList } from '@/features/work-group/hooks/hook';
+
+
+import SelectBox, { type SelectOption } from "@/components/ui/SelectBox"; // ✅ حروف کوچک
+import Input from "@/components/ui/Input"; // ✅ حروف کوچک
+import { Button } from "@/components/ui/Button"; // ✅ حروف کوچک
 import { DataTable } from "@/components/ui/DataTable/index";
-import Checkbox from "@/components/ui/CheckboxTable"; // کامپوننت جدید
-import { UserPlus, Search } from 'lucide-react';
+import Checkbox from "@/components/ui/CheckboxTable";
+import { UserPlus, Search, Loader2 } from 'lucide-react';
 
-// --- تعریف تایپ‌ها و داده‌های فیک ---
-
-type Employee = {
-  id: string;
-  personalCode: string;
-  name: string;
-  familyName: string;
-  avatarUrl: string; // آدرس عکس پروفایل
-  workGroup: string;
-  status: 'active' | 'inactive';
-};
-
-// داده‌های فیک برای الگوهای کاری
-const mockPatterns: SelectOption[] = [
-  { id: 'p1', name: 'شیفت صبح (اداری)' },
-  { id: 'p2', name: 'شیفت عصر (نگهبانی)' },
-  { id: 'p3', name: 'برنامه چرخشی (تولید)' },
-];
-
-// داده‌های فیک برای کارمندان
-const mockEmployees: Employee[] = [
-  { id: 'e1', personalCode: '0123456789', name: 'مهدی', familyName: 'بیاتی', avatarUrl: 'https://placehold.co/40x40/E2E8F0/64748B?text=MB', workGroup: 'توسعه', status: 'active' },
-  { id: 'e2', personalCode: '9876543210', name: 'سارا', familyName: 'رضایی', avatarUrl: 'https://placehold.co/40x40/E2E8F0/64748B?text=SR', workGroup: 'مالی', status: 'active' },
-  { id: 'e3', personalCode: '1122334455', name: 'علی', familyName: 'احمدی', avatarUrl: 'https://placehold.co/40x40/E2E8F0/64748B?text=AA', workGroup: 'توسعه', status: 'inactive' },
-  { id: 'e4', personalCode: '5566778899', name: 'زهرا', familyName: 'محمدی', avatarUrl: 'https://placehold.co/40x40/E2E8F0/64748B?text=ZM', workGroup: 'منابع انسانی', status: 'active' },
-  { id: 'e5', personalCode: '3344556677', name: 'رضا', familyName: 'کریمی', avatarUrl: 'https://placehold.co/40x40/E2E8F0/64748B?text=RK', workGroup: 'مالی', status: 'active' },
-];
 
 // --- کامپوننت اصلی ---
 
 function AddToWorkPattern() {
+  // const navigate = useNavigate(); // ✅ حذف شد
   // استیت برای الگوی کاری انتخاب شده
   const [selectedPattern, setSelectedPattern] = useState<SelectOption | null>(null);
   // استیت برای متن جستجو
   const [searchQuery, setSearchQuery] = useState("");
   // استیت برای ردیف‌های انتخاب شده در جدول
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  // استیت برای لودینگ‌های تکی
+  // const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({}); // ✅ خطای ۱۳: حذف شد (استفاده نشده)
 
-  const [allEmployees] = useState<Employee[]>(mockEmployees);
 
-  // فیلتر کردن کارمندان بر اساس جستجو
-  const filteredEmployees = useMemo(() => {
-    if (!searchQuery) return allEmployees;
-    const lowerQuery = searchQuery.toLowerCase();
-    return allEmployees.filter(emp =>
-      emp.name.toLowerCase().includes(lowerQuery) ||
-      emp.familyName.toLowerCase().includes(lowerQuery) ||
-      emp.personalCode.includes(lowerQuery) ||
-      emp.workGroup.toLowerCase().includes(lowerQuery)
-    );
-  }, [searchQuery, allEmployees]);
+  // ✅ ۲. فچ کردن لیست کارمندان و الگوها
+  const { data: usersResponse, isLoading: isLoadingUsers } = useUsers({
+    page: 1,
+    per_page: 9999,
+    search: searchQuery
+  });
+
+  const { data: rawPatterns, isLoading: isLoadingPatterns } = useWorkPatternsList();
+
+  // ✅ ۳. هوک Mutation برای تخصیص الگوی کاری
+  const patternAssignmentMutation = useUpdateUserWorkPattern();
+
+
+  const employees: User[] = usersResponse?.data ?? [];
+
+  // ✅ ۴. تبدیل لیست الگوها به SelectOption
+  const patternOptions: SelectOption[] = useMemo(() => {
+    return rawPatterns?.map(p => ({ id: p.id, name: p.name })) || [];
+  }, [rawPatterns]);
 
   // تعریف ستون‌های جدول
-  const columns = useMemo<ColumnDef<Employee>[]>(() => [
+  const columns = useMemo<ColumnDef<User>[]>(() => [
     {
-      // ستون مخصوص Checkbox برای انتخاب
       id: 'select',
       header: ({ table }) => (
         <Checkbox
-          checked={table.getIsAllRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="انتخاب همه"
         />
       ),
@@ -86,25 +75,33 @@ function AddToWorkPattern() {
           aria-label="انتخاب ردیف"
         />
       ),
-      // فعال کردن/غیرفعال کردن resize و sort برای این ستون
     },
     {
       header: 'مشخصات',
-      accessorKey: 'name', // استفاده از یک accessorKey الزامی است
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2" style={{ minWidth: '150px' }}>
-          <img
-            src={row.original.avatarUrl}
-            alt={`${row.original.name} ${row.original.familyName}`}
-            className="w-8 h-8 rounded-full object-cover"
-            onError={(e) => (e.currentTarget.src = 'https://placehold.co/40x40/E2E8F0/64748B?text=??')}
-          />
-          <span className="font-medium">{row.original.name} {row.original.familyName}</span>
-        </div>
-      )
+      accessorKey: 'employee.full_name',
+      cell: ({ row }) => {
+        const user = row.original;
+        const employee = user.employee;
+        const displayName = `${employee?.first_name || ''} ${employee?.last_name || ''}`.trim() || user.user_name;
+
+        return (
+          <div className="flex items-center gap-2" style={{ minWidth: '150px' }}>
+            <span className="w-8 h-8 rounded-full bg-secondaryL flex items-center justify-center text-sm">
+              {displayName.charAt(0)}
+            </span>
+            <span className="font-medium">{displayName}</span>
+          </div>
+        );
+      }
     },
-    { header: 'کد پرسنلی', accessorKey: 'personalCode' },
-    { header: 'گروه کاری', accessorKey: 'workGroup' },
+    { header: 'کد پرسنلی', accessorKey: 'employee.personnel_code', cell: ({ row }) => row.original.employee?.personnel_code || '---' },
+    {
+      header: 'الگوی کاری فعلی', accessorKey: 'employee.work_pattern_id', cell: ({ row }) => {
+        const patternId = row.original.employee?.work_pattern_id;
+        const pattern = patternOptions.find(p => p.id === patternId);
+        return pattern?.name || '---';
+      }
+    },
     {
       header: 'وضعیت',
       accessorKey: 'status',
@@ -115,58 +112,83 @@ function AddToWorkPattern() {
             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
             : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
         )}>
-          {row.original.status === 'active' ? 'حاضر' : 'غایب'}
+          {row.original.status === 'active' ? 'فعال' : 'غیرفعال'}
         </span>
       )
     }
-  ], []);
+  ], [patternOptions]);
 
-  // ساختن نمونه جدول
+
   const table = useReactTable({
-    data: filteredEmployees,
+    data: employees,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onRowSelectionChange: setRowSelection, // مدیریت استیت انتخاب
+    onRowSelectionChange: setRowSelection,
     state: {
-      rowSelection, // پاس دادن استیت به جدول
+      rowSelection,
     }
   });
 
   const selectedCount = Object.keys(rowSelection).length;
 
-  // فانکشن برای دکمه "تخصیص" (فعلا فقط لاگ می‌گیرد)
   const handleAssignEmployees = () => {
-    const selectedEmployeeIds = Object.keys(rowSelection);
-    const selectedEmployees = allEmployees.filter(emp => selectedEmployeeIds.includes(emp.id));
+    const workPatternId = selectedPattern?.id ? Number(selectedPattern.id) : null;
 
-    if (!selectedPattern) {
-      console.warn("لطفا ابتدا یک الگوی کاری انتخاب کنید.");
-      // در دنیای واقعی اینجا یک Toast نمایش می‌دهیم
+    if (!workPatternId) {
+      toast.warn("لطفا ابتدا یک الگوی کاری انتخاب کنید.");
       return;
     }
 
-    if (selectedEmployees.length === 0) {
-      console.warn("لطفا حداقل یک کارمند را انتخاب کنید.");
-      // در دنیای واقعی اینجا یک Toast نمایش می‌دهیم
+    if (selectedCount === 0) {
+      toast.warn("لطفا حداقل یک کارمند را انتخاب کنید.");
       return;
     }
 
-    console.log("--- شبیه‌سازی ارسال به API ---");
-    console.log(`الگوی کاری: ${selectedPattern.name} (ID: ${selectedPattern.id})`);
-    console.log("کارمندان انتخاب شده:", selectedEmployees.map(e => `${e.name} ${e.familyName} (ID: ${e.id})`));
-    console.log("---------------------------------");
+    const selectedUserIds = table
+      .getSelectedRowModel()
+      .rows
+      .map(row => row.original.id);
 
-    // پاک کردن فرم پس از موفقیت
-    setRowSelection({});
-    setSelectedPattern(null);
-    setSearchQuery("");
+    // ۱. تنظیم حالت لودینگ
+    // (منطق loadingStates حذف شد چون استفاده نشده بود)
+
+    // ۲. ایجاد آرایه پرامیس‌ها برای آپدیت
+    const promises = selectedUserIds.map(userId =>
+      patternAssignmentMutation.mutateAsync({ userId, workPatternId })
+        .catch(error => {
+          console.error(`Error assigning pattern to user ${userId}:`, (error as Error).message);
+          return { status: 'rejected', reason: (error as Error).message, userId };
+        })
+    );
+
+    // ۳. اجرای همه آپدیت‌ها و گزارش نهایی
+    Promise.allSettled(promises)
+      .then(results => {
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        const errorCount = results.filter(r => r.status === 'rejected').length;
+
+        // ✅✅✅ اصلاح خطای ۱۴: اضافه کردن if check ✅✅✅
+        if (successCount > 0 && selectedPattern) {
+          toast.success(`${successCount} کارمند با موفقیت به الگوی "${selectedPattern.name}" تخصیص یافتند.`);
+        }
+        if (errorCount > 0) {
+          toast.error(`${errorCount} مورد با خطا مواجه شد.`);
+        }
+      })
+      .finally(() => {
+        // ۴. پاکسازی نهایی
+        setRowSelection({});
+        // setLoadingStates({}); // ✅ حذف شد
+      });
   };
+
+  const isGlobalLoading = isLoadingUsers || isLoadingPatterns || patternAssignmentMutation.isPending;
 
   return (
     <div className="space-y-6 p-4 md:p-6 bg-backgroundL-500 rounded-2xl bordr border-borderL dark:border-borderD dark:bg-backgroundD">
       <div className='border-b border-borderL dark:border-borderD pb-2'>
         <h1 className="text-2xl font-semibold text-foregroundL dark:text-foregroundD ">
-          افزودن کارمندان / گروه کاری
+          تخصیص الگوی کاری به کارمندان
         </h1>
       </div>
 
@@ -177,13 +199,14 @@ function AddToWorkPattern() {
           <SelectBox
             label="انتخاب الگوی کاری"
             placeholder="یک الگو را انتخاب کنید..."
-            options={mockPatterns}
+            options={patternOptions}
             value={selectedPattern}
             onChange={setSelectedPattern}
+            disabled={isGlobalLoading}
           />
           <Input
             label="جستجوی کارمند"
-            placeholder="بر اساس نام، کد پرسنلی، گروه کاری..."
+            placeholder="بر اساس نام, کد پرسنلی..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="md:col-span-2"
@@ -194,7 +217,14 @@ function AddToWorkPattern() {
 
       {/* بخش جدول کارمندان */}
       <div className="bg-backgroundL-500 border rounded-md border-borderL transition-colors duration-300 dark:bg-backgroundD dark:border-borderD overflow-hidden">
-        <DataTable table={table} notFoundMessage="کارمندی با این مشخصات یافت نشد." />
+        {isGlobalLoading ? (
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="mr-2">در حال بارگذاری لیست کارمندان و الگوها...</span>
+          </div>
+        ) : (
+          <DataTable table={table} notFoundMessage="کارمندی با این مشخصات یافت نشد." />
+        )}
       </div>
 
       {/* بخش دکمه نهایی */}
@@ -203,8 +233,9 @@ function AddToWorkPattern() {
           type="button"
           variant="primary"
           onClick={handleAssignEmployees}
-          disabled={selectedCount === 0 || !selectedPattern}
+          disabled={selectedCount === 0 || !selectedPattern || isGlobalLoading}
         >
+          {patternAssignmentMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
           <UserPlus className="ml-2 h-4 w-4" />
           {selectedCount > 0
             ? `تخصیص ${selectedCount} کارمند به الگو`

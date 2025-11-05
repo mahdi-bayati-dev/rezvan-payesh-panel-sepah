@@ -1,3 +1,5 @@
+// work-pattern/types/index.ts
+
 // کامنت: این فایل نهایی تایپ‌ها است که با داک API (ورود دستی زمان)
 // و با اصلاح جزئی Payload هماهنگ شده است.
 
@@ -36,7 +38,7 @@ export interface WeekPatternPayload {
 export interface WeekPatternDetail {
   id: number;
   name: string;
-  organization_name?: string; // ✅ ۱. این فیلد را اینجا اضافه کنید
+  organization_name?: string;
   saturday_pattern: AtomicPattern | null;
   sunday_pattern: AtomicPattern | null;
   monday_pattern: AtomicPattern | null;
@@ -53,7 +55,7 @@ export interface SingleWeekPatternApiResponse {
   data: WeekPatternDetail;
 }
 
-// --- تایپ‌های لیست (برای GET /week-patterns - اینها در داک POST نبودند) ---
+// --- تایپ‌های لیست (برای GET /week-patterns) ---
 
 export interface ApiPaginationMeta {
   current_page: number;
@@ -72,7 +74,7 @@ export interface ApiPaginationLinks {
 }
 
 export interface PaginatedWeekPatternsListApiResponse {
-  data: WeekPatternDetail[]; // ⬅️ اصلاح کلیدی: از ListItem به Detail تغییر کرد
+  data: WeekPatternDetail[];
   meta: ApiPaginationMeta;
   links: ApiPaginationLinks;
 }
@@ -85,8 +87,7 @@ export interface ApiValidationError {
   };
 }
 
-// --- تایپ‌های UI (برای نمایش در کامپوننت‌ها - اختیاری) ---
-// این تایپ‌ها مستقیماً با API درگیر نیستند اما برای تبدیل داده‌ها مفیدند
+// --- تایپ‌های UI (برای نمایش در کامپوننت‌ها) ---
 
 export interface DailyScheduleUI {
   dayOfWeekName:
@@ -98,19 +99,33 @@ export interface DailyScheduleUI {
     | "پنجشنبه"
     | "جمعه";
   dayIndex: number; // 0-6
-  atomicPattern: AtomicPattern | null; // از پاسخ API می‌آید
-  // فیلدهای زیر ممکن است برای نمایش لازم باشند
+  atomicPattern: AtomicPattern | null;
   is_working_day: boolean;
   start_time: string | null;
   end_time: string | null;
-  work_duration_minutes: number; // در atomicPattern هست
+  work_duration_minutes: number;
 }
 
-// این تایپ ممکن است برای نمایش کلی الگو مفید باشد
+// ✅✅✅ اصلاح کلیدی: تایپ مشترک UI ✅✅✅
+// این تایپ حالا می‌تواند هم "الگوی ثابت" و هم "برنامه شیفتی" را توصیف کند.
 export interface WorkPatternUI {
+  // فیلدهای مشترک
   id: number;
   name: string;
-  organizationName?: string; // اگر از لیست می‌آید
-  type?: "fixed" | "floating" | "mixed" | "off"; // نوع کلی الگو (نیاز به محاسبه دارد)
-  daily_schedules: DailyScheduleUI[]; // تبدیل شده از WeekPatternDetail
+
+  // ✅ فیلد کلیدی برای تفکیک نوع الگو
+  pattern_type: "WEEK_PATTERN" | "SHIFT_SCHEDULE";
+
+  // ✅✅✅ اصلاح خطا (TS2339): افزودن فیلد type
+  // کامنت: این فیلد در useWeekPatternDetails محاسبه می‌شود
+  // و نوع کلی الگو (ثابت، شناور، خاموش یا ترکیبی) را مشخص می‌کند.
+  type?: "fixed" | "floating" | "mixed" | "off";
+
+  // فیلدهای مختص الگوی ثابت (WEEK_PATTERN)
+  daily_schedules?: DailyScheduleUI[];
+  organizationName?: string;
+
+  // فیلدهای مختص برنامه شیفتی (SHIFT_SCHEDULE)
+  cycle_length_days?: number;
+  cycle_start_date?: string; // YYYY-MM-DD
 }

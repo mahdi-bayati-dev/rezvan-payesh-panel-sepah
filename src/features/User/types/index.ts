@@ -90,4 +90,6 @@ export interface FetchUsersParams {
   search?: string;
   organization_id?: number;
   role?: string;
+  // ✅ جدید: فیلتر بر اساس الگوی کاری
+  work_pattern_id?: number;
 }

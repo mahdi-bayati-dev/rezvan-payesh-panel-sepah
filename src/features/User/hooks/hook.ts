@@ -1,25 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// ✅ مسیرهای نسبی
+import { toast } from "react-toastify"; // ✅ ایمپورت toast
 import {
   fetchUsers,
   updateUserOrganization,
-  fetchUserById, // ✅ جدید
-  updateUserProfile, // ✅ جدید
+  fetchUserById,
+  updateUserProfile,
+  deleteUser, // ✅ فرض می کنیم این تابع API هم در User/api/api.ts تعریف شده است
 } from "../api/api";
 import {
   type FetchUsersParams,
   type UserListResponse,
   type User,
-  // ✅ جدید
 } from "@/features/User/types/index";
 import type { UserProfileFormData } from "@/features/User/Schema/userProfileFormSchema";
+
 // --- کلیدهای کوئری ---
 export const userKeys = {
   all: ["users"] as const,
   lists: () => [...userKeys.all, "list"] as const,
   list: (params: FetchUsersParams) => [...userKeys.lists(), params] as const,
-  details: () => [...userKeys.all, "detail"] as const, // ✅ جدید
-  detail: (id: number) => [...userKeys.details(), id] as const, // ✅ جدید
+  details: () => [...userKeys.all, "detail"] as const,
+  detail: (id: number) => [...userKeys.details(), id] as const,
 };
 
 // --- هوک‌های موجود ---
@@ -31,7 +32,6 @@ export const useUsers = (params: FetchUsersParams) => {
   return useQuery<UserListResponse, Error>({
     queryKey: userKeys.list(params),
     queryFn: () => fetchUsers(params),
-    // ✅ اصلاح شده برای React Query v5
     placeholderData: (previousData) => previousData,
   });
 };
@@ -45,15 +45,13 @@ export const useUpdateUserOrganization = () => {
   return useMutation<User, Error, { userId: number; organizationId: number }>({
     mutationFn: updateUserOrganization,
     onSuccess: (updatedUser) => {
-      // ✅ اصلاح شده (ESLint)
       console.log("hook=>", updatedUser);
-
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
     },
   });
 };
 
-// --- ✅ هوک‌های جدید برای صفحه پروفایل ---
+// --- هوک‌های جدید برای صفحه پروفایل ---
 
 /**
  * هوک برای دریافت اطلاعات تکی کاربر
@@ -63,7 +61,7 @@ export const useUser = (userId: number) => {
   return useQuery<User, Error>({
     queryKey: userKeys.detail(userId),
     queryFn: () => fetchUserById(userId),
-    enabled: !!userId, // فقط زمانی اجرا شو که ID معتبر باشد
+    enabled: !!userId,
   });
 };
 
@@ -81,13 +79,77 @@ export const useUpdateUserProfile = () => {
     mutationFn: updateUserProfile,
 
     onSuccess: (updatedUser) => {
-      // پس از موفقیت، هم لیست‌ها و هم کوئری detail این کاربر را آپدیت می‌کنیم
-
-      // ۱. آپدیت کوئری detail
       queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
-
-      // ۲. باطل کردن لیست‌ها (تا در صورت بازگشت، لیست آپدیت باشد)
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+    onError: (error) => {
+      const errorMessage =
+        (error as any)?.response?.data?.message ||
+        "خطا در به‌روزرسانی پروفایل.";
+      toast.error(errorMessage);
+    },
+  });
+};
+
+/**
+ * ✅ هوک جدید: به‌روزرسانی (تخصیص) الگوی کاری کارمندان
+ * این هوک از زیرساخت updateUserProfile استفاده می‌کند اما متمرکز بر work_pattern_id است.
+ */
+export const useUpdateUserWorkPattern = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    User,
+    Error,
+    { userId: number; workPatternId: number | null }
+  >({
+    mutationFn: ({ userId, workPatternId }) => {
+      const payload: UserProfileFormData = {
+        employee: {
+          work_pattern_id: workPatternId,
+        } as any,
+      };
+      return updateUserProfile({ userId, payload });
+    },
+
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+    onError: (error) => {
+      const errorMessage =
+        (error as any)?.response?.data?.message || "خطا در تخصیص الگوی کاری.";
+      throw new Error(errorMessage);
+    },
+  });
+};
+
+/**
+ * ✅ هوک جدید: حذف کاربر
+ * این هوک برای ActionsCell.tsx مورد نیاز است.
+ */
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    Error,
+    number // ورودی: userId
+  >({
+    mutationFn: deleteUser, // تابع API
+
+    onSuccess: (_, deletedUserId) => {
+      // ۱. کلید لیست کاربران را باطل می‌کنیم
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      // ۲. جزئیات کاربر حذف شده را از کش پاک می‌کنیم
+      queryClient.removeQueries({ queryKey: userKeys.detail(deletedUserId) });
+      // پیام موفقیت در کامپوننت (ActionsCell) داده می‌شود
+    },
+
+    onError: (error) => {
+      const errorMessage =
+        (error as any)?.response?.data?.message || "خطا در حذف کاربر رخ داد.";
+      toast.error(errorMessage); // نمایش پیام خطا
     },
   });
 };

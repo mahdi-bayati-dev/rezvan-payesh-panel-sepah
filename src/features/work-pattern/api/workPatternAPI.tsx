@@ -1,18 +1,15 @@
-// کامنت: این فایل توابع API برای فیچر "الگوی هفتگی" است
-// و کاملاً با مستندات نهایی شما هماهنگ شده است.
 
 import axiosInstance from '@/lib/AxiosConfig';
 import type {
   PaginatedWeekPatternsListApiResponse,
   SingleWeekPatternApiResponse,
-  WeekPatternPayload, // استفاده از Payload نهایی (داک ۱)
+  WeekPatternPayload, 
 } from '@/features/work-pattern/types/index';
 
 const API_URL = '/week-patterns';
 
 /**
  * کامنت: دریافت لیست صفحه‌بندی شده الگوهای کاری هفتگی
- * (این تابع از کد اولیه شما حفظ شد)
  */
 export const getWeekPatternsList = async (page: number = 1): Promise<PaginatedWeekPatternsListApiResponse> => {
   const response = await axiosInstance.get<PaginatedWeekPatternsListApiResponse>(`${API_URL}?page=${page}`);
@@ -29,14 +26,11 @@ export const getWeekPatternById = async (id: number | string): Promise<SingleWee
 };
 
 /**
- * کامنت: ایجاد یک الگوی کاری هفتگی جدید (بر اساس داک نهایی)
+ * کامنت: ایجاد یک الگوی کاری هفتگی جدید )
  * POST /api/week-patterns
  */
 export const createWeekPattern = async (payload: WeekPatternPayload): Promise<SingleWeekPatternApiResponse> => {
-  // کامنت: Payload ارسالی دقیقاً ساختار داک شما را دارد
-  // { name: "...", days: [...] }
   const response = await axiosInstance.post<SingleWeekPatternApiResponse>(API_URL, payload);
-  // کامنت: پاسخ 201 داک شما ساختار { data: ... } دارد
   return response.data;
 };
 
