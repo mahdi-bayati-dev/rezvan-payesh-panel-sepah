@@ -17,8 +17,15 @@ const ActivityReportPageDetails = lazy(() => import("@/features/reports/routes/r
 const EmployeeReportsPage = lazy(() => import("@/features/reports/routes/EmployeeReportsPage"));
 const NewActivityRegistrationPage = lazy(() => import("@/features/reports/routes/NewReportPage"));
 const WorkPatternPage = lazy(() => import("@/features/work-pattern/routes/WorkPatternPage"));
-const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewWeekPatternPage").then((mod) => ({ default: (mod as any).NewWeekPatternForm || (mod as any).default })));
+// ✅ کامنت: کامپوننت انتخابگر (Selector Page) برای ایجاد الگوی جدید
+const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewPatternSelectorPage"));
 const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddToWorkPatternPage"))
+const WorkPatternsEdit = lazy(() => import('@/features/work-pattern/routes/EditWeekPatternPage'))
+const WorkPatternsEmployeesPage = lazy(() => import('@/features/work-pattern/routes/WorkPatternEmployeesPage'))
+// ✅ کامنت: Lazy Loading صفحات شیفت‌بندی چرخشی
+const EditShiftSchedulePage = lazy(() => import('@/features/shift-schedule/routes/EditShiftSchedulePage'))
+
+
 const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/workGroupDetailPage"))
 const NewWorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/NewWorkGroupPage"))
@@ -120,6 +127,7 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          // --- روت‌های الگوی کاری هفتگی (Work Patterns) ---
           {
             path: "/work-patterns",
             element: (
@@ -144,6 +152,35 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          // ✅ روت ویرایش الگوی ثابت
+          {
+            path: "/work-patterns/edit/:patternId",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < WorkPatternsEdit />
+              </Suspense>
+            ),
+          },
+          {
+            path: `/work-patterns/employees/:patternId`,
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < WorkPatternsEmployeesPage />
+              </Suspense>
+            ),
+          },
+
+          // ✅✅ روت ویرایش برنامه شیفتی چرخشی (Shift Schedules) ✅✅
+          {
+            path: "/shift-schedules/edit/:patternId",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < EditShiftSchedulePage />
+              </Suspense>
+            ),
+          },
+
+          // --- روت‌های گروه‌های کاری ---
           {
             path: "/work-group",
             element: (
@@ -200,7 +237,7 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-                    {
+          {
             path: "/work-calender",
             element: (
               <Suspense fallback={<Spinner />}>
