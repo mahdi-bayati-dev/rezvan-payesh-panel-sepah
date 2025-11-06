@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'; // useRef را اضافه کن
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/hook/reduxHooks';
 import { checkAuthStatus } from '@/store/slices/authSlice';
-import { Spinner } from '@/components/ui/Spinner';
+// import { Spinner } from '@/components/ui/Spinner';
+import { GlobalAppSkeleton } from '@/components/layout/GlobalAppSkeleton'; // ۱. ایمپورت اسکلت جدید
+
 
 export const ProtectedRoute = () => {
   const dispatch = useAppDispatch();
@@ -24,12 +26,8 @@ export const ProtectedRoute = () => {
 
   // نمایش اسپینر (بدون تغییر)
   if (authCheckStatus === 'idle' || authCheckStatus === 'loading') {
-    console.log('ProtectedRoute showing spinner (initial check ongoing)...');
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    console.log('ProtectedRoute showing GlobalAppSkeleton...');
+    return <GlobalAppSkeleton />;
   }
 
   // نمایش محتوا اگر کاربر هست (بدون تغییر)

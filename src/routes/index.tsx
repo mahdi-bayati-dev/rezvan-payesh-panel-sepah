@@ -13,17 +13,26 @@ const RequestDetailPage = lazy(() => import("@/features/requests/routes/RequestD
 const ExportSettingsPage = lazy(() => import("@/features/requests/routes/ExportSettingsPage"));
 const TableSettingsPage = lazy(() => import("@/features/requests/routes/TableSettingsPage"));
 const ActivityReportPage = lazy(() => import("@/features/reports/routes/reportPage"));
+const ReportsPageSkeleton = lazy(() => import("@/features/reports/Skeleton/SkeletonRepotrs"));
+
 const ActivityReportPageDetails = lazy(() => import("@/features/reports/routes/reportPageDetails"));
 const EmployeeReportsPage = lazy(() => import("@/features/reports/routes/EmployeeReportsPage"));
 const NewActivityRegistrationPage = lazy(() => import("@/features/reports/routes/NewReportPage"));
 const WorkPatternPage = lazy(() => import("@/features/work-pattern/routes/WorkPatternPage"));
-const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewWeekPatternPage").then((mod) => ({ default: (mod as any).NewWeekPatternForm || (mod as any).default })));
+const WorkPatternPageSkeleton = lazy(() => import("@/features/work-pattern/Skeleton/Skeleton"));
+
+const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewPatternSelectorPage"));
 const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddToWorkPatternPage"))
+const WorkPatternsEdit = lazy(() => import('@/features/work-pattern/routes/EditWeekPatternPage'))
+const WorkPatternsEmployeesPage = lazy(() => import('@/features/work-pattern/routes/WorkPatternEmployeesPage'))
+const EditShiftSchedulePage = lazy(() => import('@/features/shift-schedule/routes/EditShiftSchedulePage'))
+
 const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/workGroupDetailPage"))
 const NewWorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/NewWorkGroupPage"))
 const OrganizationPage = lazy(() => import('@/features/Organization/routes/OrganizationPage'))
 const OrganizationDetailPage = lazy(() => import('@/features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
+const CreateUser = lazy(() => import('@/features/User/components/userCreate/CreateUserPage'))
 const AssignUserPage = lazy(() => import('@/features/User/components/AssignUser/AssignUserPage'))
 const UserProfilePage = lazy(() => import('@/features/User/components/userPage/UserProfilePage'))
 const WorkCalendarPage = lazy(() => import('@/features/work-calendar/routes/WorkCalendarPage'))
@@ -91,7 +100,7 @@ export const router = createBrowserRouter([
           {
             path: "/reports",
             element: (
-              <Suspense fallback={<Spinner />}>
+              <Suspense fallback={<ReportsPageSkeleton />}>
                 <ActivityReportPage />
               </Suspense>
             ),
@@ -120,10 +129,11 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          // --- روت‌های الگوی کاری هفتگی (Work Patterns) ---
           {
             path: "/work-patterns",
             element: (
-              <Suspense fallback={<Spinner />}>
+              <Suspense fallback={<WorkPatternPageSkeleton/>}>
                 <WorkPatternPage />
               </Suspense>
             ),
@@ -144,6 +154,35 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          // ✅ روت ویرایش الگوی ثابت
+          {
+            path: "/work-patterns/edit/:patternId",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < WorkPatternsEdit />
+              </Suspense>
+            ),
+          },
+          {
+            path: `/work-patterns/employees/:patternId`,
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < WorkPatternsEmployeesPage />
+              </Suspense>
+            ),
+          },
+
+          // ✅✅ روت ویرایش برنامه شیفتی چرخشی (Shift Schedules) ✅✅
+          {
+            path: "/shift-schedules/edit/:patternId",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < EditShiftSchedulePage />
+              </Suspense>
+            ),
+          },
+
+          // --- روت‌های گروه‌های کاری ---
           {
             path: "/work-group",
             element: (
@@ -185,6 +224,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "/organizations/:id/create-user",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < CreateUser />
+              </Suspense>
+            ),
+          },
+          {
             path: "/organizations/:id/assign-user",
             element: (
               <Suspense fallback={<Spinner />}>
@@ -200,7 +247,7 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-                    {
+          {
             path: "/work-calender",
             element: (
               <Suspense fallback={<Spinner />}>

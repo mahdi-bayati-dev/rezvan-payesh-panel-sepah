@@ -13,8 +13,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
   const logoSrc =
     theme === "dark"
-      ? "/img/img-header/logo-2.png" // مسیر مطلق از ریشه سایت
-      : "/img/img-header/logo-1.png"; // مسیر مطلق از ریشه سایت
+      ? "/img/img-header/logo-2.webp" // مسیر مطلق از ریشه سایت
+      : "/img/img-header/logo-1.webp"; // مسیر مطلق از ریشه سایت
 
   return (
     <header className="flex items-center justify-between px-4 z-10 bg-backgroundL border-b border-borderL shadow-sm transition-colors duration-300 dark:bg-backgroundD dark:border-borderD">

@@ -1,7 +1,9 @@
 import { type WorkPatternUI, type DailyScheduleUI } from '../../types';
-import { Spinner } from '@/components/ui/Spinner';
+// import { Spinner } from '@/components/ui/Spinner';
 import clsx from 'clsx';
 import React from 'react';
+import { WorkPatternScheduleViewSkeleton } from '@/features/work-pattern/Skeleton/WorkPatternScheduleViewSkeleton';
+
 
 interface WorkPatternScheduleViewProps {
   selectedPattern: WorkPatternUI | null;
@@ -17,6 +19,7 @@ const timeToPercentage = (time: string | null): number => {
     return 0;
   }
   const percentage = ((hours * 60 + minutes) / (24 * 60)) * 100;
+  // کامنت: چون محور ما از راست (00:00) به چپ (24:00) است، درصد را برعکس می‌کنیم
   return 100 - percentage;
 };
 
@@ -28,10 +31,12 @@ const getBlockStyleAndClass = (daySchedule: DailyScheduleUI): { style: React.CSS
 
   const endPercent = timeToPercentage(daySchedule.start_time);
   const startPercent = timeToPercentage(daySchedule.end_time);
+
   const durationPercent = endPercent - startPercent;
 
+  // کامنت: مدیریت شیفت شبانه (اگر پایان به روز بعد برود)
   if (durationPercent < 0) {
-    console.warn("Overnight shift detected, rendering might be inaccurate:", daySchedule);
+
     return null;
   }
   if (durationPercent === 0) {
@@ -40,18 +45,19 @@ const getBlockStyleAndClass = (daySchedule: DailyScheduleUI): { style: React.CSS
   }
 
   const bgColorClass = daySchedule.atomicPattern?.type === 'floating'
-    ? 'bg-infoL-foreground/80 dark:bg-infoL-foreground/70 border border-infoL-foreground dark:border-infoL-foreground'
-    : 'bg-destructiveL-foreground/80 dark:bg-destructiveL-foreground/70 border border-destructiveL-foreground dark:border-destructiveL-foreground';
+    ? 'bg-infoL/80 dark:bg-infoD/70 border border-infoL dark:border-infoD'
+    : 'bg-destructiveL/80 dark:bg-destructiveD/70 border border-destructiveL dark:border-destructiveD';
 
   const style = {
-    right: `${startPercent}%`,
-    width: `${durationPercent}%`,
+    right: `${startPercent}%`, // نقطه شروع از راست
+    width: `${durationPercent}%`, // طول بلاک
   };
 
   return { style, className: bgColorClass };
 };
 
 export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: WorkPatternScheduleViewProps) => {
+  // کامنت: ساعت‌ها از 0 تا 23
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const days: DailyScheduleUI['dayOfWeekName'][] = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
 
@@ -63,7 +69,7 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: W
 
       {isLoadingDetails ? (
         <div className="flex-1 flex items-center justify-center">
-          <Spinner size="lg" />
+          <WorkPatternScheduleViewSkeleton />
         </div>
       ) : !selectedPattern ? (
         <div className="flex-1 flex items-center justify-center text-muted-foregroundL dark:text-muted-foregroundD border border-dashed border-borderL dark:border-borderD rounded">
@@ -73,6 +79,7 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: W
         <div className="flex-1 overflow-auto border border-borderL dark:border-borderD rounded bg-backgroundL-500 dark:bg-backgroundD relative">
           {/* ۱. ستون ثابت نام روزها در سمت راست */}
           <div className="sticky right-0 top-0 z-20 w-[60px] float-right">
+            {/* کامنت: سلول خالی گوشه بالا-راست */}
             <div className="h-8 border-b border-l border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD"></div>
             {days.map(day => (
               <div key={`day-label-${day}`} className="h-10 flex items-center justify-center border-b border-l border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD">
@@ -110,7 +117,8 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: W
                 {/* ۲.۲.۲. رندر ردیف‌های روز و بلاک‌های زمانی */}
                 {days.map((dayName) => {
                   {/*dayIndex */ }
-                  const daySchedule = selectedPattern.daily_schedules.find(d => d.dayOfWeekName === dayName);
+                  // ✅✅✅ اصلاح خطای ۸: اضافه کردن Optional Chaining ✅✅✅
+                  const daySchedule = selectedPattern.daily_schedules?.find(d => d.dayOfWeekName === dayName);
                   const isWorkDay = daySchedule?.is_working_day ?? false;
                   const blockInfo = isWorkDay ? getBlockStyleAndClass(daySchedule!) : null;
 
@@ -122,7 +130,7 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: W
                         !isWorkDay && "bg-secondaryL dark:bg-secondaryD/60"
                       )}
                     >
-                      {blockInfo && blockInfo.style.display !== 'none' && (
+                      {blockInfo && ( // کامنت: اطمینان از null نبودن بلاک
                         <div
                           className={clsx(
                             "absolute top-0.5 bottom-0.5 rounded z-10",
@@ -144,3 +152,4 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: W
     </div>
   );
 };
+

@@ -1,92 +1,100 @@
-import { useState } from "react";
-import { Filter, Plus } from "lucide-react";
+import { useState, useMemo } from "react"; // <-- ۱. useMemo اینجا اضافه شد
+import { Filter, Loader2 } from "lucide-react";
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
-import {
-  activityTypeOptions,
-  trafficAreaOptions,
-} from "@/features/reports/data/mockData";
 import { type DateObject } from 'react-multi-date-picker';
 
-interface ActivityFiltersProps {
-  onFilterChange: (filters: {
-    activityType: SelectOption | null;
-    trafficArea: SelectOption | null;
-    date: DateObject | null; // ۴. تاریخ به آبجکت فیلتر اضافه شد
-  }) => void;
-  date: DateObject | null;
-  onDateChange: (date: DateObject | null) => void;
+// تعریف فیلترهای API
+interface ApiFilters {
+  employee: SelectOption | null;
+  date_from: DateObject | null;
+  date_to: DateObject | null;
 }
 
-export function ActivityFilters({ onFilterChange, date,
-  onDateChange, }: ActivityFiltersProps) {
-  const [activityType, setActivityType] = useState<SelectOption | null>(
-    activityTypeOptions[0]
-  );
-  const [trafficArea, setTrafficArea] = useState<SelectOption | null>(
-    trafficAreaOptions[0]
-  );
+// به‌روزرسانی پراپ‌ها
+interface ActivityFiltersProps {
+  onFilterChange: (filters: ApiFilters) => void;
+  employeeOptions: SelectOption[]; // لیست واقعی
+  isLoadingEmployees: boolean; // استیت لودینگ
+}
 
-  const handleActivityChange = (value: SelectOption) => {
-    setActivityType(value);
-    onFilterChange({ activityType: value, trafficArea, date });
+export function ActivityFilters({
+  onFilterChange,
+  employeeOptions,
+  isLoadingEmployees
+}: ActivityFiltersProps) {
+
+  // استیت‌های داخلی فیلتر
+  const [employee, setEmployee] = useState<SelectOption | null>(null);
+  const [dateFrom, setDateFrom] = useState<DateObject | null>(null);
+  const [dateTo, setDateTo] = useState<DateObject | null>(null);
+
+  const handleApplyFilters = () => {
+    onFilterChange({
+      // اگر id 'all' بود، null بفرست (یعنی بدون فیلتر کارمند)
+      employee: employee?.id === 'all' ? null : employee,
+      date_from: dateFrom,
+      date_to: dateTo,
+    });
   };
 
-  const handleAreaChange = (value: SelectOption) => {
-    setTrafficArea(value);
-    onFilterChange({ activityType, trafficArea: value, date });
-  };
+  // ۲. افزودن "همه کارمندان" به لیست با استفاده از useMemo
+  const employeesWithAllOption = useMemo(() => {
+    // اطمینان از اینکه 'all' فقط یک بار اضافه می‌شود
+    const hasAllOption = employeeOptions.some(opt => opt.id === 'all');
+    if (hasAllOption) return employeeOptions;
 
-  const handleAddActivity = () => {
-    console.log("Add new activity clicked");
-  };
+    return [{ id: 'all', name: 'همه کارمندان' }, ...employeeOptions];
+  }, [employeeOptions]);
+
 
   return (
-    <div
-      className="p-5 rounded-2xl border mb-5
+    <div className="p-5 rounded-2xl border mb-5
                  bg-backgroundL-500 dark:bg-backgroundD
                  border-borderL dark:border-borderD
                  shadow-sm transition-colors duration-300 space-y-6"
     >
-      {/* عنوان بخش فیلتر */}
       <div className="flex items-center gap-2">
         <Filter className="w-5 h-5 text-primaryL dark:text-primaryD" />
         <h3 className="font-semibold text-foregroundL dark:text-foregroundD">
-          فیلتر فعالیت‌ها
+          فیلتر گزارش‌ها
         </h3>
       </div>
 
-      {/* انتخاب‌گرها */}
       <div className="flex flex-col gap-4">
-        <SelectBox
-          label="نوع فعالیت"
-          placeholder="انتخاب کنید"
-          options={activityTypeOptions}
-          value={activityType}
-          onChange={handleActivityChange}
+        {/* اتصال SelectBox به داده واقعی */}
+        <div className="relative">
+          <SelectBox
+            label="کارمند"
+            placeholder={isLoadingEmployees ? "در حال بارگذاری..." : "انتخاب کنید"}
+            options={employeesWithAllOption} // <-- ۳. استفاده از لیست جدید
+            value={employee}
+            onChange={setEmployee}
+            disabled={isLoadingEmployees}
+          />
+          {isLoadingEmployees && (
+            <Loader2 className="w-4 h-4 absolute left-3 top-10 animate-spin text-muted-foregroundL" />
+          )}
+        </div>
+
+        {/* TODO: از DateRangePicker استفاده کنید */}
+        <PersianDatePickerInput
+          value={dateFrom}
+          onChange={setDateFrom}
+          placeholder="از تاریخ..."
+          label="تاریخ"
         />
-        <SelectBox
-          label="ناحیه تردد"
-          placeholder="انتخاب کنید"
-          options={trafficAreaOptions}
-          value={trafficArea}
-          onChange={handleAreaChange}
+        <PersianDatePickerInput
+          value={dateTo}
+          onChange={setDateTo}
+          placeholder="تا تاریخ..."
+          label=" " // لیبل خالی برای هم‌ترازی
         />
       </div>
-      <PersianDatePickerInput
-        value={date}
-        onChange={onDateChange}
-        placeholder="انتخاب کنید"
-        inputClassName="py-2.5 pr-10 pl-3"
-        containerClassName="w-full"
-        label="تاریخ"
 
-      />
-
-      {/* دکمه خروجی */}
       <button
         type="button"
-        onClick={handleAddActivity}
+        onClick={handleApplyFilters}
         className="w-full flex items-center justify-center gap-2 px-6 py-2.5
                    rounded-xl font-medium shadow-md
                    bg-primaryL text-primary-foregroundL
@@ -96,8 +104,8 @@ export function ActivityFilters({ onFilterChange, date,
                    focus:ring-primaryL dark:focus:ring-primaryD
                    transition-all duration-200"
       >
-        <Plus className="w-5 h-5" />
-        <span>خروجی</span>
+        <Filter className="w-5 h-5" />
+        <span>اعمال فیلتر</span>
       </button>
     </div>
   );

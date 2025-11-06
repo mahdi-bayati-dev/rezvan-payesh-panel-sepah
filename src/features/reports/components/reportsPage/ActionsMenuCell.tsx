@@ -1,9 +1,6 @@
-// src/features/reports/components/ActivityLogActions.tsx
-
-import { MoreVertical, Eye, User } from 'lucide-react'; // آیکون‌ها را متناسب تغییر دادم
+import { MoreVertical, Eye, User, Pencil, Check } from 'lucide-react'; // ۱. آیکون‌های جدید
 import { useNavigate } from 'react-router-dom';
 import { type ActivityLog } from '@/features/reports/types/index';
-// ایمپورت کامپوننت‌های ماژولار UI
 import {
     Dropdown,
     DropdownTrigger,
@@ -11,32 +8,37 @@ import {
     DropdownItem,
 } from '@/components/ui/Dropdown';
 
-// تعریف پراپس‌های کامپوننت
+// ۲. تعریف پراپ‌های جدید برای Edit و Approve
 type ActivityLogActionsProps = {
-    /**
-     * آبجکت داده‌ی کامل این ردیف
-     * ما به 'id' لاگ و 'employee.id' برای ناوبری نیاز داریم
-     */
     log: ActivityLog;
+    // ۳. هندلرهای جهش (Mutation) از والد می‌آیند
+    onEdit: (log: ActivityLog) => void;
+    onApprove: (log: ActivityLog) => void;
 };
 
-/**
- * کامپوننت ماژولار "هوشمند" برای نمایش منوی عملیات
- * این کامپوننت منطق ناوبری را درون خود مدیریت می‌کند.
- */
-export const ActionsMenuCell = ({ log }: ActivityLogActionsProps) => {
-    // ۱. استفاده مستقیم از هوک ناوبری
+export const ActionsMenuCell = ({ log, onEdit, onApprove }: ActivityLogActionsProps) => {
     const navigate = useNavigate();
 
-    // ۲. تعریف توابع هندلر در داخل خود کامپوننت
+    // توابع ناوبری (بدون تغییر)
     const handleViewDetails = () => {
-        // مسیر را بر اساس ساختار روتینگ خودتان تنظیم کنید
         navigate(`/reports/${log.id}`);
     };
 
     const handleViewEmployeeReport = () => {
+        // ۴. ❗️ اطمینان از ارسال شناسه صحیح
+        // ما از employee.id (عددی) استفاده می‌کنیم، چون employeeId (رشته‌ای) در API نبود
+        navigate(`/reports/employee/${log.employee.id}`);
+    };
 
-        navigate(`/reports/employee/${log.employee.employeeId}`);
+    // ۵. توابع اتصال‌دهنده به پراپ‌های جدید
+    const handleEdit = () => {
+        onEdit(log); // (این تابع باید مودال ویرایش را باز کند)
+    };
+
+    const handleApprove = () => {
+        // [اصلاح] window.confirm حذف شد
+        // مدیریت تأیید به والد (reportPage.tsx) سپرده می‌شود
+        onApprove(log);
     };
 
     return (
@@ -46,15 +48,15 @@ export const ActionsMenuCell = ({ log }: ActivityLogActionsProps) => {
                     <button
                         type="button"
                         className="p-2 rounded-md hover:bg-secondaryL dark:hover:bg-secondaryD
-                       text-muted-foregroundL dark:text-muted-foregroundD transition-colors"
+                         text-muted-foregroundL dark:text-muted-foregroundD transition-colors"
                     >
                         <MoreVertical className="w-5 h-5" />
                     </button>
                 </DropdownTrigger>
                 <DropdownContent>
-                    {/* ۳. اتصال مستقیم توابع به آیتم‌های منو */}
+                    {/* آیتم‌های ناوبری (بدون تغییر) */}
                     <DropdownItem onClick={handleViewDetails} icon={<Eye className="w-4 h-4" />}>
-                        مشاهده
+                        مشاهده جزئیات
                     </DropdownItem>
                     <DropdownItem
                         onClick={handleViewEmployeeReport}
@@ -62,6 +64,25 @@ export const ActionsMenuCell = ({ log }: ActivityLogActionsProps) => {
                     >
                         گزارش فردی
                     </DropdownItem>
+
+                    {/* --- ۶. آیتم‌های جدید بر اساس API --- */}
+                    <DropdownItem onClick={handleEdit} icon={<Pencil className="w-4 h-4" />}>
+                        ویرایش
+                    </DropdownItem>
+
+                    {/* ۷. رندر مشروط دکمه "تأیید"
+                      فقط لاگ‌هایی که 'is_allowed' false دارند قابل تأیید هستند
+                    */}
+                    {!log.is_allowed && (
+                        <DropdownItem
+                            onClick={handleApprove}
+                            icon={<Check className="w-4 h-4 text-successL dark:text-successD" />}
+                            className="text-successL dark:text-successD" // استایل ویژه
+                        >
+                            تأیید تردد
+                        </DropdownItem>
+                    )}
+
                 </DropdownContent>
             </Dropdown>
         </div>

@@ -1,9 +1,7 @@
-import { useState } from 'react';
-// import { Spinner } from '@/components/ui/Spinner';
+import { useState, useMemo } from 'react'; // ✅ useMemo اضافه شد
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
 // ✅ ۱. ایمپورت هوک‌های React Query
-// کامنت: هوک useWorkPatterns همان هوکی است که تابع 'select' را برای تبدیل داده‌ها دارد
 import { useWorkPatterns } from '@/features/work-pattern/hooks/useWorkPatternsHookGet';
 import { useWeekPatternDetails } from '@/features/work-pattern/hooks/useWeekPatternDetails';
 
@@ -12,9 +10,9 @@ import { WorkPatternList } from '@/features/work-pattern/components/workPatternP
 import { WorkPatternScheduleView } from '@/features/work-pattern/components/workPatternPage/workPatternScheduleView';
 import { WorkPatternActions } from '@/features/work-pattern/components/workPatternPage/workPatternActions';
 
-// کامنت: کامپوننت صفحه‌بندی (بدون تغییر)
-import { Button } from '@/components/ui/Button';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+// کامنت: کامپوننت صفحه‌بندی
+import { Button } from '@/components/ui/Button'; // ✅ G: 'Button' -> 'button'
+import { ChevronRight, ChevronLeft, Info } from 'lucide-react'; // ✅ Info اضافه شد
 
 
 interface PaginationControlsProps {
@@ -52,20 +50,48 @@ const PaginationControls = ({ currentPage, lastPage, onPageChange, isLoading }: 
 
 
 export default function WorkPatternPage() {
-  const [selectedPatternId, setSelectedPatternId] = useState<number | null>(null);
+  // ✅ ۱. state به کلید ترکیبی (رشته) تغییر کرد
+  const [selectedPatternKey, setSelectedPatternKey] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // --- ۱. فچ کردن لیست الگوها ---
+
   const {
-    data: listData, // کامنت: listData حالا آبجکت { patterns, meta, links } است
+    data: combinedData, // ✅ هوک useWorkPatterns حالا داده ترکیبی را برمی‌گرداند
     isLoading: isLoadingList,
     isError: isListError,
     error: listError
-  } = useWorkPatterns(currentPage); 
+  } = useWorkPatterns(currentPage);
 
 
-  const patternsList = listData?.patterns || []; 
-  const paginationMeta = listData?.meta; 
+  const patternsList = combinedData?.patterns || [];
+  const paginationMeta = combinedData?.meta;
+
+  // ✅ ۲. منطق جدید: پارس کردن کلید ترکیبی برای یافتن ID و Type
+  const { selectedId, selectedType } = useMemo(() => {
+    if (!selectedPatternKey) {
+      return { selectedId: null, selectedType: null };
+    }
+    // کامنت: کلید را بر اساس "-" جدا می‌کنیم (مثال: "WEEK_PATTERN-5")
+    const parts = selectedPatternKey.split('-');
+    if (parts.length < 2) return { selectedId: null, selectedType: null };
+
+    const id = parseInt(parts.pop()!, 10); // آخرین بخش ID است
+    const type = parts.join('-'); // بقیه نوع است (برای اطمینان از انواع چند کلمه‌ای)
+
+    return {
+      selectedId: id,
+      selectedType: type as 'WEEK_PATTERN' | 'SHIFT_SCHEDULE'
+    };
+  }, [selectedPatternKey]);
+
+  // کامنت: پیدا کردن الگوی منتخب بر اساس ID و Type
+  const selectedPattern = patternsList.find(
+    p => p.id === selectedId && p.pattern_type === selectedType
+  ) || null;
+
+  const selectedPatternName = selectedPattern?.name || null;
+  const isShiftScheduleSelected = selectedType === 'SHIFT_SCHEDULE';
+
 
   // --- ۲. فچ کردن جزئیات الگوی انتخاب شده ---
   const {
@@ -73,17 +99,22 @@ export default function WorkPatternPage() {
     isLoading: isLoadingDetails,
     isError: isDetailsError,
     error: detailsError,
-  } = useWeekPatternDetails(selectedPatternId);
+  } = useWeekPatternDetails(
+    // کامنت: فقط اگر الگوی ثابت (و نه شیفتی) انتخاب شده بود، جزئیات را فچ کن
+    isShiftScheduleSelected ? null : selectedId
+  );
+
 
   // --- ۳. هندلرها ---
-  const handleSelectPattern = (id: number | string) => {
-    setSelectedPatternId(typeof id === 'string' ? parseInt(id, 10) : id);
+  // کامنت: هندلر حالا کلید ترکیبی (رشته) را مستقیماً در state قرار می‌دهد
+  const handleSelectPattern = (key: string | null) => {
+    setSelectedPatternKey(key);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && paginationMeta && newPage <= paginationMeta.last_page) {
       setCurrentPage(newPage);
-      setSelectedPatternId(null);
+      setSelectedPatternKey(null); // ✅ با تغییر صفحه، آیتم منتخب پاک شود
     }
   };
 
@@ -101,9 +132,9 @@ export default function WorkPatternPage() {
         )}
         <div className="flex-1 min-h-0">
           <WorkPatternList
-            patterns={patternsList} 
-            selectedPatternId={selectedPatternId}
-            onSelectPattern={handleSelectPattern}
+            patterns={patternsList}
+            selectedPatternKey={selectedPatternKey} // ✅ ارسال پراپ جدید
+            onSelectPattern={handleSelectPattern} // ✅ ارسال هندلر جدید
             isLoading={isLoadingList}
           />
         </div>
@@ -119,25 +150,39 @@ export default function WorkPatternPage() {
 
       {/* ستون وسط: شماتیک ) */}
       <div className="lg:col-span-7 h-full min-h-[400px]">
-        {isDetailsError && selectedPatternId && (
+        {isDetailsError && selectedId && !isShiftScheduleSelected && ( // فقط خطای جزئیات الگوهای ثابت
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>خطا</AlertTitle>
             <AlertDescription>{(detailsError as Error)?.message || 'خطا در دریافت جزئیات الگو'}</AlertDescription>
           </Alert>
         )}
-        <WorkPatternScheduleView
-          selectedPattern={selectedPatternDetails || null}
-          isLoadingDetails={isLoadingDetails && !!selectedPatternId}
-        />
+
+        {/* ✅ نمایش پیام برای الگوهای شیفتی */}
+        {selectedId && isShiftScheduleSelected ? (
+          <div className="p-4 bg-backgroundL-500 rounded-lg shadow md:min-h-[450px] flex flex-col items-center justify-center dark:bg-backgroundD border border-borderL dark:border-borderD text-muted-foregroundL dark:text-muted-foregroundD">
+            <Info className='h-10 w-10 mb-3 text-blue-500' />
+            <p className='font-semibold text-lg mb-2'>{selectedPatternName}</p>
+            <p>این الگو، یک «برنامه شیفتی چرخشی» است.</p>
+            <p className='text-sm'>برای مشاهده و ویرایش اسلات‌های چرخه، لطفاً دکمه "ویرایش" را بزنید.</p>
+          </div>
+        ) : (
+          <WorkPatternScheduleView
+            selectedPattern={selectedPatternDetails || null}
+            isLoadingDetails={isLoadingDetails && !!selectedId}
+          />
+        )}
       </div>
 
       {/* ستون چپ: گزینه‌ها ) */}
       <div className="lg:col-span-2 ">
-        <WorkPatternActions />
+        <WorkPatternActions
+          selectedPatternId={selectedId} // ✅ ارسال ID خام (عددی)
+          selectedPatternName={selectedPatternName}
+          isShiftSchedule={isShiftScheduleSelected} // ✅ ارسال نوع الگو
+        />
       </div>
 
     </div>
   );
 }
-
 
