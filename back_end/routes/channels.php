@@ -20,10 +20,17 @@ Broadcast::channel('l2-channel.{organizationId}', function (User $user, int $org
            (int) $user->organization_id === $organizationId;
 });
 
-Broadcast::channel('super-admin-global', function (User $user)
-{
-    return $user->hasRole('super_admin');
+Broadcast::channel('super-admin-global', function (User $user) {
+
+    // [عیب‌یابی] نقش‌های این کاربر را در لاگ ثبت کن
+    $roles = $user->getRoleNames(); // <-- گرفتن لیست نقش‌ها
+    Log::info('[BROADCAST AUTH] User ID: ' . $user->id . ' | Roles: ' . json_encode($roles));
+
+    // چک کردن دستی به جای hasRole
+    if ($roles->contains('super_admin')) {
+        return true;
+    }
+
+    return false;
 });
-
-
 
