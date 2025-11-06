@@ -14,13 +14,14 @@ import { selectUser } from '@/store/slices/authSlice';
 // --- کامپوننت‌های UI ---
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { OrganizationForm } from '@/features/Organization/components/newOrganization/OrganizationForm';
 import { Modal, ModalHeader, ModalBody } from '@/components/ui/Modal';
 import { OrganizationNode } from '@/features/Organization/components/OrganizationPage/customTreeNode';
 
-// --- ۲. ابزار کمکی برای مسطح کردن درخت ---
-// (این تابع برای پر کردن دراپ‌다운 "انتخاب والد" در فرم ویرایش استفاده می‌شود)
+import { Skeleton } from '@/components/ui/Skeleton'; // اسکلت پایه
+import { OrganizationTreeSkeleton } from '@/features/Organization/Skeleton/SkeletonNode';
+import { OrganizationFormSkeleton } from '@/features/Organization/Skeleton/OrganizationFormSkeleton'
 interface FlatOrgOption {
     id: number;
     name: string;
@@ -130,9 +131,25 @@ function OrganizationPage() {
     // (بخش Loading/Error بدون تغییر)
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-12 w-12 animate-spin text-primaryL dark:text-primaryD" />
-                <span className="mr-3">در حال بارگذاری چارت سازمانی...</span>
+            // ما کل صفحه (شامل هدر) را اسکلت‌بندی می‌کنیم
+            <div className="p-4 md:p-6" dir="rtl">
+                {/* شبیه‌سازی هدر صفحه */}
+                <div className="flex justify-between items-center mb-6">
+                    <Skeleton className="h-8 w-1/3" />
+                    <Skeleton className="h-10 w-36" />
+                </div>
+
+                {/* شبیه‌سازی چیدمان گرید دو ستونه */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* ستون درخت */}
+                    <div className="md:col-span-2">
+                        <OrganizationTreeSkeleton />
+                    </div>
+                    {/* ستون فرم */}
+                    <div className="md:col-span-1">
+                        <OrganizationFormSkeleton />
+                    </div>
+                </div>
             </div>
         );
     }

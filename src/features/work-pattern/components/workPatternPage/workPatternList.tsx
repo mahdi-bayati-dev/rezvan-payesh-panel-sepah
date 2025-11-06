@@ -1,23 +1,22 @@
 import { useState } from 'react';
 import { Search, CirclePlus, Repeat2, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Input from '@/components/ui/Input'; // ✅ G: 'Input' -> 'input'
+import Input from '@/components/ui/Input';
+import { WorkPatternListSkeleton } from '@/features/work-pattern/Skeleton/WorkPatternListSkeleton';
 
 import { type WorkPatternUI } from '@/features/work-pattern/types/index';
 import clsx from 'clsx';
 
 interface WorkPatternListProps {
   patterns: WorkPatternUI[];
-  // ✅ ۱. پراپ selectedPatternId به selectedPatternKey تغییر نام داد
   selectedPatternKey: string | null;
-  // ✅ ۲. onSelectPattern حالا یک key (رشته) یا null دریافت می‌کند
   onSelectPattern: (key: string | null) => void;
   isLoading?: boolean;
 }
 
 export const WorkPatternList = ({
   patterns,
-  selectedPatternKey, // ✅ استفاده از نام جدید
+  selectedPatternKey,
   onSelectPattern,
   isLoading = false,
 }: WorkPatternListProps) => {
@@ -48,7 +47,7 @@ export const WorkPatternList = ({
           ایجاد الگو
         </button>
       </div>
-      
+
       <div className="relative mb-4">
         <Input
           label=''
@@ -66,7 +65,7 @@ export const WorkPatternList = ({
       {/* رندر ایتم ها */}
       <div className="flex-1 overflow-y-auto pr-1">
         {isLoading ? (
-          <p className="text-center text-muted-foregroundL dark:text-muted-foregroundD pt-10">در حال بارگذاری...</p>
+          <WorkPatternListSkeleton rowCount={12} />
         ) : filteredPatterns.length === 0 ? (
           <p className="text-center text-muted-foregroundL dark:text-muted-foregroundD pt-10">هیچ الگو یا برنامه شیفتی یافت نشد.</p>
         ) : (
