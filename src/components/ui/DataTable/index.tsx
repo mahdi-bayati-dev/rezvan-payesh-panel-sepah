@@ -13,7 +13,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   return (
     <div className="w-full overflow-x-auto rounded-md border border-borderL dark:border-borderD scroll-smooth" style={{ scrollbarWidth: "thin" }}>
-      <table className="min-w-full md:w-full divide-y divide-borderL dark:divide-borderD">
+      <table className="min-w-full md:w-full divide-y divide-borderL dark:divide-borderD mb-28">
         <thead className="bg-secondaryL dark:bg-secondaryD">
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
@@ -29,7 +29,7 @@ export function DataTable<TData>({
             </tr>
           ))}
         </thead>
-        <tbody className="bg-backgroundL-500 dark:bg-backgroundD divide-y divide-borderL dark:divide-borderD">
+        <tbody className="bg-backgroundL-500 dark:bg-backgroundD divide-y divide-borderL dark:divide-borderD ">
           {isLoading ? (
             <tr>
               <td colSpan={table.getAllColumns().length} className="text-center p-4 text-muted-foregroundL dark:text-muted-foregroundD">

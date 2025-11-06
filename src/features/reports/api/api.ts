@@ -121,7 +121,7 @@ export const approveLog = async (
   return response.data.data;
 };
 
-// --- [بدون تغییر] تابع واکشی کارمندان ---
+// ---  تابع واکشی کارمندان ---
 export const fetchEmployeeOptions = async (): Promise<FilterOption[]> => {
   console.log("[API] Fetching employee options...");
   const response = await axiosInstance.get<ApiUserCollection>(USERS_API_PATH, {
@@ -130,11 +130,16 @@ export const fetchEmployeeOptions = async (): Promise<FilterOption[]> => {
     },
   });
   console.log("[API] Raw employee response:", response.data);
+
+  // فیلتر کردن کاربرانی که پروفایل کارمندی کامل دارند
   const validUsers = (response.data?.data || []).filter(
-    (user) => user && user.employee
+    (user) => user && user.employee && user.employee.id // <-- اطمینان از وجود employee.id
   );
+
   const options: FilterOption[] = validUsers.map((user) => ({
-    id: user.id,
+    id: user.employee.id, // <-- قبلاً user.id بود که اشتباه است
+    // -----------------------
+
     name: `${user.employee.first_name || ""} ${
       user.employee.last_name || ""
     } (${user.employee.personnel_code || "N/A"})`,

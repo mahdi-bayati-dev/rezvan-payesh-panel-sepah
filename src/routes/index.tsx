@@ -25,12 +25,12 @@ const WorkPatternsEmployeesPage = lazy(() => import('@/features/work-pattern/rou
 // ✅ کامنت: Lazy Loading صفحات شیفت‌بندی چرخشی
 const EditShiftSchedulePage = lazy(() => import('@/features/shift-schedule/routes/EditShiftSchedulePage'))
 
-
 const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/workGroupDetailPage"))
 const NewWorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/NewWorkGroupPage"))
 const OrganizationPage = lazy(() => import('@/features/Organization/routes/OrganizationPage'))
 const OrganizationDetailPage = lazy(() => import('@/features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
+const CreateUser = lazy(() => import('@/features/User/components/userCreate/CreateUserPage'))
 const AssignUserPage = lazy(() => import('@/features/User/components/AssignUser/AssignUserPage'))
 const UserProfilePage = lazy(() => import('@/features/User/components/userPage/UserProfilePage'))
 const WorkCalendarPage = lazy(() => import('@/features/work-calendar/routes/WorkCalendarPage'))
@@ -218,6 +218,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<Spinner />}>
                 < OrganizationDetailPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/organizations/:id/create-user",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                < CreateUser />
               </Suspense>
             ),
           },

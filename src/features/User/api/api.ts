@@ -4,7 +4,10 @@ import {
   type FetchUsersParams,
   type User,
 } from "@/features/User/types/index";
-import type { UserProfileFormData } from "@/features/User/Schema/userProfileFormSchema";
+import type {
+  UserProfileFormData,
+  CreateUserFormData,
+} from "@/features/User/Schema/userProfileFormSchema";
 /**
  * دریافت لیست کاربران (فیلتر شده و صفحه‌بندی شده)
  * GET /api/users
@@ -93,4 +96,19 @@ export const updateUserProfile = async ({
  */
 export const deleteUser = async (userId: number): Promise<void> => {
   await axiosInstance.delete(`/users/${userId}`);
+};
+
+/**
+ * ایجاد کاربر جدید (Store)
+ * POST /api/users
+ */
+export const createUser = async (
+  payload: CreateUserFormData
+): Promise<User> => {
+  // بر اساس مستندات API، ما کل آبجکت فرم را ارسال می‌کنیم
+  // API در پاسخ 201، آبجکت UserResource را برمی‌گرداند
+  const { data } = await axiosInstance.post("/users", payload);
+  // (فرض می‌کنیم API در پاسخ موفق، مستقیم آبجکت User را برمی‌گرداند،
+  // مشابه updateUserProfile)
+  return data;
 };

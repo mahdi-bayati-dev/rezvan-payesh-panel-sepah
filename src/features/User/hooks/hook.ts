@@ -5,14 +5,18 @@ import {
   updateUserOrganization,
   fetchUserById,
   updateUserProfile,
-  deleteUser, // ✅ فرض می کنیم این تابع API هم در User/api/api.ts تعریف شده است
+  deleteUser,
+  createUser,
 } from "../api/api";
 import {
   type FetchUsersParams,
   type UserListResponse,
   type User,
 } from "@/features/User/types/index";
-import type { UserProfileFormData } from "@/features/User/Schema/userProfileFormSchema";
+import type {
+  UserProfileFormData,
+  CreateUserFormData,
+} from "@/features/User/Schema/userProfileFormSchema";
 
 // --- کلیدهای کوئری ---
 export const userKeys = {
@@ -150,6 +154,47 @@ export const useDeleteUser = () => {
       const errorMessage =
         (error as any)?.response?.data?.message || "خطا در حذف کاربر رخ داد.";
       toast.error(errorMessage); // نمایش پیام خطا
+    },
+  });
+};
+
+// --- ✅ هوک جدید: ایجاد کاربر ---
+
+/**
+ * هوک Mutation برای ایجاد کاربر جدید (POST /api/users)
+ */
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    User, // تایپ دیتایی که برمی‌گردد
+    Error, // تایپ خطا
+    CreateUserFormData // تایپ ورودی تابع mutate
+  >({
+    mutationFn: createUser, // تابع API که در مرحله قبل ساختیم
+
+    onSuccess: (newUser) => {
+      // ۱. لیست کاربران را باطل می‌کنیم تا داده‌های جدید فچ شوند
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+
+      // ۲. (اختیاری) می‌توانیم کاربر جدید را مستقیماً در کش جزئیات اضافه کنیم
+      queryClient.setQueryData(userKeys.detail(newUser.id), newUser);
+
+      // (پیام موفقیت در خود کامپوننت فرم مدیریت می‌شود)
+    },
+
+    onError: (error) => {
+      // مدیریت خطاهای عمومی
+      const errorMessage =
+        (error as any)?.response?.data?.message || "خطا در ایجاد کاربر.";
+
+      // اگر خطای اعتبارسنجی (422) نباشد، آن را نشان می‌دهیم
+      if ((error as any)?.response?.status !== 422) {
+        toast.error(errorMessage);
+      }
+      // ما خطا را مجدداً throw می‌کنیم تا کامپوننت فرم بتواند
+      // خطاهای 422 (validation) را گرفته و در فیلدها ست کند.
+      throw error;
     },
   });
 };
