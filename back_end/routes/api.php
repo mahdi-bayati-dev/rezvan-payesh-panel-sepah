@@ -46,7 +46,7 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
     Route::apiResource('users', UserController::class);
 
     //devices
-    Route::get("/devices",[DevicesController::class,'index'])->name('devices.index');
+    Route::apiResource('devices', DevicesController::class);
 
     //week pattern
     Route::apiResource('week-patterns', WeekPatternController::class);

@@ -38,7 +38,8 @@ class DevicesController extends Controller
      */
     public function show(Device $device)
     {
-        //
+        $this->authorize('view', $device);
+        return response()->json($device);
     }
 
     /**
