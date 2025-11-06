@@ -1,50 +1,42 @@
+import { useState, useMemo } from 'react';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-    // ۱. ایمپورت اسکیما و تایپ جدید
     newReportSchema,
     type NewReportFormData,
-} from '@/features/reports/Schema/newReportSchema';
+} from '@/features/reports/Schema/newReportSchema'; // مسیر alias
 
-// ایمپورت کامپوننت‌های UI ماژولار
-import Input from '@/components/ui/Input';
-import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
-import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
+// 1. ایمپورت Combobox
+import { Combobox } from '@headlessui/react';
+
+// 2. ایمپورت کامپوننت‌ها و آیکون‌های لازم
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox'; // مسیر alias
+import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import PersianDatePickerInput from '@/lib/PersianDatePickerInput'; // مسیر alias
+import { Button } from '@/components/ui/Button';
 import Textarea from '@/components/ui/Textarea';
+import Input from '@/components/ui/Input';
 
-// --- ۲. تعریف داده‌های فیک جدید مخصوص این فرم ---
-// (اینها را می‌توانید به فایل data/mockData خودتان منتقل کنید)
-const mockOrganizations: SelectOption[] = [
-    { id: 'org1', name: 'سازمان ۱' },
-    { id: 'org2', name: 'سازمان ۲' },
-];
-const mockWorkGroups: SelectOption[] = [
-    { id: 'wg1', name: 'گروه کاری ۱' },
-    { id: 'wg2', name: 'گروه کاری ۲' },
-];
-const mockActivityTypes: SelectOption[] = [
-    { id: 'entry', name: 'ورود' },
-    { id: 'exit', name: 'خروج' },
-    { id: 'delay', name: 'تاخیر' },
-    { id: 'haste', name: 'تعجیل' },
-];
-const mockTrafficAreas: SelectOption[] = [
-    { id: 'area1', name: 'بخش ۱' },
-    { id: 'area2', name: 'مرخصی' }, // (مطابق تصویر)
-    { id: 'area3', name: 'ناحیه ۳' },
+// گزینه‌های نوع فعالیت (برمی‌گردانیم به check-in/check-out چون سرور فقط از timestamp ایراد گرفت)
+const activityTypeOptions: SelectOption[] = [
+    { id: 'check_in', name: 'ورود ' },
+    { id: 'check_out', name: 'خروج ' },
 ];
 
-// --- ۳. تغییر نام پراپس‌ها ---
 interface NewReportFormProps {
     onSubmit: (data: NewReportFormData) => void;
     onCancel: () => void;
     isSubmitting: boolean;
+    employeeOptions: SelectOption[];
+    isLoadingEmployees: boolean;
 }
 
 export const NewReportForm = ({
     onSubmit,
     onCancel,
     isSubmitting,
+    employeeOptions,
+    isLoadingEmployees,
 }: NewReportFormProps) => {
     const {
         register,
@@ -53,164 +45,235 @@ export const NewReportForm = ({
         formState: { errors },
     } = useForm<NewReportFormData>({
         resolver: zodResolver(newReportSchema),
-        // ۴. به‌روزرسانی مقادیر پیش‌فرض
+        // [اصلاحیه] برای رفع هشدار Uncontrolled
         defaultValues: {
-            name: '',
-            personalCode: '',
-            organization: null,
-            workGroup: null,
-            activityType: null,
-            trafficArea: null,
+            employee: null,
+            // [رفع خطا ۱ و ۲] - حذف event_type: ''
+            // با حذف این فیلد، react-hook-form به طور پیش‌فرض
+            // مقدار 'undefined' را برای آن در نظر می‌گیرد.
+            // این کار تضاد تایپ ('' در مقابل "check_in") را حل می‌کند.
             date: null,
-            time: '07:00', // (فقط یک فیلد ساعت)
-            description: '',
+            time: '',
+            remarks: '',
         },
     });
 
     const onFormSubmit: SubmitHandler<NewReportFormData> = (data) => {
+        console.log("====> ", data); // لاگ برای بررسی دیتای فرم
         onSubmit(data);
-        console.log(data);
     };
 
+    // ... (کد Combobox کارمندان بدون تغییر) ...
+    const [employeeQuery, setEmployeeQuery] = useState('');
+    const filteredEmployees = useMemo(() => {
+        const query = employeeQuery.toLowerCase().trim();
+        if (query === '') {
+            return employeeOptions;
+        }
+        return employeeOptions.filter((employee) =>
+            employee.name.toLowerCase().includes(query)
+        );
+    }, [employeeOptions, employeeQuery]);
+
+
     return (
-        // ۵. چیدمان گرید ۲ ستونه مطابق تصویر
+        // [رفع خطا ۲] - با اصلاح defaultValues، این handleSubmit دیگر خطا نمی‌دهد
         <form onSubmit={handleSubmit(onFormSubmit)} noValidate>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
 
-                {/* --- ستون راست (در تصویر) --- */}
-                <Input
-                    label="نام و نام خانوادگی"
-                    {...register('name')}
-                    error={errors.name?.message}
-                    placeholder="نام و نام خانوادگی را وارد کنید"
-                />
-
-                {/* --- ستون چپ (در تصویر) --- */}
-                <Input
-                    label="کد پرسنلی"
-                    {...register('personalCode')}
-                    error={errors.personalCode?.message}
-                    placeholder="کد پرسنلی را وارد کنید"
-                />
-
-                {/* --- ستون راست --- */}
-                <Controller
-                    name="workGroup"
-                    control={control}
-                    render={({ field, fieldState }) => (
-                        <SelectBox
-                            label="گروه کاری"
-                            options={mockWorkGroups}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="انتخاب کنید"
-                            error={fieldState.error?.message}
-                        />
-                    )}
-                />
-
-                {/* --- ستون چپ --- */}
-                <Controller
-                    name="organization"
-                    control={control}
-                    render={({ field, fieldState }) => (
-                        <SelectBox
-                            label="سازمان"
-                            options={mockOrganizations}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="انتخاب کنید"
-                            error={fieldState.error?.message}
-                        />
-                    )}
-                />
-
-                {/* --- ستون راست --- */}
-                <Controller
-                    name="activityType" // ۶. تغییر از 'requestType'
-                    control={control}
-                    render={({ field, fieldState }) => (
-                        <SelectBox
-                            label="نوع فعالیت"
-                            options={mockActivityTypes}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="انتخاب کنید"
-                            error={fieldState.error?.message}
-                        />
-                    )}
-                />
-
-                {/* --- ستون چپ (فیلد جدید) --- */}
-                <Controller
-                    name="trafficArea" // ۷. فیلد جدید
-                    control={control}
-                    render={({ field, fieldState }) => (
-                        <SelectBox
-                            label="ناحیه تردد"
-                            options={mockTrafficAreas}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="انتخاب کنید"
-                            error={fieldState.error?.message}
-                        />
-                    )}
-                />
-
-                {/* --- ستون راست --- */}
-                <Input
-                    label="ساعت" // ۸. جایگزینی 'startTime'/'endTime'
-                    {...register('time')}
-                    error={errors.time?.message}
-                    placeholder="HH:mm"
-                    dir="ltr" // (برای ورود ساعت مناسب است)
-                />
-
-                {/* --- ستون چپ --- */}
-                <Controller
-                    name="date"
-                    control={control}
-                    render={({ field, fieldState }) => (
-                        <PersianDatePickerInput
-                            label="تاریخ"
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="انتخاب کنید"
-                            error={fieldState.error?.message} // (پراپ error را به DatePicker پاس دهید)
-                        />
-                    )}
-                />
-
-
+                {/* --- Combobox کارمند (بدون تغییر) --- */}
                 <div className="md:col-span-2">
-                    <Textarea
-                        label="توضیحات"
-                        placeholder="توضیحات (اختیاری)"
-                        {...register('description')}
-                        error={errors.description?.message}
-                        rows={4}
+                    <Controller
+                        name="employee"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                            <Combobox
+                                as="div"
+                                className="relative" // <-- افزودن relative به کانتینر
+                                value={field.value}
+                                onChange={field.onChange}
+                                disabled={isLoadingEmployees || isSubmitting}
+                            >
+                                <Combobox.Label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
+                                    کارمند (جستجو کنید...)
+                                </Combobox.Label>
+                                <div className="relative">
+                                    <Combobox.Input
+                                        className={`w-full p-3 pr-10 border rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800 transition-colors
+                                        ${fieldState.error
+                                                ? 'border-destructiveL dark:border-destructiveD focus:ring-destructiveL'
+                                                : 'border-borderL dark:border-borderD focus:ring-primaryL'
+                                            }
+                                        focus:outline-none focus:ring-2`}
+                                        onChange={(event) => setEmployeeQuery(event.target.value)}
+                                        displayValue={(employee: SelectOption) => employee?.name || ''}
+                                        placeholder={isLoadingEmployees ? "در حال بارگذاری لیست..." : "شروع به تایپ نام کارمند..."}
+                                        autoComplete="off"
+                                    />
+                                    <Combobox.Button className="absolute inset-y-0 left-0 flex items-center px-3 text-muted-foregroundL dark:text-muted-foregroundD">
+                                        {isLoadingEmployees ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <ChevronsUpDown className="w-5 h-5" />
+                                        )}
+                                    </Combobox.Button>
+                                </div>
+
+                                <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl
+                                    bg-backgroundL-500 dark:bg-backgroundD-900 py-1 shadow-lg ring-1
+                                    ring-black/5 dark:ring-white/10 focus:outline-none">
+                                    {isLoadingEmployees ? (
+                                        <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
+                                            در حال بارگذاری...
+                                        </div>
+                                    ) : filteredEmployees.length === 0 && employeeQuery !== '' ? (
+                                        <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
+                                            کارمندی یافت نشد.
+                                        </div>
+                                    ) : (
+                                        filteredEmployees.map((employee) => (
+                                            <Combobox.Option
+                                                key={employee.id}
+                                                value={employee}
+                                                className={({ active }) =>
+                                                    `relative cursor-default select-none py-2 pl-10 pr-4
+                                                    ${active ? 'bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD' : 'text-foregroundL dark:text-foregroundD'}`
+                                                }
+                                            >
+                                                {({ selected, active }) => (
+                                                    <>
+                                                        <span
+                                                            className={`block truncate ${selected ? 'font-medium' : 'font-normal'
+                                                                }`}
+                                                        >
+                                                            {employee.name}
+                                                        </span>
+                                                        {selected ? (
+                                                            <span
+                                                                className={`absolute inset-y-0 left-0 flex items-center pl-3
+                                                                ${active ? 'text-primaryL dark:text-primaryD' : 'text-primaryL dark:text-primaryD'
+                                                                    }`}
+                                                            >
+                                                                <Check className="h-5 w-5" aria-hidden="true" />
+                                                            </span>
+                                                        ) : null}
+                                                    </>
+                                                )}
+                                            </Combobox.Option>
+                                        ))
+                                    )}
+                                </Combobox.Options>
+                                {fieldState.error && (
+                                    <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">
+                                        {fieldState.error.message}
+                                    </p>
+                                )}
+                            </Combobox>
+                        )}
                     />
                 </div>
 
+                {/* --- فیلد نوع فعالیت) --- */}
+                <div className="md:col-span-1">
+                    <Controller
+                        name="event_type"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                            <SelectBox
+                                label="نوع فعالیت"
+                                options={activityTypeOptions}
+                                value={activityTypeOptions.find(opt => opt.id === field.value) || null}
+                                // [رفع خطا ۱ و ۲] - ارسال undefined بجای ''
+                                // اگر '' ارسال شود، اعتبارسنجی z.enum (که '' را قبول ندارد) فیلد را نامعتبر می‌داند
+                                onChange={(option) => field.onChange(option ? option.id : undefined)}
+                                placeholder="انتخاب کنید..."
+                                error={fieldState.error?.message}
+                                disabled={isSubmitting}
+                            />
+                        )}
+                    />
+                </div>
+
+                {/* --- فیلد تاریخ ا) --- */}
+                <div className="md:col-span-1">
+                    <Controller
+                        name="date"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                            <PersianDatePickerInput
+                                label="تاریخ"
+                                value={field.value}
+                                onChange={field.onChange}
+                                disabled={isSubmitting}
+                                error={fieldState.error?.message}
+                                placeholder="انتخاب تاریخ..."
+                            />
+                        )}
+                    />
+                </div>
+
+                {/* --- فیلد ساعت ) --- */}
+                <div className="md:col-span-1">
+                    <label htmlFor="time" className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">ساعت (HH:mm)</label>
+                    <Input
+                        label=''
+                        id="time"
+                        type="time"
+                        {...register('time')}
+                        disabled={isSubmitting}
+                        className={`w-full p-3 border rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800
+                        ${errors.time ? 'border-destructiveL dark:border-destructiveD focus:ring-destructiveL' : 'border-borderL dark:border-borderD focus:ring-primaryL'}
+                        focus:outline-none focus:ring-2 transition-colors`}
+                    />
+                    {errors.time && <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">{errors.time.message}</p>}
+                </div>
+
+                {/* --- فیلد ملاحظات ) --- */}
+                <div className="md:col-span-2">
+                    <label htmlFor="remarks" className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">ملاحظات (دلیل ثبت دستی)</label>
+                    <Textarea
+                        label=''
+                        id="remarks"
+                        {...register('remarks')}
+                        rows={3}
+                        disabled={isSubmitting}
+                        className={`w-full p-3 border rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800
+                        ${errors.remarks ? 'border-destructiveL dark:border-destructiveD focus:ring-destructiveL' : 'border-borderL dark:border-borderD focus:ring-primaryL'}
+                        focus:outline-none focus:ring-2 transition-colors`}
+                        placeholder="مثال: فراموشی ثبت ورود در زمان مقرر"
+                    />
+                    {errors.remarks && <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">{errors.remarks.message}</p>}
+                </div>
             </div>
 
-            {/* بخش دکمه‌های تایید و لغو (بدون تغییر) */}
+            {/* --- دکمه‌ها (بدون تغییر) --- */}
             <div className="flex justify-start gap-4 mt-8 pt-6 border-t border-borderL dark:border-borderD">
-                <button
+                <Button
+                    variant='primary'
                     type="submit"
-                    disabled={isSubmitting}
-                    className="bg-primaryL cursor-pointer dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-primaryL/80 dark:hover:text-backgroundL-500"
+                    disabled={isSubmitting || isLoadingEmployees}
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium shadow-md
+                     bg-primaryL text-primary-foregroundL
+                     dark:bg-primaryD dark:text-primary-foregroundD
+                     hover:bg-primaryL/90 dark:hover:bg-primaryD/90
+                     disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
+                    {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
                     {isSubmitting ? 'در حال ارسال...' : 'تایید'}
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant='secondary'
                     type="button"
                     onClick={onCancel}
-                    disabled={isSubmitting}
-                    className="bg-backgroundL-500 cursor-pointer dark:bg-backgroundD text-foregroundL dark:text-foregroundD px-6 py-2 rounded-lg text-sm font-medium border border-borderL dark:border-borderD disabled:opacity-50  hover:bg-destructiveL/40"
+                    disabled={isSubmitting || isLoadingEmployees}
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium
+                     bg-backgroundL-700 text-foregroundL
+                     dark:bg-backgroundD-700 dark:text-foregroundD
+                     hover:bg-backgroundL-800 dark:hover:bg-backgroundD-800
+                     disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     لغو
-                </button>
+                </Button>
             </div>
         </form>
     );

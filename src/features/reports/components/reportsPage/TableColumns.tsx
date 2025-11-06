@@ -1,12 +1,9 @@
-// این فایل ستون‌های جدول گزارش را تعریف می‌کند
 import { type ColumnDef } from '@tanstack/react-table';
 import { type ActivityLog } from '@/features/reports/types/index';
 import { ActionsMenuCell } from '@/features/reports/components/reportsPage/ActionsMenuCell';
-
 import Badge, { type BadgeVariant } from '@/components/ui/Badge';
 
-
-// مپ کردن نوع فعالیت به نوع ظاهری Badge
+// مپ کردن نوع فعالیت
 const activityVariantMap: Record<ActivityLog['activityType'], BadgeVariant> = {
   entry: 'success',
   exit: 'info',
@@ -14,7 +11,6 @@ const activityVariantMap: Record<ActivityLog['activityType'], BadgeVariant> = {
   haste: 'warning',
 };
 
-// مپ کردن نوع فعالیت به لیبل فارسی
 const activityLabelMap: Record<ActivityLog['activityType'], string> = {
   entry: 'ورود',
   exit: 'خروج',
@@ -22,12 +18,20 @@ const activityLabelMap: Record<ActivityLog['activityType'], string> = {
   haste: 'تعجیل',
 };
 
-export const columns: ColumnDef<ActivityLog>[] = [
+// تعریف پراپ‌ها برای ستون‌ها
+interface CreateColumnsProps {
+  onEdit: (log: ActivityLog) => void;
+  onApprove: (log: ActivityLog) => void;
+}
+
+// ستون‌ها اکنون به عنوان یک تابع سازنده اکسپورت می‌شوند
+export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): ColumnDef<ActivityLog>[] => [
   // ستون مشخصات کارمند
   {
     accessorKey: 'employee',
     header: 'مشخصات',
     cell: ({ row }) => {
+      // [رفع خطا ۳] - متغیر employeeApiId استفاده نشده بود و حذف شد
       const { name, employeeId, avatarUrl } = row.original.employee;
       return (
         <div className="flex items-center gap-3">
@@ -35,7 +39,6 @@ export const columns: ColumnDef<ActivityLog>[] = [
             className="h-10 w-10 rounded-full object-cover"
             src={avatarUrl || 'https://placehold.co/40x40/E2E8F0/64748B?text=??'}
             alt={name}
-            // فال‌بک برای زمانی که تصویر لود نشود
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.src = 'https://placehold.co/40x40/E2E8F0/64748B?text=??';
@@ -59,6 +62,9 @@ export const columns: ColumnDef<ActivityLog>[] = [
     header: 'فعالیت',
     cell: ({ row }) => {
       const type = row.original.activityType;
+      if (!activityLabelMap[type]) {
+        return <Badge label={type} variant="success" />;
+      }
       return (
         <Badge
           label={activityLabelMap[type]}
@@ -67,41 +73,43 @@ export const columns: ColumnDef<ActivityLog>[] = [
       );
     },
   },
-  // ستون ناحیه تردد
+
   {
-    accessorKey: 'trafficArea',
-    header: 'ناحیه تردد',
+    accessorKey: 'trafficArea', // (accessorKey همان قبلی ماندگار است چون تایپ ActivityLog را آپدیت کردیم)
+    header: 'منبع / ناحیه', // لیبل هدر تغییر کرد
     cell: ({ row }) => (
+      // این فیلد اکنون حاوی 'source_name' از API است
       <span className="text-sm">{row.original.trafficArea}</span>
     ),
   },
+
   // ستون تاریخ
   {
     accessorKey: 'date',
     header: 'تاریخ',
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.date}</span>
-    ),
   },
   // ستون ساعت
   {
     accessorKey: 'time',
     header: 'ساعت',
-    cell: ({ row }) => (
-      <span className="text-sm font-medium">{row.original.time}</span>
-    ),
   },
-  // ستون عملیات (Dropdown)
+
+  // --- ستون عملیات (اصلاح شده) ---
   {
     id: 'actions',
     header: '',
-    // ۲. ساده‌سازی کامل سلول
-    // دیگر نیازی به پارامتر 'table' نیست
-    cell: ({ row }) => {
-      // ۳. رندر مستقیم کامپوننت و پاس دادن داده ردیف
-      return <ActionsMenuCell log={row.original} />;
+    cell: ({ row }) => { // <-- اصلاح شد
+      return (
+        <ActionsMenuCell
+          log={row.original}
+          // این هندلرها از 'reportPage.tsx' از طریق 'meta' جدول می‌آیند
+          onEdit={onEdit}
+          onApprove={onApprove}
+        />
+      );
     },
   },
 ];
 
-
+// اکسپورت تابع سازنده ستون‌ها
+export const columns = createColumns;
