@@ -12,6 +12,7 @@ class DevicesController extends Controller
      */
     public function index()
     {
+        $this->authorize('viewAny', Device::class);
         $devices = Device::all();
         return response()->json($devices);
     }
