@@ -1,7 +1,9 @@
 import { type WorkPatternUI, type DailyScheduleUI } from '../../types';
-import { Spinner } from '@/components/ui/Spinner'; // ✅ اصلاح: 'Spinner' به 'spinner'
+// import { Spinner } from '@/components/ui/Spinner';
 import clsx from 'clsx';
 import React from 'react';
+import { WorkPatternScheduleViewSkeleton } from '@/features/work-pattern/Skeleton/WorkPatternScheduleViewSkeleton';
+
 
 interface WorkPatternScheduleViewProps {
   selectedPattern: WorkPatternUI | null;
@@ -27,20 +29,15 @@ const getBlockStyleAndClass = (daySchedule: DailyScheduleUI): { style: React.CSS
     return null;
   }
 
-  // کامنت: محور برعکس است، پس "پایان" در واقع نقطه شروع (راست) بلاک است
   const endPercent = timeToPercentage(daySchedule.start_time);
-  // کامنت: "شروع" در واقع نقطه پایان (چپ) بلاک است
   const startPercent = timeToPercentage(daySchedule.end_time);
 
-  let durationPercent = endPercent - startPercent;
+  const durationPercent = endPercent - startPercent;
 
   // کامنت: مدیریت شیفت شبانه (اگر پایان به روز بعد برود)
   if (durationPercent < 0) {
-    // console.warn("Overnight shift detected, rendering might be inaccurate:", daySchedule);
-    // کامنت: اگر شیفت شبانه باشد، durationPercent منفی می‌شود.
-    // (این بخش نیاز به بازبینی منطق شیفت شبانه دارد، فعلاً بلاک را تا انتها می‌کشیم)
-    // durationPercent = endPercent; // یا مدیریت شود
-    return null; // فعلاً شیفت شبانه را رندر نمی‌کنیم تا خطا ندهد
+
+    return null;
   }
   if (durationPercent === 0) {
     console.warn("Zero duration calculated for:", daySchedule);
@@ -72,7 +69,7 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: W
 
       {isLoadingDetails ? (
         <div className="flex-1 flex items-center justify-center">
-          <Spinner size="lg" />
+          <WorkPatternScheduleViewSkeleton />
         </div>
       ) : !selectedPattern ? (
         <div className="flex-1 flex items-center justify-center text-muted-foregroundL dark:text-muted-foregroundD border border-dashed border-borderL dark:border-borderD rounded">

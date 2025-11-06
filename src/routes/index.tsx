@@ -13,16 +13,18 @@ const RequestDetailPage = lazy(() => import("@/features/requests/routes/RequestD
 const ExportSettingsPage = lazy(() => import("@/features/requests/routes/ExportSettingsPage"));
 const TableSettingsPage = lazy(() => import("@/features/requests/routes/TableSettingsPage"));
 const ActivityReportPage = lazy(() => import("@/features/reports/routes/reportPage"));
+const ReportsPageSkeleton = lazy(() => import("@/features/reports/Skeleton/SkeletonRepotrs"));
+
 const ActivityReportPageDetails = lazy(() => import("@/features/reports/routes/reportPageDetails"));
 const EmployeeReportsPage = lazy(() => import("@/features/reports/routes/EmployeeReportsPage"));
 const NewActivityRegistrationPage = lazy(() => import("@/features/reports/routes/NewReportPage"));
 const WorkPatternPage = lazy(() => import("@/features/work-pattern/routes/WorkPatternPage"));
-// ✅ کامنت: کامپوننت انتخابگر (Selector Page) برای ایجاد الگوی جدید
+const WorkPatternPageSkeleton = lazy(() => import("@/features/work-pattern/Skeleton/Skeleton"));
+
 const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewPatternSelectorPage"));
 const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddToWorkPatternPage"))
 const WorkPatternsEdit = lazy(() => import('@/features/work-pattern/routes/EditWeekPatternPage'))
 const WorkPatternsEmployeesPage = lazy(() => import('@/features/work-pattern/routes/WorkPatternEmployeesPage'))
-// ✅ کامنت: Lazy Loading صفحات شیفت‌بندی چرخشی
 const EditShiftSchedulePage = lazy(() => import('@/features/shift-schedule/routes/EditShiftSchedulePage'))
 
 const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
@@ -98,7 +100,7 @@ export const router = createBrowserRouter([
           {
             path: "/reports",
             element: (
-              <Suspense fallback={<Spinner />}>
+              <Suspense fallback={<ReportsPageSkeleton />}>
                 <ActivityReportPage />
               </Suspense>
             ),
@@ -131,7 +133,7 @@ export const router = createBrowserRouter([
           {
             path: "/work-patterns",
             element: (
-              <Suspense fallback={<Spinner />}>
+              <Suspense fallback={<WorkPatternPageSkeleton/>}>
                 <WorkPatternPage />
               </Suspense>
             ),
