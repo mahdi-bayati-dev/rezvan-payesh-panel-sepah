@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkPatternController;
+use App\Http\Controllers\DevicesController;
 use App\Http\Middleware\CheckLicenseStatus;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
@@ -43,6 +44,9 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
 
     //users
     Route::apiResource('users', UserController::class);
+
+    //devices
+    Route::get("/devices",[DevicesController::class,'index'])->name('devices.index');
 
     //week pattern
     Route::apiResource('week-patterns', WeekPatternController::class);
