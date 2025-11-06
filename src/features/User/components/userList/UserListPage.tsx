@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // (useNavigate برای دکمه‌ها)
+import { useNavigate } from 'react-router-dom';
 import {
     useReactTable,
     getCoreRowModel,
@@ -9,18 +9,17 @@ import {
     type PaginationState,
 } from "@tanstack/react-table";
 
-// --- ۱. ایمپورت‌های Redux (با مسیر نسبی) ---
-// (مسیرها را بر اساس ساختار پروژه خودتان تنظیم کنید)
+// --- ۱. ایمپورت‌های Redux (مسیرها باید صحیح باشند) ---
 import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
 
-// --- ۲. کامپوننت‌های UI شما (با مسیر نسبی و حروف کوچک) ---
+// --- ۲. کامپوننت‌های UI ---
 import { DataTable } from '@/components/ui/DataTable/index';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
 import Input from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button'; // ✅ استفاده از کامپوننت Button شما
+import { Button } from '@/components/ui/Button';
 
-// --- ۳. هوک‌ها و تایپ‌های ما (با مسیر نسبی) ---
+// --- ۳. هوک‌ها و تایپ‌ها ---
 import { useUsers } from '@/features/User/hooks/hook';
 import { columns } from './UserTableColumns';
 import { useOrganization } from '@/features/Organization/hooks/useOrganizations';
@@ -52,32 +51,44 @@ interface UserListPageProps {
  * جدول، جستجو و صفحه‌بندی را مدیریت می‌کند.
  */
 export function UserListPage({ organizationId }: UserListPageProps) {
+
+    // --- ✅ خطای شما اینجاست ---
+    // ۱. این خط *باید* قبل از استفاده از متغیر `user` تعریف شده باشد.
     const user = useAppSelector(selectUser);
+
+    // ۲. این خطوط از متغیر `user` که در بالا تعریف شد، استفاده می‌کنند.
     const isSuperAdmin = user?.roles?.includes('super_admin') ?? false;
+
+    // ۳. این خط جدیدی بود که اضافه شد و مستقیماً به `user` وابسته است.
+    // اگر خط ۱ نباشد، این خط خطا می‌دهد.
+    const canCreateUser = user?.roles?.some(
+        r => ['super_admin', 'org-admin-l2', 'org-admin-l3'].includes(r)
+    ) ?? false;
+
     const navigate = useNavigate();
 
     // --- ۱. مدیریت State صفحه‌بندی ---
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-        pageIndex: 0, // صفحه اول (API از ۱ شروع می‌شود، در هوک تبدیل می‌کنیم)
-        pageSize: 10, // پیش‌فرض ۱۰ آیتم در صفحه
+        pageIndex: 0,
+        pageSize: 10,
     });
 
     // --- ۲. مدیریت State جستجو ---
     const [searchTerm, setSearchTerm] = useState("");
-    const debouncedSearch = useDebounce(searchTerm, 500); // 500ms تأخیر
+    const debouncedSearch = useDebounce(searchTerm, 500);
 
     // --- ۳. فچ کردن داده‌های سازمان (فقط برای نمایش نام) ---
     const { data: organization, isLoading: isLoadingOrg } = useOrganization(organizationId);
 
     // --- ۴. فچ کردن داده‌های کاربران (بر اساس فیلترها) ---
     const {
-        data: userResponse, // پاسخ کامل شامل meta و data
+        data: userResponse,
         isLoading: isLoadingUsers,
         isError,
         error
     } = useUsers({
         organization_id: organizationId,
-        page: pageIndex + 1, // API از ۱ شروع می‌شود، state جدول از ۰
+        page: pageIndex + 1,
         per_page: pageSize,
         search: debouncedSearch,
     });
@@ -91,15 +102,15 @@ export function UserListPage({ organizationId }: UserListPageProps) {
     const table = useReactTable({
         data: users,
         columns,
-        pageCount: pageCount, // تعداد کل صفحات برای صفحه‌بندی
+        pageCount: pageCount,
         state: {
             pagination: { pageIndex, pageSize },
         },
-        onPaginationChange: setPagination, // تابع آپدیت state
+        onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        manualPagination: true, // به جدول می‌گوییم صفحه‌بندی سمت سرور است
-        manualFiltering: true, // جستجو هم سمت سرور است
+        manualPagination: true,
+        manualFiltering: true,
     });
 
     // مدیریت خطایابی
@@ -111,8 +122,6 @@ export function UserListPage({ organizationId }: UserListPageProps) {
             </div>
         );
     }
-
-    // ✅ تعریف TempButton حذف شد
 
     return (
         <div className="p-4 md:p-8 space-y-6" dir="rtl">
@@ -133,11 +142,9 @@ export function UserListPage({ organizationId }: UserListPageProps) {
             </div>
 
             {/* نوار ابزار: جستجو و دکمه‌ها */}
-            {/* ✅ بهبود UI: قرار دادن نوار ابزار در یک کانتینر مجزا */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 rounded-lg border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD">
                 {/* بخش جستجو و بازگشت */}
                 <div className='flex items-center gap-2'>
-                    {/* ✅ استفاده از Button شما */}
                     <Button
                         variant="outline"
                         size="md"
@@ -153,24 +160,38 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                             placeholder="جستجو در نام، ایمیل، کد پرسنلی..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pr-10" // (برای RTL)
+                            className="pr-10"
                         />
                         <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL" />
                     </div>
                 </div>
 
-                {/* بخش دکمه تخصیص (فقط Super Admin) */}
-                {isSuperAdmin && (
-                    // ✅ استفاده از Button شما
-                    <Button
-                        variant="primary"
-                        size="md"
-                        onClick={() => navigate(`/organizations/${organizationId}/assign-user`)}
-                    >
-                        <UserPlus className="h-4 w-4 ml-2" />
-                        تخصیص کارمند به این سازمان
-                    </Button>
-                )}
+                {/* بخش دکمه‌ها (اصلاح شده در پاسخ قبلی) */}
+                <div className="flex items-center gap-2">
+                    {/* دکمه جدید: ایجاد کاربر */}
+                    {canCreateUser && (
+                        <Button
+                            variant="primary"
+                            size="md"
+                            onClick={() => navigate(`/organizations/${organizationId}/create-user`)}
+                        >
+                            <UserPlus className="h-4 w-4 ml-2" />
+                            ایجاد کارمند جدید
+                        </Button>
+                    )}
+
+                    {/* دکمه تخصیص (فقط Super Admin) */}
+                    {isSuperAdmin && (
+                        <Button
+                            variant="outline"
+                            size="md"
+                            onClick={() => navigate(`/organizations/${organizationId}/assign-user`)}
+                        >
+                            <UserPlus className="h-4 w-4 ml-2" />
+                            تخصیص کارمند
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* کامپوننت جدول شما */}
@@ -181,11 +202,9 @@ export function UserListPage({ organizationId }: UserListPageProps) {
             />
 
             {/* کامپوننت صفحه‌بندی شما */}
-            {/* فقط زمانی صفحه‌بندی را نشان بده که داده‌ای وجود دارد */}
             {pageCount > 0 && (
                 <DataTablePagination table={table} />
             )}
         </div>
     );
 }
-

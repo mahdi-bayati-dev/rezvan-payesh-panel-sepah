@@ -1,43 +1,42 @@
-"use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
 
-// --- هوک‌ها و تایپ‌ها (با مسیر مستعار) ---
+// --- هوک‌ها و تایپ‌ها ---
 import { useUpdateUserProfile } from '@/features/User/hooks/hook';
 import { type User } from '@/features/User/types/index';
 import {
     type OrganizationalFormData,
     organizationalFormSchema
-} from '@/features/User/Schema/userProfileFormSchema'; // (استفاده از فایل types به‌روز شده)
+} from '@/features/User/Schema/userProfileFormSchema';
+
+// ✅ استفاده از هوک‌های Work Group برای لیست‌ها
+// نکته: اگر تصمیم گرفتید این هوک‌ها را Shared نکنید، باید از همین مسیر ایمپورت کنید
+import {
+    useWorkPatternsList,
+    useShiftSchedulesList,
+    useWorkGroups
+} from '@/features/work-group/hooks/hook';
+import { type BaseNestedItem } from '@/features/work-group/types';
+
 
 // --- کامپوننت‌های UI (با مسیر مستعار) ---
-// (مسیرها و حروف کوچک/بزرگ بر اساس هشدارهای قبلی تنظیم شدند)
 import Input from '@/components/ui/Input';
 import SelectBox from '@/components/ui/SelectBox';
 import { type SelectOption } from '@/components/ui/SelectBox';
-import FormSection from '@/features/User/components/userPage/FormSection'; // (کامپوننت Wrapper)
+import FormSection from '@/features/User/components/userPage/FormSection';
+import { Loader2 } from 'lucide-react';
 
-// --- داده‌های موقت برای SelectBoxها ---
-// (شما باید این داده‌ها را از API مربوطه فچ کنید)
-const workGroupOptions: SelectOption[] = [
-    { id: 1, name: "گروه کاری آلفا" },
-    { id: 2, name: "گروه کاری بتا" },
-    { id: 3, name: "پشتیبانی" },
-];
 
-const shiftScheduleOptions: SelectOption[] = [
-    { id: 1, name: "برنامه شیفت چرخشی" },
-    { id: 2, name: "برنامه شیفت ثابت صبح" },
-    { id: 3, name: "برنامه شیفت ثابت عصر" },
-];
-
-const workPatternOptions: SelectOption[] = [
-    { id: 1, name: "الگوی کاری شنبه تا چهارشنبه" },
-    { id: 2, name: "الگوی کاری ۴ روز کار - ۲ روز استراحت" },
-];
+/**
+ * تابع تبدیل BaseNestedItem به SelectOption
+ */
+const toSelectOption = (item: BaseNestedItem): SelectOption => ({
+    id: item.id,
+    name: item.name,
+});
 
 
 /**
@@ -47,7 +46,17 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
     const [isEditing, setIsEditing] = useState(false);
     const updateMutation = useUpdateUserProfile();
 
-    // --- مقادیر پیش‌فرض ---
+    // ✅ فراخوانی هوک‌های لیست واقعی
+    const { data: rawWorkPatterns, isLoading: isLoadingWorkPatterns } = useWorkPatternsList();
+    const { data: rawShiftSchedules, isLoading: isLoadingShiftSchedules } = useShiftSchedulesList();
+    const { data: rawWorkGroups, isLoading: isLoadingWorkGroups } = useWorkGroups(1, 9999); // گرفتن همه گروه‌ها (اگر API اجازه می‌دهد)
+
+
+    // ✅ تبدیل داده‌های API به فرمت SelectOption
+    const workGroupOptions = useMemo(() => rawWorkGroups?.data?.map(toSelectOption) || [], [rawWorkGroups]);
+    const shiftScheduleOptions = useMemo(() => rawShiftSchedules?.map(toSelectOption) || [], [rawShiftSchedules]);
+    const workPatternOptions = useMemo(() => rawWorkPatterns?.map(toSelectOption) || [], [rawWorkPatterns]);
+
     const defaultValues = useMemo(() => ({
         employee: user.employee ? {
             personnel_code: user.employee.personnel_code,
@@ -59,25 +68,17 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
         } : null
     }), [user]);
 
-    // --- راه‌اندازی React Hook Form ---
     const {
-        register,
-        handleSubmit,
-        reset,
-        control,
+        register, handleSubmit, reset, control,
         formState: { errors, isDirty },
     } = useForm<OrganizationalFormData>({
         resolver: zodResolver(organizationalFormSchema),
         defaultValues
     });
 
-    // افکت برای ریست کردن فرم در صورت تغییر داده‌ها از بیرون
     useEffect(() => { reset(defaultValues); }, [user, defaultValues, reset]);
 
-    // --- مدیریت Submit ---
     const onSubmit = (formData: OrganizationalFormData) => {
-        // (توجه: API اجازه تغییر organization_id را به ادمین L2/L3 نمی‌دهد،
-        // پس ما آن را در فرم قرار نمی‌دهیم)
         updateMutation.mutate(
             { userId: user.id, payload: formData },
             {
@@ -87,10 +88,10 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
         );
     };
 
-    // --- مدیریت لغو ---
     const handleCancel = () => { reset(); setIsEditing(false); };
 
-    // (بررسی می‌کنیم که آیا کاربر پروفایل کارمندی دارد یا خیر)
+    const isFormLoading = isLoadingWorkPatterns || isLoadingShiftSchedules || isLoadingWorkGroups;
+
     if (!user.employee) {
         return (
             <div className="p-4 rounded-lg border border-borderL dark:border-borderD text-muted-foregroundL dark:text-muted-foregroundD">
@@ -98,6 +99,16 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
             </div>
         );
     }
+
+    if (isFormLoading) {
+        return (
+            <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="mr-2">در حال بارگذاری لیست گروه‌ها و الگوها...</span>
+            </div>
+        );
+    }
+
 
     return (
         <FormSection
@@ -124,10 +135,9 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                     label="تاریخ شروع به کار (YYYY-MM-DD)"
                     {...register("employee.starting_job")}
                     error={errors.employee?.starting_job?.message}
-                // (بهتر است از DatePicker استفاده شود)
                 />
 
-                {/* --- ✅ استفاده از SelectBox واقعی --- */}
+                {/* --- گروه‌های کاری --- */}
                 <Controller
                     name="employee.work_group_id"
                     control={control}
@@ -136,9 +146,7 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                             label="گروه کاری"
                             placeholder="(انتخاب کنید)"
                             options={workGroupOptions}
-                            // تبدیل مقدار خام (id) به آبجکت (SelectOption)
                             value={workGroupOptions.find(opt => opt.id === field.value) || null}
-                            // تبدیل آبجکت (SelectOption) به مقدار خام (id)
                             onChange={(option) => field.onChange(option ? option.id : null)}
                             disabled={!isEditing || updateMutation.isPending}
                             error={errors.employee?.work_group_id?.message}
@@ -146,6 +154,7 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                     )}
                 />
 
+                {/* --- برنامه‌های شیفتی (از API جدید) --- */}
                 <Controller
                     name="employee.shift_schedule_id"
                     control={control}
@@ -162,6 +171,7 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                     )}
                 />
 
+                {/* --- الگوهای کاری (از API موجود) --- */}
                 <Controller
                     name="employee.work_pattern_id"
                     control={control}
@@ -183,4 +193,3 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
 };
 
 export default OrganizationalForm;
-

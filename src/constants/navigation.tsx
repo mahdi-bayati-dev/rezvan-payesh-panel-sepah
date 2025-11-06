@@ -1,6 +1,6 @@
 // src/constants/navigation.ts
 
-import { LayoutDashboard, CalendarDays, Clock3, VectorSquare, SquareChartGantt, Cog, Network, Mails, Puzzle, ListCheck } from "lucide-react";   //Users
+import { LayoutDashboard, CalendarDays, VectorSquare, SquareChartGantt, Cog, Network, Mails, Puzzle, ListCheck } from "lucide-react";   //Users
 
 // تعریف تایپ برای هر آیتم از منو
 export interface NavItem {
@@ -47,11 +47,11 @@ export const mainNavItems: NavItem[] = [
     href: "/work-calender",
     icon: <CalendarDays size={20} />,
   },
-  {
-    label: "تاریخچه فعالیت ها",
-    href: "/activity-history",
-    icon: <Clock3 size={20} />,
-  },
+  // {
+  //   label: "تاریخچه فعالیت ها",
+  //   href: "/activity-history",
+  //   icon: <Clock3 size={20} />,
+  // },
 
 
   {

@@ -23,9 +23,16 @@ export interface Employee {
   father_name: string | null;
   birth_date: string | null;
   nationality_code: string | null;
-  gender: 'male' | 'female';
+  gender: "male" | "female";
   is_married: boolean;
-  education_level: 'diploma' | 'advanced_diploma' | 'bachelor' | 'master' | 'doctorate' | 'post_doctorate' | null;
+  education_level:
+    | "diploma"
+    | "advanced_diploma"
+    | "bachelor"
+    | "master"
+    | "doctorate"
+    | "post_doctorate"
+    | null;
   phone_number: string | null;
   house_number: string | null;
   sos_number: string | null;
@@ -42,7 +49,7 @@ export interface User {
   id: number;
   user_name: string;
   email: string;
-  status: 'active' | 'inactive'; // ✅ افزودن status بر اساس اسکیما
+  status: "active" | "inactive"; // ✅ افزودن status بر اساس اسکیما
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;
@@ -100,54 +107,72 @@ const nullableDate = z.string().nullable().optional(); // (فرض می‌کنی�
 export const accountInfoFormSchema = z.object({
   user_name: z.string().min(1, "نام کاربری الزامی است."),
   email: z.string().email("ایمیل نامعتبر است."),
-  status: z.enum(['active', 'inactive']),
-  password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد.").nullable().optional().or(z.literal('')), // (اختیاری)
+  status: z.enum(["active", "inactive"]),
+  password: z
+    .string()
+    .min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد.")
+    .nullable()
+    .optional()
+    .or(z.literal("")), // (اختیاری)
 });
 export type AccountInfoFormData = z.infer<typeof accountInfoFormSchema>;
 
-
 // ۲. اسکیما برای تب "مشخصات فردی"
 export const personalDetailsFormSchema = z.object({
-  employee: z.object({
-    first_name: z.string().min(1, "نام الزامی است."),
-    last_name: z.string().min(1, "نام خانوادگی الزامی است."),
-    father_name: nullableString,
-    nationality_code: nullableString,
-    birth_date: nullableDate,
-    gender: z.enum(['male', 'female']),
-    is_married: z.boolean(),
-    education_level: z.enum(['diploma', 'advanced_diploma', 'bachelor', 'master', 'doctorate', 'post_doctorate']).nullable().optional(),
-  }).nullable()
+  employee: z
+    .object({
+      first_name: z.string().min(1, "نام الزامی است."),
+      last_name: z.string().min(1, "نام خانوادگی الزامی است."),
+      father_name: nullableString,
+      nationality_code: nullableString,
+      birth_date: nullableDate,
+      gender: z.enum(["male", "female"]),
+      is_married: z.boolean(),
+      education_level: z
+        .enum([
+          "diploma",
+          "advanced_diploma",
+          "bachelor",
+          "master",
+          "doctorate",
+          "post_doctorate",
+        ])
+        .nullable()
+        .optional(),
+    })
+    .nullable(),
 });
 export type PersonalDetailsFormData = z.infer<typeof personalDetailsFormSchema>;
 
-
 // ۳. اسکیما برای تب "اطلاعات سازمانی"
 export const organizationalFormSchema = z.object({
-  employee: z.object({
-    personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
-    position: nullableString,
-    starting_job: nullableDate,
-    work_group_id: nullableNumber,
-    shift_schedule_id: nullableNumber,
-    work_pattern_id: nullableNumber,
-    // organization_id (تغییر سازمان) در این فرم نیست چون فقط Super Admin مجاز است
-  }).nullable()
+  employee: z
+    .object({
+      personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
+      position: nullableString,
+      starting_job: nullableDate,
+      work_group_id: nullableNumber,
+      shift_schedule_id: nullableNumber,
+      work_pattern_id: nullableNumber,
+      // organization_id (تغییر سازمان) در این فرم نیست چون فقط Super Admin مجاز است
+    })
+    .nullable(),
 });
 export type OrganizationalFormData = z.infer<typeof organizationalFormSchema>;
 
-
 // ۴. اسکیما برای تب "اطلاعات تماس"
 export const contactFormSchema = z.object({
-  employee: z.object({
-    phone_number: nullableString,
-    house_number: nullableString,
-    sos_number: nullableString,
-    address: nullableString,
-  }).nullable()
+  employee: z
+    .object({
+      phone_number: nullableString,
+      house_number: nullableString,
+      sos_number: nullableString,
+      address: nullableString,
+    })
+    .nullable(),
 });
-export type ContactFormData = z.infer<typeof contactFormSchema>;
 
+export type ContactFormData = z.infer<typeof contactFormSchema>;
 
 // (تایپ کلی برای آپدیت - ترکیبی از همه)
 // (این همان تایپی است که useUpdateUserProfile در هوک استفاده می‌کند)
@@ -157,3 +182,64 @@ export type UserProfileFormData =
   | OrganizationalFormData
   | ContactFormData;
 
+// --- ✅ [اصلاح شد] اسکیما برای فرم "ایجاد کاربر" ---
+// رفع خطاهای TS2769 و TS2353: پارامتر { required_error: "..." }
+// با پارامتر صحیح { message: "..." } جایگزین شد.
+
+export const createUserFormSchema = z.object({
+  // --- بخش User ---
+  user_name: z.string().min(1, "نام کاربری الزامی است."),
+  email: z.string().email("ایمیل نامعتبر است."),
+  password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد."),
+  role: z.string().min(1, "انتخاب نقش الزامی است."),
+  status: z.enum(["active", "inactive"], {
+    message: "وضعیت باید 'active' یا 'inactive' باشد.", // ✅ اصلاح شد
+  }),
+
+  // --- بخش Employee (الزامی) ---
+  employee: z.object({
+    // فیلدهای الزامی Employee
+    first_name: z.string().min(1, "نام الزامی است."),
+    last_name: z.string().min(1, "نام خانوادگی الزامی است."),
+    personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
+    organization_id: z
+      .number({
+        message: "ID سازمان باید عدد باشد.", // ✅ اصلاح شد
+      })
+      .positive("سازمان الزامی است."),
+    gender: z.enum(["male", "female"], {
+      message: "جنسیت باید 'male' یا 'female' باشد.", // ✅ اصلاح شد
+    }),
+    is_married: z.boolean({
+      message: "وضعیت تاهل باید boolean باشد.", // ✅ اصلاح شد
+    }),
+
+    // فیلدهای اختیاری Employee (بر اساس مستندات)
+    position: nullableString,
+    starting_job: nullableDate,
+    father_name: nullableString,
+    birth_date: nullableDate,
+    nationality_code: nullableString,
+    education_level: z
+      .enum([
+        "diploma",
+        "advanced_diploma",
+        "bachelor",
+        "master",
+        "doctorate",
+        "post_doctorate",
+      ])
+      .nullable()
+      .optional(),
+    phone_number: nullableString,
+    house_number: nullableString,
+    sos_number: nullableString,
+    address: nullableString,
+    work_group_id: nullableNumber,
+    shift_schedule_id: nullableNumber,
+    work_pattern_id: nullableNumber,
+  }),
+});
+
+// تایپ داده‌های فرم ایجاد کاربر
+export type CreateUserFormData = z.infer<typeof createUserFormSchema>;

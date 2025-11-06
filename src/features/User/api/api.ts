@@ -1,12 +1,13 @@
-// (لطفاً مسیر axiosInstance را بر اساس پروژه خودتان تنظیم کنید)
-import axiosInstance from "../../../lib/AxiosConfig"; // ✅ مسیر نسبی
+import axiosInstance from "../../../lib/AxiosConfig";
 import {
   type UserListResponse,
   type FetchUsersParams,
   type User,
-  // ✅ تایپ فرم
-} from "@/features/User/types/index"; // ✅ مسیر نسبی
-import type { UserProfileFormData } from "@/features/User/Schema/userProfileFormSchema";
+} from "@/features/User/types/index";
+import type {
+  UserProfileFormData,
+  CreateUserFormData,
+} from "@/features/User/Schema/userProfileFormSchema";
 /**
  * دریافت لیست کاربران (فیلتر شده و صفحه‌بندی شده)
  * GET /api/users
@@ -29,6 +30,11 @@ export const fetchUsers = async (
   if (params.role) {
     queryParams.append("role", params.role);
   }
+  // ✅ افزودن پارامتر فیلتر جدید
+  if (params.work_pattern_id) {
+    queryParams.append("work_pattern_id", String(params.work_pattern_id));
+  }
+
   const { data } = await axiosInstance.get(`/users?${queryParams.toString()}`);
   return data;
 };
@@ -52,11 +58,10 @@ export const updateUserOrganization = async ({
   };
   const { data } = await axiosInstance.put(`/users/${userId}`, payload);
 
-
   return data; // API شما UserResource را برمی‌گرداند
 };
 
-// --- ✅ توابع جدید ---
+// --- توابع جدید ---
 
 /**
  * دریافت اطلاعات تکی کاربر (برای صفحه پروفایل)
@@ -65,7 +70,7 @@ export const updateUserOrganization = async ({
 export const fetchUserById = async (userId: number): Promise<User> => {
   // API یک UserResource کامل برمی‌گرداند
   const { data } = await axiosInstance.get(`/users/${userId}`);
-    console.log('====>',data);
+  console.log("====>", data);
   return data.data;
 };
 
@@ -83,4 +88,27 @@ export const updateUserProfile = async ({
   // API شما اجازه ارسال بخشی از فیلدها را می‌دهد (PATCH/PUT)
   const { data } = await axiosInstance.put(`/users/${userId}`, payload);
   return data; // UserResource به‌روز شده را برمی‌گرداند
+};
+
+/**
+ * حذف کاربر
+ * DELETE /api/users/{userId}
+ */
+export const deleteUser = async (userId: number): Promise<void> => {
+  await axiosInstance.delete(`/users/${userId}`);
+};
+
+/**
+ * ایجاد کاربر جدید (Store)
+ * POST /api/users
+ */
+export const createUser = async (
+  payload: CreateUserFormData
+): Promise<User> => {
+  // بر اساس مستندات API، ما کل آبجکت فرم را ارسال می‌کنیم
+  // API در پاسخ 201، آبجکت UserResource را برمی‌گرداند
+  const { data } = await axiosInstance.post("/users", payload);
+  // (فرض می‌کنیم API در پاسخ موفق، مستقیم آبجکت User را برمی‌گرداند،
+  // مشابه updateUserProfile)
+  return data;
 };

@@ -1,10 +1,6 @@
-// src/features/reports/components/details/EmployeeInfoCard.tsx (نام پیشنهادی)
-
-import type { ActivityLog } from "@/features/reports/types"; // تایپ مخصوص گزارش
-// ایمپورت کامپوننت عمومی از پوشه ui
+import type { ActivityLog } from "@/features/reports/types";
 import { UserInfoCard, type InfoRowData } from "@/components/ui/UserInfoCard";
 
-// ما به جای کل log، فقط آبجکت employee را می‌گیریم
 interface EmployeeInfoCardProps {
     employee: ActivityLog['employee'];
 }
@@ -13,13 +9,17 @@ export const EmployeeInfoCard = ({ employee }: EmployeeInfoCardProps) => {
 
     // ۱. داده‌ی Employee را به فرمت مورد نیاز UserInfoCard تبدیل می‌کنیم
     const infoRows: InfoRowData[] = [
-        { label: "کد پرسنلی", value: employee.employeeId }, // استفاده از employeeId
-        { label: "سازمان", value: "بخش ۱" }, // (اینجا همچنان فیک است)
-        { label: "گروه کاری", value: "کارمند" }, // (اینجا همچنان فیک است)
+        // ۲. ❗️ هشدار: API کد پرسنلی (employeeId) را برنگرداند.
+        // ما از شناسه عددی (employee.id) استفاده می‌کنیم.
+        // برچسب را برای بازتاب این موضوع تغییر می‌دهیم.
+        { label: "شناسه کارمند (ID)", value: employee.id.toString() },
 
+        // ۳. ❗️ هشدار: این فیلدها در API وجود ندارند.
+        // باید از بک‌اند بخواهید این اطلاعات را به رابطه 'employee' اضافه کند.
+        { label: "سازمان", value: "نامشخص" }, // (TODO: Get real data)
+        { label: "گروه کاری", value: "نامشخص" }, // (TODO: Get real data)
     ];
 
-    // ۲. رندر همان کامپوننت عمومی با داده‌های متفاوت
     return (
         <UserInfoCard
             title="مشخصات کارمند"
