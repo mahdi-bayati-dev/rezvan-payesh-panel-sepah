@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Policies\DevicesPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use App\Models\AttendanceLog;
 use App\Models\Employees;
@@ -43,6 +44,7 @@ class AuthServiceProvider extends ServiceProvider
         Holiday::class => HolidayPolicy::class,
         ScheduleSlot::class => ScheduleSlotPolicy::class,
         ShiftSchedule::class => ShiftSchedulePolicy::class,
+        DevicesPolicy::class => DevicesPolicy::class,
 
     ];
 
