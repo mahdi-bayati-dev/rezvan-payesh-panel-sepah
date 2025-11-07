@@ -1,40 +1,42 @@
-import { useState, useMemo, useEffect } from 'react'; // [اصلاح] ایمپورت useEffect
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     useReactTable,
     getCoreRowModel,
     type PaginationState,
 } from '@tanstack/react-table';
+import { useQueryClient } from '@tanstack/react-query'; // ۱. ایمپورت QueryClient
 import { Search, Plus } from 'lucide-react';
 import { type DateObject } from "react-multi-date-picker";
 import { type SelectOption } from '@/components/ui/SelectBox';
-
-// [اصلاح ۱] ایمپورت تقویم میلادی
 import gregorian from "react-date-object/calendars/gregorian";
 
-// --- ۱. ایمپورت هوک‌های واقعی ---
+// --- ۲. [جدید] ایمپورت‌های مورد نیاز ---
+// ایمپورت سرویس WebSocket
+import { getEchoInstance, leaveChannel } from '../services/echoService';
+// ایمپورت هوک Redux برای دسترسی به استور
+import { useAppSelector } from '@/store/';
+// ایمپورت تایپ RootState (اگر سلکتور جدا نساخته‌اید)
+import { type RootState } from '@/store';
+
+// --- ۳. ایمپورت هوک‌های داده (بدون تغییر) ---
 import {
     useLogs,
     useApproveLog,
-    // useUpdateLog, // (فعلا کامنت شده)
     useEmployeeOptions,
 } from '../hooks/hook';
 
-// --- ۲. ایمپورت تایپ‌ها و توابع API ---
+// --- ۴. ایمپورت تایپ‌ها و کامپوننت‌ها (بدون تغییر) ---
 import { columns as createColumns } from '@/features/reports/components/reportsPage/TableColumns';
 import { type ActivityLog } from '../types';
-// [رفع خطا ۱۱] - تایپ UpdateLogPayload استفاده نشده بود و حذف شد
 import { type LogFilters } from '../api/api';
-
-// --- ۴. کامپوننت‌های UI (بدون تغییر) ---
 import { DataTable } from '@/components/ui/DataTable';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
 import { ActivityFilters } from '@/features/reports/components/reportsPage/activityFilters';
-import Input from '@/components/ui/Input'; // (ایمپورت Input شما)
-import { Button } from '@/components/ui/Button'; // (ایمپورت Button شما)
-// import { EditLogModal } from '../components/EditLogModal'; 
+import Input from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
-// [اصلاح ۲] تابع کمکی pad (مانند NewReportPage)
+// تابع کمکی (بدون تغییر)
 function pad(num: number): string {
     return num < 10 ? '0' + num : num.toString();
 }
@@ -44,25 +46,27 @@ function pad(num: number): string {
 // =============================
 export default function ActivityReportPage() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    // --- ۵. استیت برای فیلترهای API ---
-    // (این استیت اصلی است که useLogs به آن گوش می‌دهد)
+    // --- ۵. [جدید] دریافت توکن دسترسی از استور Redux ---
+    // این خط جایگزین هوک فرضی useAuth() می‌شود
+    const userToken = useAppSelector((state: RootState) => state.auth.accessToken);
+
+    // --- استیت فیلترها (بدون تغییر) ---
     const [filters, setFilters] = useState<LogFilters>({
         page: 1,
         sort_by: 'timestamp',
         sort_dir: 'desc',
     });
-
-    // [اصلاح] استیت محلی فقط برای فیلد جستجو (برای Debouncing)
     const [searchTerm, setSearchTerm] = useState('');
 
-    // --- ۶. استیت برای صفحه‌بندی (کنترل شده) ---
+    // --- استیت صفحه‌بندی (بدون تغییر) ---
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-        pageIndex: 0, // صفحه ۰ در جدول = صفحه ۱ در API
+        pageIndex: 0,
         pageSize: 10,
     });
 
-    // ۷. همگام‌سازی استیت صفحه‌بندی با فیلترهای API
+    // --- هوک‌های useMemo و useEffect برای فیلتر و جستجو (بدون تغییر) ---
     useMemo(() => {
         setFilters(prev => ({
             ...prev,
@@ -70,61 +74,100 @@ export default function ActivityReportPage() {
         }));
     }, [pageIndex, pageSize]);
 
-
-    // [اصلاح] هوک useEffect برای Debouncing جستجو
     useEffect(() => {
-        // یک تایمر 500 میلی‌ثانیه‌ای تنظیم می‌کند
         const timer = setTimeout(() => {
-            // وقتی کاربر تایپ را متوقف کرد، فیلتر اصلی (filters) را آپدیت کن
             setFilters(prevFilters => ({
                 ...prevFilters,
-                search: searchTerm || undefined, // اگر خالی بود، undefined بفرست
-                page: 1, // با هر جستجوی جدید، به صفحه اول برگرد
+                search: searchTerm || undefined,
+                page: 1,
             }));
-            setPageIndex(0); // ریست کردن صفحه‌بندی جدول
-        }, 500); // 500 میلی‌ثانیه تاخیر
-
-        // اگر کاربر قبل از 500ms دوباره تایپ کرد، تایمر قبلی را پاک کن
+            setPageIndex(0);
+        }, 500);
         return () => {
             clearTimeout(timer);
         };
-    }, [searchTerm]); // این افکت فقط زمانی اجرا می‌شود که searchTerm تغییر کند
+    }, [searchTerm]);
 
 
-    // --- ۸. واکشی داده‌ها با useQuery ---
-    // (این هوک اکنون به صورت خودکار به تغییرات 'filters' (شامل search) واکنش نشان می‌دهد)
+    // --- ۶. [جدید] هوک useEffect برای اتصال به WebSocket ---
+    useEffect(() => {
+        // اگر کاربر لاگین نکرده (توکن ندارد)، هیچ کاری نکن
+        if (!userToken) {
+            console.log('[WebSocket] No user token, connection skipped.');
+            return;
+        }
+
+        console.log('[WebSocket] Attempting to connect...');
+        // ۱. دریافت یا ایجاد نمونه Echo با توکن معتبر
+        const echo = getEchoInstance(userToken);
+
+        // ۲. تعریف نام کانال و رویداد
+        const channelName = 'super-admin-global';
+        const eventName = '.AttendanceLogCreated'; // (نقطه در ابتدا مهم است)
+
+        // ۳. اتصال به کانال خصوصی و گوش دادن
+        const privateChannel = echo.private(channelName);
+
+        privateChannel.listen(eventName, (event: any) => {
+            console.log('✅ [WebSocket] Real-time event received:', event);
+
+            // ۴. [مهم] باطل کردن کش React Query
+            // این دستور به useLogs می‌گوید داده‌هایش قدیمی شده و باید مجدد واکشی کند
+            queryClient.invalidateQueries({
+                queryKey: ['reports', 'list'] // مطابقت با reportKeys.lists() در hook.ts
+            });
+
+            // می‌توانید در اینجا یک Toast (پیام) "لیست به‌روز شد" هم نشان دهید
+            // toast.info("لیست فعالیت‌ها به‌روز شد!");
+        });
+
+        // (اختیاری) لاگ کردن وضعیت اتصال برای دیباگ
+        echo.connector.pusher.connection.bind('connected', () => {
+            console.log('✅ [WebSocket] Connected Successfully.');
+        });
+        echo.connector.pusher.connection.bind('error', (err: any) => {
+            console.error('❌ [WebSocket] Connection Error:', err);
+            // اگر خطای 401 (Auth) بود، احتمالاً توکن منقضی شده
+            // authSlice شما باید این مورد را مدیریت کند (مثلاً با checkAuthStatus)
+        });
+
+        // ۵. تمیزکاری (Cleanup)
+        return () => {
+            console.log(`[WebSocket] Leaving channel: ${channelName}`);
+            // خروج از کانال هنگام Unmount شدن کامپوننت
+            leaveChannel(channelName);
+            // ما اتصال کلی را قطع نمی‌کنیم (disconnectEcho)
+            // چون ممکن است کاربر به صفحه دیگری برود و برگردد
+        };
+
+    }, [userToken, queryClient]); // وابستگی به توکن و queryClient
+
+
+    // --- ۷. واکشی داده‌ها با useQuery (بدون تغییر) ---
+    // این هوک [useLogs] حالا توسط WebSocket به‌روز می‌شود
+    // (مطمئن شوید که refetchInterval را از useLogs حذف کرده‌اید)
     const {
         data: queryResult,
         isLoading,
         isFetching
     } = useLogs(filters);
 
-    // واکشی لیست کارمندان برای فیلتر
+    // --- بقیه موارد (employeeOptions, mutations, table, handlers) بدون تغییر ---
     const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptions();
-
-    // داده‌های جدول (مپ شده)
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
-    // اطلاعات صفحه‌بندی از API
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
-    const pageCount = meta?.last_page || 1; // تعداد کل صفحات از API
-
-    // --- ۹. تعریف هوک‌های Mutation ---
+    const pageCount = meta?.last_page || 1;
     const approveMutation = useApproveLog();
-    // const updateMutation = useUpdateLog();
-
-    // استیت برای مودال ویرایش
     const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
 
-    // --- ۱۰. تعریف هندلرها ---
     const handleApprove = (log: ActivityLog) => {
         approveMutation.mutate(log.id);
     };
 
     const handleEdit = (log: ActivityLog) => {
-        setEditingLog(log); // باز کردن مودال ویرایش
+        setEditingLog(log);
     };
 
-    // --- ۱۱. ساخت ستون‌ها و جدول ---
     const columns = useMemo(() => createColumns({
         onApprove: handleApprove,
         onEdit: handleEdit,
@@ -148,35 +191,27 @@ export default function ActivityReportPage() {
         navigate('/reports/new');
     };
 
-    // --- ۱۳. [اصلاح نهایی] هندلر فیلترها ---
     const handleFilterChange = (newApiFilters: {
         employee: SelectOption | null;
         date_from: DateObject | null;
         date_to: DateObject | null;
     }) => {
 
-        // ... (توابع formatApiDateStart و formatApiDateEnd بدون تغییر)
         const formatApiDateStart = (date: DateObject | null): string | undefined => {
             if (!date) return undefined;
             const gregorianDate = date.convert(gregorian);
-            const year = gregorianDate.year;
-            const month = gregorianDate.month.number;
-            const day = gregorianDate.day;
-            return `${year}-${pad(month)}-${pad(day)}`;
+            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(gregorianDate.day)}`;
         };
 
         const formatApiDateEnd = (date: DateObject | null): string | undefined => {
             if (!date) return undefined;
             const gregorianDate = date.convert(gregorian);
-            const year = gregorianDate.year;
-            const month = gregorianDate.month.number;
-            const day = gregorianDate.day;
-            return `${year}-${pad(month)}-${pad(day)} 23:59:59`;
+            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(gregorianDate.day)} 23:59:59`;
         };
 
         setFilters({
-            ...filters, // حفظ فیلترهای قبلی (مثل مرتب‌سازی و جستجو)
-            page: 1, // ریست کردن به صفحه ۱
+            ...filters,
+            page: 1,
             employee_id: newApiFilters.employee ? Number(newApiFilters.employee.id) : undefined,
             date_from: formatApiDateStart(newApiFilters.date_from),
             date_to: formatApiDateEnd(newApiFilters.date_to),
@@ -209,17 +244,13 @@ export default function ActivityReportPage() {
                         گزارش آخرین فعالیت‌ها
                     </h2>
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-
-                        {/* [اصلاح] اتصال فیلد جستجو به استیت محلی searchTerm */}
                         <div className="relative w-full sm:w-60">
                             <Input
                                 label=''
                                 type="text"
                                 placeholder="جستجو (نام، کد پرسنلی)..."
-                                className="w-full pr-10 py-2 text-sm" // کلاس‌های ... حذف شد
-                                // مقدار Input از استیت محلی خوانده می‌شود
+                                className="w-full pr-10 py-2 text-sm"
                                 value={searchTerm}
-                                // onChange استیت محلی را آپدیت می‌کند (نه فیلتر اصلی)
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                             <Search size={18} className="absolute right-3 top-1/3" />
@@ -229,7 +260,7 @@ export default function ActivityReportPage() {
                             variant='primary'
                             onClick={handelNewReport}
                             type="button"
-                            className="flex items-center"> {/* کلاس ... حذف شد */}
+                            className="flex items-center">
                             <Plus className="w-5 h-5" />
                             <span>ثبت فعالیت</span>
                         </Button>
@@ -248,7 +279,7 @@ export default function ActivityReportPage() {
                 {/* Pagination */}
                 <DataTablePagination table={table} />
 
-                {/* --- ۱۴. مودال ویرایش --- */}
+                {/* مودال ویرایش (بدون تغییر) */}
                 {editingLog && (
                     <p>
                         {/* TODO: کامپوننت مودال ویرایش خود را در اینجا قرار دهید ... */}
