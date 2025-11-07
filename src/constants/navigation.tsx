@@ -55,7 +55,7 @@ export const mainNavItems: NavItem[] = [
 
 
   {
-    label: "مدیریت دستگاه ها",
+    label: "مشاهده دستگاه ها",
     href: "/device-management",
     icon: <Cog size={20} />,
   },
