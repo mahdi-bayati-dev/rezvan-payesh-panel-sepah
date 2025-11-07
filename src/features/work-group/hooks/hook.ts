@@ -111,9 +111,15 @@ export const useWorkPatternsList = () => {
   });
 };
 
+/**
+ * هوک واقعی برای دریافت لیست برنامه‌های شیفتی
+ * از API واقعی استفاده می‌کند: GET /shift-schedules
+ */
 export const useShiftSchedulesList = () => {
   return useQuery({
     queryKey: ["shiftSchedulesList"],
     queryFn: fetchShiftSchedulesList,
+    placeholderData: keepPreviousData, // تا وقتی لود میشه، قبلی رو نشون بده
+    staleTime: 5 * 60 * 1000, // ۵ دقیقه کش
   });
 };

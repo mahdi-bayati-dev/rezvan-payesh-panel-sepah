@@ -54,15 +54,15 @@ export const useLogs = (filters: LogFilters) => {
         meta: collection.meta,
       };
     },
-    staleTime: 1000 * 60,
+    staleTime: 1000 * 60, // 1 دقیقه staleTime خوب است
 
-  
+    // [بهینه] این برای صفحه‌بندی نرم و روان عالی است، آن را نگه می‌داریم
     placeholderData: keepPreviousData,
 
-    // --- پیشنهادات قبلی (صحیح هستند) ---
-    // رفرش خودکار هر ۳۰ ثانیه
-    refetchInterval: 30000,
-    refetchIntervalInBackground: true,
+    // --- [حذف شد] ---
+    // این دو خط حذف می‌شوند چون WebSocket جایگزین آن‌ها می‌شود
+    // refetchInterval: 30000,
+    // refetchIntervalInBackground: true,
   });
 };
 

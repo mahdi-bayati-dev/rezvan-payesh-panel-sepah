@@ -70,14 +70,12 @@ export const fetchWorkPatternsList = async (): Promise<BaseNestedItem[]> => {
 
 };
 
-// هوک فرضی برای گرفتن لیست برنامه‌های شیفتی
+/**
+ * دریافت لیست برنامه‌های شیفتی (واقعی)
+ * GET /shift-schedules
+ */
 export const fetchShiftSchedulesList = async (): Promise<BaseNestedItem[]> => {
-  // const { data } = await axiosInstance.get('/shift-schedules-list');
-  // return data;
+  const { data } = await axiosInstance.get("/shift-schedules");
 
-  // داده‌های تستی موقت:
-  return [
-    { id: 10, name: "برنامه چرخشی ۴ روزه" },
-    { id: 11, name: "برنامه هفتگی بیمارستان" },
-  ];
+  return data.data;
 };

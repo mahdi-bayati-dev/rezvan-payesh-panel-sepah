@@ -61,7 +61,7 @@ export const updateUserOrganization = async ({
   return data; // API شما UserResource را برمی‌گرداند
 };
 
-// --- توابع جدید ---
+
 
 /**
  * دریافت اطلاعات تکی کاربر (برای صفحه پروفایل)
@@ -110,5 +110,5 @@ export const createUser = async (
   const { data } = await axiosInstance.post("/users", payload);
   // (فرض می‌کنیم API در پاسخ موفق، مستقیم آبجکت User را برمی‌گرداند،
   // مشابه updateUserProfile)
-  return data;
+  return data.data;
 };
