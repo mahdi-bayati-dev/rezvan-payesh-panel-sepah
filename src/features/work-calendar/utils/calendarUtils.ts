@@ -2,12 +2,16 @@
 // npm install jalali-moment
 import moment from "jalali-moment";
 
+// +++ اضافه کردن آرایه‌ی حروف روزهای هفته +++
+const JALALI_WEEKDAYS_SHORT = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+
 // ساختار خروجی برای رندر گرید
 interface DayCellData {
   key: string;
   date: string | null; // "jYYYY/jMM/jDD" (تاریخ جلالی)
   gregorianDate: string | null; // "YYYY-MM-DD" (برای ارسال به API)
   dayOfMonth: number; // 1-31
+  weekDayShort: string | null; // +++ پراپرتی جدید برای "ش", "ی", "د" و ... +++
 }
 
 interface MonthRowData {
@@ -50,11 +54,16 @@ export const generateJalaliYearGrid = (jalaliYear: number): MonthRowData[] => {
       const dateStr = `${jalaliYear}/${jMonth}/${jDay}`;
       const m = moment(dateStr, "jYYYY/jM/jD");
 
+      // +++ محاسبه روز هفته +++
+      const weekDayIndex = m.jDay(); // 0 = شنبه, 6 = جمعه
+      const weekDayShort = JALALI_WEEKDAYS_SHORT[weekDayIndex];
+
       monthDays.push({
         key: dateStr,
         date: m.format("jYYYY/jMM/jDD"),
         gregorianDate: m.format("YYYY-MM-DD"), // تاریخ میلادی برای API
         dayOfMonth: jDay,
+        weekDayShort: weekDayShort, // +++ پاس دادن حرف روز هفته +++
       });
     }
 
@@ -68,6 +77,7 @@ export const generateJalaliYearGrid = (jalaliYear: number): MonthRowData[] => {
         date: null, // شناسه سلول خالی
         gregorianDate: null, // شناسه سلول خالی
         dayOfMonth: dayNum,
+        weekDayShort: null, // +++ سلول خالی حرف ندارد +++
       });
     }
 
@@ -76,4 +86,3 @@ export const generateJalaliYearGrid = (jalaliYear: number): MonthRowData[] => {
 
   return yearGrid;
 };
-
