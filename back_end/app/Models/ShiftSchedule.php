@@ -13,7 +13,7 @@ class ShiftSchedule extends Model
         [
             'name',
             'cycle_length_days',
-            'cycle_start_date'
+            'cycle_start_date',
         ];
     protected $casts =
         [
