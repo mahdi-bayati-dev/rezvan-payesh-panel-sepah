@@ -15,8 +15,8 @@ const LoginForm = () => {
 
   const logoSrc =
     theme === "dark"
-      ? "/img/img-header/logo-2.png" // مسیر مطلق از ریشه سایت
-      : "/img/img-header/logo-1.png"; // مسیر مطلق از ریشه سایت
+      ? "/img/img-header/logo-2.webp" // مسیر مطلق از ریشه سایت
+      : "/img/img-header/logo-1.webp"; // مسیر مطلق از ریشه سایت
   // --- ۱. اتصال به Redux ---
   const dispatch = useAppDispatch(); // هوک dispatch تایپ شده
   // انتخاب وضعیت‌های مورد نیاز از state ریداکس
