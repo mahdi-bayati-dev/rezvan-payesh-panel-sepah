@@ -37,6 +37,7 @@ const AssignUserPage = lazy(() => import('@/features/User/components/AssignUser/
 const UserProfilePage = lazy(() => import('@/features/User/components/userPage/UserProfilePage'))
 const WorkCalendarPage = lazy(() => import('@/features/work-calendar/routes/WorkCalendarPage'))
 
+const DevicePage = lazy(() => import('@/features/devices/routes/DevicePage'));
 const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
 
 export const router = createBrowserRouter([
@@ -133,7 +134,7 @@ export const router = createBrowserRouter([
           {
             path: "/work-patterns",
             element: (
-              <Suspense fallback={<WorkPatternPageSkeleton/>}>
+              <Suspense fallback={<WorkPatternPageSkeleton />}>
                 <WorkPatternPage />
               </Suspense>
             ),
@@ -255,6 +256,15 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          {
+            path: "/device-management",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <DevicePage />
+              </Suspense>
+            ),
+          },
+
 
         ],
       },
