@@ -3,8 +3,7 @@ import { CirclePlus } from 'lucide-react';
 import { useCreateLog, useEmployeeOptions } from '../hooks/hook';
 import { NewReportForm } from '../components/NewActivityRegistration/NewReportForm';
 import { type NewReportFormData } from '@/features/reports/Schema/newReportSchema';
-
-// ۱. ایمپورت تقویم میلادی
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import gregorian from "react-date-object/calendars/gregorian";
 
 // ۲. [اصلاحیه] تابع کمکی برای اطمینان از دو رقمی بودن (padding)
@@ -18,45 +17,49 @@ export default function NewReportPage() {
     const createLogMutation = useCreateLog();
     const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptions();
 
-    // ... (بخش دیباگ بدون تغییر) ...
 
     const handleCreateReport = (data: NewReportFormData) => {
 
-        // --- [اصلاحیه کلیدی] ---
-
-        // ۳. آبجکت DateObject را از فرم می‌گیریم
+        // --- بخش تاریخ (بدون تغییر) ---
         const date = data.date!;
-
-        // ۴. آن را به تقویم میلادی تبدیل می‌کنیم
         const gregorianDate = date.convert(gregorian);
+        const year = gregorianDate.year;
+        const month = gregorianDate.month.number;
+        const day = gregorianDate.day;
+        const time = data.time; // مثلا: "08:00"
 
-        // ۵. مقادیر سال، ماه و روز را به عنوان *عدد* (Number) استخراج می‌کنیم
-        // این اعداد، اعداد خالص جاوااسکریپت (لاتین) هستند.
-        const year = gregorianDate.year;       // مثلا: 2025
-        const month = gregorianDate.month.number; // مثلا: 11
-        const day = gregorianDate.day;         // مثلا: 13
+        // --- ✅ [اصلاح کلیدی با date-fns-tz] ---
 
-        // ۶. ساعت را از فرم می‌گیریم (که از قبل لاتین است "HH:mm")
-        const time = data.time;
+        // ۱. رشته تاریخ و زمان محلی (تهران)
+        const localTimestampString = `${year}-${pad(month)}-${pad(day)} ${time}:00`;
+        const timeZone = "Asia/Tehran";
 
-        // ۷. ساخت رشته نهایی با فرمت دقیق Y-m-d H:i:s با استفاده از اعداد لاتین
-        const formattedTimestamp = `${year}-${pad(month)}-${pad(day)} ${time}:00`;
-        // --- [پایان اصلاحیه] ---
+        // ۲. تبدیل زمان محلی (تهران) به آبجکت Date استاندارد (در UTC)
+        // (این بخش درست بود و تغییر نمی‌کند)
+        const utcDate = fromZonedTime(localTimestampString, timeZone);
 
+        // ۳. [اصلاح] فرمت‌دهی آبجکت Date به فرمت دلخواه API
+        // به جای: const formattedTimestampUTC = utcDate.toISOString();
+        // ما به تابع می‌گوییم:
+        // - از آبجکت utcDate استفاده کن
+        // - آن را در منطقه زمانی 'UTC' فرمت کن (تا مطمئن شویم 04:30 است نه 08:00)
+        // - و از فرمت رشته‌ای 'yyyy-MM-dd HH:mm:ss' استفاده کن
+        const formattedTimestampUTC = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
+        // نتیجه: "2025-11-08 04:30:00"
+
+        // --- [پایان اصلاح] ---
 
         console.log('داده‌های فرم:', data);
+        console.log('زمان محلی (تهران):', localTimestampString);
+        console.log('زمان ارسالی (فرمت شده برای API):', formattedTimestampUTC);
 
         const apiPayload = {
             employee_id: data.employee!.id,
-            // [رفع خطا ۹] - به لطف اصلاح اسکیما Zod،
-            // data.event_type اکنون تایپ صحیح 'check_in' | 'check_out' را دارد
-            // و نیازی به cast کردن نیست.
             event_type: data.event_type,
-            timestamp: formattedTimestamp, // استفاده از فرمت ۱۰۰٪ صحیح میلادی-لاتین
+            // ۴. استفاده از رشته‌ی فرمت‌شده‌ی جدید
+            timestamp: formattedTimestampUTC,
             remarks: data.remarks,
         };
-
-        console.log('آبجکت آماده برای ارسال به API:', apiPayload);
 
         createLogMutation.mutate(apiPayload, {
             onSuccess: () => {
@@ -64,7 +67,6 @@ export default function NewReportPage() {
             },
         });
     };
-
     const handleCancel = () => {
         navigate('/reports');
     };

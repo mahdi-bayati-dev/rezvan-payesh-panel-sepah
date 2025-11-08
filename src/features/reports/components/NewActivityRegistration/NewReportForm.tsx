@@ -15,13 +15,24 @@ import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput'; // مسیر alias
 import { Button } from '@/components/ui/Button';
 import Textarea from '@/components/ui/Textarea';
-import Input from '@/components/ui/Input';
 
-// گزینه‌های نوع فعالیت (برمی‌گردانیم به check-in/check-out چون سرور فقط از timestamp ایراد گرفت)
+// گزینه‌های نوع فعالیت
 const activityTypeOptions: SelectOption[] = [
     { id: 'check_in', name: 'ورود ' },
     { id: 'check_out', name: 'خروج ' },
 ];
+
+// گزینه‌های ساعت (00 تا 23)
+const hourOptions: SelectOption[] = Array.from({ length: 24 }, (_, i) => ({
+    id: String(i).padStart(2, '0'),
+    name: String(i).padStart(2, '0'),
+}));
+
+// گزینه‌های دقیقه (استفاده از بازه‌های ۵ دقیقه‌ای برای UX بهتر)
+const minuteOptions: SelectOption[] = Array.from({ length: 12 }, (_, i) => ({
+    id: String(i * 5).padStart(2, '0'),
+    name: String(i * 5).padStart(2, '0'),
+}));
 
 interface NewReportFormProps {
     onSubmit: (data: NewReportFormData) => void;
@@ -45,15 +56,10 @@ export const NewReportForm = ({
         formState: { errors },
     } = useForm<NewReportFormData>({
         resolver: zodResolver(newReportSchema),
-        // [اصلاحیه] برای رفع هشدار Uncontrolled
         defaultValues: {
             employee: null,
-            // [رفع خطا ۱ و ۲] - حذف event_type: ''
-            // با حذف این فیلد، react-hook-form به طور پیش‌فرض
-            // مقدار 'undefined' را برای آن در نظر می‌گیرد.
-            // این کار تضاد تایپ ('' در مقابل "check_in") را حل می‌کند.
             date: null,
-            time: '',
+            time: '', // مقدار پیش‌فرض برای فیلد ساعت
             remarks: '',
         },
     });
@@ -77,7 +83,6 @@ export const NewReportForm = ({
 
 
     return (
-        // [رفع خطا ۲] - با اصلاح defaultValues، این handleSubmit دیگر خطا نمی‌دهد
         <form onSubmit={handleSubmit(onFormSubmit)} noValidate>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
 
@@ -89,7 +94,7 @@ export const NewReportForm = ({
                         render={({ field, fieldState }) => (
                             <Combobox
                                 as="div"
-                                className="relative" // <-- افزودن relative به کانتینر
+                                className="relative"
                                 value={field.value}
                                 onChange={field.onChange}
                                 disabled={isLoadingEmployees || isSubmitting}
@@ -173,7 +178,7 @@ export const NewReportForm = ({
                     />
                 </div>
 
-                {/* --- فیلد نوع فعالیت) --- */}
+                {/* --- فیلد نوع فعالیت (بدون تغییر) --- */}
                 <div className="md:col-span-1">
                     <Controller
                         name="event_type"
@@ -183,8 +188,6 @@ export const NewReportForm = ({
                                 label="نوع فعالیت"
                                 options={activityTypeOptions}
                                 value={activityTypeOptions.find(opt => opt.id === field.value) || null}
-                                // [رفع خطا ۱ و ۲] - ارسال undefined بجای ''
-                                // اگر '' ارسال شود، اعتبارسنجی z.enum (که '' را قبول ندارد) فیلد را نامعتبر می‌داند
                                 onChange={(option) => field.onChange(option ? option.id : undefined)}
                                 placeholder="انتخاب کنید..."
                                 error={fieldState.error?.message}
@@ -194,7 +197,7 @@ export const NewReportForm = ({
                     />
                 </div>
 
-                {/* --- فیلد تاریخ ا) --- */}
+                {/* --- فیلد تاریخ (بدون تغییر) --- */}
                 <div className="md:col-span-1">
                     <Controller
                         name="date"
@@ -212,23 +215,88 @@ export const NewReportForm = ({
                     />
                 </div>
 
-                {/* --- فیلد ساعت ) --- */}
-                <div className="md:col-span-1">
-                    <label htmlFor="time" className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">ساعت (HH:mm)</label>
-                    <Input
-                        label=''
-                        id="time"
-                        type="time"
-                        {...register('time')}
-                        disabled={isSubmitting}
-                        className={`w-full p-3 border rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800
-                        ${errors.time ? 'border-destructiveL dark:border-destructiveD focus:ring-destructiveL' : 'border-borderL dark:border-borderD focus:ring-primaryL'}
-                        focus:outline-none focus:ring-2 transition-colors`}
-                    />
-                    {errors.time && <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">{errors.time.message}</p>}
-                </div>
 
-                {/* --- فیلد ملاحظات ) --- */}
+                {/* --- ✅✅✅ بخش اصلاح شده - فیلد ساعت ✅✅✅ --- */}
+                <div className="md:col-span-1">
+                    <Controller
+                        name="time"
+                        control={control}
+                        render={({ field, fieldState }) => {
+
+                            const [currentHour = '', currentMinute = ''] = field.value?.split(':') || [];
+
+                            // --- ✅ اصلاح ۱: تغییر امضای تابع ---
+                            // پذیرش `string | undefined` برای مدیریت پاک کردن فیلد
+                            const handleTimeChange = (part: 'hour' | 'minute', value: string | undefined) => {
+                                let newHour = currentHour;
+                                let newMinute = currentMinute;
+
+                                if (part === 'hour') {
+                                    newHour = value || ''; // اگر undefined بود، رشته خالی در نظر بگیر
+                                } else { // part === 'minute'
+                                    newMinute = value || ''; // اگر undefined بود، رشته خالی در نظر بگیر
+                                }
+
+                                // --- ✅ اصلاح ۲: بهبود منطق ---
+                                // اگر هر دو بخش (ساعت یا دقیقه) مقداری داشتند، آنها را ترکیب کن
+                                // در غیر این صورت فیلد را خالی کن
+                                if (newHour || newMinute) {
+                                    // اگر یکی از مقادیر خالی بود، "00" را جایگزین کن
+                                    field.onChange(`${newHour || '00'}:${newMinute || '00'}`);
+                                } else {
+                                    field.onChange(''); // هر دو خالی شدند
+                                }
+                            };
+
+                            return (
+                                <div className="flex flex-col">
+                                    <label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
+                                        ساعت
+                                    </label>
+                                    <div className="flex gap-2">
+
+                                        {/* ۱. دراپ‌داون ساعت */}
+                                        <SelectBox
+                                            label=""
+                                            options={hourOptions}
+                                            value={hourOptions.find(opt => opt.id === currentHour) || null}
+                                            // --- ✅ اصلاح ۳: تبدیل id به string ---
+                                            // اینجا `option.id` (که string | number است) را به string تبدیل می‌کنیم
+                                            // و اگر option کلا null بود (فیلد پاک شد)، `undefined` پاس می‌دهیم
+                                            onChange={(option) => handleTimeChange('hour', option ? String(option.id) : undefined)}
+                                            placeholder="ساعت"
+                                            disabled={isSubmitting}
+                                            className="w-1/2"
+                                        />
+
+                                        {/* ۲. دراپ‌داون دقیقه */}
+                                        <SelectBox
+                                            label=""
+                                            options={minuteOptions}
+                                            value={minuteOptions.find(opt => opt.id === currentMinute) || null}
+                                            // --- ✅ اصلاح ۴: تبدیل id به string ---
+                                            onChange={(option) => handleTimeChange('minute', option ? String(option.id) : undefined)}
+                                            placeholder="دقیقه"
+                                            disabled={isSubmitting}
+                                            className="w-1/2"
+                                        />
+                                    </div>
+
+                                    {/* نمایش پیام خطای اعتبارسنجی Zod (فقط یک بار) */}
+                                    {fieldState.error && (
+                                        <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">
+                                            {fieldState.error.message}
+                                        </p>
+                                    )}
+                                </div>
+                            );
+                        }}
+                    />
+                </div>
+                {/* --- پایان بخش اصلاح شده --- */}
+
+
+                {/* --- فیلد ملاحظات (بدون تغییر) --- */}
                 <div className="md:col-span-2">
                     <label htmlFor="remarks" className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">ملاحظات (دلیل ثبت دستی)</label>
                     <Textarea
@@ -253,10 +321,10 @@ export const NewReportForm = ({
                     type="submit"
                     disabled={isSubmitting || isLoadingEmployees}
                     className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium shadow-md
-                     bg-primaryL text-primary-foregroundL
-                     dark:bg-primaryD dark:text-primary-foregroundD
-                     hover:bg-primaryL/90 dark:hover:bg-primaryD/90
-                     disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      bg-primaryL text-primary-foregroundL
+                      dark:bg-primaryD dark:text-primary-foregroundD
+                      hover:bg-primaryL/90 dark:hover:bg-primaryD/90
+                      disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
                     {isSubmitting ? 'در حال ارسال...' : 'تایید'}
@@ -267,10 +335,10 @@ export const NewReportForm = ({
                     onClick={onCancel}
                     disabled={isSubmitting || isLoadingEmployees}
                     className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium
-                     bg-backgroundL-700 text-foregroundL
-                     dark:bg-backgroundD-700 dark:text-foregroundD
-                     hover:bg-backgroundL-800 dark:hover:bg-backgroundD-800
-                     disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      bg-backgroundL-700 text-foregroundL
+                      dark:bg-backgroundD-700 dark:text-foregroundD
+                      hover:bg-backgroundL-800 dark:hover:bg-backgroundD-800
+                      disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     لغو
                 </Button>
