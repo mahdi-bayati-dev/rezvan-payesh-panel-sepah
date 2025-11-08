@@ -53,7 +53,6 @@ export const mainNavItems: NavItem[] = [
   //   icon: <Clock3 size={20} />,
   // },
 
-
   {
     label: "مشاهده دستگاه ها",
     href: "/device-management",
@@ -61,7 +60,7 @@ export const mainNavItems: NavItem[] = [
   },
   {
     label: "مدیریت ادمین ها",
-    href: "/calendarDays",
+    href: "/admin-management",
     icon: <Puzzle size={20} />,
   },
 
