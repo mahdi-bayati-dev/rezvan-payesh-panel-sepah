@@ -74,11 +74,23 @@ export const contactFormSchema = z.object({
 });
 export type ContactFormData = z.infer<typeof contactFormSchema>;
 
+// --- ✅ اسکیمای جدید: مدیریت دسترسی (تغییر نقش) ---
+// این اسکیما فقط شامل فیلد role است.
+export const accessManagementFormSchema = z.object({
+  role: z.string().min(1, "انتخاب نقش الزامی است."),
+});
+export type AccessManagementFormData = z.infer<
+  typeof accessManagementFormSchema
+>;
+// --- --- --- --- --- --- --- --- --- --- --- ---
+
 export type UserProfileFormData =
   | AccountInfoFormData
   | PersonalDetailsFormData
   | OrganizationalFormData
-  | ContactFormData;
+  | ContactFormData
+  // ✅ اضافه کردن تایپ فرم جدید
+  | AccessManagementFormData;
 
 // --- اسکیمای فرم ایجاد کاربر ---
 export const createUserFormSchema = z.object({

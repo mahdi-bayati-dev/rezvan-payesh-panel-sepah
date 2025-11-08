@@ -35,6 +35,7 @@ const statusOptions: SelectOption[] = [
 const roleOptions: SelectOption[] = [
     { id: 'user', name: 'کارمند (user)' },
     { id: 'org-admin-l3', name: 'ادمین L3' },
+    { id: 'org-admin-l2', name: 'ادمین L2' },
 ];
 const genderOptions: SelectOption[] = [
     { id: 'male', name: 'مرد' },
@@ -104,8 +105,8 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             gender: "male",
             is_married: false,
             education_level: "diploma",
-            house_number: "نامشخص",
-            sos_number: "نامشخص",
+            house_number: "",
+            sos_number: "",
 
             shift_schedule_id: Number(defaultShiftSchedule.id) || 1,
 
@@ -347,8 +348,8 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 <h3 className="text-lg font-semibold pb-4 border-b">اطلاعات تماس</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input label="موبایل" {...register("employee.phone_number")} error={errors.employee?.phone_number?.message} />
-                    <Input label="تلفن منزل" {...register("employee.house_number")} placeholder="نامشخص" error={errors.employee?.house_number?.message} />
-                    <Input label="تلفن اضطراری" {...register("employee.sos_number")} placeholder="نامشخص" error={errors.employee?.sos_number?.message} />
+                    <Input label="تلفن منزل" {...register("employee.house_number")} placeholder="" error={errors.employee?.house_number?.message} />
+                    <Input label="تلفن اضطراری" {...register("employee.sos_number")} placeholder="" error={errors.employee?.sos_number?.message} />
                 </div>
                 <Textarea label="آدرس" {...register("employee.address")} rows={3} error={errors.employee?.address?.message} />
             </fieldset>

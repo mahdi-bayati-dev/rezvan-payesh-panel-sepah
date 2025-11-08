@@ -16,6 +16,7 @@ import {
 import type {
   UserProfileFormData,
   CreateUserFormData,
+  AccessManagementFormData, // ✅ ایمپورت تایپ جدید
 } from "@/features/User/Schema/userProfileFormSchema";
 
 // --- کلیدهای کوئری ---
@@ -83,7 +84,9 @@ export const useUpdateUserProfile = () => {
     mutationFn: updateUserProfile,
 
     onSuccess: (updatedUser) => {
+      // ✅ به‌روزرسانی کش جزئیات کاربر
       queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
+      // ✅ به‌روزرسانی کش لیست‌ها (چون ممکن است نقش یا نام تغییر کرده باشد)
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
     },
     onError: (error) => {
@@ -94,6 +97,44 @@ export const useUpdateUserProfile = () => {
     },
   });
 };
+
+// --- ✅ هوک جدید: تغییر نقش کاربر (مخصوص Super Admin) ---
+/**
+ * هوک Mutation برای ویرایش نقش کاربر (فقط Super Admin)
+ */
+export const useUpdateUserRole = () => {
+  const queryClient = useQueryClient();
+
+  // ما از هوک useUpdateUserProfile که قبلاً ساخته بودیم استفاده مجدد می‌کنیم
+  // تا کد تکراری ننویسیم و فقط payload را مدیریت کنیم.
+  
+
+  // تابع mutate اختصاصی خودمان را برمی‌گردانیم
+  return useMutation<
+    User,
+    Error,
+    { userId: number; payload: AccessManagementFormData }
+  >({
+    mutationFn: updateUserProfile, // از همان تابع API استفاده می‌کند
+    onSuccess: (updatedUser) => {
+      // onSuccess اصلی در useUpdateUserProfile مدیریت می‌شود
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      toast.success("نقش کاربر با موفقیت به‌روزرسانی شد.");
+    },
+    onError: (error) => {
+      const errorMessage =
+        (error as any)?.response?.data?.message || "خطا در تغییر نقش.";
+      // مستندات API می‌گوید 403 (Forbidden) برمی‌گردد اگر Super Admin نباشیم
+      if ((error as any)?.response?.status === 403) {
+        toast.error("خطای دسترسی: فقط Super Admin مجاز به تغییر نقش است.");
+      } else {
+        toast.error(errorMessage);
+      }
+    },
+  });
+};
+// --- --- --- --- --- --- --- --- --- --- --- ---
 
 /**
  * ✅ هوک جدید: به‌روزرسانی (تخصیص) الگوی کاری کارمندان
@@ -188,7 +229,7 @@ export const useCreateUser = () => {
       const errorMessage =
         (error as any)?.response?.data?.message || "خطا در ایجاد کاربر.";
 
-      // اگر خطای اعتبارسنجی (422) نباشد، آن را نشان می‌دهیم
+      // اگر خطای اعتبarsنجی (422) نباشد، آن را نشان می‌دهیم
       if ((error as any)?.response?.status !== 422) {
         toast.error(errorMessage);
       }

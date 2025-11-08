@@ -37,6 +37,8 @@ const AssignUserPage = lazy(() => import('@/features/User/components/AssignUser/
 const UserProfilePage = lazy(() => import('@/features/User/components/userPage/UserProfilePage'))
 const WorkCalendarPage = lazy(() => import('@/features/work-calendar/routes/WorkCalendarPage'))
 
+const AdminManagement = lazy(() => import('@/features/User/components/userPage/AdminManagementPage'))
+
 const DevicePage = lazy(() => import('@/features/devices/routes/DevicePage'));
 const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
 
@@ -261,6 +263,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<Spinner />}>
                 <DevicePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/admin-management",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <AdminManagement />
               </Suspense>
             ),
           },

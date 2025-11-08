@@ -2,23 +2,48 @@ import React, { Fragment } from 'react';
 import { Tab } from '@headlessui/react';
 import { type User } from '@/features/User/types/index';
 
+// --- ایمپورت Redux برای بررسی نقش کاربر فعلی ---
+import { useAppSelector } from '@/hook/reduxHooks';
+import { selectUser } from '@/store/slices/authSlice';
+
 // --- ایمپورت فرم‌های تفکیک‌شده ---
-import AccountInfoForm from './formUser/AccountInfoForm';
-import PersonalDetailsForm from './formUser/PersonalDetailsForm';
-import OrganizationalForm from './formUser/OrganizationalForm';
-import ContactForm from './formUser/ContactForm';
+// ✅ اصلاح: استفاده از alias به جای مسیر نسبی
+import AccountInfoForm from '@/features/User/components/userPage/formUser/AccountInfoForm';
+import PersonalDetailsForm from '@/features/User/components/userPage/formUser/PersonalDetailsForm';
+import OrganizationalForm from '@/features/User/components/userPage/formUser/OrganizationalForm';
+import ContactForm from '@/features/User/components/userPage/formUser/ContactForm';
+// ✅ ایمپورت فرم جدید
+import AccessManagementForm from '@/features/User/components/userCreate/AccessManagementForm';
+import { ShieldAlert } from 'lucide-react';
 
 /**
  * مدیریت تب‌ها با Headless UI
  */
 const ProfileTabs: React.FC<{ user: User }> = ({ user }) => {
 
-    const tabs = [
-        { id: 'personal', label: 'مشخصات فردی' },
-        { id: 'organizational', label: 'سازمانی' },
-        { id: 'contact', label: 'اطلاعات تماس' },
-        { id: 'account', label: 'اطلاعات حساب' },
+    // --- بررسی دسترسی کاربر لاگین کرده ---
+    const currentUser = useAppSelector(selectUser);
+    const isSuperAdmin = currentUser?.roles?.includes('super_admin') ?? false;
+
+    // ✅ اصلاح: تعریف کامل تب‌ها
+    const baseTabs = [
+        { id: 'personal', label: 'مشخصات فردی', component: <PersonalDetailsForm user={user} />, icon: null },
+        { id: 'organizational', label: 'سازمانی', component: <OrganizationalForm user={user} />, icon: null },
+        { id: 'contact', label: 'اطلاعات تماس', component: <ContactForm user={user} />, icon: null },
+        { id: 'account', label: 'اطلاعات حساب', component: <AccountInfoForm user={user} />, icon: null },
     ];
+
+    // ✅ تب مدیریت دسترسی (فقط برای Super Admin)
+    const accessTab = {
+        id: 'access',
+        label: 'مدیریت دسترسی',
+        component: <AccessManagementForm user={user} />,
+        icon: <ShieldAlert className="h-4 w-4" /> // آیکون فقط برای این تب
+    };
+
+    // اگر کاربر Super Admin باشد، تب دسترسی را اضافه کن
+    const tabs = isSuperAdmin ? [...baseTabs, accessTab] : baseTabs;
+
 
     return (
         <div className="w-full">
@@ -29,11 +54,13 @@ const ProfileTabs: React.FC<{ user: User }> = ({ user }) => {
                         <Tab key={tab.id} as={Fragment}>
                             {({ selected }) => (
                                 <button
-                                    className={`px-5 py-2 text-sm font-medium rounded-lg  transition-all duration-200 cursor-pointer ${selected
+                                    className={`flex items-center px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${selected
                                         ? 'bg-backgroundL-500 border border-borderL text-borderD border-primary shadow-sm'
                                         : ' dark:bg-gray-900  dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                                         }`}
                                 >
+                                    {/* ✅ اصلاح: رندر کردن آیکون (فقط اگر وجود داشته باشد) */}
+                                    {tab.icon && <span className="ml-2">{tab.icon}</span>}
                                     {tab.label}
                                 </button>
                             )}
@@ -44,18 +71,11 @@ const ProfileTabs: React.FC<{ user: User }> = ({ user }) => {
 
                 {/* محتوای تب‌ها */}
                 <Tab.Panels>
-                    <Tab.Panel>
-                        <PersonalDetailsForm user={user} />
-                    </Tab.Panel>
-                    <Tab.Panel>
-                        <OrganizationalForm user={user} />
-                    </Tab.Panel>
-                    <Tab.Panel>
-                        <ContactForm user={user} />
-                    </Tab.Panel>
-                    <Tab.Panel>
-                        <AccountInfoForm user={user} />
-                    </Tab.Panel>
+                    {tabs.map((tab) => (
+                        <Tab.Panel key={tab.id}>
+                            {tab.component}
+                        </Tab.Panel>
+                    ))}
                 </Tab.Panels>
             </Tab.Group>
         </div>
