@@ -7,6 +7,7 @@ use App\Http\Resources\ShiftScheduleCollection;
 use App\Http\Resources\ShiftScheduleResource;
 use App\Models\ScheduleSlot;
 use App\Models\ShiftSchedule;
+use App\Services\WorkPatternService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -14,6 +15,10 @@ use Illuminate\Validation\Rule;
 
 class ShiftScheduleController extends Controller
 {
+    public function __construct(protected WorkPatternService $workPatternService)
+    {
+        $this->authorizeResource(ShiftSchedule::class, 'shiftSchedule');
+    }
     /**
      * Display a listing of the resource.
      */
@@ -30,12 +35,17 @@ class ShiftScheduleController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:shift_schedules,name',
-            'cycle_length_days' => 'required|integer|min:1|max:31', // چرخه بین ۱ تا ۳۱ روز
+            'cycle_length_days' => 'required|integer|min:1|max:31',
             'cycle_start_date' => 'required|date_format:Y-m-d',
 
-            'slots' => 'sometimes|array',
-            'slots.*.day_in_cycle' => 'required_with:slots|integer|distinct', // هر روز باید یکتا باشد
-            'slots.*.work_pattern_id' => 'nullable|exists:work_patterns,id',
+            'slots' => 'required|array',
+            'slots.*.day_in_cycle' => 'required|integer|distinct|min:1',
+            'slots.*.is_off' => 'required|boolean',
+
+
+            'slots.*.name' => 'nullable|string|max:255|required_if:slots.*.is_off,false',
+            'slots.*.start_time' => 'nullable|date_format:H:i|required_if:slots.*.is_off,false',
+            'slots.*.end_time' => 'nullable|date_format:H:i|required_if:slots.*.is_off,false|after:slots.*.start_time',
         ]);
         if ($validator->fails())
         {
@@ -44,34 +54,42 @@ class ShiftScheduleController extends Controller
 
         $validatedData = $validator->validated();
 
-        $schedule = DB::transaction(function () use ($validatedData)
-        {
-            $schedule = ShiftSchedule::create(
-                [
-                    'name' => $validatedData['name'],
-                    'cycle_length_days' => $validatedData['cycle_length_days'],
-                    'cycle_start_date' => $validatedData['cycle_start_date'],
-                ]);
+        $schedule = DB::transaction(function () use ($validatedData) {
+            $schedule = ShiftSchedule::create([
+                'name' => $validatedData['name'],
+                'cycle_length_days' => $validatedData['cycle_length_days'],
+                'cycle_start_date' => $validatedData['cycle_start_date'],
+            ]);
+            $slotsMap = [];
+            foreach ($validatedData['slots'] as $slotData) {
+                $slotsMap[$slotData['day_in_cycle']] = $slotData;
+            }
+            $slotsToCreate = [];
             for ($day = 1; $day <= $schedule->cycle_length_days; $day++) {
-                ScheduleSlot::create(
-                    [
-                        'shift_schedule_id' => $schedule->id,
-                        'day_in_cycle' => $day,
-                        'work_pattern_id' => null, // پیش‌فرض روز استراحت
-                    ]);
-                if (isset($validatedData['slots']))
-                {
-                    foreach ($validatedData['slots'] as $slotData)
-                    {
-                        $schedule->slots()
-                            ->where('day_in_cycle', $slotData['day_in_cycle'])
-                            ->update(['work_pattern_id' => $slotData['work_pattern_id'] ?? null]);
+                $work_pattern_id = null;
+                if (isset($slotsMap[$day])) {
+                    if (isset($slotData['is_off']) && $slotData['is_off'] === false) {
+                        $workPattern = $this->workPatternService->findOrCreatePattern([
+                            'name' => $slotData['name'],
+                            'start_time' => $slotData['start_time'],
+                            'end_time' => $slotData['end_time'],
+                            'type' => $slotData['type'] ?? 'fixed'
+                        ]);
+                        $work_pattern_id = $workPattern->id;
                     }
                 }
+                $slotsToCreate[] = [
+                    'shift_schedule_id' => $schedule->id,
+                    'day_in_cycle' => $day,
+                    'work_pattern_id' => $work_pattern_id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+            ScheduleSlot::insert($slotsToCreate);
             return $schedule;
         });
-        return new ShiftScheduleResource($schedule->load('slots'));
+        return new ShiftScheduleResource($schedule->load('slots.workPattern'));
     }
 
     /**

@@ -48,7 +48,7 @@ class AdminAttendanceLogController extends Controller
                 'employee_id' => ['required', 'integer', 'exists:employees,id'],
                 'event_type' => ['required', 'string', Rule::in([AttendanceLog::TYPE_CHECK_IN, AttendanceLog::TYPE_CHECK_OUT])],
                 'timestamp' => ['required', 'date_format:Y-m-d H:i:s'],
-                'remarks' => ['required', 'string', 'max:500'],
+                'remarks' => ['nullable', 'string', 'max:500'],
             ]);
         if ($validator->fails())
         {
