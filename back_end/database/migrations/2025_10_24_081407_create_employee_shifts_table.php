@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('employee_shifts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employees_id')->constrained('employees')->onDelete('cascade');
+            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
             // تاریخ روزی که این شیفت به آن تعلق دارد
             $table->date('date');
 

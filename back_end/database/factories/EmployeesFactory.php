@@ -52,7 +52,6 @@ class EmployeesFactory extends Factory
             // اتصال به گروه کاری (اختیاری)
             'work_group_id' => $this->faker->boolean(80) ? WorkGroup::factory() : null, // با احتمال ۸۰ درصد عضو یک گروه باشد
 
-            // برنامه شیفتی اختصاصی (معمولا null، از گروه ارث می‌برد)
             'shift_schedule_id' => null,
 
             // آفست شیفت (پیش‌فرض صفر)
