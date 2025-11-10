@@ -89,63 +89,115 @@ export default function ActivityReportPage() {
     }, [searchTerm]);
 
 
-    // --- ۶. [جدید] هوک useEffect برای اتصال به WebSocket ---
+    // ... (خارج از کامپوننت، تابع کمکی logSocket بدون تغییر باقی می‌ماند)
+    const logSocket = (level: 'info' | 'error' | 'success', message: string, data: any = '') => {
+        const styles = {
+            info: 'background: #007bff; color: white; padding: 2px 8px; border-radius: 3px;',
+            error: 'background: #dc3545; color: white; padding: 2px 8px; border-radius: 3px;',
+            success: 'background: #28a745; color: white; padding: 2px 8px; border-radius: 3px;',
+        };
+        // [اصلاح جزئی] از console.log برای همه سطوح استفاده می‌کنیم تا در همه مرورگرها کار کند
+        console.log(`%c[WebSocket]%c ${message}`, styles[level], 'font-weight: bold;', data);
+    };
+
+
+    // ... (داخل کامپوننت)
+
+    // --- ۶. [جدید] هوک useEffect برای اتصال به WebSocket (نسخه نهایی اصلاح شده) ---
     useEffect(() => {
-        // اگر کاربر لاگین نکرده (توکن ندارد)، هیچ کاری نکن
         if (!userToken) {
-            console.log('[WebSocket] No user token, connection skipped.');
+            logSocket('info', 'توکن کاربر وجود ندارد، اتصال WebSocket نادیده گرفته شد.');
             return;
         }
 
-        console.log('[WebSocket] Attempting to connect...');
-        // ۱. دریافت یا ایجاد نمونه Echo با توکن معتبر
+        logSocket('info', 'در حال تلاش برای اتصال...');
         const echo = getEchoInstance(userToken);
 
-        // ۲. تعریف نام کانال و رویداد
-        const channelName = 'super-admin-global';
-        const eventName = '.AttendanceLogCreated'; // (نقطه در ابتدا مهم است)
+        // --- لاگ کردن وضعیت‌های اتصال (مرحله ۱ و ۲ مستندات) ---
+        // (این بخش بدون تغییر و صحیح است)
+        const pusher = echo.connector.pusher;
 
-        // ۳. اتصال به کانال خصوصی و گوش دادن
+        pusher.connection.bind('connecting', () => {
+            logSocket('info', 'در حال اتصال به ws.eitebar.ir:80 ...');
+        });
+
+        pusher.connection.bind('connected', () => {
+            const socketId = pusher.connection.socket_id;
+            logSocket('success', `✅ اتصال با موفقیت برقرار شد.`, `Socket ID: ${socketId}`);
+
+
+            const authEp = echo.options.authEndpoint;
+            if (authEp !== 'https://payesh.eitebar.ir/broadcasting/auth') {
+                logSocket('info', `توجه: authEndpoint روی ${authEp} تنظیم شده است.`);
+            }
+        });
+
+        pusher.connection.bind('error', (err: any) => {
+            logSocket('error', '❌ خطای اتصال Pusher:', err);
+        });
+
+        pusher.connection.bind('disconnected', () => {
+            logSocket('info', 'ارتباط قطع شد.');
+        });
+
+        pusher.connection.bind('unavailable', () => {
+            logSocket('error', 'سرور WebSocket در دسترس نیست.');
+        });
+
+
+        // --- لاگ کردن عضویت در کانال (مرحله ۳ و ۴ مستندات) ---
+        const channelName = 'super-admin-global';
+        logSocket('info', `در حال تلاش برای عضویت در کانال خصوصی: private-${channelName} ...`);
+
         const privateChannel = echo.private(channelName);
 
-        privateChannel.listen(eventName, (event: any) => {
-            console.log('✅ [WebSocket] Real-time event received:', event);
+        privateChannel.subscribed((data: any) => {
+            // این لاگ یعنی مرحله ۳ (Auth) و ۴ (Subscribe) مستندات با موفقیت انجام شده
+            logSocket('success', `✅ عضویت در کانال 'private-${channelName}' موفقیت‌آمیز بود.`, data);
+        });
 
-            // ۴. [مهم] باطل کردن کش React Query
-            // این دستور به useLogs می‌گوید داده‌هایش قدیمی شده و باید مجدد واکشی کند
+        privateChannel.error((data: any) => {
+            // اگر این لاگ را دیدید، یعنی مرحله ۳ (Auth) شکست خورده است.
+            logSocket('error', `❌ خطای عضویت در کانال 'private-${channelName}'. (بررسی کنید توکن معتبر باشد و دسترسی به این کانال را داشته باشد)`, data);
+        });
+
+
+        // ✅ [صحیح] این نام کامل کلاس است که سرور ارسال می‌کند
+        // (توجه کنید که بک‌اسلش‌ها در رشته جاوا اسکریپت باید escape شوند)
+        const eventNameFromDocs = 'App\\Events\\AttendanceLogCreated';
+
+        privateChannel.listen(eventNameFromDocs, (event: any) => {
+            logSocket('success', `✅ رویداد (با نام کامل) دریافت شد: '${eventNameFromDocs}'`, event);
             queryClient.invalidateQueries({
-                queryKey: ['reports', 'list'] // مطابقت با reportKeys.lists() در hook.ts
+                queryKey: ['reports', 'list']
             });
-
-            // می‌توانید در اینجا یک Toast (پیام) "لیست به‌روز شد" هم نشان دهید
-            // toast.info("لیست فعالیت‌ها به‌روز شد!");
         });
 
-        // (اختیاری) لاگ کردن وضعیت اتصال برای دیباگ
-        echo.connector.pusher.connection.bind('connected', () => {
-            console.log('✅ [WebSocket] Connected Successfully.');
-        });
-        echo.connector.pusher.connection.bind('error', (err: any) => {
-            console.error('❌ [WebSocket] Connection Error:', err);
-            // اگر خطای 401 (Auth) بود، احتمالاً توکن منقضی شده
-            // authSlice شما باید این مورد را مدیریت کند (مثلاً با checkAuthStatus)
+        // (می‌توانید شنونده‌ی eventNameCode را حذف کنید یا نگه دارید)
+        const eventNameCode = '.AttendanceLogCreated';
+        privateChannel.listen(eventNameCode, (event: any) => {
+            logSocket('success', `✅ رویداد (با نقطه) دریافت شد: '${eventNameCode}'`, event);
+            queryClient.invalidateQueries({
+                queryKey: ['reports', 'list']
+            });
         });
 
-        // ۵. تمیزکاری (Cleanup)
+        logSocket('info', `در حال گوش دادن به دو رویداد: '${eventNameFromDocs}' و '${eventNameCode}' ...`);
+
+        // --- ۵. تمیزکاری (Cleanup) ---
         return () => {
-            console.log(`[WebSocket] Leaving channel: ${channelName}`);
-            // خروج از کانال هنگام Unmount شدن کامپوننت
+            logSocket('info', `در حال خروج از کانال: ${channelName}`);
             leaveChannel(channelName);
-            // ما اتصال کلی را قطع نمی‌کنیم (disconnectEcho)
-            // چون ممکن است کاربر به صفحه دیگری برود و برگردد
+            pusher.connection.unbind_all();
+
+            // ✅ [اصلاح] شنونده‌ی جدید را هم حذف کنید
+            privateChannel.stopListening(eventNameFromDocs);
+            privateChannel.stopListening(eventNameCode);
         };
 
-    }, [userToken, queryClient]); // وابستگی به توکن و queryClient
+    }, [userToken, queryClient]);
 
 
-    // --- ۷. واکشی داده‌ها با useQuery (بدون تغییر) ---
-    // این هوک [useLogs] حالا توسط WebSocket به‌روز می‌شود
-    // (مطمئن شوید که refetchInterval را از useLogs حذف کرده‌اید)
     const {
         data: queryResult,
         isLoading,

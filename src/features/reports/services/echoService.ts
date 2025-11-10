@@ -34,19 +34,17 @@ export const getEchoInstance = (token: string): Echo<any> => {
     broadcaster: "pusher",
     key: "dLqP31MIZy3LQm10QtHe9ciAt",
 
-    // این کلید برای عبور از اعتبارسنجی pusher-js الزامی است
+    // ✅ افزودن گزینه‌های مستندات
+    disableStats: true,
+    enabledTransports: ['ws'],
     cluster: "mt1",
 
-    // --- پیکربندی اتصال WebSocket (درست بود) ---
     wsHost: "ws.eitebar.ir",
     wsPort: 80,
-    forceTLS: false, // چون ws:// است
+    forceTLS: false, 
     encrypted: false,
 
-    // --- [تغییر اصلی اینجا است] ---
-    // ما آدرس احراز هویت را به http:// تغییر می‌دهیم تا با سرور توسعه شما مطابقت داشته باشد
     authEndpoint: "http://payesh.eitebar.ir/broadcasting/auth",
-    // --- [پایان تغییر] ---
 
     auth: {
       headers: {
