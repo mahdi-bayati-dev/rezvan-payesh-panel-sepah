@@ -18,21 +18,13 @@ class LeaveTypeResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'parent_id' => $this->parent_id,
-
-
+            'description'=> $this->description,
 
             'parent' => new LeaveTypeResource($this->whenLoaded('parent')),
 
 
-            'children' => LeaveTypeResource::collection($this->whenLoaded('children')),
+            'children' => LeaveTypeResource::collection($this->whenLoaded('allChildren')),
 
-
-            'leave_requests_count' => $this->whenCounted('leaveRequests'), // تعداد درخواست‌ها
-            'leave_requests' => LeaveRequestResource::collection($this->whenLoaded('leaveRequests')), // لیست کامل درخواست‌ها
-
-
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
         ];
     }
 }
