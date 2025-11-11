@@ -19,25 +19,48 @@ export const useUpdateWeekPattern = () => {
     >({
         mutationFn: ({ id, payload }) => updateWeekPattern(id, payload),
 
-        onSuccess: (data, variables) => {
-            console.log('الگوی کاری هفتگی با موفقیت به‌روزرسانی شد:', data);
+        onSuccess: (apiResponse, variables) => {
+            // 🐞 لاگ دیباگ:
+            console.log('useUpdateWeekPattern (PUT) onSuccess: Raw API Response:', apiResponse);
 
-            // ۱. کلید کوئری لیست الگوهای هفتگی را invalidate می‌کنیم (برای به‌روزرسانی لیست)
-            queryClient.invalidateQueries({ queryKey: ['weekPatterns'] });
+            // 🟢🟢🟢 راه‌حل کلیدی مشکل ۲ (آپدیت آنی) 🟢🟢🟢
+            // ۱. داده‌های اصلی الگو را از پاسخ API استخراج می‌کنیم
+            // const updatedPatternData = apiResponse.data;
 
-            // ۲. ✅ اصلاح اساسی: کش جزئیات این الگوی خاص را نیز invalidate می‌کنیم.
-            // این کار تضمین می‌کند که useWeekPatternDetails به محض فعال شدن (بازگشت به صفحه اصلی)،
-            // داده‌های جدید را از سرور فچ کند و شماتیک بلافاصله به‌روز شود.
-            queryClient.invalidateQueries({ queryKey: ['weekPatternDetails', variables.id] });
+            // ۲. کلید کوئری جزئیات را *دقیقاً* مشابه useWeekPatternDetails می‌سازیم (با رشته‌ای کردن ID)
+            const queryKey = ['weekPatternDetails', String(variables.id)];
 
+            // 🐞 لاگ دیباگ:
+            console.log(`useUpdateWeekPattern (PUT) onSuccess: Attempting to setQueryData for key: ${JSON.stringify(queryKey)}`);
+
+            // ۳. کش جزئیات را به صورت دستی آپدیت می‌کنیم (آپدیت آنی UI)
+            // (نکته: ما در اینجا به داده‌های UI تبدیل نمی‌کنیم،
+            // چون هوک useWeekPatternDetails در select خود این کار را انجام می‌دهد.
+            // اگر بخواهیم دقیقاً داده UI را ست کنیم، باید تابع transformDetailsApiToUi را ایمپورت کنیم)
+            // برای سادگی، فعلاً داده خام API را ست می‌کنیم.
+            queryClient.setQueryData(queryKey, apiResponse); // ست کردن کل پاسخ { data: ... }
+
+            // اگر هوک useWeekPatternDetails مستقیماً داده UI را انتظار دارد:
+            // queryClient.setQueryData(queryKey, transformDetailsApiToUi(updatedPatternData)); // (نیاز به ایمپort تابع transform)
+
+
+            // 🟢🟢🟢 راه‌حل کلیدی مشکل ۳ (کلید Invalidation اشتباه) 🟢🟢🟢
+            // ۴. لیست اصلی را Invalidate می‌کنیم (تا در بازگشت به صفحه اصلی، لیست آپدیت شود)
+            // کلید ['weekPatterns'] اشتباه بود.
+            queryClient.invalidateQueries({ queryKey: ['weekPatternsList'] });
+
+            // 🐞 لاگ دیباگ:
+            console.log("useUpdateWeekPattern (PUT) onSuccess: Invalidated query list: ['weekPatternsList']");
 
             toast.success('الگوی کاری با موفقیت به‌روزرسانی شد!');
         },
 
         onError: (error) => {
+            // 🐞 لاگ دیباگ:
+            console.error("useUpdateWeekPattern (PUT) onError:", error);
             // کامنت: منطق مدیریت خطای عمومی (خطای 422 در فرم مدیریت می‌شود)
             if (error.response?.status !== 422) {
-                const errorMessage = error.response?.data?.message || 'خطایی در هنگام به‌روزرسانی الگو رخ داد.';
+                const errorMessage = (error.response?.data as { message: string })?.message || 'خطایی در هنگام به‌روزرسانی الگو رخ داد.';
                 toast.error(errorMessage);
             }
         },

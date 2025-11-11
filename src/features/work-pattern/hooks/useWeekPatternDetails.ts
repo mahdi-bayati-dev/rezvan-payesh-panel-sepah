@@ -89,16 +89,38 @@ const transformDetailsApiToUi = (apiData: WeekPatternDetail): WorkPatternUI => {
  * هوک برای فچ کردن جزئیات یک الگوی کاری هفتگی و تبدیل آن به فرمت UI.
  */
 export const useWeekPatternDetails = (patternId: number | string | null) => {
+  // 🟢🟢🟢 راه‌حل کلیدی مشکل ۱ (عدم تطابق کلید) 🟢🟢🟢
+  // ما ID را به رشته تبدیل می‌کنیم تا کلید کوئری *همیشه* یکسان باشد.
+  // چه 13 (عددی) بیاید و چه "13" (رشته‌ای)، کلید همیشه ["weekPatternDetails", "13"] خواهد بود.
+  const queryKey = ["weekPatternDetails", String(patternId)];
+
   return useQuery({
-    queryKey: ["weekPatternDetails", patternId],
-    queryFn: () => getWeekPatternById(patternId!),
-    enabled: !!patternId,
+    queryKey: queryKey, // استفاده از کلید نرمال‌شده
+    queryFn: () => getWeekPatternById(patternId!), // تابع فچ بدون تغییر
+    enabled: !!patternId && patternId !== "0", // اطمینان از معتبر بودن ID
+
     // ✅ ۴. استفاده از تایپ صحیح UI در خروجی select
     select: (
       apiResponse: SingleWeekPatternApiResponse
     ): WorkPatternUI | null => {
+      // 🐞 لاگ دیباگ: نمایش پاسخ خام API
+      console.log(
+        `useWeekPatternDetails (QueryKey: ${JSON.stringify(
+          queryKey
+        )}) - Raw API Response:`,
+        apiResponse
+      );
+
       if (apiResponse && apiResponse.data) {
-        return transformDetailsApiToUi(apiResponse.data);
+        const transformedData = transformDetailsApiToUi(apiResponse.data);
+        // 🐞 لاگ دیباگ: نمایش داده تبدیل شده
+        console.log(
+          `useWeekPatternDetails (QueryKey: ${JSON.stringify(
+            queryKey
+          )}) - Transformed UI Data:`,
+          transformedData
+        );
+        return transformedData;
       }
       console.warn(
         "Invalid API response structure received for details:",
