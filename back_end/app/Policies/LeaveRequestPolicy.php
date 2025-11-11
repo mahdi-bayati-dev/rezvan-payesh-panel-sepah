@@ -6,16 +6,32 @@ use App\Models\LeaveRequest;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Log;
 
 class LeaveRequestPolicy
 {
     use HandlesAuthorization;
+
+    /**
+     * Perform pre-authorization checks.
+     *
+     * @param User $user
+     * @param string $ability
+     * @return bool|void
+     */
+    public function before(User $user, string $ability)
+    {
+        if ($user->hasRole('super-admin')) {
+            return true;
+        }
+    }
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['org-admin-l2', 'org-admin-l3', 'user']);
+        return $user->hasAnyRole(['org-admin-l2', 'org-admin-l3']);
     }
 
     /**
@@ -23,32 +39,13 @@ class LeaveRequestPolicy
      */
     public function view(User $user, LeaveRequest $leaveRequest): bool
     {
-        $userEmployeeProfile = $user->employee;
-        if (!$userEmployeeProfile?->organization_id) return false;
 
         // کاربر همیشه می‌تواند درخواست‌های خودش را ببیند
-        if ($userEmployeeProfile->id === $leaveRequest->employee_id) {
+        if ($user->employee?->id === $leaveRequest->employee_id) {
             return true;
         }
 
-        // بررسی دسترسی مدیران
-        $targetEmployee = $leaveRequest->employee; // رابطه employee در LeaveRequest لازم است
-        if (!$targetEmployee?->organization_id) return false; // اگر کارمند درخواست دهنده سازمان ندارد
-
-        $adminOrg = $userEmployeeProfile->organization;
-        $targetOrg = $targetEmployee->organization;
-
-        if ($user->hasRole('org-admin-l2')) {
-            // ادمین L2 می‌تواند درخواست‌های کارمندان سازمان خودش و زیرمجموعه‌ها را ببیند
-            return $adminOrg && $targetOrg && $adminOrg->isAncestorOf($targetOrg);
-        }
-
-        if ($user->hasRole('org-admin-l3')) {
-            // ادمین L3 فقط درخواست‌های کارمندان سازمان خودش را می‌بیند
-            return $userEmployeeProfile->organization_id === $targetEmployee->organization_id;
-        }
-
-        return false;
+        return $this->process($user, $leaveRequest);
     }
 
     /**
@@ -64,17 +61,15 @@ class LeaveRequestPolicy
      */
     public function update(User $user, LeaveRequest $leaveRequest): bool
     {
-        $userEmployeeProfile = $user->employee;
-        if ($userEmployeeProfile && $userEmployeeProfile->id === $leaveRequest->employee_id && $leaveRequest->status === 'pending')
+        if (!$leaveRequest->isPending())
+        {
+            return false;
+        }
+        if ($user->employee?->id === $leaveRequest->employee_id)
         {
             return true;
         }
-        if ($user->hasAnyRole(['org-admin-l2', 'org-admin-l3']))
-        {
-            return $this->view($user, $leaveRequest);
-        }
-
-        return false;
+        return $this->process($user, $leaveRequest);
     }
 
     /**
@@ -82,7 +77,7 @@ class LeaveRequestPolicy
      */
     public function delete(User $user, LeaveRequest $leaveRequest): bool
     {
-        return false;
+        return $user->employee?->id === $leaveRequest->employee_id && $leaveRequest->isPending();
     }
 
     /**
@@ -98,6 +93,37 @@ class LeaveRequestPolicy
      */
     public function forceDelete(User $user, LeaveRequest $leaveRequest): bool
     {
+        return false;
+    }
+    public function process(User $user, LeaveRequest $leaveRequest): bool
+    {
+        if (!$user->hasAnyRole(['org-admin-l2', 'org-admin-l3']))
+        {
+            return false;
+        }
+        $managerEmployee = $user->employee;
+
+        if (!$managerEmployee || !$managerEmployee->organization) {
+            Log::warning("User {$user->id} has admin role but no employee profile or organization.");
+            return false;
+        }
+
+        $requestEmployee = $leaveRequest->employee;
+        if (!$requestEmployee || !$requestEmployee->organization)
+        {
+            Log::warning("LeaveRequest {$leaveRequest->id} cannot be processed because its employee {$leaveRequest->employee_id} has no organization.");
+            return false;
+        }
+        $managerOrgId = $managerEmployee->organization_id;
+        $requestEmployeeOrg = $requestEmployee->organization;
+        if ($user->hasRole('org-admin-l3'))
+        {
+            return $requestEmployeeOrg->id === $managerOrgId;
+        }
+        if ($user->hasRole('org-admin-l2'))
+        {
+            return $managerOrgId && $requestEmployeeOrg->ancestors()->where('id', $managerOrgId->id)->exists();
+        }
         return false;
     }
 }

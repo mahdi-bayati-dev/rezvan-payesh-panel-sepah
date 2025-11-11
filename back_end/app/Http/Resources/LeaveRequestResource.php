@@ -28,7 +28,7 @@ class LeaveRequestResource extends JsonResource
             'rejection_reason' => $this->rejection_reason,
 
 
-            'processed_at' => $this->processed_at,
+            'processed_at' => $this->processed_at?->toDateTimeString(),
 
 
             /**
@@ -48,8 +48,8 @@ class LeaveRequestResource extends JsonResource
             'processor' => new UserResource($this->whenLoaded('processor')),
 
 
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at->toDateTimeString(),
+            'updated_at' => $this->updated_at->toDateTimeString(),
         ];
     }
 }
