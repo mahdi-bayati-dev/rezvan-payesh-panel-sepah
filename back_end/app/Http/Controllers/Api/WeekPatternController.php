@@ -90,7 +90,9 @@ class WeekPatternController extends Controller
         $nameRule = ['required', 'string', 'max:255'];
         if ($ignoreId) {
             $nameRule[] = Rule::unique('week_patterns')->ignore($ignoreId);
-        } else {
+        }
+        else
+        {
             $nameRule[] = Rule::unique('week_patterns', 'name');
         }
 
@@ -173,7 +175,7 @@ class WeekPatternController extends Controller
      */
     public function update(Request $request, WeekPattern $weekPattern)
     {
-        $validator = $this->validateRequest($request);
+        $validator = $this->validateRequest($request,$weekPattern->id);
         if ($validator->fails())
         {
             return response()->json(['errors' => $validator->errors()], 422);

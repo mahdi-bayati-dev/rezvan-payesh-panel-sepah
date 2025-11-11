@@ -10,6 +10,7 @@ use App\Models\ShiftSchedule;
 use App\Services\WorkPatternService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -144,7 +145,7 @@ class ShiftScheduleController extends Controller
         }
         catch (\Exception $exception)
         {
-
+            Log::error($exception->getMessage());
         }
         $shiftSchedule->delete();
         return response()->json(null, 204);

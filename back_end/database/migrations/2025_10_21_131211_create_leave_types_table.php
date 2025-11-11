@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('leave_types', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
+            $table->text('description')->nullable();
             $table->foreignId('parent_id')->nullable()->constrained('leave_types')->onDelete('set null');
             $table->timestamps();
         });
