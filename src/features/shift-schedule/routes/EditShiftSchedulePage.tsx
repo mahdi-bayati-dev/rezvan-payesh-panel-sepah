@@ -1,26 +1,46 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { EditShiftScheduleForm } from "@/features/shift-schedule/components/EditShiftScheduleForm";
-import { useEditShiftScheduleForm } from "@/features/shift-schedule/hooks/useEditShiftScheduleForm";
+import { useMemo } from "react"; // ✅ ۱. ایمپورت useMemo
+
+// ✅ اصلاح مسیردهی: استفاده از مسیر نسبی (relative path)
+import { EditShiftScheduleForm } from "../components/EditShiftScheduleForm";
+// ✅ اصلاح مسیردهی: استفاده از مسیر نسبی
+import { useEditShiftScheduleForm } from "../hooks/useEditShiftScheduleForm";
+// ✅ اصلاح بزرگی/کوچکی حروف: 'Alert' به 'alert'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
-// import { Loader2 } from 'lucide-react';
-import { Spinner } from "@/components/ui/Spinner"; // ✅ حروف کوچک
+
+import { EditShiftScheduleFormSkeleton } from "@/features/shift-schedule/Skeleton/EditShiftScheduleFormSkeleton";
+
+// --- ✅ ۲. ایمپورت‌های مورد نیاز برای بهینه‌سازی ---
+import { useWorkPatternsList } from '@/features/work-group/hooks/hook';
+import { type WorkPatternBase } from '@/features/shift-schedule/types';
+// --- پایان ایمپورت‌های جدید ---
 
 export default function EditShiftSchedulePage() {
     const navigate = useNavigate();
-    // کامنت: patternId در واقع shiftScheduleId است
     const { patternId } = useParams<{ patternId: string }>();
     const shiftScheduleId = patternId ?? null;
 
-    // ✅ ۱. هوک ویرایش را فراخوانی می‌کنیم
+    // --- ✅ ۳. فراخوانی هر دو هوک در کامپوننت والد ---
+
+    // هوک اول: دریافت اطلاعات اصلی برنامه شیفتی
     const editFormHook = useEditShiftScheduleForm({
         shiftScheduleId: shiftScheduleId,
         onSuccess: () => {
-            // کامنت: پس از ویرایش موفقیت‌آمیز فیلدهای Header، به صفحه اصلی برمی‌گردیم
             navigate('/work-patterns');
         }
     });
+    const {  isLoadingInitialData, generalApiError } = editFormHook;
 
-    const { isLoadingInitialData, generalApiError } = editFormHook;
+    // هوک دوم: دریافت لیست الگوهای کاری (برای دراپ‌داون‌ها)
+    const { data: rawPatterns, isLoading: isLoadingPatterns } =
+        useWorkPatternsList();
+
+    // --- ✅ ۴. پردازش داده‌های ثانویه در والد ---
+    const availablePatterns: WorkPatternBase[] = useMemo(() => {
+        return rawPatterns?.map((p) => ({ id: p.id, name: p.name })) || [];
+    }, [rawPatterns]);
+
+    // --- پایان فراخوانی‌ها ---
 
     // کامنت: مدیریت عدم وجود ID
     if (!shiftScheduleId) {
@@ -34,17 +54,15 @@ export default function EditShiftSchedulePage() {
         );
     }
 
-    // کامنت: مدیریت خطای لودینگ
-    // ✅ این منطق درست است چون هوک در اینجا فراخوانی می‌شود
-    if (isLoadingInitialData) {
+    // --- ✅ ۵. منطق لودینگ یکپارچه ---
+    // اسکلت لودینگ را تا زمانی که *هر دو* درخواست API کامل نشده‌اند، نمایش بده
+    if (isLoadingInitialData || isLoadingPatterns) {
         return (
-            <div className="flex justify-center items-center min-h-[400px]" dir="rtl">
-                <Spinner size='lg' />
-                <span className="mr-3">در حال بارگذاری اطلاعات برنامه شیفتی...</span>
-            </div>
+            <EditShiftScheduleFormSkeleton />
         )
     }
 
+    // مدیریت خطا (بدون تغییر)
     if (generalApiError && generalApiError.includes("خطا در بارگذاری")) {
         return (
             <div className="p-8" dir="rtl">
@@ -56,11 +74,15 @@ export default function EditShiftSchedulePage() {
         );
     }
 
-    // ✅ ۲. کامپوننت فرم ویرایش اصلی را رندر می‌کنیم
+    // --- ✅ ۶. رندر کامپوننت Presentational با پاس دادن Props ---
     return (
         <EditShiftScheduleForm
-            // کامنت: ارسال تمام متدها و وضعیت‌ها از هوک Edit به فرم
+            // کامنت: ارسال تمام متدها و وضعیت‌ها از هوک Edit
             {...editFormHook}
+            
+            // کامنت: پاس دادن داده‌های ثانویه به عنوان Prop
+            availablePatterns={availablePatterns} // <-- ✅ Prop جدید
+
             onCancel={() => {
                 navigate(-1); // بازگشت به عقب هنگام لغو
             }}

@@ -1,14 +1,14 @@
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo } from "react";
-// import { toast } from "react-toastify";
-import { useShiftSchedule, useUpdateShiftSchedule } from "./hook"; // ✅ مسیر نسبی
+// ✅✅✅ اصلاح: ایمپورت هوک‌ها از فایل hook.ts
+import { useShiftSchedule, useUpdateShiftSchedule } from "./hook";
+// ✅✅✅ اصلاح: ایمپورت اسکیمای *جدید* ویرایش
 import {
-  newShiftScheduleSchema,
-  type NewShiftScheduleFormData,
-} from "../schema/NewShiftScheduleSchema"; // ✅ مسیر نسبی
-import type { ShiftScheduleUpdatePayload } from "../types/index"; // ✅ مسیر نسبی
-// ✅✅✅ اصلاح خطای ۲: ایمپورت از مسیر ماژول work-pattern
+  editShiftScheduleSchema,
+  type EditShiftScheduleFormData,
+} from "../schema/EditShiftScheduleSchema";
+import type { ShiftScheduleUpdatePayload } from "../types/index";
 import type { ApiValidationError } from "@/features/work-pattern/types/index";
 import { AxiosError } from "axios";
 
@@ -18,7 +18,7 @@ interface UseEditShiftScheduleFormProps {
 }
 
 /**
- * هوک مدیریت منطق فرم ویرایش برنامه شیفتی (فقط نام و تاریخ شروع)
+ * هوک مدیریت منطق فرم ویرایش برنامه شیفتی (فقط نام و تاریخ شروع - بخش ۱.۴ مستندات)
  */
 export const useEditShiftScheduleForm = ({
   shiftScheduleId,
@@ -28,49 +28,61 @@ export const useEditShiftScheduleForm = ({
   const {
     data: initialSchedule,
     isLoading: isLoadingInitialData,
-    error: loadError,
+    error: loadError, // خطای مربوط به لود شدن
   } = useShiftSchedule(shiftScheduleId ?? 0);
 
-  // ۲. هوک Mutation برای آپدیت
+  // ۲. هوک Mutation برای آپدیت (بخش ۱.۴)
   const { mutate, isPending, error: mutationError } = useUpdateShiftSchedule();
 
-  // ۳. آماده‌سازی مقادیر پیش‌فرض
+  // ۳. آماده‌سازی مقادیر پیش‌فرض برای فرم
+  // ✅✅✅ اصلاح: این مقادیر فقط برای فرم اطلاعات عمومی (بخش ۱.۴) هستند
   const defaultValues = useMemo(() => {
     if (initialSchedule) {
       return {
         name: initialSchedule.name,
-        cycle_length_days: initialSchedule.cycle_length_days,
         cycle_start_date: initialSchedule.cycle_start_date,
       };
     }
-    return undefined;
+    // اگر هنوز لود نشده، مقادیر پیش‌فرض
+    return {
+      name: "",
+      cycle_start_date: "",
+    };
   }, [initialSchedule]);
 
   // ۴. راه‌اندازی React Hook Form
+  // ✅✅✅ اصلاح: استفاده از اسکیمای جدید و تایپ جدید
   const {
     register,
-    control,
+    control, // ✅✅✅ اصلاح: control اضافه شد
     handleSubmit,
     reset,
     formState: { errors: formErrors, isDirty },
     setError: setFormError,
-  } = useForm<NewShiftScheduleFormData>({
-    resolver: zodResolver(newShiftScheduleSchema),
+  } = useForm<EditShiftScheduleFormData>({
+    // ✅ تایپ فرم اصلاح شد
+    resolver: zodResolver(editShiftScheduleSchema), // ✅ اسکیمای ویرایش
     defaultValues: defaultValues,
     mode: "onTouched",
   });
 
   // ۵. اثر جانبی برای پر کردن فرم پس از لود شدن داده‌ها
   useEffect(() => {
-    if (initialSchedule && defaultValues) {
-      reset(defaultValues);
+    if (initialSchedule) {
+      // ✅✅✅ اصلاح: ریست کردن فقط فیلدهای موجود در فرم ویرایش
+      reset({
+        name: initialSchedule.name,
+        cycle_start_date: initialSchedule.cycle_start_date,
+      });
     }
-  }, [initialSchedule, defaultValues, reset]);
+  }, [initialSchedule, reset]);
 
-  // ۶. تابع onSubmit برای آپدیت
-  const onSubmit: SubmitHandler<NewShiftScheduleFormData> = (data) => {
+  // ۶. تابع onSubmit برای آپدیت (بخش ۱.۴)
+  // ✅✅✅ اصلاح: پارامتر data حالا تایپ صحیح EditShiftScheduleFormData را دارد
+  const onSubmit: SubmitHandler<EditShiftScheduleFormData> = (data) => {
     if (!shiftScheduleId) return;
 
+    // ✅ Payload اکنون مستقیماً همان data است (چون Zod schema مطابقت دارد)
     const payload: ShiftScheduleUpdatePayload = {
       name: data.name,
       cycle_start_date: data.cycle_start_date,
@@ -79,22 +91,25 @@ export const useEditShiftScheduleForm = ({
     mutate(
       { id: shiftScheduleId, payload },
       {
-        onSuccess: () => {
-          reset(data);
+        onSuccess: (updatedData) => {
+          // پس از موفقیت، فرم را با داده‌های *جدید* ریست می‌کنیم
+          reset({
+            name: updatedData.name,
+            cycle_start_date: updatedData.cycle_start_date,
+          });
           if (onSuccess) onSuccess();
         },
-        // ✅✅✅ اصلاح خطای ۳: تغییر تایپ error
         onError: (error: any) => {
           if (error.response?.status === 422) {
             const apiErrors = (error as AxiosError<ApiValidationError>).response
               ?.data.errors;
             if (apiErrors) {
               Object.entries(apiErrors).forEach(([field, messages]) => {
-                // ✅✅✅ اصلاح خطای ۴: اطمینان از آرایه بودن پیام‌ها
                 const fieldMessages = Array.isArray(messages)
                   ? messages
                   : [String(messages)];
                 try {
+                  // ✅ تایپ any چون field می‌تواند 'name' یا 'cycle_start_date' باشد
                   setFormError(field as any, {
                     type: "server",
                     message: fieldMessages[0],
@@ -110,10 +125,9 @@ export const useEditShiftScheduleForm = ({
     );
   };
 
-  // ۷. مدیریت خطاهای عمومی (بارگذاری و Mutation)
-  // ✅✅✅ اصلاح خطای ۵: تغییر تایپ error
+  // ۷. مدیریت خطاهای عمومی (هم بارگذاری و هم Mutation)
   const generalApiError =
-    (loadError as any)?.message ||
+    (loadError as any)?.message || // خطای بارگذاری
     (mutationError && (mutationError as any).response?.status !== 422
       ? (mutationError as AxiosError<{ message: string }>)?.response?.data
           ?.message || "خطای ناشناخته در هنگام ویرایش رخ داد."
@@ -121,15 +135,15 @@ export const useEditShiftScheduleForm = ({
 
   // ۸. بازگرداندن مقادیر و توابع
   return {
-    initialSchedule,
-    control,
-    register,
+    initialSchedule, // داده‌های کامل برنامه (شامل اسلات‌ها)
+    control, // ✅✅✅ اصلاح: control اکنون بازگردانده می‌شود
+    register, // (برای فیلدهای نام و تاریخ)
     handleSubmit,
-    formErrors,
-    isPending: isPending,
-    isLoadingInitialData,
-    generalApiError,
-    isDirty,
-    onSubmit,
+    formErrors, // (خطاهای فیلدهای نام و تاریخ)
+    isPending: isPending, // آیا فرم اطلاعات عمومی در حال ذخیره است؟
+    isLoadingInitialData, // آیا کل صفحه در حال لود است؟
+    generalApiError, // خطای عمومی
+    isDirty, // آیا فرم اطلاعات عمومی تغییر کرده؟
+    onSubmit, // تابع سابمیت فرم اطلاعات عمومی
   };
 };

@@ -3,25 +3,25 @@ import { toast } from "react-toastify";
 import {
   fetchShiftSchedules,
   fetchShiftScheduleById,
-  createShiftSchedule,
   updateShiftSchedule,
   deleteShiftSchedule,
   updateScheduleSlot,
-} from "@/features/shift-schedule/api/api"; // ✅ مسیر نسبی
+} from "@/features/shift-schedule/api/api";
+
 import type {
-  ShiftScheduleResource,
-  ShiftSchedulePayload,
   ShiftScheduleUpdatePayload,
-  ScheduleSlotResource,
-  PaginatedShiftScheduleResponse, // ✅ ایمپورت تایپ Paginated
-} from "@/features/shift-schedule/types/index"; // ✅ مسیر نسبی
+  // ScheduleSlotResource, // ✅ این ایمپورت استفاده نشده بود و حذف شد
+  PaginatedShiftScheduleResponse,
+  ShiftScheduleResource, // ✅ ایمپورت این تایپ برای oldData لازم است
+} from "@/features/shift-schedule/types/index";
+
 import type {
   WorkPatternUI,
   ApiPaginationMeta,
   ApiPaginationLinks,
-} from "@/features/work-pattern/types/index"; // ✅ ایمپورت تایپ مشترک
+} from "@/features/work-pattern/types/index";
 
-// کامنت: کلیدهای کوئری برای ذخیره سازی و مدیریت کش
+// ---------------- کلیدهای کوئری ----------------
 const shiftScheduleKeys = {
   all: ["shiftSchedules"] as const,
   lists: () => [...shiftScheduleKeys.all, "list"] as const,
@@ -29,17 +29,11 @@ const shiftScheduleKeys = {
     [...shiftScheduleKeys.all, "detail", id] as const,
 };
 
-// --- ۱. هوک‌های Shift Schedule (لیست، جزئیات، ایجاد، ویرایش، حذف) ---
-
-/**
- * هوک برای فچ کردن لیست برنامه‌های شیفتی (صفحه‌بندی شده)
- */
+// ---------------- فهرست برنامه‌ها ----------------
 export const useShiftSchedules = (page: number) => {
   return useQuery({
-    queryKey: [...shiftScheduleKeys.lists(), { page }], // ✅ کلید کوئری شامل صفحه
+    queryKey: [...shiftScheduleKeys.lists(), { page }],
     queryFn: () => fetchShiftSchedules(page),
-
-    // ✅✅✅ اصلاح کلیدی: افزودن select برای تبدیل داده‌ها به WorkPatternUI ✅✅✅
     select: (
       data: PaginatedShiftScheduleResponse
     ): {
@@ -47,39 +41,26 @@ export const useShiftSchedules = (page: number) => {
       meta: ApiPaginationMeta;
       links: ApiPaginationLinks;
     } => {
-      // کامنت: مدیریت ساختار آرایه‌ای (Multi-response) که قبلاً در API دیدیم
-      // (این بخش فعلاً کامنت شده تا از ساختار استاندارد استفاده شود)
-      // const responseData = Array.isArray(data.data) ? data.data[0] : data.data;
-      // const meta = Array.isArray(data.meta) ? data.meta[0] : data.meta;
-      // const links = Array.isArray(data.links) ? data.links[0] : data.links;
-
       const responseData = data.data;
-      const meta = data.meta as ApiPaginationMeta; // اطمینان از تایپ
-      const links = data.links as ApiPaginationLinks; // اطمینان از تایپ
+      const meta = data.meta as ApiPaginationMeta;
+      const links = data.links as ApiPaginationLinks;
 
-      // کامنت: تبدیل هر برنامه شیفتی به فرمت مشترک WorkPatternUI
       const transformedPatterns: WorkPatternUI[] = responseData.map(
         (schedule) => ({
           id: schedule.id,
           name: schedule.name,
-          pattern_type: "SHIFT_SCHEDULE", // ✅ تعیین نوع
+          pattern_type: "SHIFT_SCHEDULE",
           cycle_length_days: schedule.cycle_length_days,
           cycle_start_date: schedule.cycle_start_date,
         })
       );
 
-      return {
-        patterns: transformedPatterns,
-        meta: meta,
-        links: links,
-      };
+      return { patterns: transformedPatterns, meta, links };
     },
   });
 };
 
-/**
- * هوک برای فچ کردن جزئیات یک برنامه شیفتی (شامل اسلات‌ها)
- */
+// ---------------- جزئیات یک برنامه ----------------
 export const useShiftSchedule = (id: number | string) => {
   return useQuery({
     queryKey: shiftScheduleKeys.details(id),
@@ -88,30 +69,7 @@ export const useShiftSchedule = (id: number | string) => {
   });
 };
 
-/**
- * هوک برای ایجاد یک برنامه شیفتی جدید
- */
-export const useCreateShiftSchedule = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: ShiftSchedulePayload) => createShiftSchedule(payload),
-    onSuccess: () => {
-      // باطل کردن کش لیست برای نمایش آیتم جدید
-      queryClient.invalidateQueries({ queryKey: shiftScheduleKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ["workPatterns"] }); // ✅ باطل کردن کوئری ترکیبی
-      toast.success("برنامه شیفتی با موفقیت ایجاد شد.");
-    },
-    onError: (error: any) => {
-      const message =
-        error.response?.data?.message || "خطا در ایجاد برنامه شیفتی.";
-      toast.error(message);
-    },
-  });
-};
-
-/**
- * هوک برای ویرایش نام و تاریخ شروع برنامه شیفتی
- */
+// ---------------- آپدیت برنامه (PUT) ----------------
 export const useUpdateShiftSchedule = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -120,84 +78,163 @@ export const useUpdateShiftSchedule = () => {
       payload,
     }: {
       id: number | string;
-      payload: ShiftScheduleUpdatePayload; // فقط نام و تاریخ شروع
+      payload: ShiftScheduleUpdatePayload;
     }) => updateShiftSchedule(id, payload),
-    onSuccess: (updatedData) => {
-      // ۱. باطل کردن کش لیست
-      queryClient.invalidateQueries({ queryKey: shiftScheduleKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ["workPatterns"] }); // ✅ باطل کردن کوئری ترکیبی
-      // ۲. آپدیت کش جزئیات برای رفرش فوری صفحه ویرایش
-      queryClient.setQueryData(
-        shiftScheduleKeys.details(updatedData.id),
+
+    onSuccess: async (updatedData) => {
+      // 🐞 لاگ دیباگ: نمایش داده‌های دریافتی از سرور پس از PUT
+      console.log(
+        "useUpdateShiftSchedule (PUT) onSuccess: Received updated data from server:",
         updatedData
       );
-      toast.success("برنامه شیفتی به‌روزرسانی شد.");
+
+      const queryKey = shiftScheduleKeys.details(String(updatedData.id)); // کلید رشته‌ای "13"
+      queryClient.setQueryData(
+        queryKey, // استفاده از کلید رشته‌ای
+        updatedData
+      );
+      // 🐞 لاگ دیباگ: تایید تنظیم شدن داده‌ها در کش
+      console.log(
+        `useUpdateShiftSchedule (PUT) onSuccess: Set query data for detail [${updatedData.id}]`
+      );
+
+      // 🔹 هم‌زمان‌سازی کلی با سرور
+      await queryClient.invalidateQueries({
+        queryKey: shiftScheduleKeys.lists(),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["workPatterns"] });
+      // 🐞 لاگ دیباگ: تایید invalidate شدن لیست‌ها
+      console.log(
+        "useUpdateShiftSchedule (PUT) onSuccess: Invalidated lists and workPatterns."
+      );
+
+      toast.success("برنامه شیفتی با موفقیت به‌روزرسانی شد.");
+    },
+
+    onError: (error: any) => {
+      // 🐞 لاگ دیباگ: نمایش خطا
+      console.error("useUpdateShiftSchedule (PUT) onError:", error);
+      toast.error(
+        error.response?.data?.message || "خطا در به‌روزرسانی برنامه."
+      );
     },
   });
 };
 
-/**
- * هوک برای حذف برنامه شیفتی
- */
+// ---------------- حذف برنامه ----------------
 export const useDeleteShiftSchedule = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number | string) => deleteShiftSchedule(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: shiftScheduleKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ["workPatterns"] }); // ✅ باطل کردن کوئری ترکیبی
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: shiftScheduleKeys.lists(),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["workPatterns"] });
       toast.success("برنامه شیفتی حذف شد.");
     },
+
     onError: (error: any) => {
-      const message =
-        error.response?.data?.message || "خطا در حذف برنامه شیفتی.";
-      toast.error(message);
+      toast.error(error.response?.data?.message || "خطا در حذف برنامه شیفتی.");
     },
   });
 };
 
-// --- ۲. هوک‌های Schedule Slot (ویرایش ردیف‌ها) ---
-
-/**
- * هوک برای آپدیت یک اسلات خاص در چرخه شیفتی (ویرایش Inline)
- */
+// ---------------- آپدیت یک اسلات (PATCH) ----------------
+// 🌟🌟🌟 اینجا نقطه اصلی مشکل بود 🌟🌟🌟
 export const useUpdateScheduleSlot = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: updateScheduleSlot,
+    mutationFn: ({
+      shiftScheduleId,
+      scheduleSlotId,
+      payload,
+    }: {
+      shiftScheduleId: number | string;
+      scheduleSlotId: number | string;
+      payload: any;
+    }) =>
+      updateScheduleSlot({
+        shiftScheduleId,
+        scheduleSlotId,
+        payload,
+      }),
 
-    onSuccess: (updatedSlot: ScheduleSlotResource, variables) => {
-      const queryKey = shiftScheduleKeys.details(variables.shiftScheduleId);
+    onSuccess: async (updatedSlot, variables) => {
+      const queryKey = shiftScheduleKeys.details(
+        String(variables.shiftScheduleId)
+      );
+      // 🐞 لاگ دیباگ: نمایش کلید کوئری
+      console.log(
+        `useUpdateScheduleSlot (PATCH) onSuccess: Attempting to update cache for key:`,
+        JSON.stringify(queryKey)
+      );
+      // 🐞 لاگ دیباگ: نمایش اسلات آپدیت شده از سرور
+      console.log(
+        `useUpdateScheduleSlot (PATCH) onSuccess: Received updated slot data:`,
+        updatedSlot
+      );
 
-      // --- ۱. به‌روزرسانی آنی کش (Optimistic UI) ---
-      queryClient.setQueryData<ShiftScheduleResource>(
+      // 1️⃣ بلافاصله داده‌ها را در کش آپدیت کن تا بدون رفرش دیده شود
+      queryClient.setQueryData(
         queryKey,
-        (oldScheduleData) => {
-          if (!oldScheduleData) {
-            return undefined;
+        // 🟢 راه‌حل: oldData تایپ ShiftScheduleResource را دارد
+        (oldData: ShiftScheduleResource | undefined) => {
+          if (!oldData) {
+            // 🐞 لاگ دیباگ: هشدار در صورت نبودن داده در کش
+            console.warn(
+              "useUpdateScheduleSlot (PATCH) setQueryData: No old data found in cache. Returning undefined."
+            );
+            return oldData;
           }
 
-          const oldSlots = oldScheduleData.slots || [];
-          const newSlots = oldSlots.map((slot) =>
+          // 🐞 لاگ دیباگ: نمایش داده‌های قدیمی موجود در کش
+          console.log(
+            "useUpdateScheduleSlot (PATCH) setQueryData: Found old data in cache:",
+            oldData
+          );
+
+          // 🟢 راه‌حل: دسترسی مستقیم به oldData.slots
+          const newSlots = oldData.slots.map((slot: any) =>
             slot.id === updatedSlot.id ? updatedSlot : slot
           );
 
+          // 🐞 لاگ دیباگ: نمایش آرایه اسلات‌های جدید
+          console.log(
+            "useUpdateScheduleSlot (PATCH) setQueryData: New slots array created:",
+            newSlots
+          );
+
+          // 🟢 راه‌حل: برگرداندن آبجکت ShiftScheduleResource با اسلات‌های جدید
           return {
-            ...oldScheduleData,
-            slots: newSlots,
+            ...oldData,
+            slots: newSlots, // جایگزینی آرایه اسلات‌ها
           };
         }
       );
 
-      // --- ۲. باطل کردن کش (Fallback) ---
-      queryClient.invalidateQueries({ queryKey });
+      // 2️⃣ سپس کوئری را invalidate کن تا داده جدید از سرور بیاید
+      // این کار تضمین می‌کند که داده‌های ما 100% با سرور هماهنگ هستند
+      await queryClient.invalidateQueries({
+        queryKey: queryKey,
+      });
+      // 🐞 لاگ دیباگ: تایید invalidate شدن
+      console.log(
+        `useUpdateScheduleSlot (PATCH) onSuccess: Invalidated query:`,
+        JSON.stringify(queryKey)
+      );
 
-      toast.success(`اسلات روز ${updatedSlot.day_in_cycle} به‌روزرسانی شد.`);
+      toast.success(
+        `اسلات روز ${updatedSlot.day_in_cycle} با موفقیت بروزرسانی شد.`
+      );
     },
+
     onError: (error: any) => {
-      const message =
-        error.response?.data?.message || "خطا در به‌روزرسانی اسلات.";
-      toast.error(message);
+      // 🐞 لاگ دیباگ: نمایش خطا
+      console.error("useUpdateScheduleSlot (PATCH) onError:", error);
+      toast.error(error.response?.data?.message || "خطا در بروزرسانی اسلات.");
     },
   });
 };

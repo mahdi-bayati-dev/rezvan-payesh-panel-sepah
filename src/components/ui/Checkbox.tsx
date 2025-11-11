@@ -1,17 +1,16 @@
-import { Fragment } from 'react';
-import { Switch, Transition } from '@headlessui/react';
-import { Check } from 'lucide-react'; // آیکون تیک
-
-// ابزار کمکی برای ترکیب کلاس‌های Tailwind (اختیاری ولی مفید)
+// import { Fragment } from 'react';
+// ✅ تغییر ۱: Transition دیگر لازم نیست
+import { Switch } from '@headlessui/react';
+import { Check } from 'lucide-react';
 import clsx from 'clsx';
 
 interface CheckboxProps {
-    id?: string; // ID برای اتصال به label
+    id?: string;
     label: string;
     checked: boolean;
     onCheckedChange: (checked: boolean) => void;
     disabled?: boolean;
-    className?: string; // کلاس‌های اضافی برای div اصلی
+    className?: string;
 }
 
 const Checkbox = ({
@@ -22,9 +21,6 @@ const Checkbox = ({
     disabled = false,
     className,
 }: CheckboxProps) => {
-    // Headless UI Switch وضعیت داخلی خودش رو مدیریت نمی‌کنه،
-    // پس ما از checked و onCheckedChange که از props میان استفاده می‌کنیم.
-
     return (
         <Switch.Group as="div" className={clsx("flex items-center", className)}>
             <Switch
@@ -38,19 +34,13 @@ const Checkbox = ({
                     disabled ? 'cursor-not-allowed opacity-50' : ''
                 )}
             >
-                {/* آیکون تیک که فقط در حالت checked نمایش داده می‌شود */}
-                <Transition
-                    show={checked}
-                    as={Fragment}
-                    enter="transition-opacity duration-100"
-                    enterFrom="opacity-0"
-                    enterTo="opacity-100"
-                    leave="transition-opacity duration-100"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
-                >
+                {/* ✅✅✅ تغییر کلیدی (راه‌حل نهایی) ✅✅✅
+                  حذف کامل <Transition> و استفاده از رندر شرطی ساده.
+                  این کار خطای مربوط به پراپ 'show' را به طور کامل از بین می‌برد.
+                */}
+                {checked && (
                     <Check className="h-3.5 w-3.5 text-white dark:text-black" strokeWidth={3} />
-                </Transition>
+                )}
 
             </Switch>
             <Switch.Label as="label" htmlFor={id} className={clsx("ml-2 mr-2 text-sm cursor-pointer select-none", disabled ? 'opacity-50 cursor-not-allowed' : '', 'text-foregroundL dark:text-foregroundD')}>
@@ -59,9 +49,5 @@ const Checkbox = ({
         </Switch.Group>
     );
 };
-// کامنت: ایمپورت Fragment و Transition از headlessui/react را اضافه کنید
-// import { Fragment } from 'react';
-// import { Transition } from '@headlessui/react';
-
 
 export default Checkbox;

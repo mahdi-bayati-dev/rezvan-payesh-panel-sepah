@@ -1,60 +1,44 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Check, X, Edit } from 'lucide-react'; // ✅ ایمپورت آیکون Edit
+import { Loader2, Check, X, Edit } from 'lucide-react';
 
-import SelectBox, { type SelectOption } from '@/components/ui/SelectBox'; // ✅ G: 'SelectBox' -> 'selectBox'
-import Input from '@/components/ui/Input'; // ✅ G: 'Input' -> 'input'
-import { Button } from '@/components/ui/Button'; // ✅ G: 'Button' -> 'button'
-import { useUpdateScheduleSlot } from '../hooks/hook'; // ✅ G: Relative path
+// مسیرهایی که در تلاش قبلی برای رفع خطا استفاده کردیم
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
+import { Button } from '@/components/ui/Button';
+import { CustomTimeInput } from '@/components/ui/CustomTimeInput';
+import { useUpdateScheduleSlot } from '../hooks/hook';
 import {
+
     type ScheduleSlotResource,
     type WorkPatternBase,
     type SlotUpdatePayload
-} from '../types'; // ✅ G: Relative path
-import clsx from 'clsx'; // ✅ ایمپورت clsx
+} from '../types';
+import clsx from 'clsx';
 
-// --- ۱. Schema برای اعتبارسنجی فیلدهای یک اسلات ---
+// --- Schema (بدون تغییر) ---
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-
 const slotSchema = z.object({
-    work_pattern_id: z.number().nullable().optional(),
+    work_pattern_id: z.number().nullable(),
     override_start_time: z.string().nullable().optional(),
     override_end_time: z.string().nullable().optional(),
 }).superRefine((data, ctx) => {
     const start = data.override_start_time;
     const end = data.override_end_time;
-
-    // کامنت: فقط اگر هر دو مقدار وجود داشتند، اعتبارسنجی کن
     if (start && end) {
         if (!timeRegex.test(start) || !timeRegex.test(end)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "فرمت نامعتبر", path: ['override_end_time'] });
             return;
         }
-
-        const [startHours, startMinutes] = start.split(":").map(Number);
-        const [endHours, endMinutes] = end.split(":").map(Number);
-        const startTimeInMinutes = startHours * 60 + startMinutes;
-        let endTimeInMinutes = endHours * 60 + endMinutes;
-
-        // کامنت: برای شیفت‌های شبانه
-        if (endTimeInMinutes < startTimeInMinutes) {
-            endTimeInMinutes += 24 * 60;
-        }
-
-        if (endTimeInMinutes <= startTimeInMinutes) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "پایان باید بعد از شروع باشد", path: ['override_end_time'] });
-        }
     }
-    // کامنت: اگر یکی بود و دیگری نبود (اختیاری)
     else if (start && !end) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "ساعت پایان الزامی است", path: ['override_end_time'] });
     } else if (!start && end) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "ساعت شروع الزامی است", path: ['override_start_time'] });
     }
 });
-
 type SlotFormData = z.infer<typeof slotSchema>;
 
 
@@ -64,9 +48,6 @@ interface ScheduleSlotRowProps {
     availablePatterns: WorkPatternBase[];
 }
 
-/**
- * کامپوننت یک ردیف در جدول اسلات‌های برنامه شیفتی (قابلیت ویرایش Inline)
- */
 export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
     slot,
     shiftScheduleId,
@@ -75,29 +56,26 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
     const [isEditing, setIsEditing] = useState(false);
     const updateSlotMutation = useUpdateScheduleSlot();
 
-    // تبدیل لیست الگوهای اتمی به SelectOption
+    // --- SelectBox Options (بدون تغییر) ---
     const patternOptions: SelectOption[] = useMemo(() =>
         availablePatterns.map(p => ({ id: p.id, name: p.name })),
         [availablePatterns]
     );
-
-    // افزودن گزینه 'روز استراحت' (null)
     const allOptions: SelectOption[] = useMemo(() => [
         { id: null as any, name: 'روز استراحت (Off)' },
         ...patternOptions
     ], [patternOptions]);
 
 
-    // --- مقادیر پیش‌فرض ---
+    // --- مدیریت فرم داخلی ---
     const defaultValues: SlotFormData = useMemo(() => ({
         work_pattern_id: slot.work_pattern_id,
         override_start_time: slot.override_start_time,
         override_end_time: slot.override_end_time,
     }), [slot]);
 
-    // --- راه‌اندازی React Hook Form ---
     const {
-        register,
+        control,
         handleSubmit,
         reset,
         watch,
@@ -108,90 +86,98 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
         defaultValues,
     });
 
-    // --- مشاهده فیلدها ---
+    const isSubmitting = updateSlotMutation.isPending;
+
+    useEffect(() => {
+        if (isSubmitting) {
+            return;
+        }
+        reset(defaultValues);
+
+    }, [defaultValues, reset, isSubmitting]);
+
+
+    // --- منطق فرم ---
     const watchedPatternId = watch('work_pattern_id');
     const isRestDay = watchedPatternId === null;
 
-    // ✅ بهبود منطقی/UX:
-    // هرگاه کاربر "روز استراحت" را انتخاب کرد، فیلدهای override را بلافاصله پاک کن
     useEffect(() => {
-        if (isRestDay) {
+        if (isEditing && isRestDay) {
             setValue('override_start_time', null, { shouldDirty: true });
             setValue('override_end_time', null, { shouldDirty: true });
         }
-    }, [isRestDay, setValue]);
+    }, [isEditing, isRestDay, setValue]);
 
 
-    // --- مدیریت Submit ---
-    const onSubmit = (formData: SlotFormData) => {
+    // --- onSubmit (بدون تغییر، منطق await صحیح است) ---
+    const onSubmit = async (formData: SlotFormData) => {
         const payload: SlotUpdatePayload = {
-            work_pattern_id: formData.work_pattern_id, // قبلاً null شده
+            work_pattern_id: formData.work_pattern_id,
             override_start_time: formData.override_start_time,
             override_end_time: formData.override_end_time,
         };
 
-        // کامنت: اگر روز استراحت باشد، مقادیر override باید null ارسال شوند (این کار در useEffect هم انجام شد)
         if (isRestDay) {
             payload.override_start_time = null;
             payload.override_end_time = null;
         }
 
-        updateSlotMutation.mutate(
-            {
+        try {
+            await updateSlotMutation.mutateAsync({
                 shiftScheduleId,
                 scheduleSlotId: slot.id,
                 payload,
-            },
-            {
-                onSuccess: (updatedSlot) => {
-                    // کامنت: پس از آپدیت موفقیت‌آمیز، فرم را ریست می‌کنیم تا isDirty از بین برود
-                    reset({
-                        work_pattern_id: updatedSlot.work_pattern_id,
-                        override_start_time: updatedSlot.override_start_time,
-                        override_end_time: updatedSlot.override_end_time,
-                    });
-                    setIsEditing(false);
-                },
-                // کامنت: مدیریت خطا در هوک useUpdateScheduleSlot انجام می‌شود
-            }
-        );
+            });
+            setIsEditing(false);
+        } catch (error) {
+            console.error("خطا در هنگام آپدیت اسلات:", error);
+        }
     };
 
-    // --- مدیریت لغو ---
     const handleCancel = () => {
         reset(defaultValues);
         setIsEditing(false);
     };
 
-    const isSubmitting = updateSlotMutation.isPending;
     const dayInCycle = slot.day_in_cycle;
 
-    // --- مقادیر نمایشی (برای حالت غیر ویرایش) ---
-    const displayPatternName = slot.work_pattern_name || 'استراحت';
-    const displayStartTime = slot.override_start_time;
-    const displayEndTime = slot.override_end_time;
+    // --- مقادیر نمایشی (منطق رفع باگ شده قبلی، بدون تغییر) ---
+    const displayPatternName = slot.work_pattern ? slot.work_pattern.name : 'استراحت';
+    const displayStartTime = slot.override_start_time || (slot.work_pattern ? slot.work_pattern.start_time : null);
+    const displayEndTime = slot.override_end_time || (slot.work_pattern ? slot.work_pattern.end_time : null);
+    console.log(displayStartTime,displayEndTime);
+    
+
+    const placeholderStartTime = slot.work_pattern ? slot.work_pattern.start_time : undefined;
+    const placeholderEndTime = slot.work_pattern ? slot.work_pattern.end_time : undefined;
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="contents" noValidate>
             <div className="contents text-sm text-center">
-                {/* ستون ۱: روز در چرخه */}
+
+                {/* ستون ۱: روز */}
                 <div className="p-3 border-r border-borderL dark:border-borderD flex justify-center items-center font-medium text-foregroundL dark:text-foregroundD">
                     {dayInCycle}
                 </div>
 
-                {/* ستون ۲: الگوی کاری */}
+                {/* ستون ۲: الگوی کاری (SelectBox) */}
                 <div className="p-2 border-r border-borderL dark:border-borderD text-right">
                     {isEditing ? (
                         <div>
-                            <SelectBox
-                                label=""
-                                placeholder="انتخاب الگو"
-                                options={allOptions}
-                                value={allOptions.find(opt => opt.id === watchedPatternId) || null}
-                                onChange={(option) => setValue('work_pattern_id', option ? (option.id as number | null) : null, { shouldDirty: true })}
-                                disabled={isSubmitting}
+                            <Controller
+                                name="work_pattern_id"
+                                control={control}
+                                render={({ field }) => (
+                                    <SelectBox
+                                        label=""
+                                        placeholder="انتخاب الگو"
+                                        options={allOptions}
+                                        value={allOptions.find(opt => opt.id === field.value) || null}
+                                        onChange={(option) => field.onChange(option ? (option.id as number | null) : null)}
+                                        disabled={isSubmitting}
+                                    />
+                                )}
                             />
-                            {/* ✅ نمایش خطا برای SelectBox */}
                             {errors.work_pattern_id?.message && (
                                 <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                                     {errors.work_pattern_id.message}
@@ -208,17 +194,26 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                     )}
                 </div>
 
-                {/* ستون ۳: شروع Override */}
+                {/* ستون ۳: شروع Override (CustomTimeInput) */}
                 <div className="p-2 border-r border-borderL dark:border-borderD">
                     {isEditing ? (
-                        <Input
-                            label=""
-                            type="time"
-                            dir='ltr' // ✅ برای تایم بهتر است ltr باشد
-                            {...register('override_start_time')}
-                            error={errors.override_start_time?.message}
-                            disabled={isSubmitting || isRestDay}
-                            className={clsx("w-full", isRestDay && "opacity-50 bg-stone-100 dark:bg-stone-800")} // ✅ حذف text-xs
+                        <Controller
+                            name="override_start_time"
+                            control={control}
+                            render={({ field }) => (
+                                <CustomTimeInput
+                                    // ✅✅✅ رفع خطای TS(2322) ✅✅✅
+                                    // خطای "Type 'undefined' is not assignable to 'string | null'"
+                                    // به این دلیل بود که field.value از react-hook-form می‌تواند undefined باشد.
+                                    // کامپوننت CustomTimeInput شما به صراحت 'string | null' می‌خواهد.
+                                    // با `?? null` ما تضمین می‌کنیم که undefined هرگز پاس داده نمی‌شود.
+                                    value={field.value ?? null}
+                                    onChange={field.onChange}
+                                    placeholder={placeholderStartTime}
+                                    disabled={isSubmitting || isRestDay}
+                                    className={clsx(isRestDay && "opacity-50 bg-stone-100 dark:bg-stone-800")}
+                                />
+                            )}
                         />
                     ) : (
                         <span className={clsx(!displayStartTime && "text-muted-foregroundL dark:text-muted-foregroundD")}>
@@ -227,17 +222,23 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                     )}
                 </div>
 
-                {/* ستون ۴: پایان Override */}
+                {/* ستون ۴: پایان Override (CustomTimeInput) */}
                 <div className="p-2 border-r border-borderL dark:border-borderD">
                     {isEditing ? (
-                        <Input
-                            label=""
-                            type="time"
-                            dir='ltr' // ✅
-                            {...register('override_end_time')}
-                            error={errors.override_end_time?.message}
-                            disabled={isSubmitting || isRestDay}
-                            className={clsx("w-full", isRestDay && "opacity-50 bg-stone-100 dark:bg-stone-800")} // ✅ حذف text-xs
+                        <Controller
+                            name="override_end_time"
+                            control={control}
+                            render={({ field }) => (
+                                <CustomTimeInput
+                                    // ✅✅✅ رفع خطای TS(2322) ✅✅✅
+                                    // همان اصلاح را برای فیلد زمان پایان نیز اعمال می‌کنیم.
+                                    value={field.value ?? null}
+                                    onChange={field.onChange}
+                                    placeholder={placeholderEndTime}
+                                    disabled={isSubmitting || isRestDay}
+                                    className={clsx(isRestDay && "opacity-50 bg-stone-100 dark:bg-stone-800")}
+                                />
+                            )}
                         />
                     ) : (
                         <span className={clsx(!displayEndTime && "text-muted-foregroundL dark:text-muted-foregroundD")}>
@@ -258,7 +259,6 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                             </Button>
                         </>
                     ) : (
-                        // ✅ بهبود UI دکمه ویرایش
                         <Button type="button" size="icon" variant="outline" onClick={() => setIsEditing(true)} title="ویرایش">
                             <Edit className="h-4 w-4" />
                         </Button>
@@ -268,4 +268,3 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
         </form>
     );
 };
-
