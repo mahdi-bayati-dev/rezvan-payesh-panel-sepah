@@ -6,6 +6,7 @@ import {
   type ShiftSchedulePayload,
   type SlotUpdatePayload,
   type ScheduleSlotResource, // ✅ ایمپورت تایپ ScheduleSlotResource
+  type ShiftScheduleUpdatePayload, // ✅ ایمپورت تایپ ShiftScheduleUpdatePayload
 } from "../types/index";
 
 const API_URL = "/shift-schedules";
@@ -13,8 +14,8 @@ const API_URL = "/shift-schedules";
 // --- ۱. مدیریت Shift Schedules ---
 
 /**
- * GET /shift-schedules
- * کامنت: دریافت لیست برنامه‌های شیفتی (با اصلاح خواندن داده‌های آرایه‌ای)
+ * GET /api/shift-schedules (بخش ۱.۱ مستندات)
+ * دریافت لیست برنامه‌های شیفتی
  */
 export const fetchShiftSchedules = async (
   page: number
@@ -22,13 +23,12 @@ export const fetchShiftSchedules = async (
   const response = await axiosInstance.get<PaginatedShiftScheduleResponse>(
     `${API_URL}?page=${page}`
   );
-
   return response.data;
 };
 
 /**
- * GET /shift-schedules/{id}
- * کامنت: دریافت جزئیات برنامه شیفتی
+ * GET /api/shift-schedules/{id} (بخش ۱.۳ مستندات)
+ * دریافت جزئیات برنامه شیفتی
  */
 export const fetchShiftScheduleById = async (
   id: number | string
@@ -40,11 +40,11 @@ export const fetchShiftScheduleById = async (
 };
 
 /**
- * POST /shift-schedules
- * کامنت: ایجاد برنامه شیفتی جدید
+ * POST /api/shift-schedules (بخش ۱.۲ مستندات)
+ * ایجاد برنامه شیفتی جدید
  */
 export const createShiftSchedule = async (
-  payload: ShiftSchedulePayload
+  payload: ShiftSchedulePayload // ✅ استفاده از تایپ دقیق Payload
 ): Promise<ShiftScheduleResource> => {
   const response = await axiosInstance.post<SingleShiftScheduleResponse>(
     API_URL,
@@ -54,12 +54,12 @@ export const createShiftSchedule = async (
 };
 
 /**
- * PUT /shift-schedules/{id}
- * کامنت: به‌روزرسانی نام و تاریخ شروع برنامه شیفتی
+ * PUT /api/shift-schedules/{id} (بخش ۱.۴ مستندات)
+ * به‌روزرسانی نام و تاریخ شروع برنامه شیفتی
  */
 export const updateShiftSchedule = async (
   id: number | string,
-  payload: { name: string; cycle_start_date: string }
+  payload: ShiftScheduleUpdatePayload // ✅ استفاده از تایپ دقیق Payload
 ): Promise<ShiftScheduleResource> => {
   const response = await axiosInstance.put<SingleShiftScheduleResponse>(
     `${API_URL}/${id}`,
@@ -69,8 +69,8 @@ export const updateShiftSchedule = async (
 };
 
 /**
- * DELETE /shift-schedules/{id}
- * کامنت: حذف برنامه شیفتی
+ * DELETE /api/shift-schedules/{id} (بخش ۱.۵ مستندات)
+ * حذف برنامه شیفتی
  */
 export const deleteShiftSchedule = async (
   id: number | string
@@ -81,8 +81,8 @@ export const deleteShiftSchedule = async (
 // --- ۲. مدیریت Schedule Slots ---
 
 /**
- * PATCH /shift-schedules/{shiftSchedule}/slots/{scheduleSlot}
- * کامنت: به‌روزرسانی جزئیات یک اسلات خاص
+ * PATCH /api/shift-schedules/{shiftSchedule}/slots/{scheduleSlot} (بخش ۲.۱ مستندات)
+ * به‌روزرسانی جزئیات یک اسلات خاص
  */
 export const updateScheduleSlot = async ({
   shiftScheduleId,
@@ -91,16 +91,20 @@ export const updateScheduleSlot = async ({
 }: {
   shiftScheduleId: number | string;
   scheduleSlotId: number | string;
-  payload: SlotUpdatePayload;
+  payload: SlotUpdatePayload; // ✅ استفاده از تایپ دقیق Payload
 }): Promise<ScheduleSlotResource> => {
-  // ✅✅✅ اصلاح کلیدی: تغییر متد از .put به .patch ✅✅✅
-  // کامنت: سرور لاراول صراحتاً اعلام کرده که برای این روت متد PATCH را پشتیبانی می‌کند.
-  const response = await axiosInstance.patch<SingleShiftScheduleResponse>(
+  
+  // ✅✅✅ اصلاح کلیدی و بسیار مهم (مطابق بخش ۲.۱ مستندات) ✅✅✅
+  // مستندات صراحتاً متد PATCH را برای این Endpoint مشخص کرده است.
+  // استفاده از .put منجر به خطای Method Not Allowed (405) در لاراول می‌شود.
+  const response = await axiosInstance.patch<{ data: ScheduleSlotResource }>( // ✅ تغییر متد از .put به .patch
     `${API_URL}/${shiftScheduleId}/slots/${scheduleSlotId}`,
     payload
   );
 
-  // کامنت: فرض می‌کنیم Response API برای PATCH Slot، آبجکت Slot به‌روز شده را در data.data برمی‌گرداند.
-  // (اگر ساختار پاسخ متفاوت است، این بخش باید اصلاح شود)
-  return response.data.data as unknown as ScheduleSlotResource;
+  // ✅✅✅ اصلاح کلیدی (مطابق بخش ۲.۱ مستندات) ✅✅✅
+  // مستندات می‌گوید پاسخ موفق، آبجکت "ScheduleSlotResource" به‌روز شده است.
+  // ساختار SingleShiftScheduleResponse (که حاوی کل برنامه بود) در اینجا اشتباه بود.
+  // ما فرض می‌کنیم پاسخ مستقیماً حاوی { data: ScheduleSlotResource } است.
+  return response.data.data;
 };

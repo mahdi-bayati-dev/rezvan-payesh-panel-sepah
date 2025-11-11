@@ -26,6 +26,7 @@ const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddTo
 const WorkPatternsEdit = lazy(() => import('@/features/work-pattern/routes/EditWeekPatternPage'))
 const WorkPatternsEmployeesPage = lazy(() => import('@/features/work-pattern/routes/WorkPatternEmployeesPage'))
 const EditShiftSchedulePage = lazy(() => import('@/features/shift-schedule/routes/EditShiftSchedulePage'))
+const EditShiftScheduleFormSkeleton= lazy(()=>import('@/features/shift-schedule/Skeleton/EditShiftScheduleFormSkeleton'))
 
 const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/workGroupDetailPage"))
@@ -179,7 +180,7 @@ export const router = createBrowserRouter([
           {
             path: "/shift-schedules/edit/:patternId",
             element: (
-              <Suspense fallback={<Spinner />}>
+              <Suspense fallback={<EditShiftScheduleFormSkeleton/>}>
                 < EditShiftSchedulePage />
               </Suspense>
             ),
