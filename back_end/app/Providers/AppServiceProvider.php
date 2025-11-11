@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Models\AttendanceLog;
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\WorkGroup;
 use App\Observers\AttendanceLogObserver;
@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Employees::observe(EmployeeObserver::class);
+        Employee::observe(EmployeeObserver::class);
         WorkGroup::observe(WorkGroupObserver::class);
         AttendanceLog::observe(AttendanceLogObserver::class);
         LeaveRequest::observe(LeaveRequestObserver::class);

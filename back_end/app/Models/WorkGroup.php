@@ -29,6 +29,6 @@ class WorkGroup extends Model
 
     public function employee() : HasMany
     {
-        return $this->hasMany(Employees::class);
+        return $this->hasMany(Employee::class);
     }
 }

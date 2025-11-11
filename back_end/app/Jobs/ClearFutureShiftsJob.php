@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\EmployeeShift;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,7 +33,7 @@ class ClearFutureShiftsJob implements ShouldQueue
     public function handle(): void
     {
         Log::info("شروع فرآیند پاکسازی شیفت‌های آینده برای گروه {$this->workGroupId} از برنامه {$this->oldScheduleId}");
-        $employeeIds = Employees::where('work_group_id', $this->workGroupId)
+        $employeeIds = Employee::where('work_group_id', $this->workGroupId)
             ->whereNull('shift_schedule_id')
             ->pluck('id');
         if ($employeeIds->isEmpty())

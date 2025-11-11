@@ -38,7 +38,7 @@ class AttendanceLog extends Model
      */
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employees::class);
+        return $this->belongsTo(Employee::class);
     }
 
     /**

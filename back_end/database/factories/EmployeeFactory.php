@@ -12,7 +12,7 @@ use Illuminate\Support\Arr;
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Employees>
  */
-class EmployeesFactory extends Factory
+class EmployeeFactory extends Factory
 {
     /**
      * Define the model's default state.

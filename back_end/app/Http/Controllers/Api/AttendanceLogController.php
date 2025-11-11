@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Device;
-use App\Models\Employees;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
@@ -38,7 +38,7 @@ class AttendanceLogController extends Controller
             return response()->json(['message' => 'Device is not active.'], 403);
         }
 
-        $employee = Employees::where('personnel_code', $validated['personnel_code'])->first();
+        $employee = Employee::where('personnel_code', $validated['personnel_code'])->first();
 
         $logTimestamp = Carbon::parse($validated['timestamp']);
 

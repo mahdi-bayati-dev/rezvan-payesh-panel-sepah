@@ -21,7 +21,7 @@ class Organization extends Model
      */
     public function employees(): HasMany
     {
-        return $this->hasMany(Employees::class);
+        return $this->hasMany(Employee::class);
     }
 
     public function parent(): BelongsTo

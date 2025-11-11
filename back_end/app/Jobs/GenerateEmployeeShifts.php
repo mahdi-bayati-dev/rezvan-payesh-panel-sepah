@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\EmployeeShift;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
@@ -229,13 +229,13 @@ class GenerateEmployeeShifts implements ShouldQueue
     protected function getEmployeesForSchedule(ShiftSchedule $schedule): Collection
     {
         // کارمندانی که مستقیما به این schedule وصل هستند
-        $directEmployees = Employees::where('shift_schedule_id', $schedule->id)->get();
+        $directEmployees = Employee::where('shift_schedule_id', $schedule->id)->get();
 
         // گروه‌هایی که به این schedule وصل هستند
         $groupIds = WorkGroup::where('shift_schedule_id', $schedule->id)->pluck('id');
 
         // کارمندان اون گروه‌ها که برنامه اختصاصی ندارن
-        $groupEmployees = Employees::whereIn('work_group_id', $groupIds)
+        $groupEmployees = Employee::whereIn('work_group_id', $groupIds)
                                    ->whereNull('shift_schedule_id')
                                    ->get();
 

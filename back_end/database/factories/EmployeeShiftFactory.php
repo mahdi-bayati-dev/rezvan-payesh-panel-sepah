@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\EmployeeShift;
 use App\Models\ShiftSchedule;
 use App\Models\WorkPattern;
@@ -31,7 +31,7 @@ class EmployeeShiftFactory extends Factory
 
 
         return [
-            'employee_id' => Employees::factory(),
+            'employee_id' => Employee::factory(),
             'date' => $this->faker->dateTimeBetween('-1 month', '+1 month')->format('Y-m-d'),
             'work_pattern_id' => $workPattern?->id,
             'is_off_day' => !$isWorkingDay,
