@@ -92,7 +92,7 @@ class WeekPattern extends Model
      */
     public function employees(): HasMany // <-- اضافه کنید
     {
-        return $this->hasMany(Employees::class);
+        return $this->hasMany(Employee::class);
     }
 
 }

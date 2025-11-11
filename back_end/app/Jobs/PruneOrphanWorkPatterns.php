@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\ScheduleSlot;
 use App\Models\WeekPattern;
 use App\Models\WorkPattern;
@@ -53,7 +53,7 @@ class PruneOrphanWorkPatterns implements ShouldQueue
                 ->pluck('work_pattern_id');
 
 
-            $usedInEmployees = Employees::query()
+            $usedInEmployees = Employee::query()
                 ->distinct()
                 ->whereNotNull('work_pattern_id')
                 ->pluck('work_pattern_id');

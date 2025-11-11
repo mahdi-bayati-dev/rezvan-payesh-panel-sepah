@@ -56,6 +56,6 @@ class User extends Authenticatable implements OAuthenticatable
 
     public function employee(): HasOne
     {
-        return $this->hasOne(Employees::class);
+        return $this->hasOne(Employee::class);
     }
 }

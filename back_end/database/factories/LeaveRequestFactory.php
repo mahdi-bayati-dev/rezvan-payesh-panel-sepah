@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\User;
@@ -26,7 +26,7 @@ class LeaveRequestFactory extends Factory
         $endDate = $this->faker->dateTimeBetween($startDate, Carbon::parse($startDate)->addDays(rand(0, 5))); // مرخصی بین ۰ تا ۵ روز
 
         return [
-            'employee_id' => Employees::factory(), // به طور پیش‌فرض یک کارمند جدید می‌سازد
+            'employee_id' => Employee::factory(), // به طور پیش‌فرض یک کارمند جدید می‌سازد
             'leave_type_id' => LeaveType::factory(), // به طور پیش‌فرض یک نوع مرخصی جدید می‌سازد
             'start_time' => $startDate,
             'end_time' => $endDate,

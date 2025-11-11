@@ -5,7 +5,7 @@ namespace App\Providers;
 use App\Policies\DevicesPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use App\Models\AttendanceLog;
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\Organization;
@@ -34,7 +34,7 @@ use Spatie\Permission\Models\Role;
 class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
-        Employees::class => EmployeePolicy::class,
+        Employee::class => EmployeePolicy::class,
         Organization::class => OrganizationPolicy::class,
         User::class => UserPolicy::class,
         WorkGroup::class => WorkGroupPolicy::class,

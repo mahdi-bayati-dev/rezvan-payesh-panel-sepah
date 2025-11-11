@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use App\Models\AttendanceLog;
 use App\Models\Device;
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -24,8 +24,8 @@ class AttendanceLogFactory extends Factory
         $device = Device::factory()->create();
 
         return [
-            // فرض می‌کنیم EmployeesFactory هم دارید
-            'employee_id' => Employees::factory(),
+            // فرض می‌کنیم EmployeeFactory هم دارید
+            'employee_id' => Employee::factory(),
             'event_type' => fake()->randomElement([AttendanceLog::TYPE_CHECK_IN, AttendanceLog::TYPE_CHECK_OUT]),
             'timestamp' => fake()->dateTimeBetween('-30 days', 'now'), // لاگ در 30 روز گذشته
 

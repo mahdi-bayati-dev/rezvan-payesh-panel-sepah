@@ -2,14 +2,14 @@
 
 namespace App\Observers;
 
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\ShiftSchedule;
 use Illuminate\Support\Facades\DB;
 
 class EmployeeObserver
 {
 
-    public function saving(Employees $employee)
+    public function saving(Employee $employee)
     {
         if ($employee->isDirty('shift_schedule_id') || $employee->isDirty('work_group_id')) {
 
@@ -31,7 +31,7 @@ class EmployeeObserver
         }
         $cycleLength = $schedule->cycle_length_days;
 
-        $counts = Employees::query()->where(function ($query) use ($scheduleId) {
+        $counts = Employee::query()->where(function ($query) use ($scheduleId) {
                 $query->where('shift_schedule_id', $scheduleId)->orWhereHas('workGroup', function ($q) use ($scheduleId) {
                         $q->where('shift_schedule_id', $scheduleId);
                     })->whereNull('shift_schedule_id');
@@ -50,41 +50,41 @@ class EmployeeObserver
     }
 
     /**
-     * Handle the Employees "created" event.
+     * Handle the Employee "created" event.
      */
-    public function created(Employees $employees): void
+    public function created(Employee $employees): void
     {
         //
     }
 
     /**
-     * Handle the Employees "updated" event.
+     * Handle the Employee "updated" event.
      */
-    public function updated(Employees $employees): void
+    public function updated(Employee $employees): void
     {
         //
     }
 
     /**
-     * Handle the Employees "deleted" event.
+     * Handle the Employee "deleted" event.
      */
-    public function deleted(Employees $employees): void
+    public function deleted(Employee $employees): void
     {
         //
     }
 
     /**
-     * Handle the Employees "restored" event.
+     * Handle the Employee "restored" event.
      */
-    public function restored(Employees $employees): void
+    public function restored(Employee $employees): void
     {
         //
     }
 
     /**
-     * Handle the Employees "force deleted" event.
+     * Handle the Employee "force deleted" event.
      */
-    public function forceDeleted(Employees $employees): void
+    public function forceDeleted(Employee $employees): void
     {
         //
     }
