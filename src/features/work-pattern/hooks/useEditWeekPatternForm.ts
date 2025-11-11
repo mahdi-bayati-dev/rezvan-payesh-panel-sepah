@@ -90,7 +90,7 @@ export const useEditWeekPatternForm = ({
   } = useForm<NewWeekPatternFormData>({
     resolver: zodResolver(newWeekPatternSchema),
     defaultValues: defaultValues,
-    mode: "onTouched",
+    // mode: "onTouched",
   });
 
   const { fields } = useFieldArray({ control, name: "days" });

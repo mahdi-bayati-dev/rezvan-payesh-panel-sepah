@@ -15,16 +15,30 @@ export const useDeleteWeekPattern = () => {
         mutationFn: deleteWeekPattern, // تابع API نهایی
 
         onSuccess: (_, deletedId) => {
-            // کامنت: پس از حذف موفقیت‌آمیز، لیست اصلی را باطل (Invalidate) می‌کنیم
-            queryClient.invalidateQueries({ queryKey: ['weekPatterns'] })
-            // کامنت: جزئیات الگوی حذف شده را نیز از کش پاک می‌کنیم
-            queryClient.removeQueries({ queryKey: ['weekPatternDetails', deletedId] })
+
+            // 🟢🟢🟢 راه‌حل کلیدی مشکل ۳ (کلید Invalidation اشتباه) 🟢🟢🟢
+            // کلید ['weekPatterns'] اشتباه بود.
+            queryClient.invalidateQueries({ queryKey: ['weekPatternsList'] })
+            // 🐞 لاگ دیباگ:
+            console.log("useDeleteWeekPattern (DELETE) onSuccess: Invalidated query list: ['weekPatternsList']");
+
+
+            // 🟢🟢🟢 راه‌حل کلیدی مشکل ۱ (عدم تطابق کلید) 🟢🟢🟢
+            // ما باید کلید کش جزئیات را *دقیقاً* مشابه useWeekPatternDetails (با رشته‌ای کردن ID) پاک کنیم.
+            const queryKey = ['weekPatternDetails', String(deletedId)];
+            queryClient.removeQueries({ queryKey: queryKey })
+            // 🐞 لاگ دیباگ:
+            console.log(`useDeleteWeekPattern (DELETE) onSuccess: Removed queries for key: ${JSON.stringify(queryKey)}`);
+
             toast.success('الگوی کاری با موفقیت حذف شد.');
         },
 
         onError: (error) => {
             const errorMessage = error.response?.data?.message
                 || 'خطایی در هنگام حذف الگو رخ داد.';
+
+            // 🐞 لاگ دیباگ:
+            console.error("useDeleteWeekPattern (DELETE) onError:", error);
 
             // کامنت: مدیریت خطای 409 Conflict (مثلاً اگر الگو به گروهی اختصاص داده شده باشد)
             if (error.response?.status === 409) {
