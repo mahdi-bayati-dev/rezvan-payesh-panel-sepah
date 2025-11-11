@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HolidayController;
+use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LeaveTypeController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ScheduleSlotController;
@@ -69,6 +70,15 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
 
     //leave-types setting
     Route::apiResource('leave-types', LeaveTypeController::class);
+
+    //Leave Request
+    Route::apiResource('leave-requests', LeaveRequestController::class);
+
+    //Leave Request process by admin
+    Route::post(
+        'leave-requests/{leave_request}/process',
+        [LeaveRequestController::class, 'process']
+    )->name('leave-requests.process');
 
     //Holiday
     Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');

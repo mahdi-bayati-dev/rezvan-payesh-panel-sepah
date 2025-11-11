@@ -20,12 +20,6 @@ class RoleSeeder extends Seeder
         Role::create(['name' => 'org-admin-l2', 'guard_name' => 'api']);
         Role::create(['name' => 'org-admin-l3', 'guard_name' => 'api']);
         Role::create(['name' => 'user', 'guard_name' => 'api']);
-        Permission::create(['name' => 'create config']);
-        Permission::create(['name' => 'leader']);
-//        Permission::create(['name' => 'delete articles']);
-//        Permission::create(['name' => 'publish articles']);
-//        Permission::create(['name' => 'manage users']);
-        $super_admin = Role::create(['name' => 'super_admin', 'guard_name' => 'api']);
-        $super_admin->givePermissionTo(Permission::all());
+        Role::create(['name' => 'super_admin', 'guard_name' => 'api']);
     }
 }

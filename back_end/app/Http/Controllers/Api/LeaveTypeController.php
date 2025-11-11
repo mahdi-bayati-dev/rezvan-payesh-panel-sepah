@@ -11,6 +11,11 @@ use Illuminate\Validation\Rule;
 
 class LeaveTypeController extends Controller
 {
+
+    public function __construct()
+    {
+         $this->middleware('role:super_admin')->except('index');
+    }
     /**
      * Display a listing of the resource.
      */
