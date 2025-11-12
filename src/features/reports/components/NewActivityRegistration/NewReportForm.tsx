@@ -16,6 +16,10 @@ import PersianDatePickerInput from '@/lib/PersianDatePickerInput'; // مسیر a
 import { Button } from '@/components/ui/Button';
 import Textarea from '@/components/ui/Textarea';
 
+// [بهینه] ایمپورت هوک جستجو
+import { useEmployeeOptionsSearch } from '@/features/reports/hooks/hook';
+
+
 // گزینه‌های نوع فعالیت
 const activityTypeOptions: SelectOption[] = [
     { id: 'check_in', name: 'ورود ' },
@@ -34,20 +38,21 @@ const minuteOptions: SelectOption[] = Array.from({ length: 12 }, (_, i) => ({
     name: String(i * 5).padStart(2, '0'),
 }));
 
+// [بهینه] پراپ‌های مربوط به کارمندان حذف شدند
 interface NewReportFormProps {
     onSubmit: (data: NewReportFormData) => void;
     onCancel: () => void;
     isSubmitting: boolean;
-    employeeOptions: SelectOption[];
-    isLoadingEmployees: boolean;
+    // employeeOptions: SelectOption[]; <-- حذف شد
+    // isLoadingEmployees: boolean; <-- حذف شد
 }
 
 export const NewReportForm = ({
     onSubmit,
     onCancel,
     isSubmitting,
-    employeeOptions,
-    isLoadingEmployees,
+    // employeeOptions, <-- حذف شد
+    // isLoadingEmployees, <-- حذف شد
 }: NewReportFormProps) => {
     const {
         register,
@@ -69,24 +74,26 @@ export const NewReportForm = ({
         onSubmit(data);
     };
 
-    // ... (کد Combobox کارمندان بدون تغییر) ...
+    // [بهینه] منطق جستجوی کارمندان به داخل فرم منتقل شد
     const [employeeQuery, setEmployeeQuery] = useState('');
+
+    // [بهینه] هوک جستجوی سرور-ساید فراخوانی می‌شود
+    const {
+        data: employeeOptions,
+        isLoading: isLoadingEmployees
+    } = useEmployeeOptionsSearch(employeeQuery);
+
+    // [بهینه] useMemo دیگر نیازی به فیلتر کردن ندارد
     const filteredEmployees = useMemo(() => {
-        const query = employeeQuery.toLowerCase().trim();
-        if (query === '') {
-            return employeeOptions;
-        }
-        return employeeOptions.filter((employee) =>
-            employee.name.toLowerCase().includes(query)
-        );
-    }, [employeeOptions, employeeQuery]);
+        return employeeOptions || [];
+    }, [employeeOptions]);
 
 
     return (
         <form onSubmit={handleSubmit(onFormSubmit)} noValidate>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
 
-                {/* --- Combobox کارمند (بدون تغییر) --- */}
+                {/* --- Combobox کارمند (با دیتای سرور-ساید) --- */}
                 <div className="md:col-span-2">
                     <Controller
                         name="employee"
@@ -97,7 +104,8 @@ export const NewReportForm = ({
                                 className="relative"
                                 value={field.value}
                                 onChange={field.onChange}
-                                disabled={isLoadingEmployees || isSubmitting}
+                                // [بهینه] غیرفعال کردن فقط در زمان سابمیت نهایی
+                                disabled={isSubmitting}
                             >
                                 <Combobox.Label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
                                     کارمند (جستجو کنید...)
@@ -112,10 +120,12 @@ export const NewReportForm = ({
                                         focus:outline-none focus:ring-2`}
                                         onChange={(event) => setEmployeeQuery(event.target.value)}
                                         displayValue={(employee: SelectOption) => employee?.name || ''}
-                                        placeholder={isLoadingEmployees ? "در حال بارگذاری لیست..." : "شروع به تایپ نام کارمند..."}
+                                        // [بهینه] placeholder داینامیک
+                                        placeholder={isLoadingEmployees ? "در حال جستجو..." : "شروع به تایپ نام کارمند..."}
                                         autoComplete="off"
                                     />
                                     <Combobox.Button className="absolute inset-y-0 left-0 flex items-center px-3 text-muted-foregroundL dark:text-muted-foregroundD">
+                                        {/* [بهینه] لودر فقط زمان لودینگ نمایش داده می‌شود */}
                                         {isLoadingEmployees ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
@@ -127,46 +137,52 @@ export const NewReportForm = ({
                                 <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl
                                     bg-backgroundL-500 dark:bg-backgroundD-900 py-1 shadow-lg ring-1
                                     ring-black/5 dark:ring-white/10 focus:outline-none">
-                                    {isLoadingEmployees ? (
+                                    {/* [بهینه] منطق نمایش لودینگ و نتایج */}
+                                    {isLoadingEmployees && employeeQuery.length > 1 && (
                                         <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
-                                            در حال بارگذاری...
+                                            در حال جستجو...
                                         </div>
-                                    ) : filteredEmployees.length === 0 && employeeQuery !== '' ? (
+                                    )}
+                                    {filteredEmployees.length === 0 && employeeQuery.length > 1 && !isLoadingEmployees && (
                                         <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
                                             کارمندی یافت نشد.
                                         </div>
-                                    ) : (
-                                        filteredEmployees.map((employee) => (
-                                            <Combobox.Option
-                                                key={employee.id}
-                                                value={employee}
-                                                className={({ active }) =>
-                                                    `relative cursor-default select-none py-2 pl-10 pr-4
-                                                    ${active ? 'bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD' : 'text-foregroundL dark:text-foregroundD'}`
-                                                }
-                                            >
-                                                {({ selected, active }) => (
-                                                    <>
+                                    )}
+                                    {filteredEmployees.length === 0 && employeeQuery.length === 0 && !isLoadingEmployees && (
+                                        <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
+                                            برای جستجو، شروع به تایپ کنید...
+                                        </div>
+                                    )}
+                                    {filteredEmployees.map((employee) => (
+                                        <Combobox.Option
+                                            key={employee.id}
+                                            value={employee}
+                                            className={({ active }) =>
+                                                `relative cursor-default select-none py-2 pl-10 pr-4
+                                                ${active ? 'bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD' : 'text-foregroundL dark:text-foregroundD'}`
+                                            }
+                                        >
+                                            {({ selected, active }) => (
+                                                <>
+                                                    <span
+                                                        className={`block truncate ${selected ? 'font-medium' : 'font-normal'
+                                                            }`}
+                                                    >
+                                                        {employee.name}
+                                                    </span>
+                                                    {selected ? (
                                                         <span
-                                                            className={`block truncate ${selected ? 'font-medium' : 'font-normal'
+                                                            className={`absolute inset-y-0 left-0 flex items-center pl-3
+                                                            ${active ? 'text-primaryL dark:text-primaryD' : 'text-primaryL dark:text-primaryD'
                                                                 }`}
                                                         >
-                                                            {employee.name}
+                                                            <Check className="h-5 w-5" aria-hidden="true" />
                                                         </span>
-                                                        {selected ? (
-                                                            <span
-                                                                className={`absolute inset-y-0 left-0 flex items-center pl-3
-                                                                ${active ? 'text-primaryL dark:text-primaryD' : 'text-primaryL dark:text-primaryD'
-                                                                    }`}
-                                                            >
-                                                                <Check className="h-5 w-5" aria-hidden="true" />
-                                                            </span>
-                                                        ) : null}
-                                                    </>
-                                                )}
-                                            </Combobox.Option>
-                                        ))
-                                    )}
+                                                    ) : null}
+                                                </>
+                                            )}
+                                        </Combobox.Option>
+                                    ))}
                                 </Combobox.Options>
                                 {fieldState.error && (
                                     <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">
@@ -216,7 +232,7 @@ export const NewReportForm = ({
                 </div>
 
 
-                {/* --- ✅✅✅ بخش اصلاح شده - فیلد ساعت ✅✅✅ --- */}
+                {/* --- فیلد ساعت (بدون تغییر) --- */}
                 <div className="md:col-span-1">
                     <Controller
                         name="time"
@@ -225,26 +241,20 @@ export const NewReportForm = ({
 
                             const [currentHour = '', currentMinute = ''] = field.value?.split(':') || [];
 
-                            // --- ✅ اصلاح ۱: تغییر امضای تابع ---
-                            // پذیرش `string | undefined` برای مدیریت پاک کردن فیلد
                             const handleTimeChange = (part: 'hour' | 'minute', value: string | undefined) => {
                                 let newHour = currentHour;
                                 let newMinute = currentMinute;
 
                                 if (part === 'hour') {
-                                    newHour = value || ''; // اگر undefined بود، رشته خالی در نظر بگیر
-                                } else { // part === 'minute'
-                                    newMinute = value || ''; // اگر undefined بود، رشته خالی در نظر بگیر
+                                    newHour = value || '';
+                                } else {
+                                    newMinute = value || '';
                                 }
 
-                                // --- ✅ اصلاح ۲: بهبود منطق ---
-                                // اگر هر دو بخش (ساعت یا دقیقه) مقداری داشتند، آنها را ترکیب کن
-                                // در غیر این صورت فیلد را خالی کن
                                 if (newHour || newMinute) {
-                                    // اگر یکی از مقادیر خالی بود، "00" را جایگزین کن
                                     field.onChange(`${newHour || '00'}:${newMinute || '00'}`);
                                 } else {
-                                    field.onChange(''); // هر دو خالی شدند
+                                    field.onChange('');
                                 }
                             };
 
@@ -260,9 +270,6 @@ export const NewReportForm = ({
                                             label=""
                                             options={hourOptions}
                                             value={hourOptions.find(opt => opt.id === currentHour) || null}
-                                            // --- ✅ اصلاح ۳: تبدیل id به string ---
-                                            // اینجا `option.id` (که string | number است) را به string تبدیل می‌کنیم
-                                            // و اگر option کلا null بود (فیلد پاک شد)، `undefined` پاس می‌دهیم
                                             onChange={(option) => handleTimeChange('hour', option ? String(option.id) : undefined)}
                                             placeholder="ساعت"
                                             disabled={isSubmitting}
@@ -274,7 +281,6 @@ export const NewReportForm = ({
                                             label=""
                                             options={minuteOptions}
                                             value={minuteOptions.find(opt => opt.id === currentMinute) || null}
-                                            // --- ✅ اصلاح ۴: تبدیل id به string ---
                                             onChange={(option) => handleTimeChange('minute', option ? String(option.id) : undefined)}
                                             placeholder="دقیقه"
                                             disabled={isSubmitting}
@@ -293,7 +299,6 @@ export const NewReportForm = ({
                         }}
                     />
                 </div>
-                {/* --- پایان بخش اصلاح شده --- */}
 
 
                 {/* --- فیلد ملاحظات (بدون تغییر) --- */}
@@ -319,7 +324,8 @@ export const NewReportForm = ({
                 <Button
                     variant='primary'
                     type="submit"
-                    disabled={isSubmitting || isLoadingEmployees}
+                    // [بهینه] لودر کارمندان دیگر اینجا چک نمی‌شود
+                    disabled={isSubmitting}
                     className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium shadow-md
                       bg-primaryL text-primary-foregroundL
                       dark:bg-primaryD dark:text-primary-foregroundD
@@ -333,7 +339,7 @@ export const NewReportForm = ({
                     variant='secondary'
                     type="button"
                     onClick={onCancel}
-                    disabled={isSubmitting || isLoadingEmployees}
+                    disabled={isSubmitting} // [بهینه] لودر کارمندان دیگر اینجا چک نمی‌شود
                     className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium
                       bg-backgroundL-700 text-foregroundL
                       dark:bg-backgroundD-700 dark:text-foregroundD

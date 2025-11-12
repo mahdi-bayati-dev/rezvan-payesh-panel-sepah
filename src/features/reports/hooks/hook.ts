@@ -9,7 +9,8 @@ import {
   // توابع API
   fetchLogs,
   fetchLogById,
-  fetchEmployeeOptions,
+  // [بهینه] ۲. تغییر نام برای تفکیک
+  fetchEmployeeOptionsList,
   createLog,
   updateLog,
   approveLog,
@@ -32,17 +33,23 @@ interface PaginationState {
   pageSize: number;
 }
 
-// --- کلیدهای Query (برای مدیریت آسان کش) ---
-const reportKeys = {
+// --- [اصلاح] کلیدهای Query (اکسپورت شد + کلید کارمندان تفکیک شد) ---
+export const reportKeys = {
   all: ["reports"] as const,
   lists: () => [...reportKeys.all, "list"] as const,
   list: (filters: LogFilters) => [...reportKeys.lists(), filters] as const,
   details: () => [...reportKeys.all, "detail"] as const,
   detail: (id: string | number) => [...reportKeys.details(), id] as const,
-  employees: () => [...reportKeys.all, "employees"] as const,
+
+  // [بهینه] کلید برای لیست کامل کارمندان (برای فیلتر)
+  employeeList: () => [...reportKeys.all, "employeeList"] as const,
+  // [بهینه] کلید برای جستجوی کارمندان (برای فرم)
+  employeeSearch: (query: string) =>
+    [...reportKeys.all, "employeeSearch", query] as const,
 };
 
 // --- ۱. هوک واکشی لیست گزارش‌ها (برای reportPage.tsx) ---
+// (بدون تغییر)
 export const useLogs = (filters: LogFilters) => {
   return useQuery({
     queryKey: reportKeys.list(filters),
@@ -55,14 +62,8 @@ export const useLogs = (filters: LogFilters) => {
       };
     },
     staleTime: 1000 * 60, // 1 دقیقه staleTime خوب است
-
-    // [بهینه] این برای صفحه‌بندی نرم و روان عالی است، آن را نگه می‌داریم
     placeholderData: keepPreviousData,
-
-    // --- [حذف شد] ---
-    // این دو خط حذف می‌شوند چون WebSocket جایگزین آن‌ها می‌شود
-    // refetchInterval: 30000,
-    // refetchIntervalInBackground: true,
+    // refetchInterval حذف شده که عالی است
   });
 };
 
@@ -78,13 +79,30 @@ export const useLogDetails = (logId: string | number | undefined) => {
   });
 };
 
-// --- ۳. هوک واکشی لیست کارمندان (بدون تغییر) ---
-export const useEmployeeOptions = () => {
+// --- ۳. [بهینه] هوک واکشی *لیست کامل* کارمندان (برای فیلتر) ---
+export const useEmployeeOptionsList = () => {
   return useQuery({
-    queryKey: reportKeys.employees(),
-    queryFn: fetchEmployeeOptions,
+    queryKey: reportKeys.employeeList(),
+    // [✅ رفع خطا ۱] - queryFn باید یک تابع ناشناس (anonymous function) باشد
+    // که تابع اصلی ما را *بدون پارامتر* فراخوانی کند.
+    // این کار از تداخل پارامتر context خود useQuery جلوگیری می‌کند.
+    queryFn: () => fetchEmployeeOptionsList(), // تابع API لیست کامل
     staleTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
+  });
+};
+
+// --- [جدید] هوک واکشی *جستجوی* کارمندان (برای فرم) ---
+export const useEmployeeOptionsSearch = (searchQuery: string) => {
+  return useQuery({
+    queryKey: reportKeys.employeeSearch(searchQuery),
+    // [بهینه] فقط زمانی فچ کن که کاربر حداقل ۲ حرف تایپ کرده باشد
+    queryFn: () => fetchEmployeeOptionsList(searchQuery), // استفاده از تابع لیست با پارامتر جستجو
+    staleTime: 1000 * 60 * 5, // ۵ دقیقه
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    // [بهینه] جلوگیری از فچ برای حروف کم
+    enabled: searchQuery.length === 0 || searchQuery.length > 1,
   });
 };
 

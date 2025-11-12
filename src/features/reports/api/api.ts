@@ -58,6 +58,8 @@ export const fetchLogs = async (
       params: filters,
     }
   );
+  console.log(response.data);
+  
   return response.data; // -> { data: [...], links: ..., meta: ... }
 };
 
@@ -121,30 +123,46 @@ export const approveLog = async (
   return response.data.data;
 };
 
-// ---  تابع واکشی کارمندان ---
-export const fetchEmployeeOptions = async (): Promise<FilterOption[]> => {
-  console.log("[API] Fetching employee options...");
-  const response = await axiosInstance.get<ApiUserCollection>(USERS_API_PATH, {
-    params: {
-      per_page: 1000,
-    },
-  });
-  console.log("[API] Raw employee response:", response.data);
+// ---  [بهینه] توابع واکشی کارمندان ---
 
-  // فیلتر کردن کاربرانی که پروفایل کارمندی کامل دارند
-  const validUsers = (response.data?.data || []).filter(
-    (user) => user && user.employee && user.employee.id // <-- اطمینان از وجود employee.id
+// تابع کمکی برای مپ کردن
+const mapUsersToFilterOptions = (data: ApiUserCollection): FilterOption[] => {
+  const validUsers = (data?.data || []).filter(
+    (user) => user && user.employee && user.employee.id
   );
-
-  const options: FilterOption[] = validUsers.map((user) => ({
-    id: user.employee.id, // <-- قبلاً user.id بود که اشتباه است
-    // -----------------------
-
+  return validUsers.map((user) => ({
+    id: user.employee.id,
     name: `${user.employee.first_name || ""} ${
       user.employee.last_name || ""
     } (${user.employee.personnel_code || "N/A"})`,
   }));
+};
 
+/**
+ * [بهینه] این تابع *لیست کامل* کارمندان را برای فیلترها می‌گیرد
+ */
+export const fetchEmployeeOptionsList = async (
+  searchQuery: string = "" // [اصلاح] پارامتر جستجو اضافه شد
+): Promise<FilterOption[]> => {
+  console.log("[API] Fetching employee options (List/Search)...", searchQuery);
+
+  // [اصلاح] تعیین پارامترها بر اساس وجود searchQuery
+  const params: any = {
+    per_page: 20, // همیشه تعداد کمتری می‌گیریم
+  };
+
+  if (searchQuery) {
+    params.search = searchQuery; // جستجوی سرور-ساید
+  } else {
+    // اگر جستجو خالی بود، ۲۰ تای اول را نشان بده
+    params.per_page = 20;
+  }
+
+  const response = await axiosInstance.get<ApiUserCollection>(USERS_API_PATH, {
+    params: params,
+  });
+  console.log("[API] Raw employee response:", response.data);
+  const options = mapUsersToFilterOptions(response.data);
   console.log(`[API] Fetched and mapped ${options.length} employee options.`);
   return options;
 };

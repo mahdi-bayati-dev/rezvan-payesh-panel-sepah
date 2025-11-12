@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { CirclePlus } from 'lucide-react';
-import { useCreateLog, useEmployeeOptions } from '../hooks/hook';
+// [بهینه] هوک useEmployeeOptions دیگر اینجا لازم نیست
+import { useCreateLog } from '../hooks/hook';
 import { NewReportForm } from '../components/NewActivityRegistration/NewReportForm';
 import { type NewReportFormData } from '@/features/reports/Schema/newReportSchema';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
@@ -15,7 +16,9 @@ function pad(num: number): string {
 export default function NewReportPage() {
     const navigate = useNavigate();
     const createLogMutation = useCreateLog();
-    const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptions();
+
+    // [بهینه] این هوک حذف شد چون منطق به داخل فرم منتقل می‌شود
+    // const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptions();
 
 
     const handleCreateReport = (data: NewReportFormData) => {
@@ -39,11 +42,6 @@ export default function NewReportPage() {
         const utcDate = fromZonedTime(localTimestampString, timeZone);
 
         // ۳. [اصلاح] فرمت‌دهی آبجکت Date به فرمت دلخواه API
-        // به جای: const formattedTimestampUTC = utcDate.toISOString();
-        // ما به تابع می‌گوییم:
-        // - از آبجکت utcDate استفاده کن
-        // - آن را در منطقه زمانی 'UTC' فرمت کن (تا مطمئن شویم 04:30 است نه 08:00)
-        // - و از فرمت رشته‌ای 'yyyy-MM-dd HH:mm:ss' استفاده کن
         const formattedTimestampUTC = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
         // نتیجه: "2025-11-08 04:30:00"
 
@@ -84,8 +82,9 @@ export default function NewReportPage() {
                 // [رفع خطا ۱۰] - در React Query v5،
                 // پراپرتی لودینگ جهش (mutation) از isLoading به isPending تغییر کرده است
                 isSubmitting={createLogMutation.isPending}
-                employeeOptions={employeeOptions || []}
-                isLoadingEmployees={isLoadingEmployees}
+            // [بهینه] این پراپ‌ها دیگر لازم نیستند
+            // employeeOptions={employeeOptions || []}
+            // isLoadingEmployees={isLoadingEmployees}
             />
         </div>
     );
