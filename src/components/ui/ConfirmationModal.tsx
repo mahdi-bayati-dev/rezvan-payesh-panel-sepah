@@ -1,26 +1,19 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, type ReactNode } from 'react';
-import { AlertTriangle, Check, X } from 'lucide-react'; // آیکون‌ها برای ظاهر بهتر
+import { AlertTriangle, Check, X } from 'lucide-react';
+import { Spinner } from '@/components/ui/Spinner';
 
 interface ConfirmationModalProps {
-    /** وضعیت باز یا بسته بودن مدال (توسط والد کنترل می‌شود) */
     isOpen: boolean;
-    /** تابعی که هنگام درخواست بسته شدن مدال فراخوانی می‌شود (مثلاً کلیک روی دکمه لغو یا خارج از مدال) */
     onClose: () => void;
-    /** تابعی که هنگام کلیک روی دکمه تایید فراخوانی می‌شود */
     onConfirm: () => void;
-    /** عنوان مدال */
     title: string;
-    /** متن اصلی یا سوال مدال */
     message: string | ReactNode;
-    /** متن دکمه تایید (پیش‌فرض: تایید) */
     confirmText?: string;
-    /** متن دکمه لغو (پیش‌فرض: لغو) */
     cancelText?: string;
-    /** نوع ظاهری مدال (برای استایل‌دهی دکمه تایید) */
-    variant?: 'danger' | 'warning' | 'info' | 'success'; // (پیش‌فرض: info)
-    /** آیکون دلخواه برای نمایش در کنار عنوان */
+    variant?: 'danger' | 'warning' | 'info' | 'success';
     icon?: ReactNode;
+    isLoading?: boolean;
 }
 
 export const ConfirmationModal = ({
@@ -33,8 +26,9 @@ export const ConfirmationModal = ({
     cancelText = 'لغو',
     variant = 'info',
     icon,
+    isLoading = false,
 }: ConfirmationModalProps) => {
-    // تعیین استایل دکمه تایید بر اساس variant
+    // (کلاس‌های دکمه‌ها - بدون تغییر)
     const confirmButtonClasses = {
         danger: 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500 text-white',
         warning: 'bg-yellow-500 hover:bg-yellow-600 focus-visible:ring-yellow-400 text-black',
@@ -42,11 +36,11 @@ export const ConfirmationModal = ({
         success: 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 text-white',
     }[variant];
 
-    // تعیین آیکون پیش‌فرض بر اساس variant (اگر آیکون سفارشی داده نشده باشد)
+    // (آیکون‌های پیش‌فرض - بدون تغییر)
     const defaultIcon = {
         danger: <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />,
         warning: <AlertTriangle className="h-6 w-6 text-yellow-500" aria-hidden="true" />,
-        info: null, // برای info آیکون پیش‌فرض نمی‌گذاریم
+        info: null,
         success: <Check className="h-6 w-6 text-green-600" aria-hidden="true" />,
     }[variant];
 
@@ -54,8 +48,13 @@ export const ConfirmationModal = ({
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div" className="relative z-50" onClose={onClose}>
-                {/* Backdrop */}
+            <Dialog
+                as="div"
+                className="relative z-50"
+                // جلوگیری از بسته شدن هنگام لودینگ
+                onClose={isLoading ? () => { } : onClose}
+            >
+                {/* پس‌زمینه تار */}
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-300"
@@ -65,64 +64,75 @@ export const ConfirmationModal = ({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
                 </Transition.Child>
 
-                {/* Modal container */}
+                {/* محتوای مدال */}
                 <div className="fixed inset-0 overflow-y-auto">
-                    <div className="flex min-h-full items-center justify-center p-4 text-center">
+
+                    <div className="flex min-h-full items-end sm:items-center justify-center p-2 sm:p-4 text-center">
                         <Transition.Child
                             as={Fragment}
                             enter="ease-out duration-300"
-                            enterFrom="opacity-0 scale-95"
-                            enterTo="opacity-100 scale-100"
+                            // انیمیشن متفاوت برای موبایل (از پایین) و دسکتاپ (زوم)
+                            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                            enterTo="opacity-100 translate-y-0 sm:scale-100"
                             leave="ease-in duration-200"
-                            leaveFrom="opacity-100 scale-100"
-                            leaveTo="opacity-0 scale-95"
+                            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-6 text-right shadow-xl transition-all">
-                                <div className="flex items-start gap-4">
-                                    {/* آیکون */}
+
+                            <Dialog.Panel className="w-full max-w-sm sm:max-w-md transform overflow-hidden rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-5 sm:p-6 text-right shadow-2xl transition-all max-h-[90vh] overflow-y-auto">
+                                {/* هدر مدال (عنوان و آیکون) */}
+                                <div className="flex items-start gap-3 sm:gap-4">
                                     {displayIcon && (
-                                        <div className="flex-shrink-0">
-                                            {displayIcon}
-                                        </div>
+                                        <div className="flex-shrink-0 pt-0.5">{displayIcon}</div>
                                     )}
                                     <div className="flex-1">
                                         <Dialog.Title
                                             as="h3"
-                                            className="text-lg font-bold leading-6 text-foregroundL dark:text-foregroundD"
+                                            className="text-base sm:text-lg font-bold leading-6 text-foregroundL dark:text-foregroundD"
                                         >
                                             {title}
                                         </Dialog.Title>
-                                        <div className="mt-2">
-                                            <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
-                                                {message}
-                                            </p>
+
+                                        <div className="mt-2 text-sm text-muted-foregroundL dark:text-muted-foregroundD">
+                                            <p>{message}</p>
                                         </div>
                                     </div>
                                 </div>
 
 
-                                {/* دکمه‌ها */}
-                                <div className="mt-6 flex justify-start gap-4">
+                                <div className="mt-6 flex flex-col sm:flex-row sm:justify-start gap-3 sm:gap-4">
+
                                     <button
                                         type="button"
-                                        className={`inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-backgroundD-800 transition-colors ${confirmButtonClasses}`}
+
+                                        className={`inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent px-5 py-2.5 sm:py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-backgroundD-800 transition-colors ${confirmButtonClasses} disabled:opacity-70 disabled:cursor-wait`}
                                         onClick={onConfirm}
+                                        disabled={isLoading}
                                     >
-                                        <Check className="ml-1 h-4 w-4" /> {/* آیکون تایید */}
-                                        {confirmText}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="inline-flex justify-center rounded-md border border-borderL dark:border-borderD bg-backgroundL-DEFAULT dark:bg-backgroundD-800 px-4 py-2 text-sm font-medium text-foregroundL dark:text-foregroundD hover:bg-secondaryL dark:hover:bg-secondaryD focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-backgroundD-800 transition-colors"
-                                        onClick={onClose}
-                                    >
-                                        <X className="ml-1 h-4 w-4" /> {/* آیکون لغو */}
-                                        {cancelText}
+                                        {isLoading ? (
+                                            <Spinner size="xs" />
+                                        ) : (
+                                            <>
+                                                <Check className="ml-1 h-4 w-4" />
+                                                {confirmText}
+                                            </>
+                                        )}
                                     </button>
 
+                                    {/* دکمه لغو */}
+                                    <button
+                                        type="button"
+
+                                        className="inline-flex w-full sm:w-auto justify-center rounded-md border border-borderL dark:border-borderD bg-backgroundL-DEFAULT dark:bg-backgroundD-800 px-5 py-2.5 sm:py-2 text-sm font-medium text-foregroundL dark:text-foregroundD hover:bg-secondaryL dark:hover:bg-secondaryD focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-backgroundD-800 transition-colors disabled:opacity-50"
+                                        onClick={onClose}
+                                        disabled={isLoading}
+                                    >
+                                        <X className="ml-1 h-4 w-4" />
+                                        {cancelText}
+                                    </button>
                                 </div>
                             </Dialog.Panel>
                         </Transition.Child>

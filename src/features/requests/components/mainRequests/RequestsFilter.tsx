@@ -1,48 +1,69 @@
+// features/requests/components/mainRequests/RequestsFilter.tsx
 import { useState } from "react";
-import { Dialog, Transition } from "@headlessui/react";
-import { X, SlidersHorizontal, CirclePlus, Settings2 } from "lucide-react";
+import { X, SlidersHorizontal, CirclePlus, Settings2 } from "lucide-react"; // ✅ ایمپورت X وجود داشت، عالی
 import { Link } from 'react-router-dom';
 import { Fragment } from "react";
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
-import {
-  mockOrganizations,
-  mockCategories,
-  mockRequestTypes,
-  mockStatuses,
-} from "@/features/requests/data/mockData";
+
+// ✅ ۱. ایمپورت هوک با مسیر صحیح
+import { useLeaveTypes } from '@/features/requests/hook/useLeaveTypes';
+import { Spinner } from "@/components/ui/Spinner";
+import { Dialog, Transition } from "@headlessui/react";
+
+// ✅ ۲. ایمپورت‌های مربوط به تاریخ (فقط یک بار)
 import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
 import { type DateObject } from "react-multi-date-picker";
 
+// (اینترفیس پراپ‌ها - بدون تغییر)
 interface RequestsFilterProps {
   organization: SelectOption | null;
   onOrganizationChange: (value: SelectOption | null) => void;
-
   category: SelectOption | null;
   onCategoryChange: (value: SelectOption | null) => void;
-
-  requestType: SelectOption | null;
-  onRequestTypeChange: (value: SelectOption | null) => void;
-
+  leaveType: SelectOption | null;
+  onLeaveTypeChange: (value: SelectOption | null) => void;
   status: SelectOption | null;
   onStatusChange: (value: SelectOption | null) => void;
-
   date: DateObject | null;
   onDateChange: (value: DateObject | null) => void;
 }
+
+// (داده‌های Mock - بدون تغییر)
+const mockOrganizations: SelectOption[] = [
+  { id: "org1", name: "سازمان الف" },
+];
+const mockCategories: SelectOption[] = [
+  { id: "cat2", name: "مرخصی" },
+];
+const mockStatuses: SelectOption[] = [
+  { id: "pending", name: "در انتظار" },
+  { id: "approved", name: "تایید شده" },
+  { id: "rejected", name: "رد شده" },
+];
 
 const RequestsFilter = ({
   organization,
   onOrganizationChange,
   category,
   onCategoryChange,
-  requestType,
-  onRequestTypeChange,
+  leaveType,
+  onLeaveTypeChange,
   status,
   onStatusChange,
   date,
   onDateChange,
 }: RequestsFilterProps) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  // (دریافت داده‌ها از هوک - بدون تغییر)
+  const { data: leaveTypesData, isLoading: isLoadingLeaveTypes } = useLeaveTypes();
+
+  // ✅✅✅ ۳. تعریف متغیر جا افتاده
+  // تبدیل داده‌های درختی API به گزینه‌های SelectBox
+  const leaveTypeOptions = leaveTypesData
+    ? leaveTypesData.map(lt => ({ id: lt.id, name: lt.name })) // (نسخه ساده)
+    : [];
+
 
   const filterContent = (
     <div className="flex flex-col gap-y-6 p-4 bg-backgroundL-500 mx-auto dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD h-fit">
@@ -58,6 +79,7 @@ const RequestsFilter = ({
         </button>
       </div>
 
+      {/* (سازمان - فعلاً Mock) */}
       <SelectBox
         label="سازمان"
         placeholder="انتخاب کنید"
@@ -66,6 +88,7 @@ const RequestsFilter = ({
         onChange={onOrganizationChange}
       />
 
+      {/* (دسته‌بندی - فعلاً Mock) */}
       <SelectBox
         label="دسته بندی"
         placeholder="انتخاب کنید"
@@ -74,14 +97,18 @@ const RequestsFilter = ({
         onChange={onCategoryChange}
       />
 
+      {/* (اتصال SelectBox "نوع درخواست" به API - حالا درست کار می‌کند) */}
       <SelectBox
-        label="نوع درخواست"
-        placeholder="انتخاب کنید"
-        options={mockRequestTypes}
-        value={requestType}
-        onChange={onRequestTypeChange}
+        label="نوع درخواست (مرخصی)"
+        placeholder={isLoadingLeaveTypes ? "درحال بارگذاری..." : "انتخاب کنید"}
+        options={leaveTypeOptions} // <-- حالا این متغیر تعریف شده است
+        value={leaveType}
+        onChange={onLeaveTypeChange}
+        disabled={isLoadingLeaveTypes}
       />
+      {isLoadingLeaveTypes && <Spinner size="sm" />}
 
+      {/* (وضعیت - Mock اما مقادیر آپدیت شده) */}
       <SelectBox
         label="وضعیت درخواست"
         placeholder="انتخاب کنید"
@@ -90,6 +117,7 @@ const RequestsFilter = ({
         onChange={onStatusChange}
       />
 
+      {/* (تاریخ - بدون تغییر) */}
       <div>
         <label className="block text-sm font-medium text-right mb-1 text-foregroundL dark:text-foregroundD">
           تاریخ درخواست
@@ -100,10 +128,11 @@ const RequestsFilter = ({
           placeholder="انتخاب کنید"
           inputClassName="py-2.5 pr-10 pl-3"
           containerClassName="w-full"
-          label="تاریخ"
-
+          label="تاریخ" // (این پراپ در کامپوننت شما وجود دارد؟)
         />
       </div>
+
+      {/* (دکمه‌ها - بدون تغییر - کلاس‌های ... را بعداً تکمیل کنید) */}
       <Link to='/requests/new' className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center">
         <CirclePlus size={20} /> درخواست جدید
       </Link>
@@ -117,6 +146,7 @@ const RequestsFilter = ({
     </div>
   );
 
+  // (بقیه کامپوننت - بدون تغییر)
   return (
     <>
       {/* دکمه برای موبایل */}
