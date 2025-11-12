@@ -1,15 +1,19 @@
-// src/components/layout/MainLayout.tsx
-
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar, SidebarContent } from "./Sidebar";
 import { Header } from "./Header";
+// ۱. کامپوننت نگهبان را ایمپورت کنید
+import { GlobalWebSocketHandler } from './GlobalWebSocketHandler';
 
 export const MainLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
+
+      {/* ۲. نگهبان اتصال را در اینجا قرار دهید */}
+      {/* این کامپوننت باید داخل Layout باشد تا به Redux دسترسی داشته باشد */}
+      <GlobalWebSocketHandler />
 
       <Header onMenuClick={() => setSidebarOpen(true)} />
 
