@@ -1,7 +1,6 @@
-// features/requests/requestsPage.tsx
-
-import { useState, useMemo, useEffect } from 'react'; // ۱. useEffect را اضافه کنید
-import { Search} from 'lucide-react';
+// features/requests/routes/requestsPage.tsx
+import { useState, useMemo, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,16 +16,16 @@ import {
 // کامپوننت‌های عمومی
 import { DataTable } from '@/components/ui/DataTable';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
-import { type SelectOption } from '@/components/ui/SelectBox'; // ۲. تایپ SelectOption را وارد کنید
-import { type DateObject } from 'react-multi-date-picker'; // ✅ ۱. ایمپورت تایپ DateObject
+import { type SelectOption } from '@/components/ui/SelectBox';
+import { type DateObject } from 'react-multi-date-picker';
 
 // موارد مخصوص فیچر
 import { MOCK_REQUESTS } from '@/features/requests/data/mockData';
 import { requestsColumns } from '@/features/requests/components/mainRequests/RequestsColumnDefs';
-import RequestsFilter from '@/features/requests/components/mainRequests/RequestsFilter'; // ۳. کامپوننت فیلتر را وارد کنید
+import RequestsFilter from '@/features/requests/components/mainRequests/RequestsFilter';
 
 const RequestsPage = () => {
-  // --- مدیریت State ها برای جدول ---
+  // (استیت‌های جدول - بدون تغییر)
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -34,20 +33,20 @@ const RequestsPage = () => {
     pageIndex: 0,
     pageSize: 10,
   });
-  const [date, setDate] = useState<DateObject | null>(null); // ✅ ۲. استیت تاریخ اضافه شد
 
-  // --- ۴. مدیریت State ها برای فیلترها (Lifting State Up) ---
-  const [globalFilter, setGlobalFilter] = useState(''); // فیلتر جستجوی عمومی
+  // (استیت‌های فیلتر - بدون تغییر)
+  const [globalFilter, setGlobalFilter] = useState('');
   const [organization, setOrganization] = useState<SelectOption | null>(null);
   const [category, setCategory] = useState<SelectOption | null>(null);
-  const [requestType, setRequestType] = useState<SelectOption | null>(null);
+  const [requestType, setRequestType] = useState<SelectOption | null>(null); // استیت نوع مرخصی
   const [status, setStatus] = useState<SelectOption | null>(null);
+  const [date, setDate] = useState<DateObject | null>(null);
 
-  // داده‌ها و ستون‌ها
+  // (داده‌ها و ستون‌ها - بدون تغییر)
   const data = useMemo(() => MOCK_REQUESTS, []);
   const columns = useMemo(() => requestsColumns, []);
 
-  // --- مقداردهی اولیه جدول ---
+  // (مقداردهی اولیه جدول - بدون تغییر)
   const table = useReactTable({
     data: data,
     columns: columns,
@@ -57,53 +56,40 @@ const RequestsPage = () => {
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
-      columnFilters, // اتصال state فیلتر ستون‌ها
+      columnFilters,
       pagination,
       rowSelection,
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters, // اتصال setter
+    onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     enableRowSelection: true,
   });
 
-
-
-  // --- ۵. اتصال فیلترها به جدول ---
+  // (افکت اتصال فیلترها - بدون تغییر)
   useEffect(() => {
     const newFilters: ColumnFiltersState = [];
 
-
-    // الف) فیلتر جستجوی عمومی (فقط در صورتی که مقداری داشته باشد)
     if (globalFilter) {
       newFilters.push({ id: 'requester', value: globalFilter });
     }
-
-    // ب) فیلترهای SelectBox (اینها از قبل درست بودند)
     if (organization) {
-      // (accessorKey ستون سازمان 'organization' است)
       newFilters.push({ id: 'organization', value: organization.name });
     }
     if (category) {
-      // (accessorKey ستون دسته‌بندی 'category' است)
       newFilters.push({ id: 'category', value: category.name });
     }
-    if (requestType) {
-      // (accessorKey ستون نوع 'requestType' است)
+    if (requestType) { // فیلتر بر اساس استیت requestType
       newFilters.push({ id: 'requestType', value: requestType.name });
     }
     if (status) {
-      // (accessorKey ستون وضعیت 'status' است)
       newFilters.push({ id: 'status', value: status.name });
     }
     if (date) {
-      // نکته: این فیلتر زمانی کار می‌کند که فرمت تاریخ در MOCK_REQUESTS
-      // با فرمت خروجی date.format() (یعنی "YYYY/MM/DD") یکی باشد.
       newFilters.push({ id: 'date', value: date.format() });
     }
 
-    // ج) اعمال همزمان همه‌ی فیلترها
     setColumnFilters(newFilters);
   }, [
     globalFilter,
@@ -114,18 +100,23 @@ const RequestsPage = () => {
     date,
     setColumnFilters,
   ]);
+
   return (
-    // ۶. تغییر لایه‌بندی صفحه برای نمایش ستون فیلتر
-    <div className="flex flex-col md:flex-row-reverse  ">
+    <div className="flex flex-col md:flex-row-reverse ">
       {/* ستون فیلترها (سایدبار) */}
       <div className="w-full md:w-64 lg:w-72">
+        {/* ✅✅✅ اصلاحیه باگ: نام Propها تصحیح شد */}
         <RequestsFilter
           organization={organization}
           onOrganizationChange={setOrganization}
           category={category}
           onCategoryChange={setCategory}
-          requestType={requestType}
-          onRequestTypeChange={setRequestType}
+
+          // نام Prop از 'requestType' به 'leaveType' تغییر کرد
+          leaveType={requestType}
+          // نام Prop از 'onRequestTypeChange' به 'onLeaveTypeChange' تغییر کرد
+          onLeaveTypeChange={setRequestType}
+
           status={status}
           onStatusChange={setStatus}
           date={date}
@@ -133,18 +124,17 @@ const RequestsPage = () => {
         />
       </div>
 
-      {/* محتوای اصلی (جدول) */}
+      {/* محتوای اصلی (جدول) - (بدون تغییر) */}
       <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD px-2 py-4">
-        {/* هدر جدول (جستجو و دکمه جدید) */}
+        {/* (هدر جدول - بدون تغییر) */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <div>
             <h2 className="text-lg font-bold text-borderD dark:text-borderL">
               درخواست ها
             </h2>
           </div>
-
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
-            {/* اینپوت جستجو */}
+            {/* (اینپوت جستجو - بدون تغییر) */}
             <div className="relative w-full sm:w-60">
               <input
                 value={globalFilter}
@@ -152,27 +142,23 @@ const RequestsPage = () => {
                 placeholder="جستجو در مشخصات..."
                 className="w-full py-1.5 px-3 pr-10 rounded-lg text-sm bg-inputL text-foregroundL border border-borderL focus:outline-none focus:ring-2 focus:ring-primaryL placeholder:text-muted-foregroundL dark:bg-inputD dark:text-foregroundD dark:border-borderD dark:focus:ring-primaryD dark:placeholder:text-muted-foregroundD"
               />
-
               <Search
                 size={18}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL dark:text-muted-foregroundD pointer-events-none"
               />
             </div>
-
-           
           </div>
         </div>
 
-        {/* جدول داده‌ها */}
+        {/* (جدول داده‌ها - بدون تغییر) */}
         <div className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
           <DataTable table={table} />
         </div>
 
-        {/* صفحه‌بندی */}
+        {/* (صفحه‌بندی - بدون تغییر) */}
         <DataTablePagination table={table} />
       </main>
     </div>
-
   );
 };
 
