@@ -28,48 +28,39 @@ class UserController extends Controller
         $currentUser = $request->user();
         $currentUserEmployee = $currentUser->employee;
 
-        $query = User::with(['employee.organization', 'roles']); // فقط employee و roles
+        $query = User::with(['employee.organization', 'roles', 'employee.workGroup', 'employee.shiftSchedule', 'employee.weekPattern']);
+        $adminOrg = $currentUserEmployee?->organization;
 
-        if ($currentUser->hasRole('org-admin-l2')) {
-            if ($currentUserEmployee?->organization) {
-                $adminOrg = $currentUserEmployee->organization;
-                $allowedOrgIds = $adminOrg->descendants()->pluck('id')->push($adminOrg->id);
-                $query->whereHas('employee', function ($q) use ($allowedOrgIds) {
-                    $q->whereIn('organization_id', $allowedOrgIds);
-                });
-            }
-            else
-            {
-                $query->whereRaw('1 = 0');
-            }
+        if(!$adminOrg && ($currentUser->hasRole('org-admin-l2') || $currentUser->hasRole('org-admin-l3')) )
+        {
+            $query->where(false);
+        }
+        else if ($currentUser->hasRole('org-admin-l2') ) {
+
+            $query->whereHas('employee.organization', function ($q) use ($adminOrg) {
+                $q->whereIsDescendantOfOrSelf($adminOrg);
+            });
             $query->where('id', '!=', $currentUser->id);
         }
         elseif ($currentUser->hasRole('org-admin-l3'))
         {
-            if ($currentUserEmployee?->organization_id)
-            {
-                $query->whereHas('employee', function ($q) use ($currentUserEmployee) {
-                    $q->where('organization_id', $currentUserEmployee->organization_id);
-                });
-            }
-            else
-            {
-                $query->whereRaw('1 = 0');
-            }
+            $query->whereHas('employee', function ($q) use ($adminOrg) {
+                $q->where('organization_id', $adminOrg->id);
+            });
             $query->where('id', '!=', $currentUser->id);
         }
 
         $query->when($request->input('search'), function ($q, $searchTerm)
         {
-            $q->where(function ($subQuery) use ($searchTerm) {
-                $subQuery->where('user_name', 'like', "%{$searchTerm}%")
-                     ->orWhere('email', 'like', "%{$searchTerm}%");
-                $subQuery->orWhereHas('employee', function ($employeeQuery) use ($searchTerm) {
-                    $employeeQuery->where('first_name', 'like', "%{$searchTerm}%")
-                        ->orWhere('last_name', 'like', "%{$searchTerm}%")
-                        ->orWhere('personnel_code', 'like', "%{$searchTerm}%");
-            });
-            });
+            $q->select('users.*')
+              ->leftJoin('employees', 'users.id', '=', 'employees.user_id')
+              ->where(function ($subQuery) use ($searchTerm) {
+                  $subQuery->where('users.user_name', 'like', "%{$searchTerm}%")
+                           ->orWhere('users.email', 'like', "%{$searchTerm}%")
+                           ->orWhere('employees.first_name', 'like', "%{$searchTerm}%")
+                           ->orWhere('employees.last_name', 'like', "%{$searchTerm}%")
+                           ->orWhere('employees.personnel_code', 'like', "%{$searchTerm}%");
+              });
         });
 
         $query->when($request->input('role'), function ($q, $roleName) {
@@ -78,22 +69,18 @@ class UserController extends Controller
             });
         });
 
-        $query->when($request->input('organization_id'), function ($q, $orgId) {
-            $organization = Organization::find($orgId);
-            if ($organization) {
-                $orgIdsToSearch = $organization->descendantsAndSelf()->pluck('id');
-                $q->whereHas('employee', function ($employeeQuery) use ($orgIdsToSearch) {
-                    $employeeQuery->whereIn('organization_id', $orgIdsToSearch);
+        $query->when($request->input('organization_id'), function ($q, $orgId)
+        {
+            $q->whereHas('employee.organization', function ($orgQuery) use ($orgId) {
+                $orgQuery->where(function ($sub) use ($orgId)
+                {
+                    $sub->where('id', $orgId)
+                        ->orWhereHas('ancestors', function($anc) use ($orgId)
+                        {
+                            $anc->where('id', $orgId);
+                        });
                 });
-            }
-            else
-            {
-                $q->whereHas('employee', function ($employeeQuery) use ($orgId) {
-                    $employeeQuery->where('organization_id', $orgId);
-                });
-            }
-
-
+            });
         });
         $users = $query->paginate(15)->withQueryString();
 
