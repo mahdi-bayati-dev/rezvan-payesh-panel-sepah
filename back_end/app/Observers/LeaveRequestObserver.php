@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Events\LeaveRequestProcessed;
 use App\Events\LeaveRequestSubmitted;
 use App\Models\LeaveRequest;
 
@@ -20,7 +21,7 @@ class LeaveRequestObserver
      */
     public function updated(LeaveRequest $leaveRequest): void
     {
-        //
+        LeaveRequestProcessed::dispatch($leaveRequest);
     }
 
     /**

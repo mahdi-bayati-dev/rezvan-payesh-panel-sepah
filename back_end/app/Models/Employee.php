@@ -91,7 +91,6 @@ class Employee extends Model
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
-        // نکته: باید مدل و میگریشن 'LeaveRequest' را بسازید
     }
     
     /**
@@ -102,7 +101,6 @@ class Employee extends Model
     public function attendanceLogs(): HasMany
     {
         return $this->hasMany(AttendanceLog::class);
-        // نکته: باید مدل و میگریشن 'AttendanceLog' را بسازید
     }
 
 
@@ -118,7 +116,7 @@ class Employee extends Model
     /**
      * برنامه کاری اختصاصی کارمند (اگر null باشد، از گروه ارث می‌برد)
      */
-    public function shiftSchedule(): BelongsTo // <-- اضافه شد
+    public function shiftSchedule(): BelongsTo
     {
         return $this->belongsTo(ShiftSchedule::class);
     }

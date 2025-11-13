@@ -95,12 +95,11 @@ class LeaveRequestController extends Controller
             'reason' => $validated['reason'],
             'status' => LeaveRequest::STATUS_PENDING, // وضعیت پیش‌فرض
         ]);
-         LeaveRequestSubmitted::dispatch($leaveRequest);
          $leaveRequest->load(['employee', 'leaveType']);
 
         return (new LeaveRequestResource($leaveRequest))
             ->response()
-            ->setStatusCode(Response::HTTP_CREATED);
+            ->setStatusCode(ResponseAlias::HTTP_CREATED);
     }
 
     /**
