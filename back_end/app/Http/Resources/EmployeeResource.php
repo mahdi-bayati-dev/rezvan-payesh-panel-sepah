@@ -26,10 +26,10 @@ class EmployeeResource extends JsonResource
             'position' => $this->position,
             'starting_job' => $this->starting_job,
 
-            // استفاده از whenLoaded برای organization
-            'organization' => $this->whenLoaded('organization', function () {
-                return new OrganizationResource($this->organization);
-            }),
+            'organization' => new OrganizationResource($this->whenLoaded('organization')),
+            'work_group' => new WorkGroupResource($this->whenLoaded('workGroup')),
+            'week_pattern' => new WeekPatternResource($this->whenLoaded('weekPattern')),
+            'shift_schedule' => new ShiftScheduleResource($this->whenLoaded('shiftSchedule')),
 
             // بقیه فیلدها...
             'father_name' => $this->father_name,
