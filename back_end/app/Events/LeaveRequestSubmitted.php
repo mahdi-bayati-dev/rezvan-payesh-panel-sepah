@@ -21,7 +21,7 @@ class LeaveRequestSubmitted implements ShouldBroadcast
      */
     public function __construct(public LeaveRequest $leaveRequest)
     {
-        $this->leaveRequest = $leaveRequest->load('employee.organization.parent');
+        $this->leaveRequest = $leaveRequest->load('employee.organization.ancestors');
     }
 
     /**
@@ -34,7 +34,7 @@ class LeaveRequestSubmitted implements ShouldBroadcast
         $channels = [];
         $channels[] = new PrivateChannel('super-admin-global');
         $organization = $this->leaveRequest->employee->organization;
-        if (!$organization)
+        if (!$this->leaveRequest->employee || !$organization)
         {
             return $channels;
         }
@@ -42,11 +42,13 @@ class LeaveRequestSubmitted implements ShouldBroadcast
         $channels[] = new PrivateChannel('l3-channel.' . $organization->id);
 
 
-        $currentOrg = $organization;
-        while ($currentOrg)
+        $allAncestors = $organization->ancestors;
+        $allAncestors->push($organization);
+        foreach ($allAncestors as $org)
         {
-            $channels[] = new PrivateChannel('l2-channel.' . $currentOrg->id);
-            $currentOrg = $currentOrg->parent;
+            if ($org && $org->id) {
+                $channels[] = new PrivateChannel('l2-channel.' . $org->id);
+            }
         }
         return array_unique($channels);
     }
