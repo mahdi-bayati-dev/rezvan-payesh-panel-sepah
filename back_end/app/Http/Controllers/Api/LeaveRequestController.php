@@ -19,7 +19,6 @@ class LeaveRequestController extends Controller
 {
     public function __construct()
     {
-        $this->authorizeResource(LeaveRequest::class, 'leave_request');
     }
     /**
      * Display a listing of the resource.
@@ -59,6 +58,7 @@ class LeaveRequestController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', LeaveRequest::class);
         $user = $request->user();
         $employee = $user->employee;
         if (!$employee)
@@ -107,6 +107,7 @@ class LeaveRequestController extends Controller
      */
     public function show(LeaveRequest $leaveRequest)
     {
+         $this->authorize('view', $leaveRequest);
         $leaveRequest->load(['employee', 'leaveType', 'processor']);
         return new LeaveRequestResource($leaveRequest);
     }
@@ -116,6 +117,7 @@ class LeaveRequestController extends Controller
      */
     public function update(Request $request, LeaveRequest $leaveRequest)
     {
+         $this->authorize('update', $leaveRequest);
         $validator = Validator::make($request->all(), [
             'leave_type_id' => 'required|integer|exists:leave_types,id',
             'start_time' => 'required|date|after_or_equal:now',
@@ -137,6 +139,7 @@ class LeaveRequestController extends Controller
      */
     public function destroy(LeaveRequest $leaveRequest)
     {
+         $this->authorize('delete', $leaveRequest);
         $leaveRequest->delete();
         return response()->json(null, ResponseAlias::HTTP_NO_CONTENT);
     }
