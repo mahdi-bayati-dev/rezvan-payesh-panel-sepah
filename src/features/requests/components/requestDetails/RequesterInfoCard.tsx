@@ -1,31 +1,55 @@
-// src/features/requests/components/.../RequesterInfoCard.tsx (نام فایل را حفظ می‌کنیم)
+// features/requests/components/requestDetails/RequesterInfoCard.tsx
 
-import type { Requester } from "@/features/requests/types";
-// ایمپورت کامپوننت عمومی از پوشه ui
+// ۱. تایپ LeaveRequest را از index ماژول requests ایمپورت می‌کنیم
+import type { LeaveRequest } from "@/features/requests/types";
+// (اطمینان از مسیر صحیح UserInfoCard)
 import { UserInfoCard, type InfoRowData } from "@/components/ui/UserInfoCard";
 
 interface RequesterInfoCardProps {
-    requester: Requester;
+    // این کامپوننت کل آبجکت LeaveRequest را می‌پذیرد
+    request: LeaveRequest;
 }
 
+export const RequesterInfoCard = ({ request }: RequesterInfoCardProps) => {
 
-export const RequesterInfoCard = ({ requester }: RequesterInfoCardProps) => {
+    // ۲. داده‌ی Employee را از آبجکت request استخراج می‌کنیم
+    const { employee } = request;
 
-    // ۱. داده‌ی Requester را به فرمت مورد نیاز UserInfoCard تبدیل می‌کنیم
+    // ۳. [بروزرسانی] داده‌ی Employee را به فرمت مورد نیاز UserInfoCard تبدیل می‌کنیم
+    //    (با استفاده از فیلدهای جدیدی که JSON تایید کرد)
     const infoRows: InfoRowData[] = [
-        { label: "کد پرسنلی", value: requester.phone }, // استفاده از phone
-        { label: "سازمان", value: "بخش ۱" }, // (اینجا همچنان فیک است)
-        { label: "گروه کاری", value: "کارمند" }, // (اینجا همچنان فیک است)
+        {
+            label: "کد پرسنلی",
+            // حالا به personnel_code دسترسی داریم
+            value: employee.personnel_code || '---'
+        },
+        {
+            label: "سازمان",
+            // حالا به organization.name دسترسی داریم
+            value: employee.organization?.name || '---'
+        },
+        {
+            label: "سمت",
+            // حالا به position دسترسی داریم
+            value: employee.position || '---'
+        },
+        {
+            label: "شماره تماس",
+            // حالا به phone_number دسترسی داریم
+            value: employee.phone_number || '---'
+        },
     ];
 
-    // ۲. رندر کامپوننت عمومی با داده‌های آماده شده
+    // ۴. [بروزرسانی] نام کامل و Placeholder آواتار
+    const fullName = `${employee.first_name} ${employee.last_name}`;
+    const avatarPlaceholder = `${employee.first_name.substring(0, 1)}${employee.last_name.substring(0, 1)}`.trim() || '??';
+
     return (
         <UserInfoCard
             title="مشخصات درخواست‌دهنده"
-            name={requester.name}
-            avatarUrl={requester.avatarUrl}
-            // می‌توانید از نام فرد برای placeholder استفاده کنید
-            avatarPlaceholder={requester.name.substring(0, 2)}
+            name={fullName}
+            // avatarUrl={employee.avatarUrl} // (این فیلد در API شما نیست)
+            avatarPlaceholder={avatarPlaceholder}
             infoRows={infoRows}
         />
     );

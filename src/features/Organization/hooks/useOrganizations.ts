@@ -19,9 +19,7 @@ import { selectUser } from "@/store/slices/authSlice"; // (مسیر authSlice ش
 const useOrganizationRole = () => {
   const user = useAppSelector(selectUser);
 
-
-  
-
+  // ۲. [اصلاح] اگر user یا roles وجود نداشت، باید 'guest' برگردانیم
   if (!user || !user.roles || user.roles.length === 0) {
     return "guest";
   }
@@ -32,7 +30,6 @@ const useOrganizationRole = () => {
   // در غیر این صورت، اولین نقش (مثلاً 'Admin L2' یا 'Admin L3') را برمی‌گردانیم
   return user.roles[0];
 };
- 
 
 // --- کلیدهای کوئری ---
 export const organizationKeys = {
@@ -49,8 +46,9 @@ export const organizationKeys = {
  * هوک اصلی برای فچ کردن چارت سازمانی
  * این هوک منطق پیچیده API (بر اساس نقش) را مدیریت می‌کند
  * و *همیشه* یک آرایه یکدست از سازمان‌ها برمی‌گرداند که برای ساختن درخت آماده است
+ * ✅ اصلاح: پذیرش آرگومان options
  */
-export const useOrganizations = () => {
+export const useOrganizations = (options?: { enabled?: boolean }) => {
   // ۳. استفاده از هوک Redux به جای useAuth فرضی
   const role = useOrganizationRole();
 
@@ -59,7 +57,6 @@ export const useOrganizations = () => {
     queryFn: async () => {
       const response = await fetchOrganizations();
       console.log(response);
-      
 
       // --- منطق حیاتی (بدون تغییر) ---
       if ("id" in response.data) {
@@ -68,10 +65,9 @@ export const useOrganizations = () => {
       }
       return (response as OrganizationCollectionResponse).data;
     },
-    
-    
+
     // ۴. فعال کردن کوئری فقط زمانی که کاربر نقش معتبر دارد
-    enabled: role !== "guest",
+    enabled: (options?.enabled ?? true) && role !== "guest", // ✅ اعمال enabled از پراپ و نقش
   });
 };
 

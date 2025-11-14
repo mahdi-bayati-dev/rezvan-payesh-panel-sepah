@@ -11,25 +11,22 @@ import { type DateObject } from "react-multi-date-picker";
 import { type SelectOption } from '@/components/ui/SelectBox';
 import gregorian from "react-date-object/calendars/gregorian";
 
-// --- ۱. [تغییر] ایمپورت‌های سرویس ---
-// ما فقط به 'getEcho' (بدون توکن) و 'leaveChannel' نیاز داریم
-import { getEcho, leaveChannel } from '../services/echoService';
+// [اصلاح] ایمپورت از مسیر سراسری و مشترک
+import { getEcho, leaveChannel } from '@/lib/echoService'; // <-- مسیر اصلاح شد
 
 
 // --- ایمپورت هوک‌های داده (اصلاح شده) ---
 import {
     useLogs,
     useApproveLog,
-    useEmployeeOptionsList, // [بهینه] تغییر نام هوک
-    reportKeys, // [بهینه] ایمپورت کلیدهای کوئری
+    useEmployeeOptionsList,
+    reportKeys,
 } from '../hooks/hook';
 
 // --- ایمپورت تایپ‌ها و کامپوننت‌ها (اصلاح شده) ---
 import { columns as createColumns } from '@/features/reports/components/reportsPage/TableColumns';
-// [بهینه] ایمپورت تایپ‌های مورد نیاز برای آپدیت کش
 import { type ActivityLog, type ApiAttendanceLog } from '../types';
 import { type LogFilters } from '../api/api';
-// [بهینه] ایمپورت مپر
 import { mapApiLogToActivityLog } from '../utils/dataMapper';
 import { DataTable } from '@/components/ui/DataTable';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
@@ -98,24 +95,21 @@ export default function ActivityReportPage() {
 
 
     // ... (بقیه کدهای هوک useLogs، useEmployeeOptions, mutations, table, handlers) ...
-    // ... این بخش‌ها هیچ تغییری نکرده‌اند ...
     const {
         data: queryResult,
         isLoading,
         isFetching
     } = useLogs(filters);
 
-    // [بهینه] استفاده از هوک با نام جدید
     const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptionsList();
 
-    // [✅ رفع خطا ۲] - این متغیرها باید *قبل* از useEffect (که از meta استفاده می‌کند) تعریف شوند
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
 
 
-    // --- ۳. [اصلاح اساسی] هوک useEffect برای *عضویت در کانال* ---
+    // --- [اصلاح اساسی] هوک useEffect برای *عضویت در کانال* ---
     useEffect(() => {
-        // ۱. دریافت نمونه گلوبال (دیگر نیازی به توکن نیست)
+        // ۱. دریافت نمونه گلوبال (از مسیر جدید)
         const echo = getEcho();
 
         // ۲. بررسی اینکه آیا اتصال گلوبال برقرار است
@@ -126,7 +120,6 @@ export default function ActivityReportPage() {
 
         // ۳. نام کانال و رویداد (بدون تغییر)
         const channelName = 'super-admin-global';
-        // نام کامل رویداد از مستندات
         const eventNameFromDocs = '.attendance.created';
 
         logSocket('info', `در حال تلاش برای عضویت در کانال: private-${channelName} ...`);
@@ -134,7 +127,6 @@ export default function ActivityReportPage() {
         // ۴. عضویت در کانال
         const privateChannel = echo.private(channelName);
 
-        // --- این لاگ‌ها دیگر به اتصال اصلی کاری ندارند، فقط مربوط به *این کانال* هستند ---
         privateChannel.subscribed((data: any) => {
             logSocket('success', `✅ عضویت در کانال 'private-${channelName}' موفقیت‌آمیز بود.`, data);
         });
@@ -143,32 +135,23 @@ export default function ActivityReportPage() {
             logSocket('error', `❌ خطای عضویت در کانال 'private-${channelName}'. (توکن/دسترسی بررسی شود)`, data);
         });
 
-        // ۵. [بهینه] گوش دادن به رویداد با آپدیت مستقیم کش
+        // ۵. گوش دادن به رویداد
         privateChannel.listen(eventNameFromDocs, (event: any) => {
             logSocket('success', `✅ رویداد دریافت شد: '${eventNameFromDocs}'`, event);
 
-            // --- 💡 بهینه‌سازی: به‌روزرسانی مستقیم کش ---
-            // فرض می‌کنیم رویداد شما شامل آبجکت کامل لاگ جدید است
-            // ساختار event.log را با دیتای واقعی خودتان تطبیق دهید
             const newApiLog = event.log as ApiAttendanceLog;
 
             if (newApiLog) {
                 logSocket('info', `به‌روزرسانی مستقیم کش با لاگ جدید...`, newApiLog);
                 const newActivityLog = mapApiLogToActivityLog(newApiLog);
 
-                // آپدیت کردن مستقیم کش کوئری *فعلی*
-                // این کار از یک درخواست شبکه کامل جلوگیری می‌کند
                 queryClient.setQueryData(
-                    reportKeys.list(filters), // <-- کلید دقیق کوئری فعلی
+                    reportKeys.list(filters),
                     (oldData: { data: ActivityLog[], meta: any } | undefined) => {
-                        // اگر دیتای قبلی به هر دلیلی در کش نبود، کاری نکن
                         if (!oldData) return;
 
-                        // اضافه کردن آیتم جدید به ابتدای لیست
                         const newData = [newActivityLog, ...oldData.data];
 
-                        // اختیاری: حذف آخرین آیتم برای ثابت نگه داشتن pageSize
-                        // این مقدار (10) باید با pageSize شما یکی باشد
                         if (newData.length > (meta?.per_page || 10)) {
                             newData.pop();
                         }
@@ -178,40 +161,31 @@ export default function ActivityReportPage() {
                             data: newData,
                             meta: {
                                 ...oldData.meta,
-                                total: (oldData.meta.total || 0) + 1 // آپدیت تعداد کل
+                                total: (oldData.meta.total || 0) + 1
                             }
                         };
                     }
                 );
             } else {
-                // --- فال‌بک (Fallback) ---
-                // اگر رویداد داده‌ی لاگ را نداشت، از روش قبلی (invalidate) استفاده کن
                 logSocket('info', `رویداد فاقد داده بود. در حال invalidation...`);
                 queryClient.invalidateQueries({
-                    queryKey: reportKeys.lists() // استفاده از کلید دقیق‌تر
+                    queryKey: reportKeys.lists()
                 });
             }
         });
 
         logSocket('info', `در حال گوش دادن به رویداد: '${eventNameFromDocs}' ...`);
 
-        // --- ۶. [مهم] تمیزکاری (Cleanup) ---
+        // --- ۶. تمیزکاری (Cleanup) ---
         return () => {
-            // این تابع زمانی اجرا می‌شود که کامپوننت reportPage از بین برود (unmount)
             logSocket('info', `در حال خروج از کانال: ${channelName} (اتصال اصلی پابرجا می‌ماند)`);
             privateChannel.stopListening(eventNameFromDocs);
-            leaveChannel(channelName);
+            leaveChannel(channelName); // <-- استفاده از تابع سراسری
         };
 
-        // --- ۷. [تغییر] وابستگی userToken حذف شد ---
-        // وابستگی به filters اضافه شد تا در صورت تغییر فیلترها، کش درستی آپدیت شود
-    }, [queryClient, filters, meta]); // <-- [بهینه] وابستگی به filters و meta
+    }, [queryClient, filters, meta]);
 
 
-    // [✅ رفع خطا ۲] - این خطوط به بالا منتقل شدند
-    // const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptionsList(); 
-    // const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
-    // const meta = useMemo(() => queryResult?.meta, [queryResult]);
     const pageCount = meta?.last_page || 1;
     const approveMutation = useApproveLog();
     const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);

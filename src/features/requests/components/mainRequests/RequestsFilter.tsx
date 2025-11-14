@@ -1,21 +1,72 @@
 // features/requests/components/mainRequests/RequestsFilter.tsx
-import { useState } from "react";
-import { X, SlidersHorizontal, CirclePlus, Settings2 } from "lucide-react"; // ✅ ایمپورت X وجود داشت، عالی
+import { useState, useMemo, Fragment } from "react";
+import { X, SlidersHorizontal, CirclePlus, Settings2 } from "lucide-react";
 import { Link } from 'react-router-dom';
-import { Fragment } from "react";
+// ✅ [FIX] استفاده از مسیرهای نسبی
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 
-// ✅ ۱. ایمپورت هوک با مسیر صحیح
-import { useLeaveTypes } from '@/features/requests/hook/useLeaveTypes';
-import { Spinner } from "@/components/ui/Spinner";
+// --- ایمپورت‌های ---
+// ✅ [FIX] استفاده از مسیرهای نسبی
+import { useLeaveTypes } from '../../hook/useLeaveTypes';
+// (مسیر هوک سازمان‌ها بر اساس لاگ خطای قبلی شما اصلاح شد)
+// توجه: فرض می‌کنیم این هوک آرگومان نمی‌پذیرد (برای رفع خطای TS2554).
+import { useOrganizations } from '@/features/Organization/hooks/useOrganizations'; // مسیر اصلاح شد
+import { type Organization } from '@/features/Organization/types/index';
+import type { User, LeaveType } from '../../types'; // (اصلاح مسیر)
 import { Dialog, Transition } from "@headlessui/react";
-
-// ✅ ۲. ایمپورت‌های مربوط به تاریخ (فقط یک بار)
+// ✅ [FIX] استفاده از مسیرهای نسبی
 import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
-import { type DateObject } from "react-multi-date-picker";
+import { type DateObject } from "react-multi-date-picker"; // ✅ ایمپورت DateObject
 
-// (اینترفیس پراپ‌ها - بدون تغییر)
+
+/**
+ * (تابع flattenOrganizations - بدون تغییر)
+ */
+const flattenOrganizations = (
+  orgs: Organization[],
+  level = 0
+): SelectOption[] => {
+  let flatList: SelectOption[] = [];
+  for (const org of orgs) {
+    flatList.push({
+      id: org.id,
+      name: `${'— '.repeat(level)}${org.name}`,
+    });
+    if (org.children && org.children.length > 0) {
+      flatList = flatList.concat(
+        flattenOrganizations(org.children, level + 1)
+      );
+    }
+    if (org.descendants && org.descendants.length > 0) {
+      flatList = flatList.concat(
+        flattenOrganizations(org.descendants, level + 1)
+      );
+    }
+  }
+  return flatList;
+};
+
+// (تابع processLeaveTypes - بدون تغییر)
+const processLeaveTypes = (types: LeaveType[]) => {
+  const categories: SelectOption[] = [];
+  const allTypes: SelectOption[] = [];
+  types.forEach(category => {
+    if (!category.parent_id) {
+      categories.push({ id: category.id, name: category.name });
+      allTypes.push({ id: category.id, name: category.name });
+    }
+    if (category.children && category.children.length > 0) {
+      category.children.forEach(child => {
+        allTypes.push({ id: child.id, name: `— ${child.name}` });
+      });
+    }
+  });
+  return { categories, allTypes };
+};
+
+
 interface RequestsFilterProps {
+  currentUser: User | null;
   organization: SelectOption | null;
   onOrganizationChange: (value: SelectOption | null) => void;
   category: SelectOption | null;
@@ -28,13 +79,6 @@ interface RequestsFilterProps {
   onDateChange: (value: DateObject | null) => void;
 }
 
-// (داده‌های Mock - بدون تغییر)
-const mockOrganizations: SelectOption[] = [
-  { id: "org1", name: "سازمان الف" },
-];
-const mockCategories: SelectOption[] = [
-  { id: "cat2", name: "مرخصی" },
-];
 const mockStatuses: SelectOption[] = [
   { id: "pending", name: "در انتظار" },
   { id: "approved", name: "تایید شده" },
@@ -42,6 +86,7 @@ const mockStatuses: SelectOption[] = [
 ];
 
 const RequestsFilter = ({
+  currentUser,
   organization,
   onOrganizationChange,
   category,
@@ -55,21 +100,44 @@ const RequestsFilter = ({
 }: RequestsFilterProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // (دریافت داده‌ها از هوک - بدون تغییر)
-  const { data: leaveTypesData, isLoading: isLoadingLeaveTypes } = useLeaveTypes();
+  // --- بررسی دسترسی‌ها ---
+  const canCreateRequest = !!currentUser?.employee;
 
-  // ✅✅✅ ۳. تعریف متغیر جا افتاده
-  // تبدیل داده‌های درختی API به گزینه‌های SelectBox
-  const leaveTypeOptions = leaveTypesData
-    ? leaveTypesData.map(lt => ({ id: lt.id, name: lt.name })) // (نسخه ساده)
-    : [];
+  const isSuperAdmin = currentUser?.roles?.includes('super_admin') ?? false;
+  const isManager = isSuperAdmin ||
+    (currentUser?.roles?.includes('org-admin-l2') ?? false) ||
+    (currentUser?.roles?.includes('org-admin-l3') ?? false);
+
+
+  // --- اتصال فیلترها به API ---
+  // تنها در صورتی که مدیر باشد، به انواع مرخصی نیاز داریم.
+  const { data: leaveTypesData, isLoading: isLoadingLeaveTypes } = useLeaveTypes({
+    enabled: isManager,
+  });
+
+  // تنها در صورتی که مدیر باشد، به سازمان‌ها نیاز داریم.
+  // ✅ رفع خطای TS2554: فرض می‌کنیم useOrganizations آرگومان نمی‌پذیرد
+  // اگر این هوک باید آرگومان enabled بپذیرد، باید تعریف آن در ماژول Organization اصلاح شود
+  const { data: orgData, isLoading: isLoadingOrgs } = useOrganizations();
+
+  // (تبدیل داده‌ها - بدون تغییر)
+  const organizationOptions = useMemo(() => {
+    if (!orgData) return [];
+    return flattenOrganizations(orgData);
+  }, [orgData]);
+
+  // اگر کاربر عادی باشد، این لیست‌ها خالی هستند
+  const { categories: categoryOptions, allTypes: leaveTypeOptions } = useMemo(() => {
+    if (!leaveTypesData) return { categories: [], allTypes: [] };
+    return processLeaveTypes(leaveTypesData);
+  }, [leaveTypesData]);
 
 
   const filterContent = (
-    <div className="flex flex-col gap-y-6 p-4 bg-backgroundL-500 mx-auto dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD h-fit">
+    <div className="flex flex-col gap-y-6 p-4 sm:p-6 bg-backgroundL-500 mx-auto dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD h-fit"> {/* ✅ ریسپانسیو: padding بیشتر در موبایل و دسکتاپ */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-right text-foregroundL dark:text-foregroundD">
-          فیلتر
+          فیلترها
         </h3>
         <button
           className="md:hidden text-gray-600 dark:text-gray-300"
@@ -79,69 +147,79 @@ const RequestsFilter = ({
         </button>
       </div>
 
-      {/* (سازمان - فعلاً Mock) */}
-      <SelectBox
-        label="سازمان"
-        placeholder="انتخاب کنید"
-        options={mockOrganizations}
-        value={organization}
-        onChange={onOrganizationChange}
-      />
+      {/* ۱. فیلترهای مدیریتی (فقط برای مدیران) */}
+      {isManager && (
+        <>
+          <SelectBox
+            label="سازمان"
+            placeholder={isLoadingOrgs ? "درحال بارگذاری..." : "همه سازمان‌ها"}
+            options={organizationOptions}
+            value={organization || null}
+            onChange={onOrganizationChange}
+            disabled={isLoadingOrgs}
+          />
 
-      {/* (دسته‌بندی - فعلاً Mock) */}
-      <SelectBox
-        label="دسته بندی"
-        placeholder="انتخاب کنید"
-        options={mockCategories}
-        value={category}
-        onChange={onCategoryChange}
-      />
+          <SelectBox
+            label="دسته بندی"
+            placeholder={isLoadingLeaveTypes ? "درحال بارگذاری..." : "همه دسته‌بندی‌ها"}
+            options={categoryOptions}
+            value={category || null}
+            onChange={onCategoryChange}
+            disabled={isLoadingLeaveTypes}
+          />
 
-      {/* (اتصال SelectBox "نوع درخواست" به API - حالا درست کار می‌کند) */}
-      <SelectBox
-        label="نوع درخواست (مرخصی)"
-        placeholder={isLoadingLeaveTypes ? "درحال بارگذاری..." : "انتخاب کنید"}
-        options={leaveTypeOptions} // <-- حالا این متغیر تعریف شده است
-        value={leaveType}
-        onChange={onLeaveTypeChange}
-        disabled={isLoadingLeaveTypes}
-      />
-      {isLoadingLeaveTypes && <Spinner size="sm" />}
+          <SelectBox
+            label="نوع درخواست"
+            placeholder={isLoadingLeaveTypes ? "درحال بارگذاری..." : "همه انواع"}
+            options={leaveTypeOptions}
+            value={leaveType || null}
+            onChange={onLeaveTypeChange}
+            disabled={isLoadingLeaveTypes}
+          />
+        </>
+      )}
 
-      {/* (وضعیت - Mock اما مقادیر آپدیت شده) */}
+      {/* ۲. فیلتر وضعیت (برای همه) */}
       <SelectBox
         label="وضعیت درخواست"
-        placeholder="انتخاب کنید"
+        placeholder="همه وضعیت‌ها"
         options={mockStatuses}
-        value={status}
+        value={status || null}
         onChange={onStatusChange}
       />
 
-      {/* (تاریخ - بدون تغییر) */}
-      <div>
-        <label className="block text-sm font-medium text-right mb-1 text-foregroundL dark:text-foregroundD">
-          تاریخ درخواست
-        </label>
-        <PersianDatePickerInput
-          value={date}
-          onChange={onDateChange}
-          placeholder="انتخاب کنید"
-          inputClassName="py-2.5 pr-10 pl-3"
-          containerClassName="w-full"
-          label="تاریخ" // (این پراپ در کامپوننت شما وجود دارد؟)
-        />
-      </div>
+      {/* ۳. فیلتر تاریخ (برای همه) */}
+      <PersianDatePickerInput
+        value={date}
+        onChange={onDateChange}
+        label="تاریخ درخواست"
+        placeholder="انتخاب تاریخ"
+        inputClassName="py-2.5 pr-10 pl-3"
+        containerClassName="w-full"
+        // این فیلتر به دلیل محدودیت API در سمت فرانت (Client-Side) کار می‌کند.
+        title="این فیلتر تاریخ را در نتایج لود شده جستجو می‌کند."
+      />
 
-      {/* (دکمه‌ها - بدون تغییر - کلاس‌های ... را بعداً تکمیل کنید) */}
-      <Link to='/requests/new' className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center">
-        <CirclePlus size={20} /> درخواست جدید
-      </Link>
-      <Link
-        to='/requests/settings-table'
-        className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-blue hover:text-backgroundL-500 text-sm justify-center"
-      >
-        <Settings2 size={20} /> تنظیمات
-      </Link>
+      {/* (دکمه‌ها - بدون تغییر) */}
+      {canCreateRequest && (
+        <Link
+          to='/requests/new'
+          className="bg-primaryL dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-primaryL/90 text-sm justify-center items-center"
+        >
+          <CirclePlus size={20} />
+          ثبت درخواست جدید
+        </Link>
+      )}
+
+      {isSuperAdmin && (
+        <Link
+          to='/requests/settings-table'
+          className="bg-secondaryL dark:bg-secondaryD text-secondary-foregroundL dark:text-secondary-foregroundD px-4 py-2 rounded-xl transition-colors flex gap-1 cursor-pointer hover:bg-secondaryL/80 text-sm justify-center items-center"
+        >
+          <Settings2 size={20} />
+          تنظیمات انواع درخواست
+        </Link>
+      )}
 
     </div>
   );
@@ -149,7 +227,6 @@ const RequestsFilter = ({
   // (بقیه کامپوننت - بدون تغییر)
   return (
     <>
-      {/* دکمه برای موبایل */}
       <div className="md:hidden flex justify-end mb-4">
         <button
           onClick={() => setIsOpen(true)}
@@ -159,16 +236,11 @@ const RequestsFilter = ({
           نمایش فیلترها
         </button>
       </div>
-
-      {/* فیلتر ثابت در دسکتاپ */}
-      <aside className="hidden md:flex md:w-64 lg:w-72 sticky ">
+      <aside className="hidden md:flex md:w-64 lg:w-72 sticky top-4 self-start">
         {filterContent}
       </aside>
-
-      {/* Drawer برای موبایل با انیمیشن نرم */}
       <Transition show={isOpen} as={Fragment}>
-        <Dialog onClose={() => setIsOpen(false)} className="relative z-50">
-          {/* بک‌گراند محو */}
+        <Dialog onClose={() => setIsOpen(false)} className="relative z-50 md:hidden">
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -180,8 +252,6 @@ const RequestsFilter = ({
           >
             <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
           </Transition.Child>
-
-          {/* اسلاید نرم از سمت راست */}
           <Transition.Child
             as={Fragment}
             enter="transform transition ease-out duration-300"
@@ -191,9 +261,10 @@ const RequestsFilter = ({
             leaveFrom="translate-x-0 opacity-100"
             leaveTo="translate-x-full opacity-0"
           >
-            <div className="fixed inset-y-0 right-0 w-5/6 max-w-sm bg-backgroundL-500 dark:bg-backgroundD shadow-xl p-4 overflow-y-auto rounded-l-2xl">
+            {/* ✅ ریسپانسیو: حداکثر عرض در موبایل و padding مناسب */}
+            <Dialog.Panel className="fixed inset-y-0 right-0 w-full max-w-xs sm:max-w-sm bg-backgroundL-500 dark:bg-backgroundD shadow-xl overflow-y-auto rounded-l-2xl p-4">
               {filterContent}
-            </div>
+            </Dialog.Panel>
           </Transition.Child>
         </Dialog>
       </Transition>

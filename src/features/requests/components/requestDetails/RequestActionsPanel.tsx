@@ -1,19 +1,22 @@
-import type { Request } from "@/features/requests/types";
+// features/requests/components/requestDetails/RequestActionsPanel.tsx
+
+// ۱. [اصلاح حرفه‌ای] تایپ ورودی از Request (Mock) به LeaveRequest (API) تغییر کرد
+import type { LeaveRequest } from "@/features/requests/types";
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import Textarea from '@/components/ui/Textarea';
 import { Printer, X, Check, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Spinner } from '@/components/ui/Spinner';
 
-// داده‌های فیک برای وضعیت (بدون تغییر)
-const mockStatuses: SelectOption[] = [
-    { id: 'stat1', name: 'تایید شده' },
-    { id: 'stat2', name: 'رد شده' },
-    { id: 'stat3', name: 'در حال بررسی' },
+// ۲. [اصلاح حرفه‌ای] گزینه‌های وضعیت اکنون با مقادیر واقعی API مطابقت دارند
+const statusOptions: SelectOption[] = [
+    { id: 'approved', name: 'تایید شده' },
+    { id: 'rejected', name: 'رد شده' },
+    { id: 'pending', name: 'در انتظار' }, // (ممکن است نخواهید "در انتظار" قابل انتخاب باشد)
 ];
 
-// ✅ ۳. تعریف Props جدید برای کامپوننت کنترل‌شده
 interface RequestActionsPanelProps {
-    request: Request;
+    request: LeaveRequest; // <-- تایپ اصلاح شد
 
     // پراپ‌های مربوط به وضعیت (Status)
     status: SelectOption | null;
@@ -24,14 +27,14 @@ interface RequestActionsPanelProps {
     onResponseChange: (value: string) => void;
 
     // پراپ‌های مربوط به دکمه‌ها
-    onConfirm: () => void;
+    onConfirm: () => void; // این تابع توسط والد (DetailPage) ارائه می‌شود
     onCancel: () => void;
     onExport: () => void;
     isSubmitting: boolean; // برای غیرفعال کردن دکمه‌ها
 }
 
 export const RequestActionsPanel = ({
-    //   request,
+    request,
     status,
     onStatusChange,
     response,
@@ -43,11 +46,14 @@ export const RequestActionsPanel = ({
 }: RequestActionsPanelProps) => {
 
     const navigate = useNavigate();
-    // ✅ ۳. تابع برای رفتن به صفحه تنظیمات
     const handleGoToSettings = () => {
         navigate('/requests/export-settings');
     };
 
+    // ۳. [اصلاح حرفه‌ای]
+    // وضعیت فعلی درخواست را چک می‌کنیم. اگر "تایید شده" یا "رد شده" باشد،
+    // فرم پردازش (تغییر وضعیت و پاسخ ادمین) باید غیرفعال شود.
+    const isProcessed = request.status === 'approved' || request.status === 'rejected';
 
     return (
         <div className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
@@ -56,32 +62,30 @@ export const RequestActionsPanel = ({
 
                 {/* ۴. اتصال SelectBox به پراپ‌های والد */}
                 <SelectBox
-                    label="وضعیت پاسخ"
-                    placeholder="انتخاب کنید"
-                    options={mockStatuses}
+                    label="تغییر وضعیت"
+                    placeholder={isProcessed ? "وضعیت قبلاً ثبت شده" : "انتخاب کنید"}
+                    options={statusOptions}
                     value={status}
                     onChange={onStatusChange}
-                    disabled={isSubmitting} // در زمان ارسال غیرفعال شود
+                    // اگر در حال ارسال بود یا قبلا پردازش شده، غیرفعال کن
+                    disabled={isSubmitting || isProcessed}
                 />
 
-                {/* ✅ ۵. اضافه کردن کامپوننت Textarea */}
                 <Textarea
-                    label="پاسخ ادمین (اختیاری)"
-                    placeholder="توضیحات خود را برای این درخواست بنویسید..."
+                    label="پاسخ ادمین / دلیل رد (اختیاری)"
+                    placeholder={isProcessed ? "پاسخ قبلاً ثبت شده" : "توضیحات خود را بنویسید..."}
                     rows={5}
                     value={response}
                     onChange={(e) => onResponseChange(e.target.value)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isProcessed}
                 />
 
-                {/* ✅ ۶. اضافه کردن آیکون به دکمه‌ها */}
                 <div className="flex items-center gap-2 transition-all">
-
                     <button
-                        onClick={handleGoToSettings} // <--- اتصال onClick
-                        aria-label="تنظیمات خورجی گزارش"
+                        onClick={handleGoToSettings}
+                        aria-label="تنظیمات خروجی گزارش"
                         className=" border border-borderL rounded-2xl p-2 cursor-pointer hover:bg-blue hover:text-backgroundL-500 dark:border-borderD dark:text-backgroundL-500"
-                        disabled={isSubmitting} // دکمه تنظیمات هم غیرفعال شود
+                        disabled={isSubmitting} // دکمه تنظیمات همیشه فعال است
                     >
                         <Settings2 />
                     </button>
@@ -95,15 +99,22 @@ export const RequestActionsPanel = ({
                     </button>
                 </div>
 
-                {/* دکمه هاّ */}
+                {/* دکمه ها */}
                 <div className="flex gap-4">
                     <button
                         onClick={onConfirm}
-                        disabled={isSubmitting}
-                        className="flex-1 flex items-center cursor-pointer justify-center gap-2 bg-primaryL text-white hover:bg-successD-foreground px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+                        // اگر در حال ارسال بود یا قبلا پردازش شده، غیرفعال کن
+                        disabled={isSubmitting || isProcessed}
+                        className="flex-1 flex items-center cursor-pointer justify-center gap-2 bg-primaryL text-white hover:bg-successD-foreground px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:bg-gray-400"
                     >
-                        <Check size={18} />
-                        تایید
+                        {isSubmitting ? (
+                            <Spinner size="sm" />
+                        ) : (
+                            <>
+                                <Check size={18} />
+                                {isProcessed ? "ثبت شده" : "ثبت پاسخ"}
+                            </>
+                        )}
                     </button>
                     <button
                         onClick={onCancel}
@@ -111,9 +122,8 @@ export const RequestActionsPanel = ({
                         className="flex-1 flex cursor-pointer items-center justify-center gap-2 hover:bg-destructiveL text-backgroundD border border-borderL px-1 py-1 rounded-xl text-sm font-medium disabled:opacity-50 dark:text-backgroundL-500"
                     >
                         <X size={18} />
-                        لغو
+                        بازگشت
                     </button>
-
                 </div>
             </div>
         </div>

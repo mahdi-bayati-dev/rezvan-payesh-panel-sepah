@@ -1,14 +1,13 @@
 // features/requests/components/TableSettingsPage/LeaveTypeForm.tsx
-import { useEffect, useMemo } from 'react'; // ✅ ۱. ایمپورت useMemo برای رفع باگ حلقه بی‌نهایت
+import { useEffect, useMemo } from 'react'; 
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-// ✅ ۲. اصلاح مسیرهای ایمپورت (حذف /features/ )
 import {
     leaveTypeSchema,
     type LeaveTypeFormData,
 } from '@/features/requests/schemas/leaveTypeSchema';
-import { type LeaveType, type LeaveTypePayload } from '@/features/requests/api/api';
+import { type LeaveType, type LeaveTypePayload } from '@/features/requests/api/api-type';
 import {
     useCreateLeaveType,
     useUpdateLeaveType,
@@ -22,17 +21,16 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 
 interface LeaveTypeFormProps {
-    /** نوع مرخصی انتخاب شده برای ویرایش (اگر null باشد، فرم در حالت "ایجاد" است) */
     selectedLeaveType: LeaveType | null;
-    /** لیست تمام انواع مرخصی برای نمایش در دراپ‌داون "والد" */
     allLeaveTypes: LeaveType[];
-    /** تابعی برای پاک کردن انتخاب و بازگشت به حالت "ایجاد" */
-    onClearSelection: () => void;
+    // ✅ تغییر نام پراپ برای خوانایی بهتر (حالا onClearSelection به معنای بستن مودال است)
+    onClearSelection: () => void; 
+    // ✅ پراپ جدید: والد پیش‌فرض برای حالت ایجاد زیرمجموعه جدید
+    defaultParent?: LeaveType | null;
 }
 
 /**
- * یک تابع کمکی برای تبدیل ساختار درختی به لیست مسطح (Flat)
- * برای استفاده در SelectBox.
+ * (تابع کمکی flattenLeaveTypes - بدون تغییر)
  */
 const flattenLeaveTypes = (types: LeaveType[], prefix = ''): SelectOption[] => {
     let options: SelectOption[] = [];
@@ -52,23 +50,21 @@ export const LeaveTypeForm = ({
     selectedLeaveType,
     allLeaveTypes,
     onClearSelection,
+    defaultParent = null,
 }: LeaveTypeFormProps) => {
 
-    // ۱. دریافت هوک‌های Mutation
+    // (هوک‌های Mutation - بدون تغییر)
     const createMutation = useCreateLeaveType();
     const updateMutation = useUpdateLeaveType();
     const isLoading = createMutation.isPending || updateMutation.isPending;
 
-    // ۲. آماده‌سازی گزینه‌های دراپ‌داون والد
-    // ✅✅✅ ۳. (اصلاحیه باگ حلقه بی‌نهایت)
-    // متغیر parentOptions با useMemo ساخته شد تا در هر رندر مجدد
-    // یک آرایه جدید ساخته نشود و باعث اجرای مجدد useEffect نشود.
+    // (آماده‌سازی گزینه‌های دراپ‌داون والد با useMemo - بدون تغییر)
     const parentOptions: SelectOption[] = useMemo(() => [
-        { id: 0, name: '— بدون والد (ریشه) —' }, // از 0 یا null استفاده می‌کنیم
+        { id: 0, name: '— بدون والد (ریشه) —' }, 
         ...flattenLeaveTypes(allLeaveTypes),
-    ], [allLeaveTypes]); // این فقط زمانی اجرا می‌شود که allLeaveTypes تغییر کند
+    ], [allLeaveTypes]); 
 
-    // ۳. راه‌اندازی React Hook Form
+    // (راه‌اندازی React Hook Form - بدون تغییر)
     const {
         register,
         control,
@@ -84,61 +80,75 @@ export const LeaveTypeForm = ({
         },
     });
 
-    // ۴. افکت: هرگاه `selectedLeaveType` تغییر کرد، فرم را ریست کن
+    // --- منطق ریست کردن فرم با توجه به انتخاب جدید ---
     useEffect(() => {
-        if (selectedLeaveType) {
-            // حالت ویرایش: فرم را با داده‌های موجود پر کن
-            reset({
-                name: selectedLeaveType.name,
-                description: selectedLeaveType.description,
-                // پیدا کردن آبجکت والد در لیست گزینه‌ها
-                parent: parentOptions.find(opt => opt.id === selectedLeaveType.parent_id) || null,
-            });
-        } else {
-            // حالت ایجاد: فرم را خالی کن
-            reset({
-                name: '',
-                description: '',
-                parent: null,
-            });
-        }
-    }, [selectedLeaveType, reset, parentOptions]); // ✅ حالا parentOptions پایدار است (خط ۹۸)
+        let defaultParentOption: SelectOption | null = null;
+        let defaultName = '';
+        let defaultDescription = '';
 
-    // ۵. تابع ارسال فرم (بدون تغییر)
+        if (selectedLeaveType) {
+            // حالت ویرایش: مقادیر فعلی آیتم
+            defaultName = selectedLeaveType.name;
+            defaultDescription = selectedLeaveType.description || '';
+            defaultParentOption = parentOptions.find(opt => opt.id === selectedLeaveType.parent_id) || null;
+        } else if (defaultParent) {
+            // حالت ایجاد فرزند جدید: والد پیش‌فرض، بقیه خالی
+            defaultParentOption = parentOptions.find(opt => opt.id === defaultParent.id) || null;
+            defaultName = '';
+            defaultDescription = '';
+        } else {
+            // حالت ایجاد ریشه جدید: همه خالی، والد روی 'بدون والد'
+            defaultParentOption = parentOptions.find(opt => opt.id === 0) || null;
+            defaultName = '';
+            defaultDescription = '';
+        }
+
+        reset({
+            name: defaultName,
+            description: defaultDescription,
+            parent: defaultParentOption,
+        });
+
+    }, [selectedLeaveType, defaultParent, reset, parentOptions]); 
+
+
+    // (تابع ارسال فرم (onSubmit) - بدون تغییر)
     const onSubmit: SubmitHandler<LeaveTypeFormData> = (data) => {
-        // تبدیل داده‌های فرم به فرمت مورد نیاز API (Payload)
         const payload: LeaveTypePayload = {
             name: data.name,
             description: data.description || null,
-            // اگر "بدون والد" انتخاب شده بود (id: 0) یا null بود، parent_id را null بفرست
+            // اگر id برابر 0 بود (بدون والد) یا والد انتخاب نشده بود، parent_id = null
             parent_id: data.parent && data.parent.id !== 0 ? (data.parent.id as number) : null,
         };
 
-        if (selectedLeaveType) {
-            // اگر در حالت ویرایش هستیم، آپدیت کن
+        if (selectedLeaveType && selectedLeaveType.id !== -1) {
+            // حالت ویرایش (اگر selectedLeaveType معتبر باشد)
             updateMutation.mutate(
                 { id: selectedLeaveType.id, payload },
-                {
-                    onSuccess: () => {
-                        onClearSelection(); // پاک کردن فرم پس از موفقیت
-                    },
-                }
+                { onSuccess: onClearSelection }
             );
         } else {
-            // اگر در حالت ایجاد هستیم، ایجاد کن
-            createMutation.mutate(payload, {
-                onSuccess: () => {
-                    onClearSelection(); // پاک کردن فرم پس از موفقیت
-                },
-            });
+            // حالت ایجاد (چه ریشه جدید، چه فرزند جدید)
+            createMutation.mutate(payload, { onSuccess: onClearSelection });
         }
     };
 
-    // (بخش JSX بدون تغییر است)
+    // --- تعیین عنوان فرم و وضعیت‌های بولین ---
+    // ✅ رفع خطای TS6133: متغیر isCreatingRoot حذف شد چون استفاده نمی‌شود.
+    // ✅ تعریف isCreatingChild به صورت صریح بولین برای رفع خطای TS2322
+    const isCreatingChild: boolean = !!(!selectedLeaveType && defaultParent);
+
+    const formTitle = selectedLeaveType && selectedLeaveType.id !== -1 
+        ? `ویرایش "${selectedLeaveType.name}"` 
+        : isCreatingChild 
+            ? `ایجاد زیرمجموعه برای "${defaultParent!.name}"`
+            : 'ایجاد دسته بندی (ریشه) جدید';
+
+
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-y-5">
-            <h3 className="font-bold text-right mb-2">
-                {selectedLeaveType ? `ویرایش "${selectedLeaveType.name}"` : 'ایجاد نوع مرخصی جدید'}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-y-6">
+            <h3 className="font-bold text-right text-lg pb-2 border-b border-borderL dark:border-borderD">
+                {formTitle}
             </h3>
 
             <Input
@@ -156,12 +166,12 @@ export const LeaveTypeForm = ({
                     <SelectBox
                         label="والد (دسته‌بندی اصلی)"
                         options={parentOptions}
-                        // (جلوگیری از انتخاب خود آیتم به عنوان والد خودش)
-                        // options={parentOptions.filter(opt => opt.id !== selectedLeaveType?.id)}
-                        value={field.value}
+                        // ✅ [اصلاح وارنینگ]
+                        value={field.value || null} 
                         onChange={field.onChange}
                         placeholder="انتخاب کنید"
-                        disabled={isLoading}
+                        // ✅ رفع خطای TS2322: حالا isCreatingChild به طور قطعی بولین است.
+                        disabled={isLoading || isCreatingChild} 
                         error={errors.parent?.message}
                     />
                 )}
@@ -176,19 +186,19 @@ export const LeaveTypeForm = ({
                 disabled={isLoading}
             />
 
-            {/* دکمه‌های عملیاتی فرم */}
+            {/* (دکمه‌های عملیاتی فرم - بدون تغییر) */}
             <div className="flex justify-start gap-4 mt-4">
                 <Button type="submit" disabled={isLoading} variant="primary" size="md">
                     {isLoading ? (
                         <Spinner size="sm" />
-                    ) : selectedLeaveType ? (
+                    ) : selectedLeaveType && selectedLeaveType.id !== -1 ? (
                         'ذخیره تغییرات'
                     ) : (
                         'ایجاد'
                     )}
                 </Button>
-                {/* اگر در حالت ویرایش بودیم، دکمه "لغو ویرایش" نشان بده */}
-                {selectedLeaveType && (
+                {/* دکمه لغو در هر دو حالت ویرایش یا ایجاد زیرمجموعه نمایش داده می‌شود */}
+                {(selectedLeaveType || isCreatingChild) && (
                     <Button
                         type="button"
                         onClick={onClearSelection}
@@ -196,7 +206,7 @@ export const LeaveTypeForm = ({
                         variant="outline"
                         size="md"
                     >
-                        لغو ویرایش
+                        لغو
                     </Button>
                 )}
             </div>
