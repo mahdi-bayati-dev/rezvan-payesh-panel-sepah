@@ -133,6 +133,7 @@ class Employee extends Model
     public function getWorkScheduleFor(Carbon $datetime): ?object
     {
         $date = $datetime->toDateString();
+        $dateCarbon = $datetime->copy()->startOfDay();
 
         $isHoliday = Holiday::where('date', $date)->exists();
         if ($isHoliday)
@@ -140,14 +141,22 @@ class Employee extends Model
             return null;
         }
 
-
         $specificShift = $this->employeeShifts()->where('date', $date)->first();
 
         if ($specificShift && $specificShift->scheduleSlot) {
             $slot = $specificShift->scheduleSlot;
+
+            $startTime = Carbon::parse($date . ' ' . $slot->start_time);
+            $endTime = Carbon::parse($date . ' ' . $slot->end_time);
+
+            if ($endTime->lessThanOrEqualTo($startTime))
+            {
+                $endTime->addDay();
+            }
+
             return (object) [
-                'expected_start' => Carbon::parse($date . ' ' . $slot->start_time),
-                'expected_end'   => Carbon::parse($date . ' ' . $slot->end_time)
+                'expected_start' => $startTime,
+                'expected_end'   => $endTime
             ];
         }
 
@@ -179,9 +188,16 @@ class Employee extends Model
             return null;
         }
 
+        $startTime = Carbon::parse($date . ' ' . $workPatternForDay->start_time);
+        $endTime = Carbon::parse($date . ' ' . $workPatternForDay->end_time);
+
+        if ($endTime->lessThanOrEqualTo($startTime)) {
+            $endTime->addDay();
+        }
+
         return (object) [
-            'expected_start' => Carbon::parse($date . ' ' . $workPatternForDay->start_time),
-            'expected_end'   => Carbon::parse($date . ' ' . $workPatternForDay->end_time)
+            'expected_start' => $startTime,
+            'expected_end'   => $endTime
         ];
     }
 

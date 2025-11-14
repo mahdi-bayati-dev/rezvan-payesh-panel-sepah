@@ -39,9 +39,8 @@ class LeaveRequestPolicy
      */
     public function view(User $user, LeaveRequest $leaveRequest): bool
     {
-
-        // کاربر همیشه می‌تواند درخواست‌های خودش را ببیند
-        if ($user->employee?->id === $leaveRequest->employee_id) {
+        if ($user->employee?->id === $leaveRequest->employee_id)
+        {
             return true;
         }
 
