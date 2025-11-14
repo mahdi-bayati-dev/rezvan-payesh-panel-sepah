@@ -37,7 +37,7 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
 
     Route::get("/me", function (Request $request) {
         $user = $request->user();
-        return new UserResource($user->loadMissing(['employee.organization', 'roles']));
+        return new UserResource($user->loadMissing(['employee.organization', 'roles', 'employee.workGroup', 'employee.shiftSchedule', 'employee.weekPattern']));
     })->name('api.me');;
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 
