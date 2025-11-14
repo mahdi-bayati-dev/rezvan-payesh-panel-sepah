@@ -4,6 +4,7 @@ use App\Events\TestSoketiConnection;
 use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LeaveTypeController;
@@ -32,6 +33,8 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
         event(new TestSoketiConnection('اتصال امن Soketi/WSS با موفقیت برقرار شد.'));
         return response()->json(['status' => 'Event sent! Check Soketi logs.']);
     });
+    //admin panel
+    Route::get("/admin-panel", [DashboardController::class, 'getStats'])->name('dashboard');
 
 
 
