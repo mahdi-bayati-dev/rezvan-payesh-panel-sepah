@@ -1,0 +1,174 @@
+<?php
+
+namespace App\Exports;
+
+
+use App\Models\AttendanceLog;
+use App\Models\Employee;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Illuminate\Support\Collection;
+class AttendanceLogExport implements FromQuery, WithHeadings, WithMapping
+{
+    protected User $user;
+    protected array $options;
+
+    const ALLOWED_COLUMNS = [
+        'id' => 'شناسه لاگ',
+        'employee_id' => 'شناسه کارمند',
+        'employee_name' => 'نام کارمند',
+        'employee_personnel_code' => 'کد پرسنلی',
+        'organization_name' => 'سازمان',
+        'timestamp' => 'زمان ثبت',
+        'event_type' => 'نوع رویداد',
+        'lateness_minutes' => 'دقایق تاخیر',
+        'early_departure_minutes' => 'دقایق تعجیل',
+        'source_name' => 'نام دستگاه',
+        'source_type' => 'منبع',
+        'remarks' => 'ملاحظات',
+    ];
+
+    public function __construct(User $user, array $options)
+    {
+        $this->user = $user;
+        $this->options = $options;
+    }
+
+    /**
+     * ساخت کوئری اصلی بر اساس فیلترها و سطوح دسترسی
+     */
+    public function query()
+    {
+        $query = AttendanceLog::query()->with(['employee.organization']);
+
+        $query->whereBetween('timestamp', [
+            Carbon::parse($this->options['date_from']),
+            Carbon::parse($this->options['date_to']),
+        ]);
+
+        $scopedEmployeeIds = $this->getScopedEmployeeIds($this->user);
+        if ($scopedEmployeeIds)
+        {
+            $query->whereIn('employee_id', $scopedEmployeeIds);
+        }
+
+        if (!empty($this->options['filters']['organization_id']))
+        {
+            $orgId = $this->options['filters']['organization_id'];
+            $query->whereHas('employee.organization', function ($q) use ($orgId)
+            {
+                $q->where('id', $orgId);
+            });
+        }
+        if (!empty($this->options['filters']['event_type']))
+        {
+            $query->where('event_type', $this->options['filters']['event_type']);
+        }
+        if (isset($this->options['filters']['has_lateness']))
+        {
+            $query->where('lateness_minutes', '>', 0);
+        }
+
+        $sortBy = $this->options['sort_by'] ?? 'timestamp';
+        $sortDirection = $this->options['sort_direction'] ?? 'desc';
+
+        if ($sortBy === 'employee_name')
+        {
+             $query->join('employees', 'attendance_logs.employee_id', '=', 'employees.id')
+                   ->orderBy('employees.last_name', $sortDirection)
+                   ->select('attendance_logs.*');
+        }
+        else
+        {
+            $query->orderBy($sortBy, $sortDirection);
+        }
+
+        return $query;
+    }
+
+    /**
+     * تعریف هدرهای فایل اکسل بر اساس ستون‌های انتخابی
+     */
+    public function headings(): array
+    {
+        $selectedColumns = $this->options['columns'];
+
+        return collect($selectedColumns)->map(function ($columnKey) {
+            return self::ALLOWED_COLUMNS[$columnKey] ?? $columnKey;
+        })->all();
+    }
+
+    /**
+     * مپ کردن هر ردیف داده به ستون‌های انتخابی
+     */
+    public function map($row): array
+    {
+        $excelRow = [];
+        foreach ($this->options['columns'] as $columnKey) {
+            $excelRow[] = $this->getColumnValue($row, $columnKey);
+        }
+        return $excelRow;
+    }
+
+    /**
+     * متد کمکی برای دریافت مقدار هر ستون
+     */
+    private function getColumnValue(AttendanceLog $log, string $key)
+    {
+        switch ($key) {
+            case 'id':
+                return $log->id;
+            case 'employee_id':
+                return $log->employee_id;
+            case 'employee_name':
+                return $log->employee?->full_name;
+            case 'employee_personnel_code':
+                return $log->employee?->personnel_code;
+            case 'organization_name':
+                return $log->employee?->organization?->name;
+            case 'timestamp':
+                return $log->timestamp->toDateTimeString();
+            case 'event_type':
+                return $log->event_type === 'check_in' ? 'ورود' : 'خروج';
+            case 'lateness_minutes':
+                return $log->lateness_minutes;
+            case 'early_departure_minutes':
+                return $log->early_departure_minutes;
+            case 'source_name':
+                return $log->source_name;
+            case 'source_type':
+                return $log->source_type;
+            case 'remarks':
+                return $log->remarks;
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * متد کمکی برای دریافت ID کارمندان مجاز (کپی شده از DashboardController)
+     */
+    private function getScopedEmployeeIds(User $user): ?Collection
+    {
+        if ($user->hasRole('super_admin')) {
+            return Employee::pluck('id');
+        }
+        $managerEmployee = $user->employee;
+        if (!$managerEmployee || !$managerEmployee->organization) {
+            return null;
+        }
+        $managerOrg = $managerEmployee->organization;
+        if ($user->hasRole('org-admin-l3')) {
+            return $managerOrg->employees()->pluck('id');
+        }
+        if ($user->hasRole('org-admin-l2')) {
+            $allowedOrgIds = $managerOrg->descendants()->pluck('id')->push($managerOrg->id);
+            return Employee::whereIn('organization_id', $allowedOrgIds)->pluck('id');
+        }
+        return collect([$user->employee?->id]);
+    }
+}
