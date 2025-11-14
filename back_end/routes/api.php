@@ -9,12 +9,12 @@ use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LeaveTypeController;
 use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduleSlotController;
 use App\Http\Controllers\Api\ShiftScheduleController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
-use App\Http\Controllers\Api\WorkPatternController;
 use App\Http\Controllers\DevicesController;
 use App\Http\Middleware\CheckLicenseStatus;
 use App\Http\Resources\UserResource;
@@ -87,6 +87,16 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
     Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');
     Route::post('/holidays', [HolidayController::class, 'store'])->name('holidays.store');
     Route::delete('/holidays/{date}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
+
+
+    //export
+    Route::post('/reports/attendance/export', [ReportController::class, 'requestAttendanceExport'])
+         ->middleware('role:super_admin|org-admin-l2|org-admin-l3');
+    //download export
+    Route::get('/reports/download/{filename}', [ReportController::class, 'downloadReport'])
+         ->middleware('signed')
+         ->name('reports.download');
+
 
 });
 
