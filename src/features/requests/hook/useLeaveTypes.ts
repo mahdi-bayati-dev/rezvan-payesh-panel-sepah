@@ -8,7 +8,7 @@ import {
   deleteLeaveType,
   type LeaveTypePayload,
   type LeaveType,
-} from "../api/api";
+} from "../api/api-type";
 import { AxiosError } from "axios";
 import { toast } from "react-toastify";
 // (می‌توانید از یک سرویس Toast برای نمایش خطاها استفاده کنید)
@@ -19,11 +19,13 @@ export const LEAVE_TYPES_QUERY_KEY = ["leaveTypes"];
 
 /**
  * هوک برای دریافت لیست درختی انواع مرخصی (GET)
+ * ✅ اصلاح: استفاده از آرگومان اختیاری برای enabled
  */
-export const useLeaveTypes = () => {
+export const useLeaveTypes = (options?: { enabled?: boolean }) => {
   return useQuery<LeaveType[], Error>({
     queryKey: LEAVE_TYPES_QUERY_KEY,
     queryFn: getLeaveTypesTree,
+    enabled: options?.enabled ?? true, // اگر enabled تعریف نشده بود، پیش‌فرض true
     // (اختیاری) داده‌ها تا ۵ دقیقه تازه می‌مانند
     staleTime: 1000 * 60 * 5,
   });

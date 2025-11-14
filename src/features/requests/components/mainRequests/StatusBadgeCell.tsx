@@ -1,30 +1,31 @@
+import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 
+// ۱. تایپ جدید بر اساس API
+export type LeaveRequestStatus = "pending" | "approved" | "rejected";
 
-import Badge, { type BadgeVariant } from '@/components/ui/Badge';
-
-import type { RequestStatus } from '@/features/requests/types/index';
-
-
-const statusToVariantMap: Record<RequestStatus, BadgeVariant> = {
-    'تایید شده': 'success',
-    'پاسخ داده نشده': 'warning',
-    'رد شده': 'danger',
-    'در حال بررسی': 'info',
+// ۲. مپینگ جدید مقادیر
+const statusToVariantMap: Record<LeaveRequestStatus, BadgeVariant> = {
+    approved: "success",
+    pending: "warning",
+    rejected: "danger",
 };
 
-interface StatusBadgeCellProps {
-    status: RequestStatus;
+// ۳. مپینگ ترجمه فارسی
+const statusToLabelMap: Record<LeaveRequestStatus, string> = {
+    approved: "تایید شده",
+    pending: "در انتظار",
+    rejected: "رد شده",
 }
 
+interface StatusBadgeCellProps {
+    status: LeaveRequestStatus;
+}
 
 const StatusBadgeCell = ({ status }: StatusBadgeCellProps) => {
+    const variant = statusToVariantMap[status] || "default";
+    const label = statusToLabelMap[status] || status;
 
-    const variant = statusToVariantMap[status] || 'default';
-
-    return (
-
-        <Badge label={status} variant={variant} />
-    );
+    return <Badge label={label} variant={variant} />;
 };
 
 export default StatusBadgeCell;

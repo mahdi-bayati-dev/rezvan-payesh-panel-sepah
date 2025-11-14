@@ -59,11 +59,12 @@ const ExportSettingsPage = () => {
   };
 
   return (
-    <div className="p-6 bg-[color:var(--color-backgroundL-500)] dark:bg-[color:var(--color-backgroundD)] rounded-2xl shadow-sm">
+    <div className="p-4 sm:p-6 bg-[color:var(--color-backgroundL-500)] dark:bg-[color:var(--color-backgroundD)] rounded-2xl shadow-sm max-w-5xl mx-auto"> {/* ✅ ریسپانسیو: padding مناسب و حداکثر عرض */}
       <h2 className="text-xl font-bold text-right mb-6 pb-4 border-b border-borderL dark:border-borderD dark:text-backgroundL-500">
         تنظیمات خروجی
       </h2>
 
+      {/* ✅ ریسپانسیو: چیدمان اصلی در موبایل ۱ ستونه و در دسکتاپ ۳ ستونه */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* ستون راست: تنظیمات اصلی */}
         <div className="md:col-span-2 flex flex-col gap-y-5">
@@ -73,7 +74,8 @@ const ExportSettingsPage = () => {
             onChange={(e) => setReportTitle(e.target.value)}
             placeholder="عنوان گزارش را وارد کنید"
           />
-          <div className="grid grid-cols-2 gap-4">
+          {/* ✅ ریسپانسیو: تاریخ و ساعت در موبایل ۲ ستونه */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="تاریخ"
               value={exportDate}
@@ -93,6 +95,7 @@ const ExportSettingsPage = () => {
             <label className="block text-sm font-medium text-right mb-2 text-foregroundL dark:text-foregroundD">
               نمایش ستون ها
             </label>
+            {/* ✅ ریسپانسیو: چک‌باکس‌ها در موبایل ۲ ستونه و در لپ‌تاپ ۴ ستونه */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <CheckboxItem
                 id="details"
@@ -132,7 +135,7 @@ const ExportSettingsPage = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            
+
             <button
               onClick={handleCancel}
               className="w-full flex items-center justify-center gap-2 bg-backgroundL-500 text-foregroundL dark:bg-backgroundD dark:text-foregroundD  py-2.5 rounded-xl text-sm font-medium border border-borderL dark:border-borderD hover:bg-destructiveL hover:text-backgroundL-500 cursor-pointer"

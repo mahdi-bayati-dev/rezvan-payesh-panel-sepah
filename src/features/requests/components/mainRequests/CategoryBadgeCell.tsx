@@ -1,29 +1,29 @@
-import Badge, { type BadgeVariant } from '@/components/ui/Badge';
+// features/requests/components/mainRequests/CategoryBadgeCell.tsx
+import Badge, { type BadgeVariant } from '@/components/ui/Badge'; // (استفاده از حروف کوچک)
 
-import type { RequestCategory } from '@/features/requests/types/index';
-
-
-const categoryToVariantMap: Record<RequestCategory, BadgeVariant> = {
-    'ماموریت': 'info',
-    'مرخصی': 'warning',
-    'تجهیزات': 'default',
-
-};
+// ۱. [اصلاح] ایمپورت تایپ LeaveType
+// (این تایپ حالا از types/index.ts که آپدیت کردیم re-export می‌شود)
+import type { LeaveType } from '@/features/requests/types/index';
 
 interface CategoryBadgeCellProps {
-    category: RequestCategory;
+    // ۲. [اصلاح] پراپ ورودی حالا آبجکت LeaveType است
+    leaveType: LeaveType;
 }
 
 /**
  * کامپوننت آداپتور برای نمایش بَج دسته‌بندی
  */
-const CategoryBadgeCell = ({ category }: CategoryBadgeCellProps) => {
-    // ۳. پیدا کردن variant متناظر
-    const variant = categoryToVariantMap[category] || 'default';
+const CategoryBadgeCell = ({ leaveType }: CategoryBadgeCellProps) => {
+    
+    // ۳. [اصلاح] ما فقط نام را نمایش می‌دهیم
+    // (می‌توانید منطق رنگ را بر اساس parent_id یا خود id اضافه کنید)
+    const label = leaveType?.name || '---';
+    
+    // یک رنگ پیش‌فرض (می‌توانید بعدا این را هوشمند کنید)
+    const variant: BadgeVariant = 'info'; 
 
     return (
-        // ۴. استفاده مجدد از همان کامپوننت ماژولار Badge
-        <Badge label={category} variant={variant} />
+        <Badge label={label} variant={variant} />
     );
 };
 
