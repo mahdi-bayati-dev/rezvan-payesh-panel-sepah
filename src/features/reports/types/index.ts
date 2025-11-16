@@ -127,3 +127,49 @@ export interface FilterOption {
   id: string | number;
   name: string;
 }
+
+// خروجی
+// این فایل جدید، ستون‌های مجاز برای خروجی اکسل را به صورت تایپ‌اسکریپت تعریف می‌کند
+// این کار به ما کمک می‌کند تا در مودال انتخاب ستون، دچار خطا نشویم.
+
+/**
+ * کلیدهای ستون‌های مجاز بر اساس مستندات API
+ * (AttendanceLogExport::ALLOWED_COLUMNS)
+ */
+export const ALLOWED_EXPORT_COLUMN_KEYS = [
+  "id",
+  "employee_id",
+  "employee_name",
+  "employee_personnel_code",
+  "organization_name",
+  "timestamp",
+  "event_type",
+  "lateness_minutes",
+  "early_departure_minutes",
+  "source_name",
+  "source_type",
+  "remarks",
+] as const;
+
+/**
+ * تایپ Union از کلیدهای ستون‌های مجاز
+ */
+export type AllowedExportColumn = (typeof ALLOWED_EXPORT_COLUMN_KEYS)[number];
+
+/**
+ * مپ برای نمایش لیبل‌های خوانا در UI مودال
+ */
+export const EXPORT_COLUMN_MAP: Record<AllowedExportColumn, string> = {
+  id: "شناسه لاگ",
+  employee_id: "شناسه کارمند",
+  employee_name: "نام کارمند",
+  employee_personnel_code: "کد پرسنلی",
+  organization_name: "سازمان",
+  timestamp: "زمان ثبت",
+  event_type: "نوع رویداد",
+  lateness_minutes: "دقایق تاخیر",
+  early_departure_minutes: "دقایق تعجیل",
+  source_name: "نام دستگاه",
+  source_type: "منبع",
+  remarks: "ملاحظات",
+};
