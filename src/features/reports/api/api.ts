@@ -11,14 +11,17 @@ import {
 // [جدید] ایمپورت کلیدهای ستون‌های مجاز
 import { type AllowedExportColumn } from "@/features/reports/types/index";
 
-// مسیر پایه API گزارش‌ها
-const REPORTS_API_PATH = "/admin/attendance-logs";
-// [جدید] مسیر API خروجی اکسل
-const REPORTS_EXPORT_API_PATH = "/reports/attendance/export"; // ❗️ مسیر طبق داکیومنت
-// مسیر پایه API کاربران
-const USERS_API_PATH = "/users";
+// === مسیرهای ادمین ===
+const ADMIN_REPORTS_API_PATH = "/admin/attendance-logs";
+const ADMIN_REPORTS_EXPORT_API_PATH = "/reports/attendance/export"; // ❗️ مسیر طبق داکیومنت
+const ADMIN_USERS_API_PATH = "/users";
+
+// === [جدید] مسیرهای کاربر (My Reports) ===
+const MY_REPORTS_API_PATH = "/my/attendance-logs";
 
 // --- تعریف تایپ‌های Payloads ---
+
+// فیلترهای ادمین
 export interface LogFilters {
   page?: number;
   employee_id?: number;
@@ -28,6 +31,21 @@ export interface LogFilters {
   sort_by?: string;
   sort_dir?: "asc" | "desc";
   search?: string;
+}
+
+// [جدید] فیلترهای کاربر (My Reports)
+// بر اساس مستندات API شما
+export interface MyLogFilters {
+  page?: number;
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
+  type?: "check_in" | "check_out";
+  is_manual?: boolean;
+  has_lateness?: boolean;
+  search?: string; // (جستجو در remarks)
+  sort_by?: "timestamp" | "type" | "is_manual" | "lateness_minutes";
+  sort_dir?: "asc" | "desc";
+  per_page?: number;
 }
 
 // ... (CreateLogPayload و UpdateLogPayload بدون تغییر) ...
@@ -44,7 +62,7 @@ export interface UpdateLogPayload {
   remarks: string;
 }
 
-// --- [جدید] تعریف تایپ Payload برای خروجی اکسل ---
+// (ReportExportPayload بدون تغییر)
 export interface ReportExportPayload {
   date_from: string; // YYYY-MM-DD
   date_to: string; // YYYY-MM-DD
@@ -58,58 +76,55 @@ export interface ReportExportPayload {
   };
 }
 
-// --- توابع API گزارش‌ها ---
+// --- توابع API گزارش‌های ادمین ---
+// (fetchLogs, fetchLogById, createLog, updateLog, approveLog)
+// (این توابع بدون تغییر باقی می‌مانند و فقط مسیرشان را به ADMIN_... تغییر می‌دهیم)
 
-// ... (fetchLogs, fetchLogById, createLog, updateLog, approveLog بدون تغییر) ...
 /**
- * ۱. (Index) واکشی لیست لاگ‌ها
+ * ۱. (Admin Index) واکشی لیست لاگ‌ها
  */
 export const fetchLogs = async (
   filters: LogFilters
 ): Promise<AttendanceLogCollection> => {
-  console.log("[API] Fetching logs with filters:", filters);
+  console.log("[API Admin] Fetching logs with filters:", filters);
   const response = await axiosInstance.get<AttendanceLogCollection>(
-    REPORTS_API_PATH,
+    ADMIN_REPORTS_API_PATH,
     {
       params: filters,
     }
   );
-  console.log(response.data);
-
   return response.data; // -> { data: [...], links: ..., meta: ... }
 };
 
 /**
- * ۲. (Show) واکشی جزئیات یک لاگ خاص
+ * ۲. (Admin Show) واکشی جزئیات یک لاگ خاص
  */
 export const fetchLogById = async (
   logId: string | number
 ): Promise<ApiAttendanceLog> => {
-  console.log(`[API] Fetching log by ID: ${logId}`);
+  console.log(`[API Admin] Fetching log by ID: ${logId}`);
   const response = await axiosInstance.get<{ data: ApiAttendanceLog }>(
-    `${REPORTS_API_PATH}/${logId}`
+    `${ADMIN_REPORTS_API_PATH}/${logId}`
   );
   return response.data.data; // -> { id: ..., employee: ... }
 };
 
 /**
- * ۳. (Store) ایجاد یک لاگ تردد دستی جدید
+ * ۳. (Admin Store) ایجاد یک لاگ تردد دستی جدید
  */
 export const createLog = async (
   payload: CreateLogPayload
 ): Promise<ApiAttendanceLog> => {
-  console.log("[API] Creating new log:", payload);
+  console.log("[API Admin] Creating new log:", payload);
   const response = await axiosInstance.post<{ data: ApiAttendanceLog }>(
-    REPORTS_API_PATH,
+    ADMIN_REPORTS_API_PATH,
     payload
   );
-  console.log(response.data.data);
-
   return response.data.data;
 };
 
 /**
- * ۴. (Update) ویرایش یک لاگ تردد موجود
+ * ۴. (Admin Update) ویرایش یک لاگ تردد موجود
  */
 export const updateLog = async ({
   id,
@@ -118,45 +133,75 @@ export const updateLog = async ({
   id: string | number;
   payload: UpdateLogPayload;
 }): Promise<ApiAttendanceLog> => {
-  console.log(`[API] Updating log ${id}:`, payload);
+  console.log(`[API Admin] Updating log ${id}:`, payload);
   const response = await axiosInstance.put<{ data: ApiAttendanceLog }>(
-    `${REPORTS_API_PATH}/${id}`,
+    `${ADMIN_REPORTS_API_PATH}/${id}`,
     payload
   );
   return response.data.data;
 };
 
 /**
- * ۵. (Destroy/Approve) تأیید کردن یک لاگ تردد
+ * ۵. (Admin Destroy/Approve) تأیید کردن یک لاگ تردد
  */
 export const approveLog = async (
   logId: string | number
 ): Promise<ApiAttendanceLog> => {
-  console.log(`[API] Approving (DELETE) log: ${logId}`);
+  console.log(`[API Admin] Approving (DELETE) log: ${logId}`);
   const response = await axiosInstance.delete<{ data: ApiAttendanceLog }>(
-    `${REPORTS_API_PATH}/${logId}`
+    `${ADMIN_REPORTS_API_PATH}/${logId}`
   );
   return response.data.data;
 };
 
-// --- [جدید] تابع API برای درخواست خروجی اکسل ---
 /**
- * ۶. (Export) درخواست شروع ساخت گزارش اکسل
- * این تابع انتظار پاسخ 202 Accepted را دارد.
+ * ۶. (Admin Export) درخواست شروع ساخت گزارش اکسل
  */
 export const requestAttendanceExport = async (
   payload: ReportExportPayload
 ): Promise<{ message: string }> => {
-  console.log("[API] Requesting Excel export with payload:", payload);
-  // ❗️ توجه: مسیر API طبق داکیومنت است
-  const response = await axiosInstance.post(REPORTS_EXPORT_API_PATH, payload);
-
-  // Axios به صورت پیش‌فرض کدهای 2xx را موفقیت‌آمیز می‌داند (شامل 202)
-  return response.data; // -> { message: "گزارش شما در حال آماده‌سازی است..." }
+  console.log("[API Admin] Requesting Excel export with payload:", payload);
+  const response = await axiosInstance.post(
+    ADMIN_REPORTS_EXPORT_API_PATH,
+    payload
+  );
+  return response.data; // -> { message: "..." }
 };
 
-// --- [بهینه] توابع واکشی کارمندان ---
-// ... (mapUsersToFilterOptions و fetchEmployeeOptionsList بدون تغییر) ...
+// --- [جدید] توابع API گزارش‌های کاربر (My Reports) ---
+
+/**
+ * ۷. (My Index) واکشی لیست لاگ‌های کاربر لاگین کرده
+ */
+export const fetchMyLogs = async (
+  filters: MyLogFilters
+): Promise<AttendanceLogCollection> => {
+  console.log("[API My] Fetching my logs with filters:", filters);
+  const response = await axiosInstance.get<AttendanceLogCollection>(
+    MY_REPORTS_API_PATH,
+    {
+      params: filters,
+    }
+  );
+  return response.data; // -> { data: [...], links: ..., meta: ... }
+};
+
+/**
+ * ۸. (My Show) واکشی جزئیات یک لاگ خاص کاربر
+ */
+export const fetchMyLogById = async (
+  logId: string | number
+): Promise<ApiAttendanceLog> => {
+  console.log(`[API My] Fetching my log by ID: ${logId}`);
+  // مستندات شما '{attendance_log}' را به عنوان پارامتر URL مشخص کرده است
+  const response = await axiosInstance.get<{ data: ApiAttendanceLog }>(
+    `${MY_REPORTS_API_PATH}/${logId}`
+  );
+  return response.data.data; // -> { id: ..., employee: ... }
+};
+
+// --- [بهینه] توابع واکشی کارمندان (Admin) ---
+// (mapUsersToFilterOptions و fetchEmployeeOptionsList بدون تغییر)
 const mapUsersToFilterOptions = (data: ApiUserCollection): FilterOption[] => {
   const validUsers = (data?.data || []).filter(
     (user) => user && user.employee && user.employee.id
@@ -172,7 +217,10 @@ const mapUsersToFilterOptions = (data: ApiUserCollection): FilterOption[] => {
 export const fetchEmployeeOptionsList = async (
   searchQuery: string = ""
 ): Promise<FilterOption[]> => {
-  console.log("[API] Fetching employee options (List/Search)...", searchQuery);
+  console.log(
+    "[API Admin] Fetching employee options (List/Search)...",
+    searchQuery
+  );
 
   const params: any = {
     per_page: 20,
@@ -184,11 +232,16 @@ export const fetchEmployeeOptionsList = async (
     params.per_page = 20;
   }
 
-  const response = await axiosInstance.get<ApiUserCollection>(USERS_API_PATH, {
-    params: params,
-  });
-  console.log("[API] Raw employee response:", response.data);
+  const response = await axiosInstance.get<ApiUserCollection>(
+    ADMIN_USERS_API_PATH,
+    {
+      params: params,
+    }
+  );
+  console.log("[API Admin] Raw employee response:", response.data);
   const options = mapUsersToFilterOptions(response.data);
-  console.log(`[API] Fetched and mapped ${options.length} employee options.`);
+  console.log(
+    `[API Admin] Fetched and mapped ${options.length} employee options.`
+  );
   return options;
 };

@@ -1,32 +1,69 @@
 import type { ActivityLog } from "@/features/reports/types";
 import { UserInfoCard, type InfoRowData } from "@/components/ui/UserInfoCard";
+import type { Employee as UserEmployeeProfile } from "@/features/User/types/index";
+// [جدید] ایمپورت تابع کمکی
+import { toPersianNumbers } from "@/features/reports/utils/toPersianNumbers";
 
 interface EmployeeInfoCardProps {
-    employee: ActivityLog['employee'];
+  logEmployee: ActivityLog["employee"]; // دیتای (ناقص) از خود لاگ
+  userEmployee?: UserEmployeeProfile | null; // [اصلاح] این پراپ اختیاری شد
 }
 
-export const EmployeeInfoCard = ({ employee }: EmployeeInfoCardProps) => {
+// ... (تابع getAvatarPlaceholder بدون تغییر) ...
+const getAvatarPlaceholder = (
+  firstName?: string,
+  lastName?: string
+): string => {
+  const fName = firstName || "";
+  const lName = lastName || "";
+  // اولین حرف نام و اولین حرف نام خانوادگی
+  return `${fName.charAt(0)}${lName.charAt(0)}`.trim() || "??";
+};
 
-    // ۱. داده‌ی Employee را به فرمت مورد نیاز UserInfoCard تبدیل می‌کنیم
-    const infoRows: InfoRowData[] = [
-        // ۲. ❗️ هشدار: API کد پرسنلی (employeeId) را برنگرداند.
-        // ما از شناسه عددی (employee.id) استفاده می‌کنیم.
-        // برچسب را برای بازتاب این موضوع تغییر می‌دهیم.
-        { label: "شناسه کارمند (ID)", value: employee.id.toString() },
+export const EmployeeInfoCard = ({
+  logEmployee,
+  userEmployee, // [اصلاح] این پراپ اختیاری است
+}: EmployeeInfoCardProps) => {
+  // ۱. نام: اولویت با دیتای کامل User (اگر وجود داشته باشد)
+  const name = userEmployee
+    ? `${userEmployee.first_name} ${userEmployee.last_name}`
+    : logEmployee.name; // fallback
 
-        // ۳. ❗️ هشدار: این فیلدها در API وجود ندارند.
-        // باید از بک‌اند بخواهید این اطلاعات را به رابطه 'employee' اضافه کند.
-        { label: "سازمان", value: "نامشخص" }, // (TODO: Get real data)
-        { label: "گروه کاری", value: "نامشخص" }, // (TODO: Get real data)
-    ];
+  // ۲. آواتار:
+  const avatarUrl = logEmployee.avatarUrl;
+  const avatarPlaceholder = getAvatarPlaceholder(
+    userEmployee?.first_name, // اگر userEmployee بود، از نام دقیق‌تر استفاده کن
+    userEmployee?.last_name
+  );
 
-    return (
-        <UserInfoCard
-            title="مشخصات کارمند"
-            name={employee.name}
-            avatarUrl={employee.avatarUrl}
-            avatarPlaceholder={employee.name.substring(0, 2)}
-            infoRows={infoRows}
-        />
-    );
+  // ۳. [اصلاح کلیدی] ساخت ردیف‌های اطلاعاتی (هوشمند)
+  const infoRows: InfoRowData[] = [
+    {
+      label: "کد پرسنلی",
+      // اگر دیتای کامل بود از personnel_code، وگرنه از employeeId (که از dataMapper فارسی شده) استفاده کن
+      value: toPersianNumbers(
+        userEmployee?.personnel_code || logEmployee.employeeId
+      ),
+    },
+    {
+      label: "سازمان",
+      // فقط در صورت وجود دیتای کامل (پنل کاربر) نمایش داده می‌شود
+      value: userEmployee?.organization?.name || "نامشخص",
+    },
+    {
+      label: "گروه کاری",
+      // فقط در صورت وجود دیتای کامل (پنل کاربر) نمایش داده می‌شود
+      value: userEmployee?.work_group?.name || "نامشخص",
+    },
+  ];
+
+  return (
+    <UserInfoCard
+      title="مشخصات کارمند"
+      name={name}
+      avatarUrl={avatarUrl}
+      avatarPlaceholder={avatarPlaceholder}
+      infoRows={infoRows}
+    />
+  );
 };

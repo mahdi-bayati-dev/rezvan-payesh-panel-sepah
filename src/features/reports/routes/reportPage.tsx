@@ -10,7 +10,7 @@ import { Search, Plus, Download } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
 import { type SelectOption } from "@/components/ui/SelectBox";
 import gregorian from "react-date-object/calendars/gregorian";
-
+// import { toast } from "react-toastify"; // <-- [جدید] ایمپورت toast
 import { getEcho, leaveChannel } from "@/lib/echoService";
 
 // --- ایمپورت هوک‌های داده ---
@@ -32,10 +32,11 @@ import { ActivityFilters } from "@/features/reports/components/reportsPage/activ
 import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
-// --- [اصلاح ۱] ایمپورت هر دو مودال از مسیرهای صحیح ---
+// [مهم] مودال فرم خروجی همچنان نیاز است
 import { ExportModal } from "@/features/reports/components/Export/ExportModal";
-// [اصلاح] مسیر به فایل واقعی که آپلود کردید (ProcessingLoader.tsx) اشاره می‌کند
-import { ExportStatusModal } from "@/features/reports/components/Export/ProcessingLoader";
+// [حذف] مودال وضعیت (ProcessingLoader) دیگر نیاز نیست چون از Toast سراسری استفاده می‌کنیم
+// import { ExportStatusModal } from "@/features/reports/components/Export/ProcessingLoader";
+
 
 // (تابع pad بدون تغییر)
 function pad(num: number): string {
@@ -49,11 +50,11 @@ export default function ActivityReportPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    // (استیت مودال‌ها بدون تغییر)
+    // [پاکسازی] فقط مودال فرم نیاز است
     const [isExportFormModalOpen, setIsExportFormModalOpen] = useState(false);
-    const [isExportStatusModalOpen, setIsExportStatusModalOpen] = useState(false);
+    // const [isExportStatusModalOpen, setIsExportStatusModalOpen] = useState(false); // <-- حذف شد
 
-    // (بقیه استیت‌ها، هوک‌ها، افکت‌ها و هندلرها تا بخش JSX بدون تغییر هستند)
+    // ... (تمام استیت‌ها، هوک‌ها و افکت‌های مربوط به جدول و فیلترها بدون تغییر باقی می‌مانند) ...
     const [filters, setFilters] = useState<LogFilters>({
         page: 1,
         sort_by: "timestamp",
@@ -113,6 +114,7 @@ export default function ActivityReportPage() {
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
 
+    // [وب‌سوکت ریل‌تایم جدول] - (این بخش عالی است و بدون تغییر باقی می‌ماند)
     useEffect(() => {
         const echo = getEcho();
 
@@ -200,6 +202,7 @@ export default function ActivityReportPage() {
         };
     }, [queryClient, filters, meta]);
 
+    // ... (بقیه منطق جدول، ستون‌ها و فیلترها بدون تغییر) ...
     const pageCount = meta?.last_page || 1;
     const approveMutation = useApproveLog();
     const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
@@ -277,9 +280,16 @@ export default function ActivityReportPage() {
         setPagination((prev) => ({ ...prev, pageIndex: index }));
     };
 
+    // [پاکسازی] این هندلر حالا ساده‌تر است
     const handleExportFormSubmitted = () => {
+        // مودال فرم را ببند
         setIsExportFormModalOpen(false);
-        setIsExportStatusModalOpen(true);
+        // مودال وضعیت را باز نکن
+        // setIsExportStatusModalOpen(true); // <-- حذف شد
+
+        // [مهم] نوتیفیکیشن اولیه (که در هوک بود) به صورت خودکار توسط
+        // `useRequestExport` > `onSuccess` نمایش داده می‌شود.
+        // `GlobalNotificationHandler` بقیه کار را انجام خواهد داد.
     };
 
     // --- JSX (بخش رندر) ---
@@ -295,13 +305,8 @@ export default function ActivityReportPage() {
                 />
             )}
 
-            {/* (رندر مودال وضعیت بدون تغییر) */}
-            {isExportStatusModalOpen && (
-                <ExportStatusModal
-                    isOpen={isExportStatusModalOpen}
-                    onClose={() => setIsExportStatusModalOpen(false)}
-                />
-            )}
+            {/* [حذف] رندر مودال وضعیت دیگر اینجا نیست */}
+            {/* {isExportStatusModalOpen && ( ... )} */}
 
             {/* --- صفحه اصلی (بدون تغییر) --- */}
             <div className="flex flex-col md:flex-row-reverse gap-6 p-4 md:p-6">

@@ -13,7 +13,7 @@ interface User {
   id: number;
   user_name: string;
   email: string;
-  roles: string[];
+  roles: string[]; // این فیلد برای تشخیص ادمین کلیدی است
 }
 
 interface LoginResponse {
@@ -27,24 +27,15 @@ interface MeResponse {
   data: User;
 }
 
-// ۱. تعریف ساختار پاسخ کامل API لاگین (شامل توکن)
-interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  expires_at: string;
-  user: User;
-}
-
 interface AuthState {
   user: User | null;
-  accessToken: string | null; // ۲. اضافه کردن فیلد توکن
+  accessToken: string | null;
   initialAuthCheckStatus: "idle" | "loading" | "succeeded" | "failed";
   loginStatus: "idle" | "loading" | "succeeded" | "failed";
   logoutStatus: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
 }
 
-// ۳. خواندن توکن اولیه از localStorage
 const getInitialToken = (): string | null => {
   try {
     return localStorage.getItem("accessToken");
@@ -56,7 +47,7 @@ const getInitialToken = (): string | null => {
 
 const initialState: AuthState = {
   user: null,
-  accessToken: getInitialToken(), // ۴. مقداردهی اولیه توکن
+  accessToken: getInitialToken(),
   initialAuthCheckStatus: "idle",
   loginStatus: "idle",
   logoutStatus: "idle",
@@ -64,7 +55,7 @@ const initialState: AuthState = {
 };
 
 // --- Async Thunks ---
-
+// (checkAuthStatus, loginUser, logoutUser ... بدون تغییر)
 export const checkAuthStatus = createAsyncThunk(
   "auth/checkStatus",
   async (_, { rejectWithValue, getState }) => {
@@ -207,14 +198,10 @@ const authSlice = createSlice({
       .addCase(checkAuthStatus.pending, (state) => {
         state.initialAuthCheckStatus = "loading";
       })
-      // --- اصلاحیه کلیدی ۳ ---
-      // PayloadAction حالا خود User است، نه { data: User }
       .addCase(
         checkAuthStatus.fulfilled,
         (state, action: PayloadAction<User>) => {
           state.initialAuthCheckStatus = "succeeded";
-          // --- اصلاحیه کلیدی ۴ ---
-          // action.payload حالا خود آبجکت کاربر است
           state.user = action.payload;
           state.error = null;
         }
@@ -233,7 +220,6 @@ const authSlice = createSlice({
         loginUser.fulfilled,
         (state, action: PayloadAction<LoginResponse>) => {
           state.loginStatus = "succeeded";
-          // (این بخش از قبل درست بود)
           state.user = action.payload.user;
           state.accessToken = action.payload.access_token;
           state.error = null;
@@ -268,6 +254,9 @@ const authSlice = createSlice({
 });
 
 export const selectUser = (state: RootState) => state.auth.user;
+// [جدید] سلکتور برای خواندن نقش‌های کاربر
+export const selectUserRoles = (state: RootState) =>
+  state.auth.user?.roles || [];
 export const selectIsLoggedIn = (state: RootState) => !!state.auth.user;
 export const selectAuthCheckStatus = (state: RootState) =>
   state.auth.initialAuthCheckStatus;

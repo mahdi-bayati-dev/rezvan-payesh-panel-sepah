@@ -5,28 +5,32 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import {
-  // توابع API
+  // توابع API ادمین
   fetchLogs,
   fetchLogById,
   fetchEmployeeOptionsList,
   createLog,
   updateLog,
   approveLog,
-  requestAttendanceExport, // [جدید] ایمپورت تابع API اکسل
+  requestAttendanceExport,
+  // [جدید] توابع API کاربر
+  fetchMyLogs,
+  fetchMyLogById,
   // تایپ‌ها
   type LogFilters,
+  type MyLogFilters, // [جدید]
   type CreateLogPayload,
   type UpdateLogPayload,
-  type ReportExportPayload, // [جدید] ایمپورت تایپ Payload اکسل
+  type ReportExportPayload,
 } from "@/features/reports/api/api";
 import { mapApiLogToActivityLog } from "@/features/reports/utils/dataMapper";
 import {
   type ApiAttendanceLog,
-  //   type ActivityLog,
+  // type ActivityLog,
 } from "@/features/reports/types";
 import { toast } from "react-toastify";
 
-// ... (PaginationState و reportKeys بدون تغییر) ...
+// ... (PaginationState) ...
 interface PaginationState {
   pageIndex: number;
   pageSize: number;
@@ -34,6 +38,8 @@ interface PaginationState {
 
 export const reportKeys = {
   all: ["reports"] as const,
+
+  // کلیدهای ادمین
   lists: () => [...reportKeys.all, "list"] as const,
   list: (filters: LogFilters) => [...reportKeys.lists(), filters] as const,
   details: () => [...reportKeys.all, "detail"] as const,
@@ -41,12 +47,17 @@ export const reportKeys = {
   employeeList: () => [...reportKeys.all, "employeeList"] as const,
   employeeSearch: (query: string) =>
     [...reportKeys.all, "employeeSearch", query] as const,
-  // [جدید] کلید برای جهش اکسل (اگرچه معمولاً invalidation نیاز ندارد)
   export: () => [...reportKeys.all, "export"] as const,
+
+  // [جدید] کلیدهای کاربر
+  myLists: () => [...reportKeys.all, "myList"] as const,
+  myList: (filters: MyLogFilters) =>
+    [...reportKeys.myLists(), filters] as const,
+  myDetails: () => [...reportKeys.all, "myDetail"] as const,
+  myDetail: (id: string | number) => [...reportKeys.myDetails(), id] as const,
 };
 
-// ... (useLogs, useLogDetails, useEmployeeOptionsList, useEmployeeOptionsSearch, useCreateLog, useUpdateLog, useApproveLog بدون تغییر) ...
-// --- ۱. هوک واکشی لیست گزارش‌ها ---
+// --- ۱. هوک واکشی لیست گزارش‌ها (ادمین) ---
 export const useLogs = (filters: LogFilters) => {
   return useQuery({
     queryKey: reportKeys.list(filters),
@@ -63,7 +74,7 @@ export const useLogs = (filters: LogFilters) => {
   });
 };
 
-// --- ۲. هوک واکشی جزئیات ---
+// --- ۲. هوک واکشی جزئیات (ادمین) ---
 export const useLogDetails = (logId: string | number | undefined) => {
   return useQuery({
     queryKey: reportKeys.detail(logId!),
@@ -75,7 +86,40 @@ export const useLogDetails = (logId: string | number | undefined) => {
   });
 };
 
-// --- ۳. هوک واکشی *لیست کامل* کارمندان (برای فیلتر) ---
+// --- [جدید] ۳. هوک واکشی لیست گزارش‌ها (کاربر) ---
+export const useMyLogs = (filters: MyLogFilters) => {
+  return useQuery({
+    queryKey: reportKeys.myList(filters),
+    queryFn: async () => {
+      const collection = await fetchMyLogs(filters);
+      const mappedData = collection.data.map(mapApiLogToActivityLog);
+      return {
+        data: mappedData,
+        meta: collection.meta,
+      };
+    },
+    staleTime: 1000 * 60, // 1 دقیقه
+    placeholderData: keepPreviousData,
+  });
+};
+
+// --- [جدید] ۴. هوک واکشی جزئیات (کاربر) ---
+export const useMyLogDetails = (logId: string | number | undefined) => {
+  return useQuery({
+    queryKey: reportKeys.myDetail(logId!),
+    queryFn: async () => {
+      // طبق مستندات، کاربر فقط لاگ خودش را می‌بیند
+      // Policy در بک‌اند دسترسی را کنترل می‌کند
+      const apiLog = await fetchMyLogById(logId!);
+      return mapApiLogToActivityLog(apiLog);
+    },
+    enabled: !!logId,
+  });
+};
+
+// --- هوک‌های ادمین (بدون تغییر) ---
+
+// --- ۵. هوک واکشی *لیست کامل* کارمندان (برای فیلتر ادمین) ---
 export const useEmployeeOptionsList = () => {
   return useQuery({
     queryKey: reportKeys.employeeList(),
@@ -85,7 +129,7 @@ export const useEmployeeOptionsList = () => {
   });
 };
 
-// --- [جدید] هوک واکشی *جستجوی* کارمندان (برای فرم) ---
+// --- ۶. هوک واکشی *جستجوی* کارمندان (برای فرم ادمین) ---
 export const useEmployeeOptionsSearch = (searchQuery: string) => {
   return useQuery({
     queryKey: reportKeys.employeeSearch(searchQuery),
@@ -97,7 +141,7 @@ export const useEmployeeOptionsSearch = (searchQuery: string) => {
   });
 };
 
-// --- ۴. هوک ایجاد لاگ ---
+// --- ۷. هوک ایجاد لاگ (ادمین) ---
 export const useCreateLog = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -112,7 +156,7 @@ export const useCreateLog = () => {
   });
 };
 
-// --- ۵. هوک ویرایش لاگ ---
+// --- ۸. هوک ویرایش لاگ (ادمین) ---
 export const useUpdateLog = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -125,7 +169,9 @@ export const useUpdateLog = () => {
     }) => updateLog({ id, payload }),
     onSuccess: (updatedLog: ApiAttendanceLog) => {
       toast.success("تردد با موفقیت ویرایش شد.");
+      // Invalidate لیست ادمین
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      // آپدیت کش جزئیات ادمین
       queryClient.setQueryData(
         reportKeys.detail(updatedLog.id),
         mapApiLogToActivityLog(updatedLog)
@@ -137,14 +183,16 @@ export const useUpdateLog = () => {
   });
 };
 
-// --- ۶. هوک تأیید لاگ ---
+// --- ۹. هوک تأیید لاگ (ادمین) ---
 export const useApproveLog = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (logId: string | number) => approveLog(logId),
     onSuccess: (approvedLog: ApiAttendanceLog) => {
       toast.success("تردد با موفقیت تأیید شد.");
+      // Invalidate لیست ادمین
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      // آپدیت کش جزئیات ادمین
       queryClient.setQueryData(
         reportKeys.detail(approvedLog.id),
         mapApiLogToActivityLog(approvedLog)
@@ -156,30 +204,23 @@ export const useApproveLog = () => {
   });
 };
 
-// --- [جدید] هوک درخواست خروجی اکسل ---
-/**
- * این هوک جهش (Mutation) برای ارسال درخواست *شروع* ساخت اکسل را مدیریت می‌کند.
- */
+// --- ۱۰. هوک درخواست خروجی اکسل (ادمین) ---
 export const useRequestExport = () => {
   return useMutation({
     mutationFn: (payload: ReportExportPayload) =>
       requestAttendanceExport(payload),
-
     onSuccess: (data) => {
-      // (data.message) حاوی پیام "گزارش شما در حال آماده‌سازی است..."
       toast.info(data.message, {
         autoClose: 5000,
       });
-      // در اینجا نیازی به invalidation نیست، چون وب‌سوکت کار را انجام می‌دهد
     },
     onError: (error) => {
-      // این خطا معمولاً برای 422 (خطای اعتبارسنجی) یا 500 رخ می‌دهد
       toast.error(`خطا در شروع فرآیند: ${error.message}`);
     },
   });
 };
 
-// --- ۷. هوک گزارش‌های کارمند (بدون تغییر) ---
+// --- ۱۱. هوک گزارش‌های کارمند (ادمین) ---
 export const useEmployeeLogs = (
   employeeApiId: string | undefined,
   pagination: PaginationState

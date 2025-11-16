@@ -1,5 +1,8 @@
 // --- تایپ‌های پایه بر اساس API ---
 
+// [جدید] ایمپورت تایپ پایه از ماژول دیگر
+import type { BaseNestedItem } from "@/features/work-group/types/index";
+
 // تایپ خلاصه‌شده سازمان (که در آبجکت کارمند می‌آید)
 export interface OrganizationSmall {
   id: number;
@@ -15,7 +18,7 @@ export interface Employee {
   first_name: string;
   last_name: string;
   personnel_code: string;
-  organization: OrganizationSmall; // ✅ آبجکت کامل سازمان
+  organization: OrganizationSmall;
   position: string | null;
   starting_job: string | null;
   father_name: string | null;
@@ -35,7 +38,13 @@ export interface Employee {
   house_number: string | null;
   sos_number: string | null;
   address: string | null;
-  work_group_id: number | null;
+
+  // --- [اصلاح کلیدی] ---
+  // work_group_id به work_group (آبجکت) تغییر کرد
+  work_group_id: number | null; // (این فیلد ممکن است هنوز هم جداگانه بیاید، نگهش می‌داریم)
+  work_group: BaseNestedItem | null; // ✅ این آبجکت کامل است
+  // ---
+
   shift_schedule_id: number | null;
   work_pattern_id: number | null;
   // ... سایر فیلدهای کارمند
@@ -47,7 +56,7 @@ export interface User {
   id: number;
   user_name: string;
   email: string;
-  status: "active" | "inactive"; // ✅ افزودن status بر اساس اسکیما
+  status: "active" | "inactive";
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;
@@ -56,7 +65,7 @@ export interface User {
 }
 
 // --- تایپ‌های صفحه‌بندی (برای Index) ---
-
+// (این بخش بدون تغییر است)
 export interface PaginationLinks {
   first: string | null;
   last: string | null;
@@ -90,6 +99,5 @@ export interface FetchUsersParams {
   search?: string;
   organization_id?: number;
   role?: string;
-  // ✅ جدید: فیلتر بر اساس الگوی کاری
   work_pattern_id?: number;
 }
