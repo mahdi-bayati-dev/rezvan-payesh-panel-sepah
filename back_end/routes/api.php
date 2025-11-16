@@ -1,6 +1,5 @@
 <?php
 
-use App\Events\TestSoketiConnection;
 use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
@@ -46,7 +45,7 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
     Route::get("/me", function (Request $request) {
         $user = $request->user();
         return new UserResource($user->loadMissing(['employee.organization', 'roles', 'employee.workGroup', 'employee.shiftSchedule', 'employee.weekPattern']));
-    })->name('api.me');;
+    })->name('api.me');
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 
     //admin attend
