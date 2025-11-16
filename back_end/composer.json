@@ -14,7 +14,8 @@
         "owen-it/laravel-auditing": "^14.0",
         "pusher/pusher-php-server": "^7.2",
         "spatie/laravel-permission": "^6.21",
-        "staudenmeir/laravel-adjacency-list": "^1.25"
+        "staudenmeir/laravel-adjacency-list": "^1.25",
+      "ext-pdo": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
