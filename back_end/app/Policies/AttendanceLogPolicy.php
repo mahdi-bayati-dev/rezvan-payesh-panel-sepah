@@ -10,12 +10,20 @@ use Illuminate\Auth\Access\Response;
 class AttendanceLogPolicy
 {
     use HandlesAuthorization;
+
+    public function before(User $user, string $ability)
+    {
+        if ($user->hasRole('super-admin'))
+        {
+            return true;
+        }
+    }
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return $user->hasRole([ 'org-admin-l2', 'org-admin-l3']);
     }
 
     /**
@@ -23,7 +31,11 @@ class AttendanceLogPolicy
      */
     public function view(User $user, AttendanceLog $attendanceLog): bool
     {
-        return false;
+        if ($user->hasRole([ 'org-admin-l2', 'org-admin-l3']))
+        {
+            return true;
+        }
+        return $user->employee && $user->employee->id === $attendanceLog->employee_id;
     }
 
     /**
