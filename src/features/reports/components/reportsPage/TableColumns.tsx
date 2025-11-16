@@ -37,11 +37,11 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
         <div className="flex items-center gap-3">
           <img
             className="h-10 w-10 rounded-full object-cover"
-            src={avatarUrl || 'https://placehold.co/40x40/E2E8F0/64748B?text=??'}
+            src={avatarUrl || './img/avatars/2.png'}
             alt={name}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.src = 'https://placehold.co/40x40/E2E8F0/64748B?text=??';
+              target.src = './img/avatars/2.png';
             }}
           />
           <div className="flex flex-col">

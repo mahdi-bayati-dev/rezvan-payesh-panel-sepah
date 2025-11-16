@@ -149,7 +149,8 @@ export default function EmployeeReportPage() {
                 <div className="flex flex-col md:flex-row gap-6 pt-6">
                     <aside className="w-full md:w-72 lg:w-80 flex-shrink-0">
                         {/* [رفع خطا ۸] - حالا اینجا امن است */}
-                        <EmployeeInfoCard employee={employeeInfo} />
+                        
+                        <EmployeeInfoCard logEmployee={employeeInfo} />
                     </aside>
                     <section className="flex-1 space-y-4 min-w-0">
                         {/* (فیلتر جستجو باید به API متصل شود) */}

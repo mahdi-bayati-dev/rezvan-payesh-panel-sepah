@@ -1,16 +1,27 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, AlertTriangle } from 'lucide-react'; // ۱. ایمپورت آیکون‌های وضعیت
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowRight, Loader2, AlertTriangle } from "lucide-react";
 
-// ۲. ایمپورت هوک واقعی به جای داده‌های فیک
-import { useLogDetails } from '../hooks/hook';
+// ایمپورت هوک‌های Redux
+import { useAppSelector } from "@/hook/reduxHooks";
+import { selectUser } from "@/store/slices/authSlice";
 
-// ۳. ایمپورت کامپوننت‌های UI
-import { EmployeeInfoCard } from '@/features/reports/components/reportPageDetails/EmployeeInfoCard';
-import { LogInfoCard } from '@/features/reports/components/reportPageDetails/LogInfoCard';
+// [اصلاح ۱] استفاده از مسیر مطلق (Alias)
+import { useMyLogDetails } from "@/features/reports/hooks/hook";
 
-// --- کامپوننت‌های وضعیت ---
+// ایمپورت کامپونت‌های UI
+import { EmployeeInfoCard } from "@/features/reports/components/reportPageDetails/EmployeeInfoCard";
+import { LogInfoCard } from "@/features/reports/components/reportPageDetails/LogInfoCard";
 
-const ReportDetailHeader = ({ id, date, onBack }: { id: string; date: string; onBack: () => void }) => (
+// --- کامپوننت‌های وضعیت (Header, LoadingCard, NotFoundCard ... بدون تغییر) ---
+const ReportDetailHeader = ({
+  id,
+  date,
+  onBack,
+}: {
+  id: string;
+  date: string;
+  onBack: () => void;
+}) => (
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-borderL dark:border-borderD gap-4">
     <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD">
       جزئیات گزارش فعالیت
@@ -30,8 +41,6 @@ const ReportDetailHeader = ({ id, date, onBack }: { id: string; date: string; on
     </div>
   </div>
 );
-
-// کامپوننت لودینگ
 const LoadingCard = () => (
   <div className="flex flex-col items-center justify-center p-10 min-h-[300px]">
     <Loader2 className="w-10 h-10 text-primaryL dark:text-primaryD animate-spin" />
@@ -40,8 +49,6 @@ const LoadingCard = () => (
     </p>
   </div>
 );
-
-// کامپوننت خطا
 const NotFoundCard = ({ message }: { message: string }) => (
   <div className="flex flex-col items-center justify-center p-10 min-h-[300px] bg-backgroundL-500 dark:bg-backgroundD rounded-2xl border border-destructiveL dark:border-destructiveD">
     <AlertTriangle className="w-12 h-12 text-destructiveL dark:text-destructiveD" />
@@ -53,26 +60,27 @@ const NotFoundCard = ({ message }: { message: string }) => (
     </p>
   </div>
 );
+// --- ---
 
 // --- کامپوننت اصلی صفحه ---
-
-function ReportPageDetails() {
-  // ۴. reportId از URL گرفته می‌شود (مثلاً "150")
+function MyReportPageDetails() {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
 
-  // ۵. [تغییر کلیدی] حذف useMemo و mockData، جایگزینی با هوک useLogDetails
+  // خواندن کاربر لاگین کرده (کامل) از Redux
+  const currentUser = useAppSelector(selectUser);
+
+  // فراخوانی هوک مختص کاربر (برای دیتای لاگ)
   const {
-    data: log, // داده‌ی مپ شده و آماده (ActivityLog)
-    isLoading, // وضعیت لودینگ
-    isError,   // وضعیت خطا (مثلاً 404 واقعی از API)
-  } = useLogDetails(reportId); // هوک با reportId فراخوانی می‌شود
+    data: log,
+    isLoading,
+    isError,
+  } = useMyLogDetails(reportId);
 
   const handleGoBack = () => {
-    navigate('/reports'); // بازگشت به لیست
+    navigate("/reports");
   };
 
-  // ۶. مدیریت وضعیت لودینگ
   if (isLoading) {
     return (
       <div className="p-4 max-w-7xl mx-auto">
@@ -83,31 +91,30 @@ function ReportPageDetails() {
     );
   }
 
-  // ۷. مدیریت وضعیت خطا (شامل 404 واقعی از API)
   if (isError || !log) {
     return (
       <div className="p-6 max-w-3xl mx-auto">
-        <NotFoundCard message="گزارش مورد نظر یافت نشد یا در دسترسی به آن مشکلی رخ داده است." />
+        <NotFoundCard message="گزارش مورد نظر یافت نشد یا شما دسترسی لازم برای مشاهده آن را ندارید." />
       </div>
     );
   }
 
-  // ۸. رندر در صورت موفقیت (داده 'log' اکنون واقعی است)
+  // رندر در صورت موفقیت
   return (
     <div className="p-4 max-w-7xl mx-auto">
       <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
-
-        {/* هدر اطلاعات واقعی را نمایش می‌دهد */}
         <ReportDetailHeader id={log.id} date={log.date} onBack={handleGoBack} />
 
         <div className="flex flex-col md:flex-row gap-6 pt-6">
-          {/* سایدبار (مشخصات کارمند) */}
           <aside className="w-full md:w-72 lg:w-80 flex-shrink-0">
-            {/* کامپوننت‌ها دیتای واقعی را می‌گیرند */}
-            <EmployeeInfoCard employee={log.employee} />
+
+            <EmployeeInfoCard
+              logEmployee={log.employee}
+              userEmployee={currentUser as any}
+            />
+
           </aside>
 
-          {/* ستون اصلی (جزئیات لاگ) */}
           <section className="flex-1">
             <LogInfoCard logData={log} />
           </section>
@@ -117,4 +124,4 @@ function ReportPageDetails() {
   );
 }
 
-export default ReportPageDetails;
+export default MyReportPageDetails;

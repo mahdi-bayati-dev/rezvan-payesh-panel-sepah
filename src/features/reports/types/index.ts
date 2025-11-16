@@ -1,11 +1,11 @@
 // --- تایپ‌های مربوط به API گزارش‌ها (AttendanceLogs) ---
-// (این بخش بدون تغییر باقی می‌ماند)
 
 /**
  * ساختار کارمند در پاسخ API گزارش‌ها (رابطه employee)
  */
 export interface ApiEmployee {
   id: number;
+  user_id: number; // <-- [اصلاح ۱] این فیلد حیاتی است و باید توسط API ارسال شود
   first_name: string;
   last_name: string;
   avatarUrl?: string;
@@ -22,6 +22,7 @@ export interface ApiEditor {
 
 /**
  * ساختار خام لاگ تردد (از API گزارش‌ها)
+ * [به‌روزرسانی] فیلدهای جدید بر اساس مستندات /my/attendance-logs اضافه شدند
  */
 export interface ApiAttendanceLog {
   id: number;
@@ -29,15 +30,19 @@ export interface ApiAttendanceLog {
   event_type: "check_in" | "check_out";
   timestamp: string;
   source_name: string;
-  source_type: string;
+  source_type: string; // "auto", "manual", "edited"
   remarks: string | null;
   device_id: number | null;
   edited_by_user_id: number | null;
-  is_allowed: boolean;
+  is_allowed?: boolean; // <-- [اصلاح ۱] این فیلد در JSON شما نبود، اختیاری شد
   created_at: string;
   updated_at: string;
-  employee: ApiEmployee;
+  employee?: ApiEmployee; // <-- [اصلاح ۲] کل آبجکت کارمند اختیاری شد
   editor: ApiEditor | null;
+
+  // [جدید] این فیلدها در مستندات /my/.. و /admin/.. وجود دارند
+  lateness_minutes: number | null; // <-- [اصلاح ۳] این فیلد در JSON شما null بود
+  early_departure_minutes: number | null; // <-- [اصلاح ۴] این فیلد می‌تواند null باشد
 }
 
 /**
@@ -47,22 +52,24 @@ export interface AttendanceLogCollection {
   data: ApiAttendanceLog[];
   links: {
     first: string | null;
-  }
+    last: string | null; // [اصلاح]
+    prev: string | null; // [اصلاح]
+    next: string | null; // [اصلاح]
+  };
   meta: {
     current_page: number;
+    from: number; // [اصلاح]
     last_page: number;
+    links: any[]; // [اصلاح]
+    path: string; // [اصلاح]
     per_page: number;
+    to: number; // [اصلاح]
     total: number;
-    // ...
   };
 }
 
 // --- تایپ‌های جدید: بر اساس مستندات API کاربران (Users) ---
-
-/**
- * ساختار کارمند در پاسخ API کاربران (Users API)
- * (این ساختار کامل‌تر از ApiEmployee در گزارش‌ها است)
- */
+// (این بخش بدون تغییر)
 export interface ApiUserEmployeeProfile {
   id: number;
   user_id: number;
@@ -83,10 +90,6 @@ export interface ApiUserResource {
   employee: ApiUserEmployeeProfile; // آبجکت کارمند
 }
 
-/**
- * ساختار آبجکت Collection برای لیست کاربران
- * (بر اساس UserCollection در داکیومنت جدید)
- */
 export interface ApiUserCollection {
   data: ApiUserResource[]; // آرایه‌ای از کاربران
   links: {
@@ -106,10 +109,14 @@ export interface ApiUserCollection {
 
 // --- تایپ‌های UI (بدون تغییر) ---
 // (این تایپ، داده‌ای است که کامپوننت‌های UI شما مصرف می‌کنند)
+/**
+ * [به‌روزرسانی] فیلدهای جدید برای نمایش در UI اضافه شدند
+ */
 export interface ActivityLog {
   id: string;
   employee: {
-    id: number;
+    id: number; // employee_id
+    userId: number; // <-- [اصلاح ۲] این فیلد برای واکشی ثانویه اضافه شد
     name: string;
     avatarUrl?: string;
     employeeId: string; // شماره پرسنلی
@@ -120,6 +127,11 @@ export interface ActivityLog {
   time: string;
   is_allowed: boolean;
   remarks: string | null;
+
+  // [جدید] فیلدهای اضافه‌شده
+  is_manual: boolean; // (محاسباتی از source_type)
+  lateness_minutes: number;
+  early_departure_minutes: number;
 }
 
 // نوع برای گزینه‌های فیلتر (بدون تغییر)
@@ -129,13 +141,7 @@ export interface FilterOption {
 }
 
 // خروجی
-// این فایل جدید، ستون‌های مجاز برای خروجی اکسل را به صورت تایپ‌اسکریپت تعریف می‌کند
-// این کار به ما کمک می‌کند تا در مودال انتخاب ستون، دچار خطا نشویم.
-
-/**
- * کلیدهای ستون‌های مجاز بر اساس مستندات API
- * (AttendanceLogExport::ALLOWED_COLUMNS)
- */
+// (این بخش بدون تغییر)
 export const ALLOWED_EXPORT_COLUMN_KEYS = [
   "id",
   "employee_id",
@@ -151,14 +157,8 @@ export const ALLOWED_EXPORT_COLUMN_KEYS = [
   "remarks",
 ] as const;
 
-/**
- * تایپ Union از کلیدهای ستون‌های مجاز
- */
 export type AllowedExportColumn = (typeof ALLOWED_EXPORT_COLUMN_KEYS)[number];
 
-/**
- * مپ برای نمایش لیبل‌های خوانا در UI مودال
- */
 export const EXPORT_COLUMN_MAP: Record<AllowedExportColumn, string> = {
   id: "شناسه لاگ",
   employee_id: "شناسه کارمند",

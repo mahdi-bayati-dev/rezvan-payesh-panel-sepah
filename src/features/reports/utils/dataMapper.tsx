@@ -1,56 +1,88 @@
 import {
     type ActivityLog,
-    type ApiAttendanceLog
-} from '@/features/reports/types';
+    type ApiAttendanceLog,
+} from "@/features/reports/types";
 
-// ۱. [اصلاح] ایمپورت کتابخانه‌های سبک جایگزین jalali-moment
-import { parseISO } from 'date-fns';
-import { format } from 'date-fns-jalali';
-import { faIR } from 'date-fns/locale'; // برای فرمت جلالی
+import { parseISO } from "date-fns";
+import { format } from "date-fns-jalali";
+import { faIR } from "date-fns/locale";
+// [جدید] ایمپورت تابع کمکی
+import { toPersianNumbers } from "./toPersianNumbers";
 
-// مپ کردن event_type (بدون تغییر)
-const mapEventType = (eventType: 'check_in' | 'check_out'): ActivityLog['activityType'] => {
-    // ... (کد شما بدون تغییر)
+const mapEventType = (
+    eventType: "check_in" | "check_out"
+): ActivityLog["activityType"] => {
     switch (eventType) {
-        case 'check_in':
-            return 'entry';
-        case 'check_out':
-            return 'exit';
+        case "check_in":
+            return "entry";
+        case "check_out":
+            return "exit";
         default:
-            return 'entry';
+            return "entry";
     }
 };
 
 /**
- * یک لاگ خام از API را به فرمتی که UI نیاز دارد تبدیل می‌کند
+ * [به‌روزرسانی]
+ * این مپر مقاوم‌سازی شده و اعداد را فارسی می‌کند.
  */
-export const mapApiLogToActivityLog = (apiLog: ApiAttendanceLog): ActivityLog => {
-
-    // ۳. [اصلاح] استفاده از parseISO برای خواندن رشته UTC
-    // این یک آبجکت Date استاندارد جاوااسکریپت برمی‌گرداند
-    // که زمان را به صورت محلی (local timezone) در خود دارد.
+export const mapApiLogToActivityLog = (
+    apiLog: ApiAttendanceLog
+): ActivityLog => {
     const timestamp = parseISO(apiLog.timestamp);
+
+    // --- [اصلاح ۱] منطق مقاوم‌سازی شده برای آبجکت employee ---
+    // اگر آبجکت employee وجود داشت، از آن استفاده کن، وگرنه از مقادیر پایه استفاده کن
+    const employeeName = apiLog.employee
+        ? `${apiLog.employee.first_name} ${apiLog.employee.last_name}`
+        : "کاربر نامشخص"; // فال‌بک
+
+    const employeeIdNum = apiLog.employee ? apiLog.employee.id : apiLog.employee_id;
+
+    // [مهم] اگر employee وجود ندارد، ما user_id را نداریم (0 می‌گذاریم)
+    const employeeUserId = apiLog.employee ? apiLog.employee.user_id : 0;
+
+    const employeeCode = apiLog.employee
+        ? apiLog.employee.employee_code || `ID: ${employeeIdNum}`
+        : `ID: ${apiLog.employee_id}`; // فال‌بک
+
+    const employeeAvatar = apiLog.employee
+        ? (apiLog.employee as any).avatarUrl
+        : undefined;
+    // --- [پایان اصلاح ۱] ---
+
+
+    const isManual = apiLog.source_type !== "auto";
+
+    // [اصلاح ۲] فیلد 'is_allowed' اختیاری شده
+    const isAllowed =
+        apiLog.is_allowed === undefined
+            ? true // اگر کلا وجود نداشت (مثل JSON شما)، آن را مجاز فرض کن
+            : apiLog.is_allowed;
 
     return {
         id: apiLog.id.toString(),
         employee: {
-            id: apiLog.employee.id,
-            name: `${apiLog.employee.first_name} ${apiLog.employee.last_name}`,
-            employeeId: apiLog.employee.employee_code || `ID: ${apiLog.employee.id}`,
-            avatarUrl: apiLog.employee.avatarUrl || undefined,
+            id: employeeIdNum, // employee_id
+            userId: employeeUserId, // <-- [اصلاح] فیلد جدید اینجا مپ شد (اگر نباشد 0 است)
+            name: employeeName,
+            // [اصلاح] کد پرسنلی فارسی می‌شود
+            employeeId: toPersianNumbers(employeeCode),
+            avatarUrl: employeeAvatar,
         },
         activityType: mapEventType(apiLog.event_type),
         trafficArea: apiLog.source_name,
 
-        // ۵. [اصلاح] استفاده از format برای نمایش
-        // 'format' از 'date-fns-jalali' به طور خودکار تاریخ را به جلالی تبدیل می‌کند
-        date: format(timestamp, 'yyyy/MM/dd', { locale: faIR }), // -> "۱۴۰۴/۰۸/۱۷"
+        // [اصلاح] تاریخ و ساعت فارسی می‌شوند
+        date: toPersianNumbers(format(timestamp, "yyyy/MM/dd", { locale: faIR })),
+        time: toPersianNumbers(format(timestamp, "HH:mm")),
 
-        // 'format' همچنین می‌تواند زمان محلی را به درستی نمایش دهد
-        time: format(timestamp, 'HH:mm'), // -> "08:00"
+        // [اصلاح] lateness_minutes و early_departure_minutes می‌توانند null باشند
+        lateness_minutes: apiLog.lateness_minutes || 0,
+        early_departure_minutes: apiLog.early_departure_minutes || 0,
 
-        // فیلدهای جدید (بدون تغییر)
-        is_allowed: apiLog.is_allowed,
+        is_allowed: isAllowed, // <-- [اصلاح] استفاده از متغیر امن
         remarks: apiLog.remarks,
+        is_manual: isManual,
     };
 };
