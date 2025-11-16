@@ -1,42 +1,45 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     useReactTable,
     getCoreRowModel,
     type PaginationState,
-} from '@tanstack/react-table';
-import { useQueryClient } from '@tanstack/react-query';
-import { Search, Plus } from 'lucide-react';
+} from "@tanstack/react-table";
+import { useQueryClient } from "@tanstack/react-query";
+import { Search, Plus, Download } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
-import { type SelectOption } from '@/components/ui/SelectBox';
+import { type SelectOption } from "@/components/ui/SelectBox";
 import gregorian from "react-date-object/calendars/gregorian";
 
-// [اصلاح] ایمپورت از مسیر سراسری و مشترک
-import { getEcho, leaveChannel } from '@/lib/echoService'; // <-- مسیر اصلاح شد
+import { getEcho, leaveChannel } from "@/lib/echoService";
 
-
-// --- ایمپورت هوک‌های داده (اصلاح شده) ---
+// --- ایمپورت هوک‌های داده ---
 import {
     useLogs,
     useApproveLog,
     useEmployeeOptionsList,
     reportKeys,
-} from '../hooks/hook';
+} from "../hooks/hook";
 
-// --- ایمپورت تایپ‌ها و کامپوننت‌ها (اصلاح شده) ---
-import { columns as createColumns } from '@/features/reports/components/reportsPage/TableColumns';
-import { type ActivityLog, type ApiAttendanceLog } from '../types';
-import { type LogFilters } from '../api/api';
-import { mapApiLogToActivityLog } from '../utils/dataMapper';
-import { DataTable } from '@/components/ui/DataTable';
-import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
-import { ActivityFilters } from '@/features/reports/components/reportsPage/activityFilters';
-import Input from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+// --- ایمپورت تایپ‌ها و کامپوننت‌ها ---
+import { columns as createColumns } from "@/features/reports/components/reportsPage/TableColumns";
+import { type ActivityLog, type ApiAttendanceLog } from "../types";
+import { type LogFilters } from "../api/api";
+import { mapApiLogToActivityLog } from "../utils/dataMapper";
+import { DataTable } from "@/components/ui/DataTable";
+import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
+import { ActivityFilters } from "@/features/reports/components/reportsPage/activityFilters";
+import Input from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
-// ... (تابع کمکی pad بدون تغییر) ...
+// --- [اصلاح ۱] ایمپورت هر دو مودال از مسیرهای صحیح ---
+import { ExportModal } from "@/features/reports/components/Export/ExportModal";
+// [اصلاح] مسیر به فایل واقعی که آپلود کردید (ProcessingLoader.tsx) اشاره می‌کند
+import { ExportStatusModal } from "@/features/reports/components/Export/ProcessingLoader";
+
+// (تابع pad بدون تغییر)
 function pad(num: number): string {
-    return num < 10 ? '0' + num : num.toString();
+    return num < 10 ? "0" + num : num.toString();
 }
 
 // =============================
@@ -46,22 +49,25 @@ export default function ActivityReportPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    // ... (استیت فیلترها، صفحه‌بندی، ... بدون تغییر) ...
+    // (استیت مودال‌ها بدون تغییر)
+    const [isExportFormModalOpen, setIsExportFormModalOpen] = useState(false);
+    const [isExportStatusModalOpen, setIsExportStatusModalOpen] = useState(false);
+
+    // (بقیه استیت‌ها، هوک‌ها، افکت‌ها و هندلرها تا بخش JSX بدون تغییر هستند)
     const [filters, setFilters] = useState<LogFilters>({
         page: 1,
-        sort_by: 'timestamp',
-        sort_dir: 'desc',
+        sort_by: "timestamp",
+        sort_dir: "desc",
     });
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState("");
 
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
     });
 
-    // ... (هوک‌های useMemo و useEffect برای فیلترها بدون تغییر) ...
     useMemo(() => {
-        setFilters(prev => ({
+        setFilters((prev) => ({
             ...prev,
             page: pageIndex + 1,
         }));
@@ -69,7 +75,7 @@ export default function ActivityReportPage() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            setFilters(prevFilters => ({
+            setFilters((prevFilters) => ({
                 ...prevFilters,
                 search: searchTerm || undefined,
                 page: 1,
@@ -81,73 +87,81 @@ export default function ActivityReportPage() {
         };
     }, [searchTerm]);
 
-
-    // تابع لاگ کمکی مخصوص این کامپوننت
-    const logSocket = (level: 'info' | 'error' | 'success', message: string, data: any = '') => {
+    const logSocket = (
+        level: "info" | "error" | "success",
+        message: string,
+        data: any = ""
+    ) => {
         const styles = {
-            info: 'background: #3498db; color: white; padding: 2px 8px; border-radius: 3px;',
-            error: 'background: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px;',
-            success: 'background: #2ecc71; color: white; padding: 2px 8px; border-radius: 3px;',
+            info: "background: #3498db; color: white; padding: 2px 8px; border-radius: 3px;",
+            error: "background: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px;",
+            success: "background: #2ecc71; color: white; padding: 2px 8px; border-radius: 3px;",
         };
-        // لاگ‌ها با [ReportPage] مشخص می‌شوند
-        console.log(`%c[ReportPage]%c ${message}`, styles[level], 'font-weight: bold;', data);
+        console.log(
+            `%c[ReportPage]%c ${message}`,
+            styles[level],
+            "font-weight: bold;",
+            data
+        );
     };
 
+    const { data: queryResult, isLoading, isFetching } = useLogs(filters);
 
-    // ... (بقیه کدهای هوک useLogs، useEmployeeOptions, mutations, table, handlers) ...
-    const {
-        data: queryResult,
-        isLoading,
-        isFetching
-    } = useLogs(filters);
-
-    const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptionsList();
+    const { data: employeeOptions, isLoading: isLoadingEmployees } =
+        useEmployeeOptionsList();
 
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
 
-
-    // --- [اصلاح اساسی] هوک useEffect برای *عضویت در کانال* ---
     useEffect(() => {
-        // ۱. دریافت نمونه گلوبال (از مسیر جدید)
         const echo = getEcho();
 
-        // ۲. بررسی اینکه آیا اتصال گلوبال برقرار است
         if (!echo) {
-            logSocket('error', 'اتصال Echo هنوز راه‌اندازی نشده است. (GlobalWebSocketHandler باید فعال باشد)');
+            logSocket(
+                "error",
+                "اتصال Echo هنوز راه‌اندازی نشده است. (GlobalWebSocketHandler باید فعال باشد)"
+            );
             return;
         }
 
-        // ۳. نام کانال و رویداد (بدون تغییر)
-        const channelName = 'super-admin-global';
-        const eventNameFromDocs = '.attendance.created';
+        const channelName = "super-admin-global";
+        const eventNameFromDocs = ".attendance.created";
 
-        logSocket('info', `در حال تلاش برای عضویت در کانال: private-${channelName} ...`);
+        logSocket(
+            "info",
+            `در حال تلاش برای عضویت در کانال: private-${channelName} ...`
+        );
 
-        // ۴. عضویت در کانال
         const privateChannel = echo.private(channelName);
 
         privateChannel.subscribed((data: any) => {
-            logSocket('success', `✅ عضویت در کانال 'private-${channelName}' موفقیت‌آمیز بود.`, data);
+            logSocket(
+                "success",
+                `✅ عضویت در کانال 'private-${channelName}' موفقیت‌آمیز بود.`,
+                data
+            );
         });
 
         privateChannel.error((data: any) => {
-            logSocket('error', `❌ خطای عضویت در کانال 'private-${channelName}'. (توکن/دسترسی بررسی شود)`, data);
+            logSocket(
+                "error",
+                `❌ خطای عضویت در کانال 'private-${channelName}'. (توکن/دسترسی بررسی شود)`,
+                data
+            );
         });
 
-        // ۵. گوش دادن به رویداد
         privateChannel.listen(eventNameFromDocs, (event: any) => {
-            logSocket('success', `✅ رویداد دریافت شد: '${eventNameFromDocs}'`, event);
+            logSocket("success", `✅ رویداد دریافت شد: '${eventNameFromDocs}'`, event);
 
             const newApiLog = event.log as ApiAttendanceLog;
 
             if (newApiLog) {
-                logSocket('info', `به‌روزرسانی مستقیم کش با لاگ جدید...`, newApiLog);
+                logSocket("info", `به‌روزرسانی مستقیم کش با لاگ جدید...`, newApiLog);
                 const newActivityLog = mapApiLogToActivityLog(newApiLog);
 
                 queryClient.setQueryData(
                     reportKeys.list(filters),
-                    (oldData: { data: ActivityLog[], meta: any } | undefined) => {
+                    (oldData: { data: ActivityLog[]; meta: any } | undefined) => {
                         if (!oldData) return;
 
                         const newData = [newActivityLog, ...oldData.data];
@@ -161,30 +175,30 @@ export default function ActivityReportPage() {
                             data: newData,
                             meta: {
                                 ...oldData.meta,
-                                total: (oldData.meta.total || 0) + 1
-                            }
+                                total: (oldData.meta.total || 0) + 1,
+                            },
                         };
                     }
                 );
             } else {
-                logSocket('info', `رویداد فاقد داده بود. در حال invalidation...`);
+                logSocket("info", `رویداد فاقد داده بود. در حال invalidation...`);
                 queryClient.invalidateQueries({
-                    queryKey: reportKeys.lists()
+                    queryKey: reportKeys.lists(),
                 });
             }
         });
 
-        logSocket('info', `در حال گوش دادن به رویداد: '${eventNameFromDocs}' ...`);
+        logSocket("info", `در حال گوش دادن به رویداد: '${eventNameFromDocs}' ...`);
 
-        // --- ۶. تمیزکاری (Cleanup) ---
         return () => {
-            logSocket('info', `در حال خروج از کانال: ${channelName} (اتصال اصلی پابرجا می‌ماند)`);
+            logSocket(
+                "info",
+                `در حال خروج از کانال: ${channelName} (اتصال اصلی پابرجا می‌ماند)`
+            );
             privateChannel.stopListening(eventNameFromDocs);
-            leaveChannel(channelName); // <-- استفاده از تابع سراسری
+            leaveChannel(channelName);
         };
-
     }, [queryClient, filters, meta]);
-
 
     const pageCount = meta?.last_page || 1;
     const approveMutation = useApproveLog();
@@ -198,10 +212,14 @@ export default function ActivityReportPage() {
         setEditingLog(log);
     };
 
-    const columns = useMemo(() => createColumns({
-        onApprove: handleApprove,
-        onEdit: handleEdit,
-    }), []);
+    const columns = useMemo(
+        () =>
+            createColumns({
+                onApprove: handleApprove,
+                onEdit: handleEdit,
+            }),
+        []
+    );
 
     const table = useReactTable({
         data: logsData,
@@ -218,7 +236,7 @@ export default function ActivityReportPage() {
     });
 
     const handelNewReport = () => {
-        navigate('/reports/new');
+        navigate("/reports/new");
     };
 
     const handleFilterChange = (newApiFilters: {
@@ -226,23 +244,28 @@ export default function ActivityReportPage() {
         date_from: DateObject | null;
         date_to: DateObject | null;
     }) => {
-
         const formatApiDateStart = (date: DateObject | null): string | undefined => {
             if (!date) return undefined;
             const gregorianDate = date.convert(gregorian);
-            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(gregorianDate.day)}`;
+            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(
+                gregorianDate.day
+            )}`;
         };
 
         const formatApiDateEnd = (date: DateObject | null): string | undefined => {
             if (!date) return undefined;
             const gregorianDate = date.convert(gregorian);
-            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(gregorianDate.day)} 23:59:59`;
+            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(
+                gregorianDate.day
+            )} 23:59:59`;
         };
 
         setFilters({
             ...filters,
             page: 1,
-            employee_id: newApiFilters.employee ? Number(newApiFilters.employee.id) : undefined,
+            employee_id: newApiFilters.employee
+                ? Number(newApiFilters.employee.id)
+                : undefined,
             date_from: formatApiDateStart(newApiFilters.date_from),
             date_to: formatApiDateEnd(newApiFilters.date_to),
         });
@@ -251,68 +274,104 @@ export default function ActivityReportPage() {
     };
 
     const setPageIndex = (index: number) => {
-        setPagination(prev => ({ ...prev, pageIndex: index }));
+        setPagination((prev) => ({ ...prev, pageIndex: index }));
     };
 
+    const handleExportFormSubmitted = () => {
+        setIsExportFormModalOpen(false);
+        setIsExportStatusModalOpen(true);
+    };
 
-    // ... (بخش JSX و رندر کامپوننت بدون تغییر) ...
+    // --- JSX (بخش رندر) ---
     return (
-        <div className="flex flex-col md:flex-row-reverse gap-6 p-4 md:p-6">
-            <aside className=" mx-auto">
-                <ActivityFilters
-                    onFilterChange={handleFilterChange}
-                    employeeOptions={employeeOptions || []}
-                    isLoadingEmployees={isLoadingEmployees}
+        <>
+            {/* (رندر مودال فرم بدون تغییر) */}
+            {isExportFormModalOpen && (
+                <ExportModal
+                    isOpen={isExportFormModalOpen}
+                    onClose={() => setIsExportFormModalOpen(false)}
+                    currentFilters={filters}
+                    onExportStarted={handleExportFormSubmitted}
                 />
-            </aside>
+            )}
 
-            <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-4 space-y-4 min-w-0">
-                <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
-                        گزارش آخرین فعالیت‌ها
-                    </h2>
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-60">
-                            <Input
-                                label=''
-                                type="text"
-                                placeholder="جستجو (نام، کد پرسنلی)..."
-                                className="w-full pr-10 py-2 text-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <Search size={18} className="absolute right-3 top-1/3" />
-                        </div>
+            {/* (رندر مودال وضعیت بدون تغییر) */}
+            {isExportStatusModalOpen && (
+                <ExportStatusModal
+                    isOpen={isExportStatusModalOpen}
+                    onClose={() => setIsExportStatusModalOpen(false)}
+                />
+            )}
 
-                        <Button
-                            variant='primary'
-                            onClick={handelNewReport}
-                            type="button"
-                            className="flex items-center">
-                            <Plus className="w-5 h-5" />
-                            <span>ثبت فعالیت</span>
-                        </Button>
-                    </div>
-                </header>
-
-                <section className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
-                    <DataTable
-                        table={table}
-                        isLoading={isLoading || isFetching}
-                        notFoundMessage="هیچ فعالیتی یافت نشد."
+            {/* --- صفحه اصلی (بدون تغییر) --- */}
+            <div className="flex flex-col md:flex-row-reverse gap-6 p-4 md:p-6">
+                <aside className=" mx-auto">
+                    <ActivityFilters
+                        onFilterChange={handleFilterChange}
+                        employeeOptions={employeeOptions || []}
+                        isLoadingEmployees={isLoadingEmployees}
                     />
-                </section>
+                </aside>
 
-                <DataTablePagination table={table} />
+                <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-4 space-y-4 min-w-0">
+                    <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
+                            گزارش آخرین فعالیت‌ها
+                        </h2>
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-60">
+                                <Input
+                                    label=""
+                                    type="text"
+                                    placeholder="جستجو (نام، کد پرسنلی)..."
+                                    className="w-full pr-10 py-2 text-sm"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                <Search size={18} className="absolute right-3 top-1/3" />
+                            </div>
 
-                {editingLog && (
-                    <p>
-                        Placeholder:
-                        در حال ویرایش لاگ {editingLog.id}
-                        <button onClick={() => setEditingLog(null)}>بستن</button>
-                    </p>
-                )}
-            </main>
-        </div>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setIsExportFormModalOpen(true)}
+                                type="button"
+                                className="flex items-center w-full sm:w-auto"
+                            >
+                                <Download className="w-5 h-5" />
+                                <span>خروجی اکسل</span>
+                            </Button>
+
+                            <Button
+                                variant="primary"
+                                onClick={handelNewReport}
+                                type="button"
+                                className="flex items-center w-full sm:w-auto"
+                            >
+                                <Plus className="w-5 h-5" />
+                                <span>ثبت فعالیت</span>
+                            </Button>
+                        </div>
+                    </header>
+
+                    <section className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
+                        <DataTable
+                            table={table}
+                            isLoading={isLoading || isFetching}
+                            notFoundMessage="هیچ فعالیتی یافت نشد."
+                        />
+                    </section>
+
+                    <DataTablePagination table={table} />
+
+                    {editingLog && (
+                        <p>
+                            Placeholder:
+                            در حال ویرایش لاگ {editingLog.id}
+                            <button onClick={() => setEditingLog(null)}>بستن</button>
+                        </p>
+                    )}
+                </main>
+            </div>
+        </>
     );
 }

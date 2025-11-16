@@ -14,10 +14,7 @@ if (typeof window !== "undefined") {
   window.Pusher = Pusher;
 }
 
-// [حذف] متغیر محلی echoService حذف شد تا از سردرگمی جلوگیری شود.
-// ما فقط از window.EchoInstance به عنوان منبع واحد حقیقت (Single Source of Truth) استفاده می‌کنیم.
-// let echoService: Echo<any> | null = null; // <-- حذف شد
-
+// (تابع logSocket بدون تغییر)
 const logSocket = (
   level: "info" | "error" | "success",
   message: string,
@@ -44,18 +41,17 @@ export const initEcho = (token: string): Echo<any> | null => {
     logSocket("info", "نمونه Echo از قبل وجود داشت، از همان استفاده می‌شود.");
     return window.EchoInstance;
   }
-  // ... (کد initEcho بدون تغییر) ...
+  // (کد بررسی توکن بدون تغییر)
   if (!token) {
-    // ... (کد initEcho بدون تغییر) ...
+    logSocket("error", "توکن برای اتصال WebSocket ارائه نشده است.");
     return null;
   }
 
   logSocket("info", "در حال ایجاد نمونه جدید Echo...");
 
   const options: any = {
-    // ... (کد options بدون تغییر) ...
     broadcaster: "pusher",
-    key: "dLqP31MIZy3LQm10QtHe9ciAt",
+    key: "dLqP31MIZy3LQm10QtHe9ciAt", // (این کلیدها از فایل شما آمده است)
     cluster: "mt1",
     disableStats: true,
     enabledTransports: ["ws"],
@@ -63,6 +59,13 @@ export const initEcho = (token: string): Echo<any> | null => {
     wsPort: 80,
     forceTLS: false,
     encrypted: false,
+
+    // --- [اصلاح کلیدی] ---
+    // این گزینه به Echo می‌گوید که پیشوند App.User را به کانال‌های خصوصی اضافه کند
+    // تا با 'App.User.{id}' در routes/channels.php مطابقت داشته باشد
+    // namespace: "App",
+    // --- [پایان اصلاح] ---
+
     authEndpoint: "http://payesh.eitebar.ir/broadcasting/auth",
     auth: {
       headers: {
@@ -75,15 +78,11 @@ export const initEcho = (token: string): Echo<any> | null => {
   try {
     const echoInstance = new Echo(options) as Echo<any>;
     if (typeof window !== "undefined") {
-      window.EchoInstance = echoInstance; // <-- فقط در window ذخیره می‌کنیم
+      window.EchoInstance = echoInstance;
     }
 
-    // [حذف] خط زیر حذف شد
-    // echoService = echoInstance;
-
-    // اتصال شنونده‌های گلوبال برای دیباگ
+    // (اتصال شنونده‌های گلوبال برای دیباگ بدون تغییر)
     const pusher = echoInstance.connector.pusher;
-    // ... (کد bindها بدون تغییر) ...
     pusher.connection.bind("connecting", () => {
       logSocket("info", "در حال اتصال به ws.eitebar.ir:80 ...");
     });
@@ -117,20 +116,17 @@ export const initEcho = (token: string): Echo<any> | null => {
 };
 
 /**
- * (جدید) - این تابع نمونه Echo گلوبال را برمی‌گرداند
+ * (تابع getEcho بدون تغییر)
  */
 export const getEcho = (): Echo<any> | null => {
   if (typeof window !== "undefined" && window.EchoInstance) {
     return window.EchoInstance;
   }
-  // [اصلاح] لاگ خطا فقط زمانی که باید، نمایش داده می‌شود
-  // و دیگر به متغیر محلی echoService وابسته نیستیم
-  // logSocket('error', 'تلاش برای دریافت Echo قبل از init شدن!');
   return null;
 };
 
 /**
- * اتصال Echo را قطع کرده و نمونه را پاک می‌کند
+ * (تابع disconnectEcho بدون تغییر)
  */
 export const disconnectEcho = (): void => {
   if (typeof window !== "undefined" && window.EchoInstance) {
@@ -138,17 +134,13 @@ export const disconnectEcho = (): void => {
     window.EchoInstance = null;
     logSocket("info", "[EchoService] WebSocket گلوبال قطع شد.");
   }
-  // [حذف] خط زیر حذف شد
-  // echoService = null;
 };
 
 /**
- * یک تابع کمکی برای خروج امن از یک کانال
+ * (تابع leaveChannel بدون تغییر)
  */
 export const leaveChannel = (channelName: string): void => {
-  // ... (کد leaveChannel بدون تغییر) ...
   if (typeof window !== "undefined" && window.EchoInstance) {
-    // ... (کد leaveChannel بدون تغییر) ...
     window.EchoInstance.leave(channelName);
   }
 };
