@@ -39,6 +39,7 @@ class ProcessAttendanceExportJob implements ShouldQueue
                 $this->filename,
                 'local_reports'
             );
+            Log::info("Attendance log ( $this->filename ) export finished.");
 
 
             $downloadUrl = URL::temporarySignedRoute(
@@ -46,6 +47,7 @@ class ProcessAttendanceExportJob implements ShouldQueue
                 now()->addMinutes(120),
                 ['filename' => $this->filename]
             );
+            Log::info("downloading $downloadUrl");
 
             ExportReady::dispatch($this->user, $downloadUrl, 'گزارش ترددها');
 
