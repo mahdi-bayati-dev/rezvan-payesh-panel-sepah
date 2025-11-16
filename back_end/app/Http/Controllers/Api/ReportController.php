@@ -60,7 +60,8 @@ class ReportController extends Controller
              return response()->json(['message' => 'Forbidden'], Response::HTTP_FORBIDDEN);
         }
 
-        if (!Storage::disk($disk)->exists($path)) {
+        if (!Storage::disk($disk)->exists($path))
+        {
             return response()->json(['message' => 'File not found or expired.'], Response::HTTP_NOT_FOUND);
         }
 
