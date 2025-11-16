@@ -71,16 +71,18 @@ class UserController extends Controller
 
         $query->when($request->input('organization_id'), function ($q, $orgId)
         {
-            $q->whereHas('employee.organization', function ($orgQuery) use ($orgId) {
-                $orgQuery->where(function ($sub) use ($orgId)
+            $organization = Organization::find($orgId);
+            if ($organization)
+            {
+                $q->whereHas('employee.organization', function ($orgQuery) use ($organization)
                 {
-                    $sub->where('id', $orgId)
-                        ->orWhereHas('ancestors', function($anc) use ($orgId)
-                        {
-                            $anc->where('id', $orgId);
-                        });
+                    $orgQuery->whereIsDescendantOfOrSelf($organization);
                 });
-            });
+            }
+            else
+            {
+                $q->whereRaw('1 = 0');
+            }
         });
         $users = $query->paginate(15)->withQueryString();
 
