@@ -74,9 +74,10 @@ class UserController extends Controller
             $organization = Organization::find($orgId);
             if ($organization)
             {
-                $q->whereHas('employee.organization', function ($orgQuery) use ($organization)
+                $orgIds = $organization->descendantsAndSelf()->pluck('id');
+                $q->whereHas('employee.organization', function ($orgQuery) use ($orgIds)
                 {
-                    $orgQuery->whereIsDescendantOfOrSelf($organization);
+                    $orgQuery->whereIn('id', $orgIds);
                 });
             }
             else
