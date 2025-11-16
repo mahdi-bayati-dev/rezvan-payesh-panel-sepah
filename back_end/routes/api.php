@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LeaveTypeController;
+use App\Http\Controllers\Api\MyAttendanceLogController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduleSlotController;
@@ -28,11 +29,15 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
 
-    Route::get('/test-soketi', function () {
+    Route::prefix('my')->name('my.')->group(function () {
 
-        event(new TestSoketiConnection('اتصال امن Soketi/WSS با موفقیت برقرار شد.'));
-        return response()->json(['status' => 'Event sent! Check Soketi logs.']);
+        Route::get('attendance-logs', [MyAttendanceLogController::class, 'index'])
+            ->name('attendance-logs.index');
+
+        Route::get('attendance-logs/{attendance_log}', [MyAttendanceLogController::class, 'show'])
+            ->name('attendance-logs.show');
     });
+
     //admin panel
     Route::get("/admin-panel", [DashboardController::class, 'getStats'])->name('dashboard');
 
