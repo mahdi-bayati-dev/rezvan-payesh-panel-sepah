@@ -6,6 +6,7 @@ import {
   updateShiftSchedule,
   deleteShiftSchedule,
   updateScheduleSlot,
+  generateShifts, // ✅ ایمپورت تابع جدید
 } from "@/features/shift-schedule/api/api";
 
 import type {
@@ -13,6 +14,7 @@ import type {
   // ScheduleSlotResource, // ✅ این ایمپورت استفاده نشده بود و حذف شد
   PaginatedShiftScheduleResponse,
   ShiftScheduleResource, // ✅ ایمپورت این تایپ برای oldData لازم است
+  GenerateShiftsPayload, // ✅ ایمپورت تایپ جدید
 } from "@/features/shift-schedule/types/index";
 
 import type {
@@ -20,6 +22,7 @@ import type {
   ApiPaginationMeta,
   ApiPaginationLinks,
 } from "@/features/work-pattern/types/index";
+import { AxiosError } from "axios";
 
 // ---------------- کلیدهای کوئری ----------------
 const shiftScheduleKeys = {
@@ -45,6 +48,8 @@ export const useShiftSchedules = (page: number) => {
       const meta = data.meta as ApiPaginationMeta;
       const links = data.links as ApiPaginationLinks;
 
+      // --- ✅✅✅ رفع خطای TS2304 ---
+      // یک اشتباه تایپی بود، WorkPointUI به WorkPatternUI تغییر کرد
       const transformedPatterns: WorkPatternUI[] = responseData.map(
         (schedule) => ({
           id: schedule.id,
@@ -235,6 +240,40 @@ export const useUpdateScheduleSlot = () => {
       // 🐞 لاگ دیباگ: نمایش خطا
       console.error("useUpdateScheduleSlot (PATCH) onError:", error);
       toast.error(error.response?.data?.message || "خطا در بروزرسانی اسلات.");
+    },
+  });
+};
+
+// --- ✅✅✅ جدید: هوک تولید شیفت‌ها ---
+export const useGenerateShifts = () => {
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number | string;
+      payload: GenerateShiftsPayload;
+    }) => generateShifts(id, payload),
+
+    onSuccess: (data) => {
+      // ✅ API پاسخ 202 (Accepted) می‌دهد
+      // به این معنی که جاب فقط در صف قرار گرفته است.
+      // ما *نباید* هیچ کوئری را invalidate کنیم چون داده‌ها هنوز آماده نیستند.
+      // فقط پیغام موفقیت‌آمیز بودن صف را به کاربر نشان می‌دهیم.
+      toast.success(data.message);
+    },
+
+    onError: (error: any) => {
+      // مدیریت خطاهای 422 (اعتبارسنجی) یا خطاهای عمومی
+      if (error instanceof AxiosError && error.response?.status === 422) {
+        // خطاهای 422 به صورت خاص در خود فرم مدیریت می‌شوند
+        // اما یک خطای عمومی هم نشان می‌دهیم
+        toast.error("خطای اعتبارسنجی. لطفاً تاریخ‌ها را بررسی کنید.");
+      } else {
+        toast.error(
+          error.response?.data?.message || "خطا در ارسال درخواست تولید شیفت‌ها."
+        );
+      }
     },
   });
 };

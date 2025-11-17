@@ -44,6 +44,7 @@ export interface ShiftScheduleResource {
   name: string;
   cycle_length_days: number;
   cycle_start_date: string; // YYYY-MM-DD
+  ignore_holidays: boolean; // ✅ فیلد جدید (دریافتی از API)
   // created_at: string;
   // updated_at: string;
   
@@ -78,6 +79,7 @@ export interface ShiftSchedulePayload {
   name: string;
   cycle_length_days: number;
   cycle_start_date: string;
+  ignore_holidays: boolean; // ✅ فیلد جدید (ارسالی به API)
   slots: NewScheduleSlotPayload[]; // آرایه‌ای از اسلات‌های جدید
 }
 
@@ -92,4 +94,10 @@ export interface SlotUpdatePayload {
 export interface ShiftScheduleUpdatePayload {
   name: string;
   cycle_start_date: string;
+}
+
+// ✅✅✅ جدید: Payload برای تولید شیفت‌ها
+export interface GenerateShiftsPayload {
+  start_date: string; // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
 }

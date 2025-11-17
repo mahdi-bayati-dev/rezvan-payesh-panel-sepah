@@ -7,6 +7,7 @@ import {
   type SlotUpdatePayload,
   type ScheduleSlotResource, // ✅ ایمپورت تایپ ScheduleSlotResource
   type ShiftScheduleUpdatePayload, // ✅ ایمپورت تایپ ShiftScheduleUpdatePayload
+  type GenerateShiftsPayload, // ✅ ایمپورت تایپ جدید
 } from "../types/index";
 
 const API_URL = "/shift-schedules";
@@ -93,7 +94,6 @@ export const updateScheduleSlot = async ({
   scheduleSlotId: number | string;
   payload: SlotUpdatePayload; // ✅ استفاده از تایپ دقیق Payload
 }): Promise<ScheduleSlotResource> => {
-  
   // ✅✅✅ اصلاح کلیدی و بسیار مهم (مطابق بخش ۲.۱ مستندات) ✅✅✅
   // مستندات صراحتاً متد PATCH را برای این Endpoint مشخص کرده است.
   // استفاده از .put منجر به خطای Method Not Allowed (405) در لاراول می‌شود.
@@ -107,4 +107,22 @@ export const updateScheduleSlot = async ({
   // ساختار SingleShiftScheduleResponse (که حاوی کل برنامه بود) در اینجا اشتباه بود.
   // ما فرض می‌کنیم پاسخ مستقیماً حاوی { data: ScheduleSlotResource } است.
   return response.data.data;
+};
+
+// --- ✅✅✅ جدید: ۳. تولید شیفت‌ها ---
+
+/**
+ * POST /api/shift-schedules/{shiftSchedule}/generate-shifts
+ * ارسال دستور تولید شیفت‌ها (به صورت جاب در صف)
+ */
+export const generateShifts = async (
+  shiftScheduleId: number | string,
+  payload: GenerateShiftsPayload
+): Promise<{ message: string }> => {
+  const response = await axiosInstance.post<{ message: string }>(
+    `${API_URL}/${shiftScheduleId}/generate-shifts`,
+    payload
+  );
+  // API در صورت موفقیت 202 (Accepted) برمی‌گرداند
+  return response.data;
 };

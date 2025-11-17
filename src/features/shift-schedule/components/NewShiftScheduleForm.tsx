@@ -100,6 +100,29 @@ export const NewShiftScheduleForm: React.FC<NewShiftScheduleFormProps> = ({ onSu
                     />
                     {/* --- پایان جایگزینی --- */}
 
+                    {/* ✅✅✅ فیلد جدید: چک‌باکس نادیده گرفتن تعطیلات ✅✅✅ */}
+                    <div className="md:col-span-3 flex items-center pt-2">
+                        <Controller
+                            name="ignore_holidays"
+                            control={control}
+                            render={({ field }) => (
+                                <Checkbox
+                                    id="ignore_holidays"
+                                    // لیبل اصلی خود کامپوننت چک‌باکس
+                                    label="نادیده گرفتن تعطیلات رسمی؟"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={isGlobalLoading}
+                                />
+                            )}
+                        />
+                        {/* لیبل کمکی در کنار چک‌باکس */}
+                        <Label htmlFor="ignore_holidays" className="mr-2 text-sm font-medium text-muted-foregroundL dark:text-muted-foregroundD">
+                            (اگر تیک زده شود، این الگو بدون توجه به تعطیلات رسمی اجرا می‌شود)
+                        </Label>
+                    </div>
+                    {/* --- پایان فیلد جدید --- */}
+
                 </div>
 
                 {/* بخش دوم: اسلات‌های داینامیک */}
