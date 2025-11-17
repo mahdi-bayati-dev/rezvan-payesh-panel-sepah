@@ -11,13 +11,18 @@ import {
   DialogFooter,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+// 1. Input دیگر استفاده نمی‌شود، اما SelectBox لازم است
+// import Input from "@/components/ui/Input";
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 import Checkbox from "@/components/ui/Checkbox";
-// [جدید] ایمپورت‌های تاریخ
 import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
 import { type DateObject } from 'react-multi-date-picker';
 
+// --- ایمپورت‌های جدید ---
+// 2. ایمپورت هوک و تایپ سازمان‌ها
+import { useOrganizations } from "@/features/Organization/hooks/useOrganizations";
+import { type Organization } from "@/features/Organization/types";
+// --- ---
 
 import {
   ALLOWED_EXPORT_COLUMN_KEYS,
@@ -31,7 +36,8 @@ import {
 import { useRequestExport } from "@/features/reports/hooks/hook";
 import { Loader2 } from "lucide-react";
 
-// (گزینه‌ها، اسکیما و تایپ‌ها بدون تغییر)
+// (گزینه‌های ستون‌ها، مرتب‌سازی، و نوع رویداد بدون تغییر)
+// ... (columnOptions, sortOptions, eventTypeOptions) ...
 const columnOptions = ALLOWED_EXPORT_COLUMN_KEYS.map((key) => ({
   id: key,
   name: EXPORT_COLUMN_MAP[key],
@@ -46,62 +52,95 @@ const eventTypeOptions: SelectOption[] = [
   { id: "check_out", name: "فقط خروج" },
 ];
 
-// [اصلاح کلیدی ۱]: اضافه کردن فیلدهای تاریخ به اسکیمای اعتبارسنجی
+
+// (اسکیما Zod بدون تغییر باقی می‌ماند، چون organization_id همچنان رشته اختیاری است)
 const exportFormSchema = z.object({
-  // --- فیلدهای جدید تاریخ (الزامی) ---
   date_from: z.any().nullable().refine((val) => val !== null, {
     message: "تاریخ شروع الزامی است",
   }),
   date_to: z.any().nullable().refine((val) => val !== null, {
     message: "تاریخ پایان الزامی است",
   }),
-  // --- فیلدهای قبلی ---
   columns: z.array(z.string()).min(1, "حداقل یک ستون باید انتخاب شود."),
   sort_by: z.enum(["timestamp", "employee_name"]),
   sort_direction: z.enum(["desc", "asc"]),
+  // 3. این فیلد همچنان string است که ID سازمان یا "" (برای همه) را نگه می‌دارد
   organization_id: z.string().optional(),
   event_type: z.enum(["all", "check_in", "check_out"]),
   has_lateness: z.boolean(),
 });
 type ExportFormData = z.infer<typeof exportFormSchema>;
 
-
-// (پراپ‌ها بدون تغییر)
+// (پراپ‌های ExportModalProps بدون تغییر)
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // [اصلاح کلیدی ۲]: فیلترهای کنونی را برای پیش‌فرض تاریخ می‌گیریم
   currentFilters: LogFilters;
   onExportStarted: () => void;
-  // [جدید]: تابعی که تاریخ‌های DateObject را به فرمت YYYY-MM-DD (رشته) تبدیل می‌کند
   formatApiDate: (date: DateObject | null) => string | undefined;
 }
+
+// --- 4. تابع کمکی برای مسطح کردن درخت سازمان‌ها (از ماژول سازمان قرض گرفته شده) ---
+// (این تابع SelectOption برمی‌گرداند)
+const flattenOrganizationsForSelect = (
+  orgs: Organization[],
+  level = 0
+): SelectOption[] => {
+  let flatList: SelectOption[] = [];
+  for (const org of orgs) {
+    flatList.push({
+      // ID را به رشته تبدیل می‌کنیم تا با SelectBox هماهنگ باشد
+      id: String(org.id),
+      // از 'ـ' برای نمایش تورفتگی و سلسله‌مراتب استفاده می‌کنیم
+      name: `${'ـ '.repeat(level)} ${org.name}`,
+    });
+    if (org.children && org.children.length > 0) {
+      flatList = flatList.concat(
+        flattenOrganizationsForSelect(org.children, level + 1)
+      );
+    }
+  }
+  return flatList;
+};
+
 
 export const ExportModal = ({
   isOpen,
   onClose,
-  // currentFilters,
   onExportStarted,
-  formatApiDate, // [جدید]
+  formatApiDate,
 }: ExportModalProps) => {
 
   const exportMutation = useRequestExport();
 
+  // --- 5. واکشی لیست سازمان‌ها ---
+  const {
+    data: organizationsData,
+    isLoading: isLoadingOrganizations
+  } = useOrganizations({ enabled: isOpen }); // فقط زمانی که مودال باز است واکشی کن
+
+  // --- 6. ساخت گزینه‌های SelectBox ---
+  const organizationOptions = useMemo(() => {
+    if (!organizationsData) return [];
+    // گزینه "همه" را در ابتدا اضافه می‌کنیم
+    const allOption: SelectOption = { id: "", name: "همه سازمان‌ها (پیش‌فرض)" };
+    const flatList = flattenOrganizationsForSelect(organizationsData);
+    return [allOption, ...flatList];
+  }, [organizationsData]);
+
+
   const {
     control,
     handleSubmit,
-    register,
+    // 7. register دیگر برای organization_id استفاده نمی‌شود
+    // register,
     watch,
     formState: { errors },
-    // setValue
   } = useForm<ExportFormData>({
     resolver: zodResolver(exportFormSchema),
     defaultValues: {
-      // تاریخ‌ها را خالی می‌گذاریم یا از مقادیر فیلتر کنونی استفاده می‌کنیم
-      // (اگرچه بهتر است کاربر همیشه بازه جدید را انتخاب کند)
-      date_from: null, // این باید توسط کاربر پر شود
-      date_to: null, // این باید توسط کاربر پر شود
-
+      date_from: null,
+      date_to: null,
       columns: [
         "timestamp",
         "employee_name",
@@ -114,24 +153,26 @@ export const ExportModal = ({
       sort_direction: "desc",
       event_type: "all",
       has_lateness: false,
+      // 8. مقدار پیش‌فرض "" به معنی "همه سازمان‌ها" است
       organization_id: "",
     },
   });
 
   const selectedColumns = watch("columns");
 
+  // (تابع onSubmit بدون تغییر کار می‌کند)
+  // چون organization_id: "" به parseInt(undefined) تبدیل می‌شود که خروجی undefined دارد
+  // و organization_id: "123" به parseInt(123) تبدیل می‌شود.
   const onSubmit = (formData: ExportFormData) => {
-    // [اصلاح کلیدی ۴]: فرمت‌دهی تاریخ‌ها به فرمت رشته‌ای YYYY-MM-DD
     const apiDateFrom = formatApiDate(formData.date_from);
-    // [نکته مهم]: تابع formatApiDate باید در reportPage.tsx پیاده‌سازی شده باشد.
     const apiDateTo = formatApiDate(formData.date_to);
 
     if (!apiDateFrom || !apiDateTo) {
-      // این حالت نباید رخ دهد چون در Zod بررسی شده
       return;
     }
 
     const apiFilters: ReportExportPayload["filters"] = {
+      // 9. این منطق همچنان کاملا درست کار می‌کند
       organization_id: formData.organization_id
         ? parseInt(formData.organization_id, 10)
         : undefined,
@@ -141,8 +182,8 @@ export const ExportModal = ({
     };
 
     const payload: ReportExportPayload = {
-      date_from: apiDateFrom, // ارسال تاریخ شروع فرمت شده
-      date_to: apiDateTo, // ارسال تاریخ پایان فرمت شده
+      date_from: apiDateFrom,
+      date_to: apiDateTo,
       columns: formData.columns as AllowedExportColumn[],
       sort_by: formData.sort_by,
       sort_direction: formData.sort_direction,
@@ -163,6 +204,7 @@ export const ExportModal = ({
       <DialogContent className="max-w-3xl" onClose={onClose}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
+            {/* ... (Header بدون تغییر) ... */}
             <DialogTitle>درخواست خروجی اکسل (گزارش تردد)</DialogTitle>
             <DialogDescription>
               فیلترها و ستون‌های مورد نیاز خود را انتخاب کنید. تاریخ شروع و پایان الزامی است.
@@ -171,8 +213,9 @@ export const ExportModal = ({
 
           <div className="space-y-6 p-6">
 
-            {/* --- [جدید] بخش فیلتر تاریخ --- */}
+            {/* (بخش تاریخ بدون تغییر) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800">
+              {/* ... (Controller date_from) ... */}
               <Controller
                 name="date_from"
                 control={control}
@@ -186,6 +229,7 @@ export const ExportModal = ({
                   />
                 )}
               />
+              {/* ... (Controller date_to) ... */}
               <Controller
                 name="date_to"
                 control={control}
@@ -200,10 +244,10 @@ export const ExportModal = ({
                 )}
               />
             </div>
-            {/* --- [پایان بخش تاریخ] --- */}
 
             {/* (بخش ستون‌ها بدون تغییر) */}
             <div>
+              {/* ... (Column selection UI) ... */}
               <label className="font-semibold text-foregroundL dark:text-foregroundD">
                 انتخاب ستون‌ها ({selectedColumns.length})
               </label>
@@ -248,8 +292,9 @@ export const ExportModal = ({
               )}
             </div>
 
-            {/* بخش ۲: مرتب‌سازی و فیلترها (بدون تغییر) */}
+            {/* بخش ۲: مرتب‌سازی و فیلترها (اصلاح فیلد سازمان) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* (Controller sort_by بدون تغییر) */}
               <Controller
                 name="sort_by"
                 control={control}
@@ -269,6 +314,7 @@ export const ExportModal = ({
 
               {/* (فیلد جهت مرتب‌سازی بدون تغییر) */}
               <div className="flex flex-col">
+                {/* ... (Sort direction UI) ... */}
                 <label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
                   جهت مرتب‌سازی
                 </label>
@@ -316,14 +362,28 @@ export const ExportModal = ({
                 </div>
               </div>
 
-              {/* (فیلد ID سازمان بدون تغییر) */}
-              <Input
-                label="فیلتر سازمان (ID)"
-                type="number"
-                placeholder="ID سازمان را وارد کنید (اختیاری)"
-                {...register("organization_id")}
+              {/* --- 10. جایگزینی Input با Controller و SelectBox --- */}
+              <Controller
+                name="organization_id"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <SelectBox
+                    label="فیلتر سازمان (اختیاری)"
+                    placeholder={isLoadingOrganizations ? "در حال بارگذاری..." : "انتخاب کنید..."}
+                    options={organizationOptions}
+                    // مقدار فیلد (id) را با گزینه‌ها مقایسه می‌کنیم
+                    value={organizationOptions.find((opt) => opt.id === field.value) || null}
+                    // ID (رشته‌ای) گزینه انتخاب شده را به فرم پاس می‌دهیم
+                    onChange={(option) => field.onChange(option?.id ?? "")}
+                    error={fieldState.error?.message}
+                    disabled={isLoadingOrganizations}
+                  />
+                )}
               />
+              {/* --- پایان جایگزینی --- */}
 
+
+              {/* (Controller event_type بدون تغییر) */}
               <Controller
                 name="event_type"
                 control={control}
@@ -344,6 +404,7 @@ export const ExportModal = ({
 
               {/* (فیلد تاخیر بدون تغییر) */}
               <div className="flex items-center gap-2 p-3 border rounded-xl md:mt-8 bg-backgroundL-DEFAULT dark:bg-backgroundD-800">
+                {/* ... (Checkbox has_lateness) ... */}
                 <Controller
                   name="has_lateness"
                   control={control}
@@ -367,7 +428,8 @@ export const ExportModal = ({
           </div>
 
           {/* (فوتر و دکمه‌ها بدون تغییر) */}
-          <DialogFooter className="border-t border-borderL dark:border-borderD">
+          <DialogFooter className="border-t flex gap-2 border-borderL dark:border-borderD">
+            {/* ... (Cancel button) ... */}
             <Button
               type="button"
               variant="secondary"
@@ -376,6 +438,7 @@ export const ExportModal = ({
             >
               لغو
             </Button>
+            {/* ... (Submit button) ... */}
             <Button
               type="submit"
               variant="primary"

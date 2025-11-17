@@ -3,13 +3,16 @@
 /**
  * ساختار کارمند در پاسخ API گزارش‌ها (رابطه employee)
  */
+
 export interface ApiEmployee {
   id: number;
-  user_id: number; // <-- [اصلاح ۱] این فیلد حیاتی است و باید توسط API ارسال شود
+  user_id: number;
   first_name: string;
   last_name: string;
   avatarUrl?: string;
-  employee_code?: string;
+  // [اصلاح] فیلد employee_code به personnel_code تغییر کرد
+  // تا با لاگ‌های واقعی API شما مطابقت داشته باشد
+  personnel_code?: string;
 }
 
 /**

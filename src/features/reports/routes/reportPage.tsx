@@ -6,17 +6,23 @@ import {
     type PaginationState,
 } from "@tanstack/react-table";
 import { useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Download } from "lucide-react";
+// [اصلاح ۱] آیکون CheckCircle برای مودال اضافه شد
+import { Plus, Download, CheckCircle } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
-import { type SelectOption } from "@/components/ui/SelectBox";
+// import { type SelectOption } from "@/components/ui/SelectBox";
 import gregorian from "react-date-object/calendars/gregorian";
 import { getEcho, leaveChannel } from "@/lib/echoService";
+// [اصلاح] ایمپورت تایپ ApiFilters
+import {
+    ActivityFilters,
+    type ApiFilters,
+} from "@/features/reports/components/reportsPage/activityFilters";
 
 // --- ایمپورت هوک‌های داده ---
 import {
     useLogs,
     useApproveLog,
-    useEmployeeOptionsList,
+    // useEmployeeOptionsList,
     reportKeys,
 } from "../hooks/hook";
 
@@ -27,9 +33,11 @@ import { type LogFilters } from "../api/api";
 import { mapApiLogToActivityLog } from "../utils/dataMapper";
 import { DataTable } from "@/components/ui/DataTable";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
-import { ActivityFilters } from "@/features/reports/components/reportsPage/activityFilters";
-import Input from "@/components/ui/Input";
+// import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+
+// [اصلاح] ایمپورت مودال تایید
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
 // [مهم] مودال فرم خروجی همچنان نیاز است
 import { ExportModal } from "@/features/reports/components/Export/ExportModal";
@@ -39,8 +47,7 @@ function pad(num: number): string {
     return num < 10 ? "0" + num : num.toString();
 }
 
-// [جدید/اصلاح] تابع کمکی برای تبدیل DateObject به فرمت API (YYYY-MM-DD)
-// این تابع برای استفاده در ExportModal ضروری است
+// (تابع formatApiDate بدون تغییر)
 const formatApiDate = (date: DateObject | null): string | undefined => {
     if (!date) return undefined;
     const gregorianDate = date.convert(gregorian);
@@ -58,51 +65,65 @@ export default function ActivityReportPage() {
 
     const [isExportFormModalOpen, setIsExportFormModalOpen] = useState(false);
 
-    // --- [اصلاح ۱]: فیلترها به صورت کامل مدیریت می‌شوند ---
+    // --- استیت برای مدیریت مودال تایید ---
+    const [logToApprove, setLogToApprove] = useState<ActivityLog | null>(null);
+    // --- ---
+
+    // --- استیت filters (هماهنگ با PaginationState) ---
     const [filters, setFilters] = useState<LogFilters>({
         page: 1,
+        per_page: 10, // مقدار اولیه باید با pageSize یکی باشد
         sort_by: "timestamp",
         sort_dir: "desc",
-        // [جدید]: نگهداری استیت DateObject فیلترها (برای پاس دادن به ExportModal)
-        // این استیت، برای رندر فیلتر کنار جدول استفاده می‌شود نه برای API
         localDateFrom: null as DateObject | null,
         localDateTo: null as DateObject | null,
     });
-    // [نکته]: فیلدهای date_from و date_to در filters، همچنان برای API به صورت رشته ارسال می‌شوند.
 
-    const [searchTerm, setSearchTerm] = useState("");
+    // const [searchTerm, setSearchTerm] = useState("");
 
+    // --- استیت pagination (هماهنگ با filters) ---
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
     });
 
-    useMemo(() => {
+    // --- [اصلاح کلیدی] ---
+    // ۱. استفاده از useEffect به جای useMemo برای همگام‌سازی استیت جدول با فیلتر API
+    // ۲. آپدیت کردن همزمان per_page و page
+    useEffect(() => {
         setFilters((prev) => ({
             ...prev,
-            page: pageIndex + 1,
+            page: pageIndex + 1, // صفحه برای API (از ۱ شروع می‌شود)
+            per_page: pageSize,   // تعداد آیتم در صفحه
         }));
-    }, [pageIndex, pageSize]);
+    }, [pageIndex, pageSize]); // این افکت فقط به تغییرات جدول (کلیک روی دکمه‌های Pagination) واکنش نشان می‌دهد
+    // --- [پایان اصلاح] ---
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setFilters((prevFilters) => ({
-                ...prevFilters,
-                search: searchTerm || undefined,
-                page: 1,
-            }));
-            setPageIndex(0);
-        }, 500);
-        return () => {
-            clearTimeout(timer);
-        };
-    }, [searchTerm]);
 
+    // --- افکت جستجو (Debounce) ---
+    // useEffect(() => {
+    //     const timer = setTimeout(() => {
+    //         // وقتی کاربر تایپ می‌کند، فیلترها را آپدیت کن و به صفحه ۱ برگرد
+    //         setFilters((prevFilters) => ({
+    //             ...prevFilters,
+    //             search: searchTerm || undefined,
+    //             page: 1, // ریست کردن صفحه در فیلترها
+    //         }));
+    //         // استیت خود جدول را هم به صفحه ۰ (اول) برگردان
+    //         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    //     }, 500);
+    //     return () => {
+    //         clearTimeout(timer);
+    //     };
+    // }, [searchTerm]); // فقط به جستجو واکنش نشان می‌دهد
+
+    // (تابع logSocket - [اصلاح] متغیر styles اضافه شد)
     const logSocket = (
         level: "info" | "error" | "success",
         message: string,
         data: any = ""
     ) => {
+        // [اصلاح] تعریف متغیر styles
         const styles = {
             info: "background: #3498db; color: white; padding: 2px 8px; border-radius: 3px;",
             error: "background: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px;",
@@ -110,25 +131,24 @@ export default function ActivityReportPage() {
         };
         console.log(
             `%c[ReportPage]%c ${message}`,
-            styles[level],
+            styles[level], // حالا متغیر styles در دسترس است
             "font-weight: bold;",
             data
         );
     };
 
+    // --- (واکشی داده‌ها و وب‌سوکت بدون تغییر) ---
     const { data: queryResult, isLoading, isFetching } = useLogs(filters);
 
-    const { data: employeeOptions, isLoading: isLoadingEmployees } =
-        useEmployeeOptionsList();
+    // const { data: employeeOptions, isLoading: isLoadingEmployees } =
+    //     useEmployeeOptionsList();
 
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
 
-    // [وب‌سوکت ریل‌تایم جدول] - (بدون تغییر)
     useEffect(() => {
-        // ... (کد وب‌سوکت اینجا) ...
+        // ... (کد کامل وب‌سوکت بدون تغییر) ...
         const echo = getEcho();
-
         if (!echo) {
             logSocket(
                 "error",
@@ -136,17 +156,13 @@ export default function ActivityReportPage() {
             );
             return;
         }
-
         const channelName = "super-admin-global";
         const eventNameFromDocs = ".attendance.created";
-
         logSocket(
             "info",
             `در حال تلاش برای عضویت در کانال: private-${channelName} ...`
         );
-
         const privateChannel = echo.private(channelName);
-
         privateChannel.subscribed((data: any) => {
             logSocket(
                 "success",
@@ -154,7 +170,6 @@ export default function ActivityReportPage() {
                 data
             );
         });
-
         privateChannel.error((data: any) => {
             logSocket(
                 "error",
@@ -162,27 +177,20 @@ export default function ActivityReportPage() {
                 data
             );
         });
-
         privateChannel.listen(eventNameFromDocs, (event: any) => {
             logSocket("success", `✅ رویداد دریافت شد: '${eventNameFromDocs}'`, event);
-
             const newApiLog = event.log as ApiAttendanceLog;
-
             if (newApiLog) {
                 logSocket("info", `به‌روزرسانی مستقیم کش با لاگ جدید...`, newApiLog);
                 const newActivityLog = mapApiLogToActivityLog(newApiLog);
-
                 queryClient.setQueryData(
                     reportKeys.list(filters),
                     (oldData: { data: ActivityLog[]; meta: any } | undefined) => {
                         if (!oldData) return;
-
                         const newData = [newActivityLog, ...oldData.data];
-
                         if (newData.length > (meta?.per_page || 10)) {
                             newData.pop();
                         }
-
                         return {
                             ...oldData,
                             data: newData,
@@ -200,9 +208,7 @@ export default function ActivityReportPage() {
                 });
             }
         });
-
         logSocket("info", `در حال گوش دادن به رویداد: '${eventNameFromDocs}' ...`);
-
         return () => {
             logSocket(
                 "info",
@@ -218,13 +224,27 @@ export default function ActivityReportPage() {
     const approveMutation = useApproveLog();
     const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
 
+    // --- (هندلرهای Approve و Edit و مودال تایید، بدون تغییر) ---
     const handleApprove = (log: ActivityLog) => {
-        approveMutation.mutate(log.id);
+        setLogToApprove(log);
     };
 
     const handleEdit = (log: ActivityLog) => {
         setEditingLog(log);
     };
+
+    const handleConfirmApprove = () => {
+        if (!logToApprove) return;
+        approveMutation.mutate(logToApprove.id, {
+            onSuccess: () => {
+                setLogToApprove(null);
+            },
+            onError: () => {
+                console.error("Failed to approve log.");
+            }
+        });
+    };
+    // --- ---
 
     const columns = useMemo(
         () =>
@@ -245,7 +265,7 @@ export default function ActivityReportPage() {
         manualPagination: true,
         manualFiltering: true,
         manualSorting: true,
-        onPaginationChange: setPagination,
+        onPaginationChange: setPagination, // این تابع setPagination را مستقیماً فراخوانی می‌کند
         getCoreRowModel: getCoreRowModel(),
     });
 
@@ -253,72 +273,90 @@ export default function ActivityReportPage() {
         navigate("/reports/new");
     };
 
-    // --- [اصلاح ۲]: هندلر فیلتر برای ذخیره تاریخ‌های DateObject ---
-    const handleFilterChange = (newLocalFilters: {
-        employee: SelectOption | null;
-        date_from: DateObject | null;
-        date_to: DateObject | null;
-    }) => {
-        // [جدید]: استفاده از تابع formatApiDate برای تبدیل به رشته API
+    // --- هندلر فیلترها (هماهنگ با تایپ ApiFilters) ---
+    const handleFilterChange = (newLocalFilters: ApiFilters) => {
         const apiDateFrom = formatApiDate(newLocalFilters.date_from);
-        // [نکته]: در درخواست API، date_to نیازی به ساعت آخر شب ندارد،
-        // اما تابع قدیمی شما داشت. اینجا همان منطق ساده را برای Export Modal می‌گذاریم.
         const apiDateTo = formatApiDate(newLocalFilters.date_to);
 
         setFilters((prev) => ({
             ...prev,
-            page: 1,
+            page: 1, // ریست کردن صفحه در فیلترها
             employee_id: newLocalFilters.employee
                 ? Number(newLocalFilters.employee.id)
                 : undefined,
             date_from: apiDateFrom,
             date_to: apiDateTo,
-            // [جدید]: ذخیره DateObject برای استفاده در ExportModal (اگر لازم بود)
             localDateFrom: newLocalFilters.date_from,
             localDateTo: newLocalFilters.date_to,
         }));
 
-        setPageIndex(0);
+        // استیت خود جدول را هم به صفحه ۰ (اول) برگردان
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     };
 
-    const setPageIndex = (index: number) => {
-        setPagination((prev) => ({ ...prev, pageIndex: index }));
-    };
+    // [حذف] تابع setPageIndex(0) چون با setPagination ادغام شد
 
     const handleExportFormSubmitted = () => {
-        // مودال فرم را ببند
         setIsExportFormModalOpen(false);
     };
 
-    // --- [اصلاح ۳]: تهیه آبجکت فیلتر برای ExportModal ---
-    // فیلترهای کنونی برای گزارش درخواستی (تاریخ‌ها به صورت رشته YYYY-MM-DD هستند)
     const exportFilters: LogFilters = useMemo(() => ({
         date_from: filters.date_from,
         date_to: filters.date_to,
-        // ... (فیلترهای دیگر را می‌توان اضافه کرد)
     }), [filters.date_from, filters.date_to]);
 
     // --- JSX (بخش رندر) ---
     return (
         <>
-            {/* (رندر مودال فرم) */}
+            {/* (رندر مودال فرم خروجی اکسل) */}
             {isExportFormModalOpen && (
                 <ExportModal
                     isOpen={isExportFormModalOpen}
                     onClose={() => setIsExportFormModalOpen(false)}
-                    currentFilters={exportFilters} // [اصلاح ۴]: پاس دادن فیلترها (اگرچه ExportModal از کاربر می‌گیرد)
+                    currentFilters={exportFilters}
                     onExportStarted={handleExportFormSubmitted}
-                    formatApiDate={formatApiDate} // [جدید]: پاس دادن تابع تبدیل تاریخ
+                    formatApiDate={formatApiDate}
                 />
             )}
+
+            {/* (رندر مودال تایید تردد) */}
+            <ConfirmationModal
+                isOpen={!!logToApprove}
+                onClose={() => setLogToApprove(null)}
+                onConfirm={handleConfirmApprove}
+                title="تأیید تردد"
+                message={
+                    <div className="text-right" dir="rtl">
+                        <p>
+                            آیا از تأیید این تردد برای
+                            <strong className="font-bold mx-1">{logToApprove?.employee.name}</strong>
+                            در تاریخ
+                            <strong className="font-bold mx-1">{logToApprove?.date}</strong>
+                            ساعت
+                            <strong className="font-bold mx-1">{logToApprove?.time}</strong>
+                            مطمئن هستید؟
+                        </p>
+                        <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD mt-2">
+                            این لاگ به عنوان مجاز علامت‌گذاری خواهد شد.
+                        </p>
+                    </div>
+                }
+                variant="success"
+                icon={<CheckCircle className="h-6 w-6 text-successL dark:text-successD" aria-hidden="true" />}
+                confirmText={approveMutation.isPending ? "در حال تایید..." : "بله، تایید کن"}
+                cancelText="انصراف"
+                // [اصلاح] تغییر نام پراپ به isLoading (بر اساس خطای بیلد قبلی)
+                isLoading={approveMutation.isPending}
+            />
+
 
             {/* --- صفحه اصلی (بدون تغییر) --- */}
             <div className="flex flex-col md:flex-row-reverse gap-6 p-4 md:p-6">
                 <aside className=" mx-auto">
                     <ActivityFilters
-                        onFilterChange={handleFilterChange}
-                        employeeOptions={employeeOptions || []}
-                        isLoadingEmployees={isLoadingEmployees}
+                        onFilterChange={handleFilterChange} // حالا با تایپ ApiFilters هماهنگ است
+                    // employeeOptions={employeeOptions || []}
+                    // isLoadingEmployees={isLoadingEmployees}
                     />
                 </aside>
 
@@ -328,7 +366,7 @@ export default function ActivityReportPage() {
                             گزارش آخرین فعالیت‌ها
                         </h2>
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                            <div className="relative w-full sm:w-60">
+                            {/* <div className="relative w-full sm:w-60">
                                 <Input
                                     label=""
                                     type="text"
@@ -338,7 +376,7 @@ export default function ActivityReportPage() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                                 <Search size={18} className="absolute right-3 top-1/3" />
-                            </div>
+                            </div> */}
 
                             <Button
                                 variant="secondary"

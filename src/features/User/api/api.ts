@@ -61,16 +61,15 @@ export const updateUserOrganization = async ({
   return data; // API شما UserResource را برمی‌گرداند
 };
 
-
-
 /**
  * دریافت اطلاعات تکی کاربر (برای صفحه پروفایل)
  * GET /api/users/{userId}
  */
 export const fetchUserById = async (userId: number): Promise<User> => {
-  // API یک UserResource کامل برمی‌گرداند
+  // لاگ‌های دیباگ حذف شدند
   const { data } = await axiosInstance.get(`/users/${userId}`);
-  console.log("====>", data);
+
+  // لاگ‌های دیباگ حذف شدند
   return data.data;
 };
 
