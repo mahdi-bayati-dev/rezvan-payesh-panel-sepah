@@ -16,6 +16,8 @@ class AttendanceLogResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'user' => new UserResource($this->whenLoaded('user')),
+
             'employee_id' => $this->employee_id,
             'event_type' => $this->event_type,
             'timestamp' => $this->timestamp,
