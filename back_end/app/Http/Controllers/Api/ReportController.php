@@ -37,7 +37,7 @@ class ReportController extends Controller
         }
 
         $validatedOptions = $validator->validated();
-        $filename = "reports/attendance_user_{$user->id}_" . now()->timestamp . ".xlsx";
+        $filename = "attendance_user_{$user->id}_" . now()->timestamp . ".xlsx";
 
         ProcessAttendanceExportJob::dispatch($user, $validatedOptions, $filename);
 
