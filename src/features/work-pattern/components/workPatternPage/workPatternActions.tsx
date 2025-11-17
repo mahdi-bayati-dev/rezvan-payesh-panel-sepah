@@ -1,4 +1,4 @@
-import { CirclePlus, Eye, SlidersHorizontal, Check, X, Trash2, Edit } from 'lucide-react';
+import { CirclePlus, Eye,  Check, X, Trash2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDeleteWeekPattern } from '@/features/work-pattern/hooks/useDeleteWeekPattern';
 import { useState } from 'react';
@@ -68,7 +68,7 @@ export const WorkPatternActions = ({
 
   // --- سایر عملیات ---
   const handleAddGroup = () => navigate("/work-patterns/add-to-work-pattern");
-  const handleAssignShift = () => console.log('تخصیص اتوماتیک شیفت');
+  // const handleAssignShift = () => console.log('تخصیص اتوماتیک شیفت');
   const handleConfirm = () => console.log('تایید - (نیاز به تعریف کاربرد)');
   const handleCancel = () => console.log('لغو - (نیاز به تعریف کاربرد)');
 
@@ -131,13 +131,13 @@ export const WorkPatternActions = ({
             </button>
           </li>
           <li>
-            <button
+            {/* <button
               onClick={handleAssignShift}
               className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondaryL dark:bg-secondaryD dark:text-foregroundD text-foregroundL hover:bg-secondaryL/80 transition-colors text-xs"
             >
               <SlidersHorizontal size={16} />
               تخصیص اتوماتیک شیفت
-            </button>
+            </button> */}
           </li>
         </ul>
       </div>

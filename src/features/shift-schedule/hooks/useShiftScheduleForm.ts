@@ -64,6 +64,7 @@ export const useShiftScheduleForm = ({
       name: "",
       cycle_length_days: INITIAL_CYCLE_LENGTH, // استفاده از متغیر (7)
       cycle_start_date: new Date().toISOString().slice(0, 10), // تاریخ امروز
+      ignore_holidays: false, // ✅ مقدار پیش‌فرض برای فیلد جدید
       slots: createDefaultSlots(INITIAL_CYCLE_LENGTH), // استفاده از آرایه پیش‌فرض (شامل 7 آیتم)
     },
     // mode: "onTouched" // فعال کردن این حالت می‌تواند به تجربه کاربری کمک کند
@@ -149,9 +150,10 @@ export const useShiftScheduleForm = ({
       name: data.name,
       cycle_length_days: data.cycle_length_days,
       cycle_start_date: data.cycle_start_date,
+      ignore_holidays: data.ignore_holidays, // ✅ ارسال فیلد جدید
       slots: cleanedSlots, // ارسال اسلات‌های پاکسازی شده
     };
-
+console.log("✅ Payload ارسالی به سرور (Request):", payload);
     mutate(payload, {
       onSuccess: () => {
         // در صورت موفقیت، فرم ریست نمی‌شود (چون کاربر ممکن است بخواهد برنامه دیگری بسازد)
