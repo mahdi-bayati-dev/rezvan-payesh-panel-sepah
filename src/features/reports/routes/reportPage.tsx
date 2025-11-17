@@ -10,7 +10,6 @@ import { Search, Plus, Download } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
 import { type SelectOption } from "@/components/ui/SelectBox";
 import gregorian from "react-date-object/calendars/gregorian";
-// import { toast } from "react-toastify"; // <-- [جدید] ایمپورت toast
 import { getEcho, leaveChannel } from "@/lib/echoService";
 
 // --- ایمپورت هوک‌های داده ---
@@ -34,14 +33,21 @@ import { Button } from "@/components/ui/Button";
 
 // [مهم] مودال فرم خروجی همچنان نیاز است
 import { ExportModal } from "@/features/reports/components/Export/ExportModal";
-// [حذف] مودال وضعیت (ProcessingLoader) دیگر نیاز نیست چون از Toast سراسری استفاده می‌کنیم
-// import { ExportStatusModal } from "@/features/reports/components/Export/ProcessingLoader";
-
 
 // (تابع pad بدون تغییر)
 function pad(num: number): string {
     return num < 10 ? "0" + num : num.toString();
 }
+
+// [جدید/اصلاح] تابع کمکی برای تبدیل DateObject به فرمت API (YYYY-MM-DD)
+// این تابع برای استفاده در ExportModal ضروری است
+const formatApiDate = (date: DateObject | null): string | undefined => {
+    if (!date) return undefined;
+    const gregorianDate = date.convert(gregorian);
+    return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(
+        gregorianDate.day
+    )}`;
+};
 
 // =============================
 // 🧾 کامپوننت صفحه
@@ -50,16 +56,20 @@ export default function ActivityReportPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    // [پاکسازی] فقط مودال فرم نیاز است
     const [isExportFormModalOpen, setIsExportFormModalOpen] = useState(false);
-    // const [isExportStatusModalOpen, setIsExportStatusModalOpen] = useState(false); // <-- حذف شد
 
-    // ... (تمام استیت‌ها، هوک‌ها و افکت‌های مربوط به جدول و فیلترها بدون تغییر باقی می‌مانند) ...
+    // --- [اصلاح ۱]: فیلترها به صورت کامل مدیریت می‌شوند ---
     const [filters, setFilters] = useState<LogFilters>({
         page: 1,
         sort_by: "timestamp",
         sort_dir: "desc",
+        // [جدید]: نگهداری استیت DateObject فیلترها (برای پاس دادن به ExportModal)
+        // این استیت، برای رندر فیلتر کنار جدول استفاده می‌شود نه برای API
+        localDateFrom: null as DateObject | null,
+        localDateTo: null as DateObject | null,
     });
+    // [نکته]: فیلدهای date_from و date_to در filters، همچنان برای API به صورت رشته ارسال می‌شوند.
+
     const [searchTerm, setSearchTerm] = useState("");
 
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
@@ -114,8 +124,9 @@ export default function ActivityReportPage() {
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
 
-    // [وب‌سوکت ریل‌تایم جدول] - (این بخش عالی است و بدون تغییر باقی می‌ماند)
+    // [وب‌سوکت ریل‌تایم جدول] - (بدون تغییر)
     useEffect(() => {
+        // ... (کد وب‌سوکت اینجا) ...
         const echo = getEcho();
 
         if (!echo) {
@@ -202,7 +213,7 @@ export default function ActivityReportPage() {
         };
     }, [queryClient, filters, meta]);
 
-    // ... (بقیه منطق جدول، ستون‌ها و فیلترها بدون تغییر) ...
+
     const pageCount = meta?.last_page || 1;
     const approveMutation = useApproveLog();
     const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
@@ -242,36 +253,30 @@ export default function ActivityReportPage() {
         navigate("/reports/new");
     };
 
-    const handleFilterChange = (newApiFilters: {
+    // --- [اصلاح ۲]: هندلر فیلتر برای ذخیره تاریخ‌های DateObject ---
+    const handleFilterChange = (newLocalFilters: {
         employee: SelectOption | null;
         date_from: DateObject | null;
         date_to: DateObject | null;
     }) => {
-        const formatApiDateStart = (date: DateObject | null): string | undefined => {
-            if (!date) return undefined;
-            const gregorianDate = date.convert(gregorian);
-            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(
-                gregorianDate.day
-            )}`;
-        };
+        // [جدید]: استفاده از تابع formatApiDate برای تبدیل به رشته API
+        const apiDateFrom = formatApiDate(newLocalFilters.date_from);
+        // [نکته]: در درخواست API، date_to نیازی به ساعت آخر شب ندارد،
+        // اما تابع قدیمی شما داشت. اینجا همان منطق ساده را برای Export Modal می‌گذاریم.
+        const apiDateTo = formatApiDate(newLocalFilters.date_to);
 
-        const formatApiDateEnd = (date: DateObject | null): string | undefined => {
-            if (!date) return undefined;
-            const gregorianDate = date.convert(gregorian);
-            return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(
-                gregorianDate.day
-            )} 23:59:59`;
-        };
-
-        setFilters({
-            ...filters,
+        setFilters((prev) => ({
+            ...prev,
             page: 1,
-            employee_id: newApiFilters.employee
-                ? Number(newApiFilters.employee.id)
+            employee_id: newLocalFilters.employee
+                ? Number(newLocalFilters.employee.id)
                 : undefined,
-            date_from: formatApiDateStart(newApiFilters.date_from),
-            date_to: formatApiDateEnd(newApiFilters.date_to),
-        });
+            date_from: apiDateFrom,
+            date_to: apiDateTo,
+            // [جدید]: ذخیره DateObject برای استفاده در ExportModal (اگر لازم بود)
+            localDateFrom: newLocalFilters.date_from,
+            localDateTo: newLocalFilters.date_to,
+        }));
 
         setPageIndex(0);
     };
@@ -280,33 +285,32 @@ export default function ActivityReportPage() {
         setPagination((prev) => ({ ...prev, pageIndex: index }));
     };
 
-    // [پاکسازی] این هندلر حالا ساده‌تر است
     const handleExportFormSubmitted = () => {
         // مودال فرم را ببند
         setIsExportFormModalOpen(false);
-        // مودال وضعیت را باز نکن
-        // setIsExportStatusModalOpen(true); // <-- حذف شد
-
-        // [مهم] نوتیفیکیشن اولیه (که در هوک بود) به صورت خودکار توسط
-        // `useRequestExport` > `onSuccess` نمایش داده می‌شود.
-        // `GlobalNotificationHandler` بقیه کار را انجام خواهد داد.
     };
+
+    // --- [اصلاح ۳]: تهیه آبجکت فیلتر برای ExportModal ---
+    // فیلترهای کنونی برای گزارش درخواستی (تاریخ‌ها به صورت رشته YYYY-MM-DD هستند)
+    const exportFilters: LogFilters = useMemo(() => ({
+        date_from: filters.date_from,
+        date_to: filters.date_to,
+        // ... (فیلترهای دیگر را می‌توان اضافه کرد)
+    }), [filters.date_from, filters.date_to]);
 
     // --- JSX (بخش رندر) ---
     return (
         <>
-            {/* (رندر مودال فرم بدون تغییر) */}
+            {/* (رندر مودال فرم) */}
             {isExportFormModalOpen && (
                 <ExportModal
                     isOpen={isExportFormModalOpen}
                     onClose={() => setIsExportFormModalOpen(false)}
-                    currentFilters={filters}
+                    currentFilters={exportFilters} // [اصلاح ۴]: پاس دادن فیلترها (اگرچه ExportModal از کاربر می‌گیرد)
                     onExportStarted={handleExportFormSubmitted}
+                    formatApiDate={formatApiDate} // [جدید]: پاس دادن تابع تبدیل تاریخ
                 />
             )}
-
-            {/* [حذف] رندر مودال وضعیت دیگر اینجا نیست */}
-            {/* {isExportStatusModalOpen && ( ... )} */}
 
             {/* --- صفحه اصلی (بدون تغییر) --- */}
             <div className="flex flex-col md:flex-row-reverse gap-6 p-4 md:p-6">
