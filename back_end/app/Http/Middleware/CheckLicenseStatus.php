@@ -148,6 +148,6 @@ class CheckLicenseStatus
         return ResponseFacade::json([
             'error_code' => $code,
             'message' => $message
-        ], 999);
+        ], 499);
     }
 }
