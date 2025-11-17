@@ -14,10 +14,12 @@ class ShiftSchedule extends Model
             'name',
             'cycle_length_days',
             'cycle_start_date',
+            'ignore_holidays'
         ];
     protected $casts =
         [
-            'cycle_start_date' => 'date'
+            'cycle_start_date' => 'date',
+            'ignore_holidays'=> 'boolean'
         ];
 
     public function slots(): HasMany
