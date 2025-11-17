@@ -38,6 +38,7 @@ class ShiftScheduleController extends Controller
             'name' => 'required|string|max:255|unique:shift_schedules,name',
             'cycle_length_days' => 'required|integer|min:1|max:31',
             'cycle_start_date' => 'required|date_format:Y-m-d',
+            'ignore_holidays'=>'required|boolean',
 
             'slots' => 'required|array',
             'slots.*.day_in_cycle' => 'required|integer|distinct|min:1',
@@ -60,6 +61,7 @@ class ShiftScheduleController extends Controller
                 'name' => $validatedData['name'],
                 'cycle_length_days' => $validatedData['cycle_length_days'],
                 'cycle_start_date' => $validatedData['cycle_start_date'],
+                'ignore_holidays' => $validatedData['ignore_holidays'],
             ]);
             $slotsMap = [];
             foreach ($validatedData['slots'] as $slotData) {
@@ -111,6 +113,7 @@ class ShiftScheduleController extends Controller
             // تغییر طول چرخه فعلا پشتیبانی نمی‌شود (پیچیده است)
             'cycle_length_days' => 'sometimes|integer|min:1|max:31', // اگر ارسال شد باید معتبر باشد
             'cycle_start_date' => 'required|date_format:Y-m-d',
+            'ignore_holidays' => 'sometimes|boolean',
         ]);
         if ($validator->fails())
         {
