@@ -22,7 +22,12 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use Illuminate\Support\Facades\Log;
 
+Route::get('/test-log', function () {
+    Log::info('--- LOG TEST SUCCESSFUL ---');
+    return response()->json(['message' => 'Log test successful. Check storage/logs/laravel.log']);
+});
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 

@@ -308,8 +308,7 @@ class LicenseService
 
         $isVerified = openssl_verify($payload, $signature, $publicKey, OPENSSL_ALGO_SHA256);
 
-        if ($isVerified === 1)
-        {
+        if ($isVerified === 1) {
             return json_decode($payload);
         }
 
