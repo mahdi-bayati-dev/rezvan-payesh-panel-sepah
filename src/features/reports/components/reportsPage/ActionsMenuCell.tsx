@@ -1,4 +1,4 @@
-import { MoreVertical, Eye, User, Pencil, Check } from 'lucide-react'; // ۱. آیکون‌های جدید
+import { MoreVertical, Eye, User, Check } from 'lucide-react'; // ۱. آیکون‌ها
 import { useNavigate } from 'react-router-dom';
 import { type ActivityLog } from '@/features/reports/types/index';
 import {
@@ -7,40 +7,58 @@ import {
     DropdownContent,
     DropdownItem,
 } from '@/components/ui/Dropdown';
+// [جدید] ایمپورت دکمه
+import { Button } from '@/components/ui/Button';
 
-// ۲. تعریف پراپ‌های جدید برای Edit و Approve
+// ۲. پراپ‌ها (بدون تغییر)
 type ActivityLogActionsProps = {
     log: ActivityLog;
-    // ۳. هندلرهای جهش (Mutation) از والد می‌آیند
     onEdit: (log: ActivityLog) => void;
     onApprove: (log: ActivityLog) => void;
 };
 
-export const ActionsMenuCell = ({ log, onEdit, onApprove }: ActivityLogActionsProps) => {
+export const ActionsMenuCell = ({ log, onApprove }: ActivityLogActionsProps) => {
     const navigate = useNavigate();
 
-    // توابع ناوبری (بدون تغییر)
+    // ۳. توابع هندلر (بدون تغییر)
     const handleViewDetails = () => {
         navigate(`/reports/${log.id}`);
     };
 
     const handleViewEmployeeReport = () => {
-        // ۴. ❗️ اطمینان از ارسال شناسه صحیح
-        // ما از employee.id (عددی) استفاده می‌کنیم، چون employeeId (رشته‌ای) در API نبود
         navigate(`/reports/employee/${log.employee.id}`);
     };
 
-    // ۵. توابع اتصال‌دهنده به پراپ‌های جدید
-    const handleEdit = () => {
-        onEdit(log); // (این تابع باید مودال ویرایش را باز کند)
-    };
+    // const handleEdit = () => {
+    //     onEdit(log);
+    // };
 
     const handleApprove = () => {
-        // [اصلاح] window.confirm حذف شد
-        // مدیریت تأیید به والد (reportPage.tsx) سپرده می‌شود
         onApprove(log);
     };
 
+    // --- [اصلاح کلیدی] ۴. منطق UI هوشمند ---
+
+    // اگر لاگ "در انتظار تایید" است، دکمه اصلی تایید را نشان بده
+    if (!log.is_allowed) {
+        return (
+            <div className="text-left">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleApprove}
+                    // استایل سفارشی برای دکمه تایید (سبز رنگ)
+                    className="flex items-center gap-1 text-successL border-successL hover:bg-successL/10 hover:text-successL
+                               dark:text-successD dark:border-successD dark:hover:bg-successD/10 dark:hover:text-successD"
+                >
+                    <Check className="w-4 h-4" />
+                    <span>تأیید</span>
+                </Button>
+            </div>
+        );
+    }
+
+    // در غیر این صورت (لاگ تایید شده است)، منوی سه‌نقطه را نشان بده
     return (
         <div className="text-left">
             <Dropdown>
@@ -54,7 +72,7 @@ export const ActionsMenuCell = ({ log, onEdit, onApprove }: ActivityLogActionsPr
                     </button>
                 </DropdownTrigger>
                 <DropdownContent>
-                    {/* آیتم‌های ناوبری (بدون تغییر) */}
+                    {/* آیتم‌های ناوبری */}
                     <DropdownItem onClick={handleViewDetails} icon={<Eye className="w-4 h-4" />}>
                         مشاهده جزئیات
                     </DropdownItem>
@@ -65,23 +83,11 @@ export const ActionsMenuCell = ({ log, onEdit, onApprove }: ActivityLogActionsPr
                         گزارش فردی
                     </DropdownItem>
 
-                    {/* --- ۶. آیتم‌های جدید بر اساس API --- */}
-                    <DropdownItem onClick={handleEdit} icon={<Pencil className="w-4 h-4" />}>
-                        ویرایش
-                    </DropdownItem>
 
-                    {/* ۷. رندر مشروط دکمه "تأیید"
-                      فقط لاگ‌هایی که 'is_allowed' false دارند قابل تأیید هستند
+
+                    {/* دیگر نیازی به آیتم "تایید تردد" در اینجا نیست،
+                      چون این منو فقط برای لاگ‌های تایید شده نمایش داده می‌شود.
                     */}
-                    {!log.is_allowed && (
-                        <DropdownItem
-                            onClick={handleApprove}
-                            icon={<Check className="w-4 h-4 text-successL dark:text-successD" />}
-                            className="text-successL dark:text-successD" // استایل ویژه
-                        >
-                            تأیید تردد
-                        </DropdownItem>
-                    )}
 
                 </DropdownContent>
             </Dropdown>

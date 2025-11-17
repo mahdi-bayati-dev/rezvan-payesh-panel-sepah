@@ -1,27 +1,29 @@
-import { useState, useMemo } from "react"; // <-- ۱. useMemo اینجا اضافه شد
-import { Filter, Loader2 } from "lucide-react";
-import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
-import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
+import { useState, useMemo } from "react";
+// 1. ایمپورت کامپوننت Combobox و آیکون‌های لازم
+import { Combobox } from "@headlessui/react";
+import { Filter, Loader2, Check, ChevronsUpDown } from "lucide-react";
+// 2. ایمپورت هوک جستجوی سرور-ساید
+import { useEmployeeOptionsSearch } from "../../hooks/hook";
+import { type SelectOption } from "../../../../components/ui/SelectBox"; // (این تایپ مشترک است)
+import PersianDatePickerInput from "../../../../lib/PersianDatePickerInput";
 import { type DateObject } from 'react-multi-date-picker';
 
-// تعریف فیلترهای API
-interface ApiFilters {
+// تایپ ApiFilters بدون تغییر باقی می‌ماند
+export interface ApiFilters {
   employee: SelectOption | null;
   date_from: DateObject | null;
   date_to: DateObject | null;
 }
 
-// به‌روزرسانی پراپ‌ها
+// 3. پراپ‌های ورودی کامپوننت حذف شدند (چون خودش دیتا را واکشی می‌کند)
 interface ActivityFiltersProps {
   onFilterChange: (filters: ApiFilters) => void;
-  employeeOptions: SelectOption[]; // لیست واقعی
-  isLoadingEmployees: boolean; // استیت لودینگ
+  // employeeOptions: SelectOption[]; // <-- حذف شد
+  // isLoadingEmployees: boolean; // <-- حذف شد
 }
 
 export function ActivityFilters({
   onFilterChange,
-  employeeOptions,
-  isLoadingEmployees
 }: ActivityFiltersProps) {
 
   // استیت‌های داخلی فیلتر
@@ -29,23 +31,39 @@ export function ActivityFilters({
   const [dateFrom, setDateFrom] = useState<DateObject | null>(null);
   const [dateTo, setDateTo] = useState<DateObject | null>(null);
 
+  // 4. استیت برای نگهداری عبارت جستجوی کاربر
+  const [employeeQuery, setEmployeeQuery] = useState('');
+
+  // 5. فراخوانی هوک جستجو بر اساس تایپ کاربر
+  const {
+    data: searchResults,
+    isLoading: isLoadingEmployees
+  } = useEmployeeOptionsSearch(employeeQuery);
+
+
   const handleApplyFilters = () => {
     onFilterChange({
-      // اگر id 'all' بود، null بفرست (یعنی بدون فیلتر کارمند)
+      // 6. این منطق همچنان درست است
+      // اگر "همه" (id: 'all') انتخاب شده بود، null بفرست
       employee: employee?.id === 'all' ? null : employee,
       date_from: dateFrom,
       date_to: dateTo,
     });
   };
 
-  // ۲. افزودن "همه کارمندان" به لیست با استفاده از useMemo
-  const employeesWithAllOption = useMemo(() => {
-    // اطمینان از اینکه 'all' فقط یک بار اضافه می‌شود
-    const hasAllOption = employeeOptions.some(opt => opt.id === 'all');
-    if (hasAllOption) return employeeOptions;
+  // 7. آماده‌سازی لیست گزینه‌ها برای نمایش
+  // (گزینه "همه کارمندان" + نتایج جستجو)
+  const employeeOptionsToShow = useMemo(() => {
+    const allOption: SelectOption = { id: 'all', name: 'همه کارمندان' };
 
-    return [{ id: 'all', name: 'همه کارمندان' }, ...employeeOptions];
-  }, [employeeOptions]);
+    // اگر کاربر جستجو نکرده، فقط "همه" را نشان بده
+    if (employeeQuery === '' && !searchResults) {
+      return [allOption];
+    }
+    // اگر جستجو کرده، "همه" را در بالای نتایج نشان بده
+    return [allOption, ...(searchResults || [])];
+
+  }, [searchResults, employeeQuery]);
 
 
   return (
@@ -62,22 +80,81 @@ export function ActivityFilters({
       </div>
 
       <div className="flex flex-col gap-4">
-        {/* اتصال SelectBox به داده واقعی */}
-        <div className="relative">
-          <SelectBox
-            label="کارمند"
-            placeholder={isLoadingEmployees ? "در حال بارگذاری..." : "انتخاب کنید"}
-            options={employeesWithAllOption} // <-- ۳. استفاده از لیست جدید
-            value={employee}
-            onChange={setEmployee}
-            disabled={isLoadingEmployees}
-          />
-          {isLoadingEmployees && (
-            <Loader2 className="w-4 h-4 absolute left-3 top-10 animate-spin text-muted-foregroundL" />
-          )}
-        </div>
 
-        {/* TODO: از DateRangePicker استفاده کنید */}
+        {/* --- 8. جایگزینی SelectBox با Combobox --- */}
+        <Combobox
+          as="div"
+          className="relative"
+          value={employee}
+          onChange={setEmployee}
+        >
+          <Combobox.Label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
+            کارمند
+          </Combobox.Label>
+          <div className="relative">
+            <Combobox.Input
+              className={`w-full p-3 pr-10 border rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800 transition-colors
+                          border-borderL dark:border-borderD focus:ring-primaryL
+                          focus:outline-none focus:ring-2`}
+              // ورودی تایپ شده توسط کاربر، استیت query را آپدیت می‌کند
+              onChange={(event) => setEmployeeQuery(event.target.value)}
+              // متنی که بعد از انتخاب نمایش داده می‌شود
+              displayValue={(opt: SelectOption) => opt?.name || ''}
+              placeholder="جستجوی نام کارمند..."
+              autoComplete="off"
+            />
+            <Combobox.Button className="absolute inset-y-0 left-0 flex items-center px-3 text-muted-foregroundL dark:text-muted-foregroundD">
+              {isLoadingEmployees ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <ChevronsUpDown className="w-5 h-5" />
+              )}
+            </Combobox.Button>
+          </div>
+
+          <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl
+                                    bg-backgroundL-500 dark:bg-backgroundD-900 py-1 shadow-lg ring-1
+                                    ring-black/5 dark:ring-white/10 focus:outline-none">
+
+            {/* منطق نمایش گزینه‌ها */}
+            {employeeOptionsToShow.length === 0 && employeeQuery.length > 1 && !isLoadingEmployees ? (
+              <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
+                کارمندی یافت نشد.
+              </div>
+            ) : (
+              employeeOptionsToShow.map((opt) => (
+                <Combobox.Option
+                  key={opt.id}
+                  value={opt}
+                  className={({ active }) =>
+                    `relative cursor-default select-none py-2 pl-10 pr-4
+                    ${active ? 'bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD' : 'text-foregroundL dark:text-foregroundD'}`
+                  }
+                >
+                  {({ selected, active }) => (
+                    <>
+                      <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                        {opt.name}
+                      </span>
+                      {selected ? (
+                        <span
+                          className={`absolute inset-y-0 left-0 flex items-center pl-3
+                                    ${active ? 'text-primaryL dark:text-primaryD' : 'text-primaryL dark:text-primaryD'}`}
+                        >
+                          <Check className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </Combobox.Option>
+              ))
+            )}
+          </Combobox.Options>
+        </Combobox>
+        {/* --- پایان بخش Combobox --- */}
+
+
+        {/* فیلدهای تاریخ (بدون تغییر) */}
         <PersianDatePickerInput
           value={dateFrom}
           onChange={setDateFrom}

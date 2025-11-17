@@ -1,14 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2, AlertTriangle } from "lucide-react";
 
-// ایمپورت هوک‌های Redux
-import { useAppSelector } from "@/hook/reduxHooks";
-import { selectUser } from "@/store/slices/authSlice";
+import { useLogDetails } from "@/features/reports/hooks/hook";
+import { useUser } from "@/features/User/hooks/hook";
 
-// [اصلاح ۱] استفاده از مسیر مطلق (Alias)
-import { useMyLogDetails } from "@/features/reports/hooks/hook";
-
-// ایمپورت کامپونت‌های UI
 import { EmployeeInfoCard } from "@/features/reports/components/reportPageDetails/EmployeeInfoCard";
 import { LogInfoCard } from "@/features/reports/components/reportPageDetails/LogInfoCard";
 
@@ -24,7 +19,7 @@ const ReportDetailHeader = ({
 }) => (
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-borderL dark:border-borderD gap-4">
     <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD">
-      جزئیات گزارش فعالیت
+      جزئیات گزارش فعالیت (ادمین)
     </h2>
     <div className="flex items-center gap-4">
       <div className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
@@ -62,26 +57,30 @@ const NotFoundCard = ({ message }: { message: string }) => (
 );
 // --- ---
 
-// --- کامپوننت اصلی صفحه ---
-function MyReportPageDetails() {
+function ReportPageDetails() {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
 
-  // خواندن کاربر لاگین کرده (کامل) از Redux
-  const currentUser = useAppSelector(selectUser);
-
-  // فراخوانی هوک مختص کاربر (برای دیتای لاگ)
   const {
     data: log,
-    isLoading,
-    isError,
-  } = useMyLogDetails(reportId);
+    isLoading: isLoadingLog,
+    isError: isErrorLog,
+  } = useLogDetails(reportId);
+
+  // userId رو از لاگ مپ شده می‌گیریم
+  const employeeUserId = log?.employee.userId;
+
+  const {
+    data: fullEmployeeProfile, // این آبجکت User کامل است
+    isLoading: isLoadingUser,
+  } = useUser(employeeUserId!);
+
 
   const handleGoBack = () => {
     navigate("/reports");
   };
 
-  if (isLoading) {
+  if (isLoadingLog || (log && isLoadingUser)) {
     return (
       <div className="p-4 max-w-7xl mx-auto">
         <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
@@ -91,15 +90,14 @@ function MyReportPageDetails() {
     );
   }
 
-  if (isError || !log) {
+  if (isErrorLog || !log) {
     return (
       <div className="p-6 max-w-3xl mx-auto">
-        <NotFoundCard message="گزارش مورد نظر یافت نشد یا شما دسترسی لازم برای مشاهده آن را ندارید." />
+        <NotFoundCard message="گزارش مورد نظر یافت نشد." />
       </div>
     );
   }
 
-  // رندر در صورت موفقیت
   return (
     <div className="p-4 max-w-7xl mx-auto">
       <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
@@ -108,10 +106,15 @@ function MyReportPageDetails() {
         <div className="flex flex-col md:flex-row gap-6 pt-6">
           <aside className="w-full md:w-72 lg:w-80 flex-shrink-0">
 
+            {/* --- [اصلاح کلیدی] --- */}
+            {/* ما به کارت، آبجکت ناقص employee از خود لاگ (برای نام و کد پرسنلی) 
+              و آبجکت کامل employee از useUser (برای سازمان و گروه کاری) رو پاس می‌دیم.
+            */}
             <EmployeeInfoCard
               logEmployee={log.employee}
-              userEmployee={currentUser as any}
+              userEmployee={fullEmployeeProfile?.employee} // <-- اینجا فقط .employee پاس داده می‌شود
             />
+            {/* --- [پایان اصلاح] --- */}
 
           </aside>
 
@@ -124,4 +127,4 @@ function MyReportPageDetails() {
   );
 }
 
-export default MyReportPageDetails;
+export default ReportPageDetails;

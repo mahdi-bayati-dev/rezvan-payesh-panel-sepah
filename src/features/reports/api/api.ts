@@ -113,6 +113,8 @@ export const fetchLogById = async (
   const response = await axiosInstance.get<{ data: ApiAttendanceLog }>(
     `${ADMIN_REPORTS_API_PATH}/${logId}`
   );
+  console.log('====>',response.data.data);
+  
   return response.data.data; // -> { id: ..., employee: ... }
 };
 
@@ -204,6 +206,7 @@ export const fetchMyLogById = async (
   const response = await axiosInstance.get<{ data: ApiAttendanceLog }>(
     `${MY_REPORTS_API_PATH}/${logId}`
   );
+  console.log('====>',response.data.data);
   return response.data.data; // -> { id: ..., employee: ... }
 };
 
