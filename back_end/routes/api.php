@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\GenerateScheduleShiftsController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LeaveTypeController;
@@ -75,6 +76,11 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
         Route::patch('/{scheduleSlot}', [ScheduleSlotController::class, 'update']);
     });
 
+    //تنظیم شیفت اتوماتیک
+    Route::post('shift-schedules/{shiftSchedule}/generate-shifts', GenerateScheduleShiftsController::class)
+         ->name('shift-schedules.generate-shifts')
+         ->middleware('can:update,shiftSchedule');
+
     //leave-types setting
     Route::apiResource('leave-types', LeaveTypeController::class);
 
@@ -100,6 +106,7 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
     Route::get('/reports/download/reports/{filename}', [ReportController::class, 'downloadReport'])
          ->middleware('signed')
          ->name('reports.download');
+
 
 
 });

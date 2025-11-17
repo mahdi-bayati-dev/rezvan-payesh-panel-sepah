@@ -79,7 +79,15 @@ class GenerateEmployeeShifts implements ShouldQueue
 
         // ۳. پیدا کردن تمام کارمندانی که باید از این برنامه پیروی کنند
 
-        $employees = $this->getEmployeesForSchedule($schedule)->load('workPattern');
+        $employees = $this->getEmployeesForSchedule($schedule);
+        $employees->load([
+            'weekPattern' => function ($query) {
+                $query->with([
+                    'saturdayPattern', 'sundayPattern', 'mondayPattern',
+                    'tuesdayPattern', 'wednesdayPattern', 'thursdayPattern', 'fridayPattern'
+                ]);
+            }
+        ]);
 
 
         // ۴. حلقه روی هر روز در دوره زمانی مشخص شده
@@ -89,31 +97,36 @@ class GenerateEmployeeShifts implements ShouldQueue
         foreach ($period as $date) {
             $dateString = $date->toDateString();
 
-            $isWeekend = ($date->dayOfWeek === Carbon::FRIDAY);
 
-            $holiday = $holidays[$dateString] ?? null;
-            // ۵. بررسی تعطیل رسمی
 
-            if ($holiday || $isWeekend)
+            if($schedule->ignore_holidays === false)
             {
-                foreach ($employees as $employee) {
-                    EmployeeShift::updateOrCreate(
-                        [
-                            'employee_id' => $employee->id,
-                            'date' => $date
-                        ],
-                        [
-                            'work_pattern_id' => null,
-                            'is_off_day' => true,
-                            'shift_schedule_id' => $schedule->id,
-                            'source' => 'holiday',
-                            'expected_start_time' => null,
-                            'expected_end_time' => null,
-                        ]
-                    );
+                $isWeekend = ($date->dayOfWeek === Carbon::FRIDAY);
+                $holiday = $holidays[$dateString] ?? null;
+                // ۵. بررسی تعطیل رسمی
+
+                if ($holiday || $isWeekend)
+                {
+                    foreach ($employees as $employee) {
+                        EmployeeShift::updateOrCreate(
+                            [
+                                'employee_id' => $employee->id,
+                                'date' => $date
+                            ],
+                            [
+                                'work_pattern_id' => null,
+                                'is_off_day' => true,
+                                'shift_schedule_id' => $schedule->id,
+                                'source' => 'holiday',
+                                'expected_start_time' => null,
+                                'expected_end_time' => null,
+                            ]
+                        );
+                    }
+                    continue; // برو به روز بعد
                 }
-                continue; // برو به روز بعد
             }
+
 
             // ۶. حلقه روی کارمندان این برنامه
             foreach ($employees as $employee) {
@@ -138,23 +151,48 @@ class GenerateEmployeeShifts implements ShouldQueue
                     continue;
                 }
 
-                if ($employee->work_pattern_id)
+                if ($employee->week_pattern_id  && $employee->weekPattern)
                 {
-                    $dedicatedPattern = $employee->workPattern;
-                    EmployeeShift::updateOrCreate(
-                        [
-                            'employee_id' => $employee->id,
-                            'date' => $dateString
-                        ],
-                        [
-                            'work_pattern_id' => $employee->work_pattern_id,
-                            'is_off_day' => false,
-                            'shift_schedule_id' => null,
-                            'source' => 'manual',
-                            'expected_start_time' => $dedicatedPattern?->start_time,
-                            'expected_end_time' => $dedicatedPattern?->end_time,
-                        ]
-                    );
+                    $dayOfWeekName = strtolower($date->format('l'));
+                    $relationName = $dayOfWeekName . 'Pattern';
+                    $dedicatedPattern = $employee->weekPattern->{$relationName};
+                    if ($dedicatedPattern)
+                    {
+                        EmployeeShift::updateOrCreate(
+                            [
+                                'employee_id' => $employee->id,
+                                'date' => $dateString
+                            ],
+                            [
+                                'work_pattern_id' => $dedicatedPattern->id,
+                                // بررسی اینکه آیا نوع الگو 'off' است یا خیر
+                                'is_off_day' => ($dedicatedPattern->type === 'off'),
+                                'shift_schedule_id' => null, // چون از برنامه چرخشی نیست
+                                'source' => 'manual', // منبع: الگوی اختصاصی کارمند
+                                'expected_start_time' => $dedicatedPattern->start_time,
+                                'expected_end_time' => $dedicatedPattern->end_time,
+                            ]
+                        );
+                    }
+                     else
+                     {
+                        // اگر الگوی هفتگی، برای این روز الگوی کاری (WorkPattern) تعریف نکرده بود
+                        // (مثلاً null بود)، آن را به عنوان روز استراحت در نظر می‌گیریم
+                        EmployeeShift::updateOrCreate(
+                            [
+                                'employee_id' => $employee->id,
+                                'date' => $dateString
+                            ],
+                            [
+                                'work_pattern_id' => null,
+                                'is_off_day' => true,
+                                'shift_schedule_id' => null,
+                                'source' => 'manual',
+                                'expected_start_time' => null,
+                                'expected_end_time' => null,
+                            ]
+                        );
+                    }
                     continue;
                 }
 
