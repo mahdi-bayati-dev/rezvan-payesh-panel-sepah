@@ -10,6 +10,7 @@ import {
 } from "@/features/reports/types";
 // [جدید] ایمپورت کلیدهای ستون‌های مجاز
 import { type AllowedExportColumn } from "@/features/reports/types/index";
+import { type DateObject } from "react-multi-date-picker";
 
 // === مسیرهای ادمین ===
 const ADMIN_REPORTS_API_PATH = "/admin/attendance-logs";
@@ -25,12 +26,16 @@ const MY_REPORTS_API_PATH = "/my/attendance-logs";
 export interface LogFilters {
   page?: number;
   employee_id?: number;
-  date_from?: string; // YYYY-MM-DD
-  date_to?: string; // YYYY-MM-DD
+  date_from?: string; // YYYY-MM-DD (برای ارسال به API)
+  date_to?: string; // YYYY-MM-DD (برای ارسال به API)
   per_page?: number;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
   search?: string;
+
+  // [اصلاح کلیدی]: اضافه کردن فیلدهای محلی (Local State) برای مدیریت DateObject
+  localDateFrom?: DateObject | null;
+  localDateTo?: DateObject | null;
 }
 
 // [جدید] فیلترهای کاربر (My Reports)
@@ -87,6 +92,8 @@ export const fetchLogs = async (
   filters: LogFilters
 ): Promise<AttendanceLogCollection> => {
   console.log("[API Admin] Fetching logs with filters:", filters);
+  // [نکته]: فیلدهای localDateFrom و localDateTo به API ارسال نخواهند شد،
+  // زیرا `axiosInstance.get` فقط فیلدهای تعریف شده و غیر null را می‌فرستد.
   const response = await axiosInstance.get<AttendanceLogCollection>(
     ADMIN_REPORTS_API_PATH,
     {

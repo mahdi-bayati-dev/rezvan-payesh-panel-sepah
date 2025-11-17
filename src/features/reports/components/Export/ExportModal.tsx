@@ -14,6 +14,10 @@ import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 import Checkbox from "@/components/ui/Checkbox";
+// [جدید] ایمپورت‌های تاریخ
+import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
+import { type DateObject } from 'react-multi-date-picker';
+
 
 import {
   ALLOWED_EXPORT_COLUMN_KEYS,
@@ -41,7 +45,17 @@ const eventTypeOptions: SelectOption[] = [
   { id: "check_in", name: "فقط ورود" },
   { id: "check_out", name: "فقط خروج" },
 ];
+
+// [اصلاح کلیدی ۱]: اضافه کردن فیلدهای تاریخ به اسکیمای اعتبارسنجی
 const exportFormSchema = z.object({
+  // --- فیلدهای جدید تاریخ (الزامی) ---
+  date_from: z.any().nullable().refine((val) => val !== null, {
+    message: "تاریخ شروع الزامی است",
+  }),
+  date_to: z.any().nullable().refine((val) => val !== null, {
+    message: "تاریخ پایان الزامی است",
+  }),
+  // --- فیلدهای قبلی ---
   columns: z.array(z.string()).min(1, "حداقل یک ستون باید انتخاب شود."),
   sort_by: z.enum(["timestamp", "employee_name"]),
   sort_direction: z.enum(["desc", "asc"]),
@@ -51,21 +65,26 @@ const exportFormSchema = z.object({
 });
 type ExportFormData = z.infer<typeof exportFormSchema>;
 
+
 // (پراپ‌ها بدون تغییر)
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  // [اصلاح کلیدی ۲]: فیلترهای کنونی را برای پیش‌فرض تاریخ می‌گیریم
   currentFilters: LogFilters;
   onExportStarted: () => void;
+  // [جدید]: تابعی که تاریخ‌های DateObject را به فرمت YYYY-MM-DD (رشته) تبدیل می‌کند
+  formatApiDate: (date: DateObject | null) => string | undefined;
 }
 
 export const ExportModal = ({
   isOpen,
   onClose,
-  currentFilters,
+  // currentFilters,
   onExportStarted,
+  formatApiDate, // [جدید]
 }: ExportModalProps) => {
-  // (هوک‌ها و onSubmit بدون تغییر)
+
   const exportMutation = useRequestExport();
 
   const {
@@ -74,9 +93,15 @@ export const ExportModal = ({
     register,
     watch,
     formState: { errors },
+    // setValue
   } = useForm<ExportFormData>({
     resolver: zodResolver(exportFormSchema),
     defaultValues: {
+      // تاریخ‌ها را خالی می‌گذاریم یا از مقادیر فیلتر کنونی استفاده می‌کنیم
+      // (اگرچه بهتر است کاربر همیشه بازه جدید را انتخاب کند)
+      date_from: null, // این باید توسط کاربر پر شود
+      date_to: null, // این باید توسط کاربر پر شود
+
       columns: [
         "timestamp",
         "employee_name",
@@ -96,6 +121,16 @@ export const ExportModal = ({
   const selectedColumns = watch("columns");
 
   const onSubmit = (formData: ExportFormData) => {
+    // [اصلاح کلیدی ۴]: فرمت‌دهی تاریخ‌ها به فرمت رشته‌ای YYYY-MM-DD
+    const apiDateFrom = formatApiDate(formData.date_from);
+    // [نکته مهم]: تابع formatApiDate باید در reportPage.tsx پیاده‌سازی شده باشد.
+    const apiDateTo = formatApiDate(formData.date_to);
+
+    if (!apiDateFrom || !apiDateTo) {
+      // این حالت نباید رخ دهد چون در Zod بررسی شده
+      return;
+    }
+
     const apiFilters: ReportExportPayload["filters"] = {
       organization_id: formData.organization_id
         ? parseInt(formData.organization_id, 10)
@@ -106,9 +141,8 @@ export const ExportModal = ({
     };
 
     const payload: ReportExportPayload = {
-      date_from: currentFilters.date_from || "1970-01-01",
-      date_to:
-        currentFilters.date_to || new Date().toISOString().split("T")[0],
+      date_from: apiDateFrom, // ارسال تاریخ شروع فرمت شده
+      date_to: apiDateTo, // ارسال تاریخ پایان فرمت شده
       columns: formData.columns as AllowedExportColumn[],
       sort_by: formData.sort_by,
       sort_direction: formData.sort_direction,
@@ -131,12 +165,43 @@ export const ExportModal = ({
           <DialogHeader>
             <DialogTitle>درخواست خروجی اکسل (گزارش تردد)</DialogTitle>
             <DialogDescription>
-              فیلترها و ستون‌های مورد نیاز خود را انتخاب کنید. گزارش در پس‌زمینه
-              ساخته شده و لینک دانلود ارسال خواهد شد.
+              فیلترها و ستون‌های مورد نیاز خود را انتخاب کنید. تاریخ شروع و پایان الزامی است.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 p-6">
+
+            {/* --- [جدید] بخش فیلتر تاریخ --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800">
+              <Controller
+                name="date_from"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <PersianDatePickerInput
+                    label="تاریخ شروع (الزامی)"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                    placeholder="انتخاب تاریخ شروع..."
+                  />
+                )}
+              />
+              <Controller
+                name="date_to"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <PersianDatePickerInput
+                    label="تاریخ پایان (الزامی)"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                    placeholder="انتخاب تاریخ پایان..."
+                  />
+                )}
+              />
+            </div>
+            {/* --- [پایان بخش تاریخ] --- */}
+
             {/* (بخش ستون‌ها بدون تغییر) */}
             <div>
               <label className="font-semibold text-foregroundL dark:text-foregroundD">
@@ -161,8 +226,8 @@ export const ExportModal = ({
                             return checked
                               ? field.onChange([...field.value, option.id])
                               : field.onChange(
-                                  field.value?.filter((v) => v !== option.id)
-                                );
+                                field.value?.filter((v) => v !== option.id)
+                              );
                           }}
                         />
                         <label
@@ -183,7 +248,7 @@ export const ExportModal = ({
               )}
             </div>
 
-            {/* بخش ۲: مرتب‌سازی و فیلترها */}
+            {/* بخش ۲: مرتب‌سازی و فیلترها (بدون تغییر) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Controller
                 name="sort_by"
@@ -193,7 +258,6 @@ export const ExportModal = ({
                     label="مرتب‌سازی بر اساس"
                     placeholder="انتخاب کنید..."
                     options={sortOptions}
-                    // --- [اصلاح ۱] افزودن '|| null' ---
                     value={
                       sortOptions.find((opt) => opt.id === field.value) || null
                     }
@@ -268,7 +332,6 @@ export const ExportModal = ({
                     label="فیلتر نوع رویداد"
                     placeholder="انتخاب کنید..."
                     options={eventTypeOptions}
-                    // --- [اصلاح ۲] افزودن '|| null' ---
                     value={
                       eventTypeOptions.find((opt) => opt.id === field.value) ||
                       null
