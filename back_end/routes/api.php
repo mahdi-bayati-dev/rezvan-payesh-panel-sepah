@@ -97,7 +97,7 @@ Route::middleware(['auth:api', CheckLicenseStatus::class])->group(function () {
     Route::post('/reports/attendance/export', [ReportController::class, 'requestAttendanceExport'])
          ->middleware('role:super_admin|org-admin-l2|org-admin-l3');
     //download export
-    Route::get('/reports/download/{filename}', [ReportController::class, 'downloadReport'])
+    Route::get('/reports/download/reports/{filename}', [ReportController::class, 'downloadReport'])
          ->middleware('signed')
          ->name('reports.download');
 
