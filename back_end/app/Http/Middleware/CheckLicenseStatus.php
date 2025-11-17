@@ -15,7 +15,7 @@ class CheckLicenseStatus
 {
     private $encryptionKey = 'mpN3gJUJh2XMGXOlbP7BcNgOCKbFuKvZCIssgX7eJO2A320q50';
 
-    private int $max_days_allowed = 30;
+    private int $max_days_allowed = 2;
         private string $file1_path;
     private string $file2_path;
     private string $db_key;
@@ -148,6 +148,6 @@ class CheckLicenseStatus
         return ResponseFacade::json([
             'error_code' => $code,
             'message' => $message
-        ], 499);
+        ], 999);
     }
 }
