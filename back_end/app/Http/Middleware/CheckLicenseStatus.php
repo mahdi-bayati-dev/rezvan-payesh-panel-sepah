@@ -2,47 +2,74 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\LicenseKey;
+use App\Services\LicenseService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Response as ResponseFacade;
 
 class CheckLicenseStatus
 {
-    private $encryptionKey = 'mpN3gJUJh2XMGXOlbP7BcNgOCKbFuKvZCIssgX7eJO2A320q50';
+    protected LicenseService $licenseService;
+    private int $max_trial_days_allowed = 30;
 
-    private int $max_days_allowed = 30;
-        private string $file1_path;
-    private string $file2_path;
-    private string $db_key;
-
-    public function __construct()
+    public function __construct(LicenseService $licenseService)
     {
-        $this->file1_path = storage_path('app/license.dat');
-        $this->file2_path = storage_path('framework/cache/data/app_config.dat');
-        $this->db_key     = 'app.core.license_key';
+        $this->licenseService = $licenseService;
     }
+
     /**
      * Handle an incoming request.
-     *
-     * @param Closure(Request): (Response) $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $record1 = $this->readFromFile($this->file1_path);
-        $record2 = $this->readFromDB($this->db_key);
-        $record3 = $this->readFromFile($this->file2_path);
+        $installationId = $this->licenseService->getInstallationId();
+        $license = LicenseKey::where('installation_id', $installationId)->first();
 
-        $masterRecord = $this->findMasterRecord([$record1, $record2, $record3]);
+        $status = $license->status;
+        $finalStatus = $status;
 
+        switch ($status)
+        {
+            case 'trial':
+                $finalStatus = $this->handleTrialStatus($license);
+                break;
+
+            case 'licensed':
+                $finalStatus = $this->handleLicensedStatus($license);
+                break;
+
+            case 'trial_expired':
+            case 'license_expired':
+                $finalStatus = $status;
+                break;
+
+            default:
+                $finalStatus = 'tampered';
+        }
+
+        if ($finalStatus === 'trial' || $finalStatus === 'licensed')
+        {
+            return $next($request);
+        }
+
+        return $this->abort($finalStatus);
+    }
+
+    /**
+     * منطق بررسی وضعیت آزمایشی (Trial)
+     */
+    private function handleTrialStatus(LicenseKey $license): string
+    {
+        $masterRecord = $this->licenseService->getMasterTrialRecord();
         $currentDate = Carbon::today()->toDateString();
+
         if ($currentDate < $masterRecord['last_run_date'])
         {
-            return $this->abort('LICENSE_TAMPERING', 'System clock has been set back.');
+            $license->update(['status' => 'tampered']);
+            return 'tampered';
         }
 
         if ($currentDate > $masterRecord['last_run_date'])
@@ -51,102 +78,59 @@ class CheckLicenseStatus
             $masterRecord['last_run_date'] = $currentDate;
         }
 
-        if ($masterRecord['days_used'] > $this->max_days_allowed)
+        if ($masterRecord['days_used'] > $this->max_trial_days_allowed)
         {
-            return $this->abort('LICENSE_EXPIRED', 'License has expired.');
+            $license->update(['status' => 'trial_expired']);
+            return 'trial_expired';
         }
 
-        try {
-            $this->writeToFile($this->file1_path, $masterRecord);
-            $this->writeToDB($this->db_key, $masterRecord);
-            $this->writeToFile($this->file2_path, $masterRecord);
-        } catch (\Exception $e)
-        {
-            return $this->abort('LICENSE_WRITE_ERROR', 'License check failed (write error).');
-        }
-        return $next($request);
-
-    }
-
-    private function findMasterRecord(array $records): array
-    {
-        $validRecords = array_filter($records);
-        if (empty($validRecords))
-        {
-            return [
-                'days_used' => 1,
-                'last_run_date' => Carbon::today()->toDateString()
-            ];
-        }
-        usort($validRecords, function ($a, $b) {
-            if ($a['days_used'] != $b['days_used']) {
-                return $b['days_used'] <=> $a['days_used'];
-            }
-            return $b['last_run_date'] <=> $a['last_run_date'];
-        });
-        return $validRecords[0];
-    }
-
-    private function readFromFile(string $path): ?array
-    {
-        if (!file_exists($path)) {
-            return null;
-        }
-        try {
-            $encryptedData = file_get_contents($path);
-            $decrypted = Crypt::decryptString($encryptedData, $this->encryptionKey);
-            return json_decode($decrypted, true);
-        }
-        catch (\Exception $e)
-        {
-            return null;
-        }
-    }
-
-    private function writeToFile(string $path, array $data): void
-    {
-        $jsonData = json_encode($data);
-        $encryptedData = Crypt::encryptString($jsonData, $this->encryptionKey);
-
-        $directory = dirname($path);
-        if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
-        }
-
-        file_put_contents($path, $encryptedData);
-    }
-
-    private function readFromDB(string $key): ?array
-    {
         try
         {
-            $record = DB::table('license_keys')->where('key_hash', md5($key))->first();
-            if (!$record) return null;
-
-            $decrypted = Crypt::decryptString($record->payload, $this->encryptionKey);
-            return json_decode($decrypted, true);
+            $this->licenseService->syncTrialData($masterRecord);
         }
         catch (\Exception $e)
         {
-            return null;
+            return 'tampered';
         }
+
+        return 'trial';
     }
 
-    private function writeToDB(string $key, array $data): void
+    /**
+     * منطق بررسی وضعیت لایسنس (Licensed)
+     */
+    private function handleLicensedStatus(LicenseKey $license): string
     {
-        $jsonData = json_encode($data);
-        $encryptedData = Crypt::encryptString($jsonData, $this->encryptionKey);
-        $keyHash = md5($key);
+        $status = $this->licenseService->checkLicensedStatus($license);
 
-        DB::table('license_keys')->updateOrInsert(
-            ['key_hash' => $keyHash],
-            ['payload' => $encryptedData, 'updated_at' => now()]
-        );
+        if ($status === 'tampered') {
+             $license->update(['status' => 'tampered']);
+        }
+
+        return $status;
     }
-    private function abort(string $code, string $message): Response
+
+    /**
+     * بازگرداندن خطای لایسنس
+     */
+    private function abort(string $status): Response
     {
+        $message = 'دسترسی غیرمجاز. لایسنس شما نامعتبر است.';
+        switch ($status)
+        {
+            case 'trial_expired':
+                $message = 'دوره آزمایشی شما به پایان رسیده است. لطفا لایسنس خود را وارد کنید.';
+                break;
+            case 'license_expired':
+                $message = 'لایسنس شما منقضی شده است. لطفا آن را تمدید کنید.';
+                break;
+            case 'tampered':
+                $message = 'لایسنس شما دستکاری شده یا نامعتبر است. با پشتیبانی تماس بگیرید.';
+                break;
+        }
+
         return ResponseFacade::json([
-            'error_code' => $code,
+            'error_code' => strtoupper($status),
             'message' => $message
         ], 499);
     }

@@ -13,8 +13,19 @@ return new class extends Migration
     {
         Schema::create('license_keys', function (Blueprint $table) {
             $table->id();
-            $table->string('key_hash')->unique();
-            $table->text('payload');
+
+            $table->uuid('installation_id')->unique();
+
+            $table->enum('status',["trial",'license_expired','licensed','trial_expired','tampered'])->default('trial');
+
+            $table->text('trial_payload_db')->nullable();
+
+            $table->text('license_token')->nullable();
+
+            $table->timestamp('expires_at')->nullable();
+
+            $table->integer('user_limit')->default(5);
+
             $table->timestamps();
         });
     }

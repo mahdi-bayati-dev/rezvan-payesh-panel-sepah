@@ -19,6 +19,7 @@ class ShiftScheduleResource extends JsonResource
             'name' => $this->name,
             'cycle_length_days' => $this->cycle_length_days,
             'cycle_start_date' => $this->cycle_start_date?->format('Y-m-d'),
+           'ignore_holidays'=> $this->ignore_holidays,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'slots' => ScheduleSlotResource::collection($this->whenLoaded('slots')),
