@@ -20,6 +20,8 @@ class EmployeeResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'user' => new UserResource($this->whenLoaded('user')),
+
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'personnel_code' => $this->personnel_code,
@@ -31,7 +33,6 @@ class EmployeeResource extends JsonResource
             'week_pattern' => new WeekPatternResource($this->whenLoaded('weekPattern')),
             'shift_schedule' => new ShiftScheduleResource($this->whenLoaded('shiftSchedule')),
 
-            // بقیه فیلدها...
             'father_name' => $this->father_name,
             'birth_date' => $this->birth_date,
             'nationality_code' => $this->nationality_code,
