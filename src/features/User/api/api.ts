@@ -15,7 +15,7 @@ import type {
 export const fetchUsers = async (
   params: FetchUsersParams
 ): Promise<UserListResponse> => {
-  // ... (کد موجود شما)
+  // --- ۱. ساخت Query Parameters ---
   const queryParams = new URLSearchParams({
     page: String(params.page),
     per_page: String(params.per_page),
@@ -30,24 +30,35 @@ export const fetchUsers = async (
   if (params.role) {
     queryParams.append("role", params.role);
   }
-  // ✅ افزودن پارامتر فیلتر جدید
   if (params.work_pattern_id) {
     queryParams.append("work_pattern_id", String(params.work_pattern_id));
   }
-    // ✅ افزودن پارامتر فیلتر جدید
-  if (params.work_pattern_id) {
-    queryParams.append("work_pattern_id", String(params.work_pattern_id));
-  }
-  // ✅✅✅ افزودن پارامتر فیلتر جدید
   if (params.shift_schedule_id) {
     queryParams.append("shift_schedule_id", String(params.shift_schedule_id));
   }
-
-  const { data } = await axiosInstance.get(`/users?${queryParams.toString()}`);
-  console.log('==>',data);
   
+  // ✅✅✅ منطق فیلتر Work Group (نهایی و استاندارد) ✅✅✅
+
+  // حالت ۱: کارمندان آزاد (برای AvailableEmployeesTable)
+  if (params.is_not_assigned_to_group) {
+    // برای کارمندانی که work_group_id آنها NULL است.
+    // این روش معمولاً در Laravel برای فیلتر whereNull جواب می‌دهد.
+    queryParams.append("work_group_id", "null"); 
+  }
+  // حالت ۲: کارمندان عضو گروه خاص (برای AssignedEmployeesTable)
+  else if (params.work_group_id) {
+    // برای فیلتر کردن بر اساس ID گروه (کارمندان عضو)
+    queryParams.append("work_group_id", String(params.work_group_id));
+  }
+
+  // --- ۲. ارسال درخواست ---
+  const { data } = await axiosInstance.get(`/users?${queryParams.toString()}`);
+  console.log("==>", data);
+
   return data;
 };
+
+// --- بقیه توابع (بدون تغییر) ---
 
 /**
  * به‌روزرسانی سازمان یک کاربر (فقط Super Admin)
@@ -88,7 +99,7 @@ export const updateUserShiftScheduleAssignment = async ({
       shift_schedule_id: shiftScheduleId,
     } as any, // (cast as any چون فقط یک فیلد می‌فرستیم)
   };
-  
+
   // (از تابع موجود updateUserProfile استفاده مجدد می‌کنیم)
   return updateUserProfile({ userId, payload });
 };

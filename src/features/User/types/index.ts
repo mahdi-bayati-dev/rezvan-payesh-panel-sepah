@@ -95,4 +95,10 @@ export interface FetchUsersParams {
   role?: string;
   work_pattern_id?: number;
   shift_schedule_id?: number; 
+  // work_group_id?: number | 'null' | 'not_null'; 
+    // ✅ فیلد فیلتر اصلی (برای کارمندان عضو)
+  work_group_id?: number; 
+  
+  // ✅ فیلد جدید: فیلتر برای کارمندان خارج از گروه (برای ستون Available)
+  is_not_assigned_to_group?: boolean;
 }

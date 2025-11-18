@@ -35,9 +35,14 @@ const EditShiftScheduleFormSkeleton = lazy(() => import('../features/shift-sched
 // ✅✅✅ ۱. ایمپورت کردن صفحه جدید "تخصیص الگو"
 const AddToWorkPatternPage = lazy(() => import("../features/work-pattern/routes/AddToWorkPatternPage"));
 
+// ✅ Work Group Imports
 const WorkGroupPage = lazy(() => import("../features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("../features/work-group/routes/workGroupDetailPage"))
 const NewWorkGroupDetailPage = lazy(() => import("../features/work-group/routes/NewWorkGroupPage"))
+// ✅✅✅ ایمپورت صفحه تخصیص گروه کاری جدید ✅✅✅
+const WorkGroupAssignmentPage = lazy(() => import("../features/work-group/routes/WorkGroupAssignmentPage"));
+
+
 const OrganizationPage = lazy(() => import('../features/Organization/routes/OrganizationPage'))
 const OrganizationDetailPage = lazy(() => import('../features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
 const CreateUser = lazy(() => import('../features/User/components/userCreate/CreateUserPage'))
@@ -162,7 +167,6 @@ export const router = createBrowserRouter([
             ),
           },
 
-          // ✅✅✅ ۲. تعریف روت جدید برای صفحه "تخصیص الگو"
           {
             path: "/work-patterns/assign",
             element: (
@@ -208,9 +212,9 @@ export const router = createBrowserRouter([
             ),
           },
 
-          // ... (سایر روت‌ها بدون تغییر) ...
+          // --- روت‌های Work Groups (اصلاح‌شده و جدید) ---
           {
-            path: "/work-group",
+            path: "/work-groups",
             element: (
               <Suspense fallback={<Spinner />}>
                 <WorkGroupPage />
@@ -218,21 +222,32 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: "/work-group/:id",
-            element: (
-              <Suspense fallback={<Spinner />}>
-                <WorkGroupDetailPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/work-group/new",
+            path: "/work-groups/new",
             element: (
               <Suspense fallback={<Spinner />}>
                 <NewWorkGroupDetailPage />
               </Suspense>
             ),
           },
+          // ✅✅✅ روت جدید: مدیریت کارمندان گروه کاری ✅✅✅
+          {
+            path: "/work-groups/:id/assign",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <WorkGroupAssignmentPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "/work-groups/:id",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <WorkGroupDetailPage />
+              </Suspense>
+            ),
+          },
+
+          // ... (سایر روت‌ها بدون تغییر) ...
           {
             path: "/organizations",
             element: (

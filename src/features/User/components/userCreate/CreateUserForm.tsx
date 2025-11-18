@@ -11,13 +11,13 @@ import {
 } from '../../Schema/userProfileFormSchema';
 import { useCreateUser } from '../../hooks/hook';
 
-// ✅ اصلاح: تغییر آدرس‌دهی از @/features/... به ../../../...
+// ✅ اصلاح: استفاده از useWorkGroups که در هوک اصلی اضافه شد
 import {
     useWorkPatternsList,
     useShiftSchedulesList,
-    useWorkGroups
-} from '../../../work-group/hooks/hook';
-import { type BaseNestedItem } from '../../../work-group/types';
+    useWorkGroups // ✅ حل خطای TS2724: از هوک جدید استفاده شد
+} from '@/features/work-group/hooks/hook'; // ✅ اصلاح مسیر به alias برای هماهنگی با tsc
+import { type BaseNestedItem } from '@/features/work-group/types';
 
 // ✅ اصلاح: تغییر آدرس‌دهی و بزرگی/کوچکی حروف کامپوننت‌ها
 import Input from '@/components/ui/Input';
@@ -69,6 +69,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
     // --- (فچ لیست‌ها و تبدیل به SelectOption... بدون تغییر) ---
     const { data: rawWorkPatterns, isLoading: isLoadingWP } = useWorkPatternsList();
     const { data: rawShiftSchedules, isLoading: isLoadingSS } = useShiftSchedulesList();
+    // ✅ استفاده از useWorkGroups
     const { data: rawWorkGroups, isLoading: isLoadingWG } = useWorkGroups(1, 9999);
 
     const workGroupOptions = useMemo(
@@ -235,7 +236,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
             {/* --- مشخصات فردی --- */}
             <fieldset className="space-y-4">
-                <h3 className="text-lg font-semibold pb-4 border-b">مشخصات فردی</h3>
+                <h3 className="text-lg font-semibold pb-4 border-b">مشخصات فردی</h3 >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input label="نام" {...register("employee.first_name")} error={errors.employee?.first_name?.message} />
                     <Input label="نام خانوادگی" {...register("employee.last_name")} error={errors.employee?.last_name?.message} />
@@ -306,7 +307,8 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                                 label="گروه کاری"
                                 placeholder="اختیاری"
                                 options={workGroupOptions}
-                                value={workGroupOptions.find(o => o.id === field.value) || null}
+                                // ✅ حل خطای TS7006: تایپ صریح SelectOption به پارامتر o داده شد
+                                value={workGroupOptions.find((o: SelectOption) => o.id === field.value) || null}
                                 onChange={(opt) => field.onChange(opt?.id ?? null)}
                                 error={errors.employee?.work_group_id?.message}
                             />

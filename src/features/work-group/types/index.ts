@@ -1,19 +1,17 @@
+// رابط (Interface) برای نمایش یک گروه کاری
 export interface WorkGroup {
   id: number;
   name: string;
-  work_pattern_id: number | null;
- 
+  // توجه: فیلد work_pattern_id در پاسخ API وجود ندارد، نام فیلد week_pattern_id است.
+  // این فیلدها با API شما هماهنگ شده‌اند (که شما در فایل اصلی هم هماهنگ کرده بودید)
+  week_pattern_id: number | null;
+  week_pattern: BaseNestedItem | null; // آبجکت الگوی کاری
+
+  shift_schedule_id: number | null;
+  shift_schedule: BaseNestedItem | null; // آبجکت برنامه شیفتی
+
   created_at: string;
   updated_at: string;
-    // --- اصلاحیه ---
-  // این فیلدها با API شما هماهنگ شدند
-  week_pattern_id: number | null; 
-  week_pattern: BaseNestedItem | null; // قبلاً work_pattern_name بود
-  
-  shift_schedule_id: number | null;
-  shift_schedule: BaseNestedItem | null; // قبلاً shift_schedule_name بود
-  // --- پایان اصلاحیه ---
-
 }
 
 // تایپ برای لیست‌های دریافتی از API (الگوها و برنامه‌ها)
@@ -22,7 +20,7 @@ export interface BaseNestedItem {
   name: string;
 }
 
-// تایپ پاسخ صفحه‌بندی شده از API
+// تایپ پاسخ صفحه‌بندی شده از API (استاندارد لاراول/لومن)
 export interface PaginatedResponse<T> {
   data: T[];
   links: {

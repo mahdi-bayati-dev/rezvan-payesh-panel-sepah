@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // --- Zod Schema ---
-// این اسکما برای اعتبارسنجی فرم استفاده می‌شود
+// این اسکما برای اعتبارسنجی فرم استفاده می‌شود و کاملاً با ساختار API و منطق بیزینس شما مطابقت دارد.
 export const workGroupFormSchema = z
   .object({
     name: z.string().min(1, { message: "نام گروه کاری الزامی است." }).max(255),
@@ -11,31 +11,26 @@ export const workGroupFormSchema = z
       message: "باید نوع گروه (الگو یا برنامه) را مشخص کنید.",
     }),
 
-    // --- اصلاحیه ---
-    // نام فیلد با API هماهنگ شد
-    week_pattern_id: z.number().nullable(), // قبلاً work_pattern_id بود
+    // ID الگوی کاری
+    week_pattern_id: z.number().nullable(),
 
-    // ID برنامه، که فقط اگر نوع 'schedule' باشد الزامی است
+    // ID برنامه شیفتی
     shift_schedule_id: z.number().nullable(),
-    // --- پایان اصلاحیه ---
   })
   .refine(
     (data) => {
-      // منطق اصلی بیزینس:
       // اگر نوع 'pattern' است، week_pattern_id باید مقدار داشته باشد
       if (data.type === "pattern") {
-        // --- اصلاحیه ---
-        return data.week_pattern_id !== null; // قبلاً work_pattern_id بود
+        return data.week_pattern_id !== null && data.week_pattern_id !== 0;
       }
       // اگر نوع 'schedule' است، shift_schedule_id باید مقدار داشته باشد
       if (data.type === "schedule") {
-        return data.shift_schedule_id !== null;
+        return data.shift_schedule_id !== null && data.shift_schedule_id !== 0;
       }
-      return false;
+      return false; // اگر هیچکدام انتخاب نشد، خطا
     },
     {
-      // این پیام خطا به یک فیلد خاص متصل نیست، بلکه خطای کلی فرم است
-      // می‌توانید آن را به 'type' یا یک فیلد 'root' مپ کنید
+      // پیام خطا برای زمانی که یکی از دو فیلد وابسته انتخاب نشده باشد.
       message: "لطفاً یک الگو یا یک برنامه شیفتی را انتخاب کنید.",
       path: ["type"], // اتصال خطا به فیلد 'type'
     }

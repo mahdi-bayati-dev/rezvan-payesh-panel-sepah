@@ -7,7 +7,6 @@ import {
 
 // --- توابع Fetcher ---
 
-
 // 3.1: دریافت لیست گروه‌های کاری (صفحه‌بندی شده)
 export const fetchWorkGroups = async (
   page: number,
@@ -17,8 +16,8 @@ export const fetchWorkGroups = async (
   const { data } = await axiosInstance.get("/work-groups", {
     params: { page, per_page: perPage },
   });
-  console.log(data);
-  
+  console.log("Response Work Groups List:", data);
+
   return data;
 };
 
@@ -26,13 +25,14 @@ export const fetchWorkGroups = async (
 export const fetchWorkGroupById = async (id: number): Promise<WorkGroup> => {
   // استفاده از axiosInstance
   const { data } = await axiosInstance.get(`/work-groups/${id}`);
+  console.log(`Response Work Group ${id} Detail:`, data);
   return data.data;
 };
 
 // 3.2: ایجاد گروه کاری جدید
 export const createWorkGroup = async (payload: {
   name: string;
-  work_pattern_id?: number | null;
+  week_pattern_id?: number | null;
   shift_schedule_id?: number | null;
 }): Promise<WorkGroup> => {
   // استفاده از axiosInstance
@@ -45,7 +45,7 @@ export const updateWorkGroup = async (
   id: number,
   payload: {
     name: string;
-    work_pattern_id?: number | null;
+    week_pattern_id?: number | null;
     shift_schedule_id?: number | null;
   }
 ): Promise<WorkGroup> => {
@@ -64,10 +64,8 @@ export const deleteWorkGroup = async (id: number): Promise<void> => {
 
 // هوک فرضی برای گرفتن لیست الگوهای کاری
 export const fetchWorkPatternsList = async (): Promise<BaseNestedItem[]> => {
-  const { data } = await axiosInstance.get('week-patterns');
+  const { data } = await axiosInstance.get("week-patterns");
   return data.data;
-
-
 };
 
 /**
@@ -78,4 +76,45 @@ export const fetchShiftSchedulesList = async (): Promise<BaseNestedItem[]> => {
   const { data } = await axiosInstance.get("/shift-schedules");
 
   return data.data;
+};
+
+// --- ✅✅✅ توابع جدید برای مدیریت اعضای گروه کاری ✅✅✅ ---
+
+/**
+ * تخصیص (Assign) / حذف (Detach) کارمندان به یک گروه کاری
+ * @param groupId شناسه گروه کاری
+ * @param employeeIds لیست ID کارمندانی که باید اضافه یا حذف شوند
+ * @param action 'attach' برای اضافه کردن، 'detach' برای حذف کردن
+ * @returns پیام موفقیت
+ */
+export const updateGroupEmployees = async ({
+  groupId,
+  employeeIds,
+  action,
+}: {
+  groupId: number;
+  employeeIds: number[];
+  action: "attach" | "detach";
+}): Promise<string> => {
+  // اگر employeeIds خالی باشد، نیازی به ارسال درخواست نیست
+  if (employeeIds.length === 0) {
+    return "عملیاتی انجام نشد.";
+  }
+
+  // ✅ اصلاح کلیدی: ارسال employee_ids در Payload
+  const payload = {
+    employee_ids: employeeIds, // نام فیلد را اصلاح می‌کنیم
+    action: action,
+  };
+
+  const { data } = await axiosInstance.patch(
+    `/work-groups/${groupId}/employees`,
+    payload
+  );
+
+  // فرض می‌کنیم در صورت موفقیت، یک پیام ساده برمی‌گرداند.
+  return (
+    data.message ||
+    `عملیات ${action === "attach" ? "افزودن" : "حذف"} با موفقیت انجام شد.`
+  );
 };
