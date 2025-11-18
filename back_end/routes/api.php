@@ -33,7 +33,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 
 Route::middleware(['auth:api',
-//    CheckLicenseStatus::class
+    CheckLicenseStatus::class
 ])->group(function () {
 
     Route::prefix('my')->name('my.')->group(function () {
