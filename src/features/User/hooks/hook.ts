@@ -7,6 +7,7 @@ import {
   updateUserProfile,
   deleteUser,
   createUser,
+  updateUserShiftScheduleAssignment,
 } from "../api/api";
 import {
   type FetchUsersParams,
@@ -107,7 +108,6 @@ export const useUpdateUserRole = () => {
 
   // ما از هوک useUpdateUserProfile که قبلاً ساخته بودیم استفاده مجدد می‌کنیم
   // تا کد تکراری ننویسیم و فقط payload را مدیریت کنیم.
-  
 
   // تابع mutate اختصاصی خودمان را برمی‌گردانیم
   return useMutation<
@@ -154,6 +154,10 @@ export const useUpdateUserWorkPattern = () => {
           work_pattern_id: workPatternId,
         } as any,
       };
+      console.log(
+        `[useUpdateUserWorkPattern] در حال ارسال Payload برای آپدیت کاربر ${userId}:`,
+        JSON.stringify(payload)
+      );
       return updateUserProfile({ userId, payload });
     },
 
@@ -236,6 +240,35 @@ export const useCreateUser = () => {
       // ما خطا را مجدداً throw می‌کنیم تا کامپوننت فرم بتواند
       // خطاهای 422 (validation) را گرفته و در فیلدها ست کند.
       throw error;
+    },
+  });
+};
+
+/**
+ * ✅✅✅ هوک جدید: به‌روزرسانی (تخصیص) برنامه شیفتی کارمندان
+ * این هوک برای صفحه مدیریت جدید لازم است
+ */
+export const useUpdateUserShiftSchedule = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    User,
+    Error,
+    { userId: number; shiftScheduleId: number | null }
+  >({
+    // از تابع API جدیدی استفاده می‌کند که خواهیم ساخت
+    mutationFn: updateUserShiftScheduleAssignment,
+
+    onSuccess: (updatedUser) => {
+      // ✅ آپدیت کش کاربر
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+    onError: (error) => {
+      const errorMessage =
+        (error as any)?.response?.data?.message || "خطا در تخصیص برنامه شیفتی.";
+      // (toast در خود کامپوننت مدیریت می‌شود)
+      throw new Error(errorMessage);
     },
   });
 };

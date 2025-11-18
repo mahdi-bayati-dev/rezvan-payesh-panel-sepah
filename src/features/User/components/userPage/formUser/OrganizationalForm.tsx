@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,14 +56,17 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
     const shiftScheduleOptions = useMemo(() => rawShiftSchedules?.map(toSelectOption) || [], [rawShiftSchedules]);
     const workPatternOptions = useMemo(() => rawWorkPatterns?.map(toSelectOption) || [], [rawWorkPatterns]);
 
+    // ✅✅✅ اصلاحیه کلیدی: خواندن ID از آبجکت‌های تو در تو ✅✅✅
     const defaultValues = useMemo(() => ({
         employee: user.employee ? {
             personnel_code: user.employee.personnel_code,
             position: user.employee.position,
             starting_job: user.employee.starting_job,
-            work_group_id: user.employee.work_group_id,
-            shift_schedule_id: user.employee.shift_schedule_id,
-            work_pattern_id: user.employee.work_pattern_id,
+            // اسکیمای Zod شما (organizationalFormSchema) انتظار ID دارد،
+            // اما داده‌های دریافتی شما آبجکت هستند. ما ID را از آبجکت استخراج می‌کنیم.
+            work_group_id: user.employee.work_group?.id || null,
+            shift_schedule_id: user.employee.shift_schedule?.id || null,
+            work_pattern_id: user.employee.week_pattern?.id || null, // توجه: نام فیلد week_pattern است
         } : null
     }), [user]);
 

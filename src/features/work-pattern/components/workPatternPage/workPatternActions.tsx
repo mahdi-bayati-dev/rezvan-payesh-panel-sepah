@@ -1,4 +1,4 @@
-import { CirclePlus, Eye,  Check, X, Trash2, Edit } from 'lucide-react';
+import { Trash2, Edit, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDeleteWeekPattern } from '@/features/work-pattern/hooks/useDeleteWeekPattern';
 import { useState } from 'react';
@@ -10,6 +10,7 @@ interface WorkPatternActionsProps {
   selectedPatternName: string | null;
   // ✅ پراپ جدید: برای تعیین نوع الگو (بر اساس محاسبه در useWorkPatternsHookGet)
   isShiftSchedule?: boolean;
+  onActionComplete: () => void;
 }
 
 
@@ -17,6 +18,7 @@ export const WorkPatternActions = ({
   selectedPatternId,
   selectedPatternName,
   isShiftSchedule = false,
+  onActionComplete,
 }: WorkPatternActionsProps) => {
   const navigate = useNavigate();
 
@@ -55,22 +57,23 @@ export const WorkPatternActions = ({
   const confirmDelete = () => {
     if (!selectedPatternId) return;
     deleteMutation(selectedPatternId, {
-      onSettled: () => setIsDeleteModalOpen(false)
+      onSettled: () => {
+        setIsDeleteModalOpen(false);
+        onActionComplete();
+      }
     });
   };
 
   const handleViewEmployees = () => {
     if (selectedPatternId) {
-      // ✅ مسیر مشاهده کاربران برای هر دو نوع الگو یکی است (فیلتر بر اساس work_pattern_id)
-      navigate(`/work-patterns/employees/${selectedPatternId}`);
+      const patternType = isShiftSchedule ? 'schedule' : 'pattern';
+      navigate(`/work-patterns/employees/${patternType}/${selectedPatternId}`);
     }
   }
 
   // --- سایر عملیات ---
-  const handleAddGroup = () => navigate("/work-patterns/add-to-work-pattern");
-  // const handleAssignShift = () => console.log('تخصیص اتوماتیک شیفت');
-  const handleConfirm = () => console.log('تایید - (نیاز به تعریف کاربرد)');
-  const handleCancel = () => console.log('لغو - (نیاز به تعریف کاربرد)');
+  // const handleConfirm = () => console.log('تایید - (نیاز به تعریف کاربرد)');
+  // const handleCancel = () => console.log('لغو - (نیاز به تعریف کاربرد)');
 
   // --- رندر ---
   return (
@@ -90,7 +93,22 @@ export const WorkPatternActions = ({
                 }`}
             >
               <Edit size={16} />
-              ویرایش الگوی منتخب
+              {/* ✅ متن دکمه واضح‌تر شد */}
+              ویرایش الگو/شیفت
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={handleViewEmployees}
+              disabled={!isPatternSelected || isDeleting}
+              className={`w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${isPatternSelected
+                // ✅ استایل دکمه تغییر کرد
+                ? 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
+                }`}
+            >
+              <Users size={16} /> {/* ✅ آیکون تغییر کرد */}
+              مدیریت کارمندان
             </button>
           </li>
 
@@ -105,45 +123,16 @@ export const WorkPatternActions = ({
                 }`}
             >
               {isDeleting ? 'در حال حذف...' : <Trash2 size={16} />}
-              حذف الگوی منتخب
+              {/* ✅ متن دکمه واضح‌تر شد */}
+              حذف الگو/شیفت
             </button>
           </li>
 
-          {/* دکمه تخصیص کاربر */}
-          <li>
-            <button
-              onClick={handleAddGroup}
-              className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-primaryL text-primary-foregroundL cursor-pointer dark:bg-primaryD dark:text-primary-foregroundD hover:bg-primaryL/90 dark:hover:bg-primaryD/90 transition-colors text-xs font-medium"
-            >
-              <CirclePlus size={16} />
-              افزودن کاربر / گروه کاری
-            </button>
-          </li>
-
-          {/* دکمه‌های گزارش و اتوماسیون */}
-          <li>
-            <button
-              onClick={handleViewEmployees}
-              className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondaryL dark:bg-secondaryD dark:text-foregroundD text-foregroundL hover:bg-secondaryL/80 transition-colors text-xs"
-            >
-              <Eye size={16} />
-              مشاهده کاربران زیرمجموعه
-            </button>
-          </li>
-          <li>
-            {/* <button
-              onClick={handleAssignShift}
-              className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondaryL dark:bg-secondaryD dark:text-foregroundD text-foregroundL hover:bg-secondaryL/80 transition-colors text-xs"
-            >
-              <SlidersHorizontal size={16} />
-              تخصیص اتوماتیک شیفت
-            </button> */}
-          </li>
         </ul>
       </div>
 
       {/* بخش دکمه‌های تایید/لغو */}
-      <div className="flex justify-end gap-2 border-t border-borderL dark:border-borderD pt-3 mt-4">
+      {/* <div className="flex justify-end gap-2 border-t border-borderL dark:border-borderD pt-3 mt-4">
         <button
           onClick={handleCancel}
           className="px-4 py-1.5 rounded-lg text-sm font-medium border border-borderL dark:border-borderD text-foregroundL dark:text-foregroundD hover:bg-secondaryL dark:hover:bg-secondaryD/80 transition-colors flex items-center"
@@ -158,7 +147,7 @@ export const WorkPatternActions = ({
           <Check size={16} className="ml-1" />
           تایید
         </button>
-      </div>
+      </div> */}
 
       {/* مودال حذف */}
       {selectedPatternId && (

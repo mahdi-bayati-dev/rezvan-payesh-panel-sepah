@@ -12,6 +12,7 @@ export interface OrganizationSmall {
 }
 
 // تایپ آبجکت کارمند (employee)
+// تایپ آبجکت کارمند (employee)
 export interface Employee {
   id: number;
   user_id: number;
@@ -38,16 +39,9 @@ export interface Employee {
   house_number: string | null;
   sos_number: string | null;
   address: string | null;
-
-  // --- [اصلاح کلیدی] ---
-  // work_group_id به work_group (آبجکت) تغییر کرد
-  work_group_id: number | null; // (این فیلد ممکن است هنوز هم جداگانه بیاید، نگهش می‌داریم)
-  work_group: BaseNestedItem | null; // ✅ این آبجکت کامل است
-  // ---
-
-  shift_schedule_id: number | null;
-  work_pattern_id: number | null;
-  // ... سایر فیلدهای کارمند
+  work_group: BaseNestedItem | null;
+  week_pattern: BaseNestedItem | null;
+  shift_schedule: BaseNestedItem | null;
 }
 
 // تایپ آبجکت کاربر (User)
@@ -100,4 +94,5 @@ export interface FetchUsersParams {
   organization_id?: number;
   role?: string;
   work_pattern_id?: number;
+  shift_schedule_id?: number; 
 }
