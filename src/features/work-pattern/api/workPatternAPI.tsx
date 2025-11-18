@@ -3,7 +3,7 @@ import axiosInstance from '@/lib/AxiosConfig';
 import type {
   PaginatedWeekPatternsListApiResponse,
   SingleWeekPatternApiResponse,
-  WeekPatternPayload, 
+  WeekPatternPayload,
 } from '@/features/work-pattern/types/index';
 
 const API_URL = '/week-patterns';
@@ -11,8 +11,8 @@ const API_URL = '/week-patterns';
 /**
  * کامنت: دریافت لیست صفحه‌بندی شده الگوهای کاری هفتگی
  */
-export const getWeekPatternsList = async (page: number = 1): Promise<PaginatedWeekPatternsListApiResponse> => {
-  const response = await axiosInstance.get<PaginatedWeekPatternsListApiResponse>(`${API_URL}?page=${page}`);
+export const getWeekPatternsList = async (page: number = 1, per_page: number = 15): Promise<PaginatedWeekPatternsListApiResponse> => {
+  const response = await axiosInstance.get<PaginatedWeekPatternsListApiResponse>(`${API_URL}?page=${page}&per_page=${per_page}`);
   return response.data;
 };
 

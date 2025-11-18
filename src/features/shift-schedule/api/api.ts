@@ -5,9 +5,9 @@ import {
   type SingleShiftScheduleResponse,
   type ShiftSchedulePayload,
   type SlotUpdatePayload,
-  type ScheduleSlotResource, // ✅ ایمپورت تایپ ScheduleSlotResource
-  type ShiftScheduleUpdatePayload, // ✅ ایمپورت تایپ ShiftScheduleUpdatePayload
-  type GenerateShiftsPayload, // ✅ ایمپورت تایپ جدید
+  type ScheduleSlotResource,
+  type ShiftScheduleUpdatePayload,
+  type GenerateShiftsPayload,
 } from "../types/index";
 
 const API_URL = "/shift-schedules";
@@ -17,12 +17,15 @@ const API_URL = "/shift-schedules";
 /**
  * GET /api/shift-schedules (بخش ۱.۱ مستندات)
  * دریافت لیست برنامه‌های شیفتی
+ * ✅ آپدیت: پارامتر per_page اضافه شد
  */
 export const fetchShiftSchedules = async (
-  page: number
+  page: number,
+  per_page: number = 15 // مقدار پیش‌فرض ۱۵
 ): Promise<PaginatedShiftScheduleResponse> => {
+  // ✅ پارامتر per_page به کوئری استرینگ اضافه شد
   const response = await axiosInstance.get<PaginatedShiftScheduleResponse>(
-    `${API_URL}?page=${page}`
+    `${API_URL}?page=${page}&per_page=${per_page}`
   );
   console.log(" دریافت لیست برنامه‌های شیفتی", response.data);
 
@@ -39,7 +42,7 @@ export const fetchShiftScheduleById = async (
   const response = await axiosInstance.get<SingleShiftScheduleResponse>(
     `${API_URL}/${id}`
   );
-    console.log(" دریافت جزیات برنامه‌ شیفتی", response.data);
+  console.log(" دریافت جزیات برنامه‌ شیفتی", response.data);
 
   return response.data.data;
 };
@@ -49,7 +52,7 @@ export const fetchShiftScheduleById = async (
  * ایجاد برنامه شیفتی جدید
  */
 export const createShiftSchedule = async (
-  payload: ShiftSchedulePayload // ✅ استفاده از تایپ دقیق Payload
+  payload: ShiftSchedulePayload
 ): Promise<ShiftScheduleResource> => {
   const response = await axiosInstance.post<SingleShiftScheduleResponse>(
     API_URL,
@@ -64,7 +67,7 @@ export const createShiftSchedule = async (
  */
 export const updateShiftSchedule = async (
   id: number | string,
-  payload: ShiftScheduleUpdatePayload // ✅ استفاده از تایپ دقیق Payload
+  payload: ShiftScheduleUpdatePayload
 ): Promise<ShiftScheduleResource> => {
   const response = await axiosInstance.put<SingleShiftScheduleResponse>(
     `${API_URL}/${id}`,
@@ -96,24 +99,16 @@ export const updateScheduleSlot = async ({
 }: {
   shiftScheduleId: number | string;
   scheduleSlotId: number | string;
-  payload: SlotUpdatePayload; // ✅ استفاده از تایپ دقیق Payload
+  payload: SlotUpdatePayload;
 }): Promise<ScheduleSlotResource> => {
-  // ✅✅✅ اصلاح کلیدی و بسیار مهم (مطابق بخش ۲.۱ مستندات) ✅✅✅
-  // مستندات صراحتاً متد PATCH را برای این Endpoint مشخص کرده است.
-  // استفاده از .put منجر به خطای Method Not Allowed (405) در لاراول می‌شود.
-  const response = await axiosInstance.patch<{ data: ScheduleSlotResource }>( // ✅ تغییر متد از .put به .patch
+  const response = await axiosInstance.patch<{ data: ScheduleSlotResource }>(
     `${API_URL}/${shiftScheduleId}/slots/${scheduleSlotId}`,
     payload
   );
-
-  // ✅✅✅ اصلاح کلیدی (مطابق بخش ۲.۱ مستندات) ✅✅✅
-  // مستندات می‌گوید پاسخ موفق، آبجکت "ScheduleSlotResource" به‌روز شده است.
-  // ساختار SingleShiftScheduleResponse (که حاوی کل برنامه بود) در اینجا اشتباه بود.
-  // ما فرض می‌کنیم پاسخ مستقیماً حاوی { data: ScheduleSlotResource } است.
   return response.data.data;
 };
 
-// --- ✅✅✅ جدید: ۳. تولید شیفت‌ها ---
+// --- ۳. تولید شیفت‌ها ---
 
 /**
  * POST /api/shift-schedules/{shiftSchedule}/generate-shifts
@@ -127,6 +122,5 @@ export const generateShifts = async (
     `${API_URL}/${shiftScheduleId}/generate-shifts`,
     payload
   );
-  // API در صورت موفقیت 202 (Accepted) برمی‌گرداند
   return response.data;
 };

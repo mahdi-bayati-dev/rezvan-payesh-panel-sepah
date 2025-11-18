@@ -6,15 +6,14 @@ import {
   updateShiftSchedule,
   deleteShiftSchedule,
   updateScheduleSlot,
-  generateShifts, // ✅ ایمپورت تابع جدید
+  generateShifts,
 } from "@/features/shift-schedule/api/api";
 
 import type {
   ShiftScheduleUpdatePayload,
-  // ScheduleSlotResource, // ✅ این ایمپورت استفاده نشده بود و حذف شد
   PaginatedShiftScheduleResponse,
-  ShiftScheduleResource, // ✅ ایمپورت این تایپ برای oldData لازم است
-  GenerateShiftsPayload, // ✅ ایمپورت تایپ جدید
+  ShiftScheduleResource,
+  GenerateShiftsPayload,
 } from "@/features/shift-schedule/types/index";
 
 import type {
@@ -33,10 +32,13 @@ const shiftScheduleKeys = {
 };
 
 // ---------------- فهرست برنامه‌ها ----------------
-export const useShiftSchedules = (page: number) => {
+// ✅ آپدیت: اضافه کردن آرگومان per_page با مقدار پیش‌فرض ۱۵
+export const useShiftSchedules = (page: number, per_page: number = 15) => {
   return useQuery({
-    queryKey: [...shiftScheduleKeys.lists(), { page }],
-    queryFn: () => fetchShiftSchedules(page),
+    // ✅ آپدیت: اضافه کردن per_page به کلید کوئری (تا اگر تغییر کرد، کش باطل شود)
+    queryKey: [...shiftScheduleKeys.lists(), { page, per_page }],
+    // ✅ آپدیت: پاس دادن per_page به تابع API
+    queryFn: () => fetchShiftSchedules(page, per_page),
     select: (
       data: PaginatedShiftScheduleResponse
     ): {
@@ -48,8 +50,6 @@ export const useShiftSchedules = (page: number) => {
       const meta = data.meta as ApiPaginationMeta;
       const links = data.links as ApiPaginationLinks;
 
-      // --- ✅✅✅ رفع خطای TS2304 ---
-      // یک اشتباه تایپی بود، WorkPointUI به WorkPatternUI تغییر کرد
       const transformedPatterns: WorkPatternUI[] = responseData.map(
         (schedule) => ({
           id: schedule.id,
@@ -87,28 +87,21 @@ export const useUpdateShiftSchedule = () => {
     }) => updateShiftSchedule(id, payload),
 
     onSuccess: async (updatedData) => {
-      // 🐞 لاگ دیباگ: نمایش داده‌های دریافتی از سرور پس از PUT
       console.log(
         "useUpdateShiftSchedule (PUT) onSuccess: Received updated data from server:",
         updatedData
       );
 
-      const queryKey = shiftScheduleKeys.details(String(updatedData.id)); // کلید رشته‌ای "13"
-      queryClient.setQueryData(
-        queryKey, // استفاده از کلید رشته‌ای
-        updatedData
-      );
-      // 🐞 لاگ دیباگ: تایید تنظیم شدن داده‌ها در کش
+      const queryKey = shiftScheduleKeys.details(String(updatedData.id));
+      queryClient.setQueryData(queryKey, updatedData);
       console.log(
         `useUpdateShiftSchedule (PUT) onSuccess: Set query data for detail [${updatedData.id}]`
       );
 
-      // 🔹 هم‌زمان‌سازی کلی با سرور
       await queryClient.invalidateQueries({
         queryKey: shiftScheduleKeys.lists(),
       });
       await queryClient.invalidateQueries({ queryKey: ["workPatterns"] });
-      // 🐞 لاگ دیباگ: تایید invalidate شدن لیست‌ها
       console.log(
         "useUpdateShiftSchedule (PUT) onSuccess: Invalidated lists and workPatterns."
       );
@@ -117,7 +110,6 @@ export const useUpdateShiftSchedule = () => {
     },
 
     onError: (error: any) => {
-      // 🐞 لاگ دیباگ: نمایش خطا
       console.error("useUpdateShiftSchedule (PUT) onError:", error);
       toast.error(
         error.response?.data?.message || "خطا در به‌روزرسانی برنامه."
@@ -147,7 +139,6 @@ export const useDeleteShiftSchedule = () => {
 };
 
 // ---------------- آپدیت یک اسلات (PATCH) ----------------
-// 🌟🌟🌟 اینجا نقطه اصلی مشکل بود 🌟🌟🌟
 export const useUpdateScheduleSlot = () => {
   const queryClient = useQueryClient();
 
@@ -171,65 +162,28 @@ export const useUpdateScheduleSlot = () => {
       const queryKey = shiftScheduleKeys.details(
         String(variables.shiftScheduleId)
       );
-      // 🐞 لاگ دیباگ: نمایش کلید کوئری
-      console.log(
-        `useUpdateScheduleSlot (PATCH) onSuccess: Attempting to update cache for key:`,
-        JSON.stringify(queryKey)
-      );
-      // 🐞 لاگ دیباگ: نمایش اسلات آپدیت شده از سرور
-      console.log(
-        `useUpdateScheduleSlot (PATCH) onSuccess: Received updated slot data:`,
-        updatedSlot
-      );
 
-      // 1️⃣ بلافاصله داده‌ها را در کش آپدیت کن تا بدون رفرش دیده شود
       queryClient.setQueryData(
         queryKey,
-        // 🟢 راه‌حل: oldData تایپ ShiftScheduleResource را دارد
         (oldData: ShiftScheduleResource | undefined) => {
           if (!oldData) {
-            // 🐞 لاگ دیباگ: هشدار در صورت نبودن داده در کش
-            console.warn(
-              "useUpdateScheduleSlot (PATCH) setQueryData: No old data found in cache. Returning undefined."
-            );
             return oldData;
           }
 
-          // 🐞 لاگ دیباگ: نمایش داده‌های قدیمی موجود در کش
-          console.log(
-            "useUpdateScheduleSlot (PATCH) setQueryData: Found old data in cache:",
-            oldData
-          );
-
-          // 🟢 راه‌حل: دسترسی مستقیم به oldData.slots
           const newSlots = oldData.slots.map((slot: any) =>
             slot.id === updatedSlot.id ? updatedSlot : slot
           );
 
-          // 🐞 لاگ دیباگ: نمایش آرایه اسلات‌های جدید
-          console.log(
-            "useUpdateScheduleSlot (PATCH) setQueryData: New slots array created:",
-            newSlots
-          );
-
-          // 🟢 راه‌حل: برگرداندن آبجکت ShiftScheduleResource با اسلات‌های جدید
           return {
             ...oldData,
-            slots: newSlots, // جایگزینی آرایه اسلات‌ها
+            slots: newSlots,
           };
         }
       );
 
-      // 2️⃣ سپس کوئری را invalidate کن تا داده جدید از سرور بیاید
-      // این کار تضمین می‌کند که داده‌های ما 100% با سرور هماهنگ هستند
       await queryClient.invalidateQueries({
         queryKey: queryKey,
       });
-      // 🐞 لاگ دیباگ: تایید invalidate شدن
-      console.log(
-        `useUpdateScheduleSlot (PATCH) onSuccess: Invalidated query:`,
-        JSON.stringify(queryKey)
-      );
 
       toast.success(
         `اسلات روز ${updatedSlot.day_in_cycle} با موفقیت بروزرسانی شد.`
@@ -237,14 +191,13 @@ export const useUpdateScheduleSlot = () => {
     },
 
     onError: (error: any) => {
-      // 🐞 لاگ دیباگ: نمایش خطا
       console.error("useUpdateScheduleSlot (PATCH) onError:", error);
       toast.error(error.response?.data?.message || "خطا در بروزرسانی اسلات.");
     },
   });
 };
 
-// --- ✅✅✅ جدید: هوک تولید شیفت‌ها ---
+// --- تولید شیفت‌ها ---
 export const useGenerateShifts = () => {
   return useMutation({
     mutationFn: ({
@@ -256,18 +209,11 @@ export const useGenerateShifts = () => {
     }) => generateShifts(id, payload),
 
     onSuccess: (data) => {
-      // ✅ API پاسخ 202 (Accepted) می‌دهد
-      // به این معنی که جاب فقط در صف قرار گرفته است.
-      // ما *نباید* هیچ کوئری را invalidate کنیم چون داده‌ها هنوز آماده نیستند.
-      // فقط پیغام موفقیت‌آمیز بودن صف را به کاربر نشان می‌دهیم.
       toast.success(data.message);
     },
 
     onError: (error: any) => {
-      // مدیریت خطاهای 422 (اعتبارسنجی) یا خطاهای عمومی
       if (error instanceof AxiosError && error.response?.status === 422) {
-        // خطاهای 422 به صورت خاص در خود فرم مدیریت می‌شوند
-        // اما یک خطای عمومی هم نشان می‌دهیم
         toast.error("خطای اعتبارسنجی. لطفاً تاریخ‌ها را بررسی کنید.");
       } else {
         toast.error(

@@ -11,7 +11,7 @@ import {
   type NewWeekPatternFormData,
 } from "../schema/NewWeekPatternSchema";
 import { daysOfWeek } from "../utils/constants";
-import { calculateDurationInMinutes } from "../utils/timeCalculations";
+import { useWeekPatternDayCalculations } from "./useWeekPatternDayCalculations";
 import type {
   WeekPatternPayload,
   ApiValidationError,
@@ -94,7 +94,8 @@ export const useEditWeekPatternForm = ({
   });
 
   const { fields } = useFieldArray({ control, name: "days" });
-  const watchedDays = watch("days");
+  // const watchedDays = watch("days");
+  useWeekPatternDayCalculations(watch, setValue);
 
   // کامنت: اثر جانبی برای پر کردن فرم پس از لود شدن داده‌ها
   useEffect(() => {
@@ -104,39 +105,39 @@ export const useEditWeekPatternForm = ({
   }, [initialPattern, defaultValues, reset]);
 
   // کامنت: منطق مدیریت is_working_day و محاسبه مدت زمان (کاملاً مشابه useWeekPatternForm)
-  useEffect(() => {
-    watchedDays?.forEach((day, index) => {
-      const isWorking = day.is_working_day;
-      // منطق کنترل روز کاری خاموش
-      if (!isWorking) {
-        setValue(`days.${index}.start_time`, null, { shouldDirty: true });
-        setValue(`days.${index}.end_time`, null, { shouldDirty: true });
-        setValue(`days.${index}.work_duration_minutes`, 0, {
-          shouldValidate: true,
-          shouldDirty: true,
-        });
-      } else {
-        // منطق محاسبه مدت زمان برای روز کاری روشن
-        const start = day.start_time ?? "08:00";
-        const end = day.end_time ?? "16:00";
-        const duration = calculateDurationInMinutes(start, end);
+  // useEffect(() => {
+  //   watchedDays?.forEach((day, index) => {
+  //     const isWorking = day.is_working_day;
+  //     // منطق کنترل روز کاری خاموش
+  //     if (!isWorking) {
+  //       setValue(`days.${index}.start_time`, null, { shouldDirty: true });
+  //       setValue(`days.${index}.end_time`, null, { shouldDirty: true });
+  //       setValue(`days.${index}.work_duration_minutes`, 0, {
+  //         shouldValidate: true,
+  //         shouldDirty: true,
+  //       });
+  //     } else {
+  //       // منطق محاسبه مدت زمان برای روز کاری روشن
+  //       const start = day.start_time ?? "08:00";
+  //       const end = day.end_time ?? "16:00";
+  //       const duration = calculateDurationInMinutes(start, end);
 
-        // فقط در صورتی که زمان‌ها معتبر بودند، مقدار دهی کنیم
-        if (duration !== null && duration !== day.work_duration_minutes) {
-          setValue(`days.${index}.work_duration_minutes`, duration, {
-            shouldValidate: true,
-            shouldDirty: true,
-          });
-        }
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    watchedDays
-      ?.map((d) => `${d.start_time}-${d.end_time}-${d.is_working_day}`)
-      .join(","),
-    setValue,
-  ]);
+  //       // فقط در صورتی که زمان‌ها معتبر بودند، مقدار دهی کنیم
+  //       if (duration !== null && duration !== day.work_duration_minutes) {
+  //         setValue(`days.${index}.work_duration_minutes`, duration, {
+  //           shouldValidate: true,
+  //           shouldDirty: true,
+  //         });
+  //       }
+  //     }
+  //   });
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [
+  //   watchedDays
+  //     ?.map((d) => `${d.start_time}-${d.end_time}-${d.is_working_day}`)
+  //     .join(","),
+  //   setValue,
+  // ]);
 
   // کامنت: تابع onSubmit برای آپدیت
   const onSubmit: SubmitHandler<NewWeekPatternFormData> = (data) => {
@@ -196,9 +197,8 @@ export const useEditWeekPatternForm = ({
     handleSubmit,
     formErrors,
     fields,
-    watchedDays,
+    watchedDays: watch("days"),
     onSubmit,
-    // وضعیت‌های اختصاصی Edit
     isPending: isPending || isLoadingInitialData,
     generalApiError: isLoadError
       ? "خطا در بارگذاری الگوی کاری مورد نظر"

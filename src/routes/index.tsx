@@ -6,13 +6,10 @@ import { MainLayout } from "../components/layout/MainLayout";
 import { ProtectedRoute } from "./ProtectedRoute/ProtectedRoute";
 
 // --- ۱. ایمپورت‌های جدید (مسیریاب هوشمند و صفحه جزئیات کاربر) ---
-// ✅ اصلاح مسیر:
 const ReportsIndexPage = lazy(() => import("../features/reports/routes/ReportsIndexPage"));
 const MyReportPageDetails = lazy(() => import("../features/reports/routes/myReportPageDetails"));
-// ---
 
 // صفحات Lazy (قبلی)
-// ✅ اصلاح مسیر:
 const DashboardPage = lazy(() => import("../features/dashboard/routes/DashboardPage"));
 const LoginPage = lazy(() => import("../features/auth/routes/LoginPage"));
 const RequestsPage = lazy(() => import("../features/requests/routes/requestsPage"));
@@ -26,6 +23,7 @@ const ActivityReportPageDetails = lazy(() => import("../features/reports/routes/
 const EmployeeReportsPage = lazy(() => import("../features/reports/routes/EmployeeReportsPage"));
 const NewActivityRegistrationPage = lazy(() => import("../features/reports/routes/NewReportPage"));
 const WorkPatternPage = lazy(() => import("../features/work-pattern/routes/WorkPatternPage"));
+// ⚠️ نکته: قبلاً گفتم فایل Skeleton.tsx اضافه است، بهتر است از WorkPatternListSkeleton استفاده کنید
 const WorkPatternPageSkeleton = lazy(() => import("../features/work-pattern/Skeleton/Skeleton"));
 
 const NewWorkPatternPage = lazy(() => import("../features/work-pattern/routes/NewPatternSelectorPage"));
@@ -33,6 +31,9 @@ const WorkPatternsEdit = lazy(() => import('../features/work-pattern/routes/Edit
 const WorkPatternsEmployeesPage = lazy(() => import('../features/work-pattern/routes/WorkPatternEmployeesPage'))
 const EditShiftSchedulePage = lazy(() => import('../features/shift-schedule/routes/EditShiftSchedulePage'))
 const EditShiftScheduleFormSkeleton = lazy(() => import('../features/shift-schedule/Skeleton/EditShiftScheduleFormSkeleton'))
+
+// ✅✅✅ ۱. ایمپورت کردن صفحه جدید "تخصیص الگو"
+const AddToWorkPatternPage = lazy(() => import("../features/work-pattern/routes/AddToWorkPatternPage"));
 
 const WorkGroupPage = lazy(() => import("../features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("../features/work-group/routes/workGroupDetailPage"))
@@ -47,7 +48,7 @@ const WorkCalendarPage = lazy(() => import('../features/work-calendar/routes/Wor
 const AdminManagement = lazy(() => import('../features/User/components/userPage/AdminManagementPage'))
 
 const DevicePage = lazy(() => import('../features/devices/routes/DevicePage'));
-const ErrorPage = lazy(() => import("./ErrorPage")); // ✅ اصلاح مسیر:
+const ErrorPage = lazy(() => import("./ErrorPage"));
 
 export const router = createBrowserRouter([
   {
@@ -59,7 +60,6 @@ export const router = createBrowserRouter([
         element: <MainLayout />,
         errorElement: <ErrorPage />,
         children: [
-          // ... (روت‌های داشبورد، درخواست‌ها و... بدون تغییر) ...
           {
             path: "/",
             element: (
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-          // ... (تمام روت‌های /requests ) ...
+          // ... (روت‌های درخواست‌ها) ...
           {
             path: "/requests",
             element: (
@@ -110,7 +110,7 @@ export const router = createBrowserRouter([
             ),
           },
 
-          // --- ۲. [تغییر اصلی] روت اصلی گزارش‌ها (هوشمند) ---
+          // ... (روت‌های گزارش‌ها) ...
           {
             path: "/reports",
             element: (
@@ -119,9 +119,6 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-
-          // --- ۳. روت جزئیات (مختص ادمین) ---
-          // (بدون تغییر - این روت برای ادمین است)
           {
             path: "/reports/:reportId",
             element: (
@@ -130,9 +127,6 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-
-          // --- ۴. [جدید] روت جزئیات (مختص کاربر) ---
-          // این روت جدیدی است که به صفحه جزئیات "کاربر" اشاره می‌کند
           {
             path: "/reports/my/:reportId",
             element: (
@@ -141,11 +135,6 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-
-          // --- ۵. روت گزارش کارمند (مختص ادمین) ---
-          // (بدون تغییر - این روت برای ادمین است)
-          // [اصلاح] پارامتر :employeeId به :employeeApiId تغییر کرد
-          // تا با کامپوننت EmployeeReportsPage (که از employeeApiId استفاده می‌کند) مطابقت داشته باشد.
           {
             path: "/reports/employee/:employeeApiId",
             element: (
@@ -154,9 +143,6 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-
-          // --- ۶. روت ثبت گزارش (مختص ادمین) ---
-          // (بدون تغییر - این روت برای ادمین است)
           {
             path: "/reports/new",
             element: (
@@ -166,7 +152,7 @@ export const router = createBrowserRouter([
             ),
           },
 
-          // --- (ادامه سایر روت‌ها بدون تغییر) ---
+          // --- روت‌های Work Patterns ---
           {
             path: "/work-patterns",
             element: (
@@ -175,21 +161,22 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-          // ... (
-          // ... (تمام روت‌های work-patterns
-          // ... (تمام روت‌های shift-schedules
-          // ... (تمام روت‌های work-group
-          // ... (تمام روت‌های organizations
-          // ... (تمام روت‌های users
-          // ... (تمام روت‌های work-calender
-          // ... (تمام روت‌های device-management
-          // ... (تمام روت‌های admin-management
-          // ...
+
+          // ✅✅✅ ۲. تعریف روت جدید برای صفحه "تخصیص الگو"
+          {
+            path: "/work-patterns/assign",
+            element: (
+              <Suspense fallback={<Spinner />}>
+                <AddToWorkPatternPage />
+              </Suspense>
+            ),
+          },
+
           {
             path: "/work-patterns/new-work-patterns",
             element: (
               <Suspense fallback={<Spinner />}>
-                < NewWorkPatternPage />
+                <NewWorkPatternPage />
               </Suspense>
             ),
           },
@@ -198,18 +185,16 @@ export const router = createBrowserRouter([
             path: "/work-patterns/edit/:patternId",
             element: (
               <Suspense fallback={<Spinner />}>
-                < WorkPatternsEdit />
+                <WorkPatternsEdit />
               </Suspense>
             ),
           },
 
-          // ✅✅✅ اصلاحیه کلیدی (مشکل شماره ۱) ✅✅✅
-          // روت باید هر دو پارامتر :patternType و :patternId را بپذیرد
           {
             path: `/work-patterns/employees/:patternType/:patternId`,
             element: (
               <Suspense fallback={<Spinner />}>
-                < WorkPatternsEmployeesPage />
+                <WorkPatternsEmployeesPage />
               </Suspense>
             ),
           },
@@ -218,15 +203,17 @@ export const router = createBrowserRouter([
             path: "/shift-schedules/edit/:patternId",
             element: (
               <Suspense fallback={<EditShiftScheduleFormSkeleton />}>
-                < EditShiftSchedulePage />
+                <EditShiftSchedulePage />
               </Suspense>
             ),
           },
+
+          // ... (سایر روت‌ها بدون تغییر) ...
           {
             path: "/work-group",
             element: (
               <Suspense fallback={<Spinner />}>
-                < WorkGroupPage />
+                <WorkGroupPage />
               </Suspense>
             ),
           },
@@ -234,7 +221,7 @@ export const router = createBrowserRouter([
             path: "/work-group/:id",
             element: (
               <Suspense fallback={<Spinner />}>
-                < WorkGroupDetailPage />
+                <WorkGroupDetailPage />
               </Suspense>
             ),
           },
@@ -242,7 +229,7 @@ export const router = createBrowserRouter([
             path: "/work-group/new",
             element: (
               <Suspense fallback={<Spinner />}>
-                < NewWorkGroupDetailPage />
+                <NewWorkGroupDetailPage />
               </Suspense>
             ),
           },
@@ -250,7 +237,7 @@ export const router = createBrowserRouter([
             path: "/organizations",
             element: (
               <Suspense fallback={<Spinner />}>
-                < OrganizationPage />
+                <OrganizationPage />
               </Suspense>
             ),
           },
@@ -258,7 +245,7 @@ export const router = createBrowserRouter([
             path: "/organizations/:id",
             element: (
               <Suspense fallback={<Spinner />}>
-                < OrganizationDetailPage />
+                <OrganizationDetailPage />
               </Suspense>
             ),
           },
@@ -266,7 +253,7 @@ export const router = createBrowserRouter([
             path: "/organizations/:id/create-user",
             element: (
               <Suspense fallback={<Spinner />}>
-                < CreateUser />
+                <CreateUser />
               </Suspense>
             ),
           },

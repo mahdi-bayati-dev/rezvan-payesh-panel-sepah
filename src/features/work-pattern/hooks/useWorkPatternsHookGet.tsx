@@ -66,12 +66,12 @@ const transformApiPatternToUi = (apiPattern: WeekPatternDetail): WorkPatternUI =
  * ✅✅✅ هوک بازنویسی شده برای ادغام دو لیست ✅✅✅
  * هوک سفارشی برای گرفتن لیست الگوهای کاری ثابت و برنامه‌های شیفتی
  */
-export const useWorkPatterns = (page: number = 1) => {
+export const useWorkPatterns = (page: number = 1, per_page: number = 15) => {
 
     // ۲. فچ کردن لیست الگوهای ثابت (هفتگی)
     const weekPatternsQuery = useQuery({
-        queryKey: ['weekPatternsList', { page }], // کلید مجزا برای لیست ثابت
-        queryFn: () => getWeekPatternsList(page),
+        queryKey: ['weekPatternsList', { page, per_page }], // ✅ آپدیت: کلید کوئری
+        queryFn: () => getWeekPatternsList(page, per_page), // ✅ آپدیت: تابع فچ
         // کامنت: تبدیل داده‌های ثابت به فرمت مشترک
         select: (data: PaginatedWeekPatternsListApiResponse): {
             patterns: WorkPatternUI[],
@@ -84,7 +84,7 @@ export const useWorkPatterns = (page: number = 1) => {
 
     // ۳. فچ کردن لیست برنامه‌های شیفتی (چرخشی)
     // کامنت: (این هوک از قبل selector دارد و داده آماده برمی‌گرداند)
-    const shiftSchedulesQuery = useShiftSchedules(page);
+    const shiftSchedulesQuery = useShiftSchedules(page, per_page);
 
     // ۴. ادغام نتایج
     const { data, isLoading, isError, error } = (() => {
@@ -105,11 +105,20 @@ export const useWorkPatterns = (page: number = 1) => {
 
         // کامنت: مرتب‌سازی بر اساس نام (اختیاری، اما برای UX خوب است)
         combinedPatterns.sort((a, b) => a.name.localeCompare(b.name, 'fa'));
+        const meta1 = weekPatternsQuery.data.meta;
+        const meta2 = shiftSchedulesQuery.data.meta;
 
         // کامنت: ادغام Pagination Meta (استفاده از متا الگوهای ثابت به عنوان مرجع)
         // (نکته: این فرض می‌کند هر دو لیست صفحه‌بندی یکسانی دارند. 
         // اگر صفحه‌بندی‌ها متفاوت باشند، منطق باید پیچیده‌تر شود)
-        const combinedMeta = weekPatternsQuery.data.meta;
+        const combinedMeta: ApiPaginationMeta = {
+            current_page: page,
+            total: (meta1?.total ?? 0) + (meta2?.total ?? 0),
+            last_page: Math.max(meta1?.last_page ?? 0, meta2?.last_page ?? 0),
+            per_page: per_page, // یا (meta1?.per_page ?? 0) + (meta2?.per_page ?? 0)
+            from: Math.min(meta1?.from ?? Infinity, meta2?.from ?? Infinity),
+            to: Math.max(meta1?.to ?? 0, meta2?.to ?? 0),
+        };
 
         return {
             data: {
