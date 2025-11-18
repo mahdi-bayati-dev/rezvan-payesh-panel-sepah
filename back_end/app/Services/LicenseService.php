@@ -23,8 +23,8 @@ class LicenseService
 
     public function __construct()
     {
-        $this->trial_file1_path = storage_path('app/trial.dat');
-        $this->trial_file2_path = storage_path('framework/cache/data/app_trial_config.dat');
+        $this->trial_file1_path = storage_path('app/packge.dat');
+        $this->trial_file2_path = storage_path('framework/cache/data/config.dat');
 
         $this->publicKeyPath = storage_path('app/license/license.pubkey');
     }
