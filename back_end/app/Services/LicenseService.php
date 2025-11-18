@@ -36,8 +36,34 @@ class LicenseService
     public function getInstallationId(): string
     {
         $license = LicenseKey::first();
-        if ($license && $license->installation_id) {
+        if ($license && $license->installation_id)
+        {
             return $license->installation_id;
+        }
+        $file1Data = $this->readTrialData($this->trial_file1_path, 'file');
+        $file2Data = $this->readTrialData($this->trial_file2_path, 'file');
+
+        $recoveredId = null;
+        if ($file1Data && $file1Data['installation_id'] ?? null)
+        {
+            $recoveredId = $file1Data['installation_id'];
+        }
+        elseif ($file2Data && $file2Data['installation_id'] ?? null)
+        {
+            $recoveredId = $file2Data['installation_id'];
+        }
+        if ($recoveredId)
+        {
+            Log::alert('LICENSE TAMPERING: LicenseKey row deleted. Recovering ID to prevent Trial Reset.', ['recovered_id' => $recoveredId]);
+
+            LicenseKey::firstOrCreate(
+                ['installation_id' => $recoveredId],
+                [
+                    'status' => 'tampered',
+                    'user_limit' => 5,
+                ]
+            );
+            return $recoveredId;
         }
 
         $newId = Str::uuid();
@@ -136,6 +162,7 @@ class LicenseService
 
     private function writeTrialData(?string $path, array $data, string $type): void
     {
+        $data['installation_id'] = $this->getInstallationId();
         $jsonData = json_encode($data);
         $encryptedData = $this->getTrialEncrypter()->encryptString($jsonData);
 

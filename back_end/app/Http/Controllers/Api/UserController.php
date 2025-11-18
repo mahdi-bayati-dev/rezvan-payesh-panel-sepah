@@ -129,7 +129,7 @@ class UserController extends Controller
         $limit = $license->user_limit;
         if ($license->status === 'trial')
         {
-            $limit = 5;
+            $limit = 99999;
         }
         if ($limit > 0)
         {
@@ -364,7 +364,6 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        // 1. Authorize: آیا کاربر اجازه حذف این کاربر را دارد؟
         $this->authorize('delete', $user);
 
 
