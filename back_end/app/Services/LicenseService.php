@@ -129,6 +129,7 @@ class LicenseService
      */
     public function syncTrialData(array $masterRecord): void
     {
+        Log::info("start syning...");
         $this->writeTrialData($this->trial_file1_path, $masterRecord, 'file');
         $this->writeTrialData(null, $masterRecord, 'db');
         $this->writeTrialData($this->trial_file2_path, $masterRecord, 'file');
@@ -164,7 +165,7 @@ class LicenseService
         $jsonData = json_encode($data);
 
         $encryptedData = $this->getTrialEncrypter()->encryptString($jsonData);
-
+        Log::info("info is: \n\t json data : $jsonData \n\t encrypted data : $encryptedData \n\t type : $type");
         if ($type === 'file')
         {
             $directory = dirname($path);

@@ -5,19 +5,21 @@ namespace App\Http\Middleware;
 use App\Models\LicenseKey;
 use App\Services\LicenseService;
 use Closure;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Response as ResponseFacade;
 
 class CheckLicenseStatus
 {
-    protected LicenseService $licenseService;
+
     private int $max_trial_days_allowed = 30;
 
-    public function __construct(LicenseService $licenseService)
+    public function __construct(protected LicenseService $licenseService)
     {
-        $this->licenseService = $licenseService;
+
     }
 
     /**
@@ -88,8 +90,9 @@ class CheckLicenseStatus
         {
             $this->licenseService->syncTrialData($masterRecord);
         }
-        catch (\Exception $e)
+        catch (Exception $e)
         {
+            Log::error($e->getMessage());
             return 'tampered';
         }
 
