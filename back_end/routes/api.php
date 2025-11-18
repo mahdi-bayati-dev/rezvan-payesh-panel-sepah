@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Log;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-Route::middleware('auth:sanctum')->prefix('license')->group(function () {
+Route::middleware('auth:api')->prefix('license')->group(function () {
     Route::get('/', [LicenseController::class, 'show'])->name('license.show');
     Route::post('/', [LicenseController::class, 'update'])->name('license.update');
 });
