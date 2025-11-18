@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
+use App\Models\LicenseKey;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\LicenseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +19,10 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    public function __construct(protected LicenseService $licenseService)
+    {
+
+    }
     /**
      * Display a listing of the resource.
      */
@@ -96,6 +102,25 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', User::class);
+
+        $installationId = $this->licenseService->getInstallationId();
+        $license = LicenseKey::where('installation_id', $installationId)->first();
+        $limit = $license->user_limit;
+        if ($license->status === 'trial')
+        {
+            $limit = 5;
+        }
+        if ($limit > 0)
+        {
+            $currentUserCount = User::count();
+
+            if ($currentUserCount >= $limit)
+            {
+                return response()->json([
+                    'message' => "شما به سقف مجاز تعداد کاربران ({$limit} نفر) رسیده‌اید. برای افزودن کاربر بیشتر، لایسنس خود را ارتقا دهید."
+                ], 498);
+            }
+        }
 
         $creatingUser = $request->user();
         $allowedRoles = ['user'];

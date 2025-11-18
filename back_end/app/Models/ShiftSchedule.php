@@ -26,4 +26,14 @@ class ShiftSchedule extends Model
     {
         return $this->hasMany(ScheduleSlot::class);
     }
+
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class);
+    }
+
+    public function workGroups(): HasMany
+    {
+        return $this->hasMany(WorkGroup::class);
+    }
 }

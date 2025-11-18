@@ -124,7 +124,6 @@ class LicenseService
      */
     public function syncTrialData(array $masterRecord): void
     {
-        Log::info("start syning...");
         $this->writeTrialData($this->trial_file1_path, $masterRecord, 'file');
         $this->writeTrialData(null, $masterRecord, 'db');
         $this->writeTrialData($this->trial_file2_path, $masterRecord, 'file');
@@ -160,23 +159,18 @@ class LicenseService
         $jsonData = json_encode($data);
 
         $encryptedData = $this->getTrialEncrypter()->encryptString($jsonData);
-        Log::info("info is: \n\t data : ".json_encode($data)." \n\t json data : $jsonData \n\t encrypted data : $encryptedData \n\t type : $type");
         if ($type === 'file')
         {
             $directory = dirname($path);
             if (!is_dir($directory))
             {
-                Log::info("directory not found : $directory \n\t trying to create it.");
                 mkdir($directory, 0755, true);
             }
-            Log::info("directory was there : $directory \n\t trying to create file in $path.");
             file_put_contents($path, $encryptedData);
         }
         else
         {
-            Log::info("trying to create record in db...");
             $result  = LicenseKey::where('installation_id', $this->getInstallationId())->update(['trial_payload_db' => $encryptedData]);
-            Log::info("trial data was created : ". json_encode($result, JSON_PRETTY_PRINT));
         }
     }
 
