@@ -143,7 +143,8 @@ class ShiftScheduleController extends Controller
         {
              return response()->json(['message' => 'Cannot delete shift schedule because it is assigned to work groups or employees.'], 409);
         }
-        try {
+        try
+        {
             $shiftSchedule->slots()->delete();
         }
         catch (\Exception $exception)
