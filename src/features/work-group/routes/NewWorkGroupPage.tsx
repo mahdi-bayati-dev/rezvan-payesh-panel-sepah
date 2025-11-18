@@ -21,7 +21,7 @@ function NewWorkGroupPage() {
         // toast.success('گروه کاری جدید با موفقیت ایجاد شد.');
 
         // ۴. بازگشت به صفحه لیست
-        navigate('/work-group'); 
+        navigate('/work-groups'); 
     };
 
     return (

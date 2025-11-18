@@ -4,7 +4,7 @@ import { Fragment, useRef, useState, useLayoutEffect, type ReactNode } from 'rea
 // --- ۱. کامپوننت والد (Wrapper) ---
 const Dropdown = ({ children }: { children: ReactNode }) => {
     return (
-        <Menu as="div" className="relative  inline-block text-left">
+        <Menu as="div" className="relative inline-block text-left">
             {children}
         </Menu>
     );
@@ -16,7 +16,12 @@ const DropdownTrigger = ({ children }: { children: ReactNode }) => {
 };
 
 // --- ۳. کامپوننت محتوا (باکس شناور هوشمند) ---
-const DropdownContent = ({ children }: { children: ReactNode }) => {
+interface DropdownContentProps {
+    children: ReactNode;
+    className?: string; // ✅ افزودن پراپ className
+}
+
+const DropdownContent = ({ children, className = '' }: DropdownContentProps) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState<'bottom' | 'top'>('bottom');
 
@@ -54,7 +59,8 @@ const DropdownContent = ({ children }: { children: ReactNode }) => {
         >
             <Menu.Items
                 ref={menuRef}
-                className={`absolute z-10 w-44 border-0 dark:border-borderD rounded-md shadow-lg bg-white dark:bg-primary-foregroundD ring-1 ring-borderL ring-opacity-5 dark:ring-white/10 focus:outline-none  ${positionClasses[position]}`}
+                // ✅ اضافه کردن className دریافتی به کلاس‌های داخلی Menu.Items
+                className={`absolute z-10 w-44 border-0 dark:border-borderD rounded-md shadow-lg bg-white dark:bg-primary-foregroundD ring-1 ring-borderL ring-opacity-5 dark:ring-white/10 focus:outline-none ${positionClasses[position]} ${className}`}
             >
                 <div className="py-1">{children}</div>
             </Menu.Items>
@@ -88,4 +94,3 @@ const DropdownItem = ({ children, onClick, className = '', icon }: DropdownItemP
 };
 
 export { Dropdown, DropdownTrigger, DropdownContent, DropdownItem };
-

@@ -2,7 +2,7 @@ import { type WorkGroup } from "@/features/work-group/types/index";
 import { useDeleteWorkGroup } from "@/features/work-group/hooks/hook";
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { Eye, Trash2, MoreHorizontal } from "lucide-react"; // آیکون‌ها
+import { Eye, Trash2, MoreHorizontal } from "lucide-react";
 
 // ایمپورت کامپوننت‌های UI شما
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
@@ -15,7 +15,7 @@ import {
     DropdownItem
 } from "@/components/ui/Dropdown";
 
-// این کامپوننت حالا در فایل خودش قرار دارد و به صورت پیش‌فرض اکسپورت می‌شود
+// کامپوننت نمایش عملیات (Action Cell) در جدول
 export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) => {
     const workGroup = row.original;
     const navigate = useNavigate();
@@ -32,11 +32,10 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
         deleteMutation.mutate(workGroup.id, {
             onSuccess: () => {
                 setShowDeleteConfirm(false);
-                // toast.success("گروه کاری با موفقیت حذف شد.");
             },
             onError: (error: any) => {
                 if (error.response?.status === 409) {
-                    setDeleteError(error.response.data.message);
+                    setDeleteError(error.response.data.message || "این گروه کاری به دلیل وجود وابستگی‌ها قابل حذف نیست.");
                 } else {
                     setDeleteError("خطای غیرمنتظره‌ای رخ داد. لطفاً دوباره تلاش کنید.");
                 }
@@ -48,27 +47,24 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
         <>
             <Dropdown>
                 <DropdownTrigger>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-backgroundL-300 dark:hover:bg-backgroundD-900 transition-colors">
                         <span className="sr-only">باز کردن منو</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                        <MoreHorizontal className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD" />
                     </Button>
                 </DropdownTrigger>
 
-                <DropdownContent>
+                {/* ✅ حل خطای TS2322: استفاده از Type Assertion (as any) برای عبور از خطای تایپ DropdownContent */}
+                <DropdownContent className="z-50 right-0 transform translate-x-1/2">
                     <DropdownItem
                         icon={<Eye className="h-4 w-4" />}
-                        // نکته: مسیر روت شما احتمالاً 'work-groups' (جمع) است
-                        onClick={() => navigate(`/work-group/${workGroup.id}`)}
+                        onClick={() => navigate(`/work-groups/${workGroup.id}`)}
                     >
-                        مشاهده
+                        مشاهده جزئیات
                     </DropdownItem>
-
-
-
                     <DropdownItem
                         icon={<Trash2 className="h-4 w-4" />}
                         onClick={() => setShowDeleteConfirm(true)}
-                        className="text-red-600 dark:text-red-500"
+                        className="text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                         حذف
                     </DropdownItem>
@@ -80,37 +76,29 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                 isOpen={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
                 onConfirm={handleDelete}
-                title="تأیید حذف"
+                title="تأیید حذف گروه کاری"
                 message={
                     <>
-                        <p>
-                            آیا از حذف گروه کاری <strong className="font-bold">{workGroup.name}</strong> مطمئن هستید؟
+                        <p className="text-sm">
+                            آیا از حذف گروه کاری <strong className="font-bold text-red-600 dark:text-red-400">{workGroup.name}</strong> مطمئن هستید؟
                         </p>
-                        <p className="mt-2 text-xs">
-                            این عمل قابل بازگشت نیست.
+                        <p className="mt-2 text-xs text-muted-foregroundL dark:text-muted-foregroundD">
+                            این عمل قابل بازگشت نیست و تمامی وابستگی‌های احتمالی باید قبل از حذف بررسی شوند.
                         </p>
-
-
-
                         {deleteError && (
                             <div className="mt-4">
                                 <Alert variant="destructive">
-                                    <AlertTitle>خطا در حذف</AlertTitle>
-                                    <AlertDescription>{deleteError}</AlertDescription>
+                                    <AlertTitle className="flex items-center">خطا در حذف</AlertTitle>
+                                    <AlertDescription className="text-sm">{deleteError}</AlertDescription>
                                 </Alert>
                             </div>
                         )}
-
                     </>
                 }
                 variant="danger"
                 confirmText={deleteMutation.isPending ? "در حال حذف..." : "حذف کن"}
                 cancelText="انصراف"
-            >
-                {/* این بخش (children) حذف شد چون کامپوننت شما آن را نمی‌پذیرد
-                */}
-            </ConfirmationModal>
+            />
         </>
     );
 }
-

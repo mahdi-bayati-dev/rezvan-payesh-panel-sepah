@@ -16,7 +16,7 @@ import {
 import {
     useWorkPatternsList,
     useShiftSchedulesList,
-    useWorkGroups
+    useWorkGroups // ✅ حل خطای TS2724: از هوک جدید استفاده شد
 } from '@/features/work-group/hooks/hook';
 import { type BaseNestedItem } from '@/features/work-group/types';
 
@@ -148,7 +148,8 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                             label="گروه کاری"
                             placeholder="(انتخاب کنید)"
                             options={workGroupOptions}
-                            value={workGroupOptions.find(opt => opt.id === field.value) || null}
+                            // ✅ حل خطای TS7006: تایپ صریح SelectOption به پارامتر opt داده شد
+                            value={workGroupOptions.find((opt: SelectOption) => opt.id === field.value) || null}
                             onChange={(option) => field.onChange(option ? option.id : null)}
                             disabled={!isEditing || updateMutation.isPending}
                             error={errors.employee?.work_group_id?.message}

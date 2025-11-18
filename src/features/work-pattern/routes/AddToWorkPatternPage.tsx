@@ -20,6 +20,7 @@ import {
 import { type User } from '@/features/User/types/index';
 
 // --- ✅ هوک‌ها و تایپ‌های گروه‌های کاری ---
+// ✅ حل خطای TS2724: استفاده از هوک جدید useWorkGroups
 import { useWorkGroups, useUpdateWorkGroup } from '@/features/work-group/hooks/hook';
 import { type WorkGroup } from '@/features/work-group/types/index';
 
@@ -98,7 +99,8 @@ function AddToWorkPattern() {
   const workGroups: WorkGroup[] = useMemo(() => {
     const allGroups = workGroupsResponse?.data ?? [];
     if (!searchQuery || activeTab !== 'WORK_GROUPS') return allGroups;
-    return allGroups.filter(g => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    // ✅ حل خطای TS7006: تایپ صریح WorkGroup به پارامتر g داده شد
+    return allGroups.filter((g: WorkGroup) => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [workGroupsResponse, searchQuery, activeTab]);
 
 
