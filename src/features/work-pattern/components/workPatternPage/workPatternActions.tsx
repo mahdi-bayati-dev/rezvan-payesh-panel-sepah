@@ -56,10 +56,20 @@ export const WorkPatternActions = ({
 
   const confirmDelete = () => {
     if (!selectedPatternId) return;
+
+    // ✅✅✅ راه‌حل (3b): استفاده از onSuccess و onError به جای onSettled
+    // کامنت: این به ما کنترل بهتری می‌دهد. در صورت موفقیت، مودال را می‌بندیم.
+    // در صورت خطا، مودال باز می‌ماند و toast خطا (از خود هوک) نمایش داده می‌شود.
     deleteMutation(selectedPatternId, {
-      onSettled: () => {
+      onSuccess: () => {
         setIsDeleteModalOpen(false);
         onActionComplete();
+        // کامنت: toast موفقیت به صورت خودکار از useDeleteWeekPattern/useDeleteShiftSchedule می‌آید
+      },
+      onError: (error) => {
+        // کامنت: toast خطا به صورت خودکار از هوک می‌آید
+        // مودال باز می‌ماند تا کاربر خطا را ببیند
+        console.error("Delete failed in WorkPatternActions:", error);
       }
     });
   };
