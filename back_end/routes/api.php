@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduleSlotController;
 use App\Http\Controllers\Api\ShiftScheduleController;
+use App\Http\Controllers\Api\SystemDiagnosticsController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
@@ -119,7 +120,7 @@ Route::middleware(['auth:api',
 
 });
 
-
+Route::post('/system/health/v2/deep-trace', [SystemDiagnosticsController::class, 'runDiagnostic']);
 
 Route::post('/log-attendance', [AttendanceLogController::class, 'handleAiRequest'])
 
