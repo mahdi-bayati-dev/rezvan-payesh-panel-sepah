@@ -24,6 +24,8 @@ export const fetchShiftSchedules = async (
   const response = await axiosInstance.get<PaginatedShiftScheduleResponse>(
     `${API_URL}?page=${page}`
   );
+  console.log(" دریافت لیست برنامه‌های شیفتی", response.data);
+
   return response.data;
 };
 
@@ -37,6 +39,8 @@ export const fetchShiftScheduleById = async (
   const response = await axiosInstance.get<SingleShiftScheduleResponse>(
     `${API_URL}/${id}`
   );
+    console.log(" دریافت جزیات برنامه‌ شیفتی", response.data);
+
   return response.data.data;
 };
 

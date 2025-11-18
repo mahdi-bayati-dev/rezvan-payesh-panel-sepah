@@ -34,8 +34,18 @@ export const fetchUsers = async (
   if (params.work_pattern_id) {
     queryParams.append("work_pattern_id", String(params.work_pattern_id));
   }
+    // ✅ افزودن پارامتر فیلتر جدید
+  if (params.work_pattern_id) {
+    queryParams.append("work_pattern_id", String(params.work_pattern_id));
+  }
+  // ✅✅✅ افزودن پارامتر فیلتر جدید
+  if (params.shift_schedule_id) {
+    queryParams.append("shift_schedule_id", String(params.shift_schedule_id));
+  }
 
   const { data } = await axiosInstance.get(`/users?${queryParams.toString()}`);
+  console.log('==>',data);
+  
   return data;
 };
 
@@ -59,6 +69,28 @@ export const updateUserOrganization = async ({
   const { data } = await axiosInstance.put(`/users/${userId}`, payload);
 
   return data; // API شما UserResource را برمی‌گرداند
+};
+/**
+ * ✅✅✅ تابع API جدید: تخصیص برنامه شیفتی به کاربر
+ * (این یک Wrapper اختصاصی برای updateUserProfile است)
+ */
+export const updateUserShiftScheduleAssignment = async ({
+  userId,
+  shiftScheduleId,
+}: {
+  userId: number;
+  shiftScheduleId: number | null;
+}): Promise<User> => {
+  // ما از همان اندپوینت PUT /users/{userId} استفاده می‌کنیم
+  // اما payload را طوری می‌سازیم که فقط shift_schedule_id را تغییر دهد
+  const payload: UserProfileFormData = {
+    employee: {
+      shift_schedule_id: shiftScheduleId,
+    } as any, // (cast as any چون فقط یک فیلد می‌فرستیم)
+  };
+  
+  // (از تابع موجود updateUserProfile استفاده مجدد می‌کنیم)
+  return updateUserProfile({ userId, payload });
 };
 
 /**

@@ -31,7 +31,7 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
     // --- ۱. آماده‌سازی داده‌ها برای کامپوننت گنگ ---
 
     const displayName = employee ? `${employee.first_name} ${employee.last_name}`.trim() : user.user_name;
-    
+
     const avatarPlaceholder = getAvatarPlaceholder(employee?.first_name, employee?.last_name);
 
     // ✅ ساخت آرایه Data-Driven بر اساس تایپ InfoRowData
@@ -45,9 +45,10 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
             value: employee?.organization?.name || '---'
         },
         {
+            // ✅✅✅ اصلاحیه کلیدی (هماهنگ با آپدیت types) ✅✅✅
+            // به جای 'work_group_id'، ما 'work_group.name' را می‌خوانیم
             label: "گروه کاری",
-            // (مقدار work_group_id عددی است، باید به رشته تبدیل شود)
-            value: String(employee?.work_group_id || '---') 
+            value: employee?.work_group?.name || '---'
         },
         {
             label: "سال ورود",
@@ -59,7 +60,7 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
     return (
         // (استایل‌های قبلی شما برای border و ... حفظ شده است)
         <div className="p-6 rounded-r-lg  bg-backgroundL-500 dark:bg-backgroundD sticky top-8">
-            
+
             <UserInfoCard
                 title="مشخصات کاربری" // (عنوان بالای کارت)
                 name={displayName}
@@ -67,10 +68,9 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
                 // avatarUrl={user.employee?.avatar_url} // (اگر URL آواتار داشتید)
                 infoRows={infoRows}
             />
-            
+
         </div>
     );
 };
 
 export default UserProfileSidebar;
-

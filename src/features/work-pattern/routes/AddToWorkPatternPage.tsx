@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-// import { useNavigate } from 'react-router-dom'; // ✅ خطای ۱۲: حذف شد (استفاده نشده)
+// import { useNavigate } from 'react-router-dom'; // (حذف شد چون استفاده نشده)
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,50 +9,43 @@ import {
 import clsx from 'clsx'
 import { toast } from 'react-toastify';
 
-// ✅ ۱. ایمپورت هوک‌های واقعی (User و Work Pattern)
+// --- هوک‌ها و تایپ‌ها ---
 import { useUsers, useUpdateUserWorkPattern } from '@/features/User/hooks/hook';
 import { type User } from '@/features/User/types/index';
 import { useWorkPatternsList } from '@/features/work-group/hooks/hook';
 
-
-import SelectBox, { type SelectOption } from "@/components/ui/SelectBox"; // ✅ حروف کوچک
-import Input from "@/components/ui/Input"; // ✅ حروف کوچک
-import { Button } from "@/components/ui/Button"; // ✅ حروف کوچک
+// --- کامپوننت‌های UI ---
+// ✅ اصلاح حساسیت به حروف (Case-sensitivity)
+import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
+import Input from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable/index";
-import Checkbox from "@/components/ui/CheckboxTable";
+import Checkbox from "@/components/ui/CheckboxTable"; // (فرض می‌کنیم این هم با حروف کوچک است)
 import { UserPlus, Search, Loader2 } from 'lucide-react';
 
 
 // --- کامپوننت اصلی ---
 
 function AddToWorkPattern() {
-  // const navigate = useNavigate(); // ✅ حذف شد
-  // استیت برای الگوی کاری انتخاب شده
+  // const navigate = useNavigate();
   const [selectedPattern, setSelectedPattern] = useState<SelectOption | null>(null);
-  // استیت برای متن جستجو
   const [searchQuery, setSearchQuery] = useState("");
-  // استیت برای ردیف‌های انتخاب شده در جدول
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  // استیت برای لودینگ‌های تکی
-  // const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({}); // ✅ خطای ۱۳: حذف شد (استفاده نشده)
+  // const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({}); // (استفاده نشده)
 
 
-  // ✅ ۲. فچ کردن لیست کارمندان و الگوها
   const { data: usersResponse, isLoading: isLoadingUsers } = useUsers({
     page: 1,
-    per_page: 9999,
+    per_page: 9999, // (فرض می‌کنیم می‌خواهیم همه کاربران را بدون صفحه‌بندی بیاوریم)
     search: searchQuery
   });
 
   const { data: rawPatterns, isLoading: isLoadingPatterns } = useWorkPatternsList();
 
-  // ✅ ۳. هوک Mutation برای تخصیص الگوی کاری
   const patternAssignmentMutation = useUpdateUserWorkPattern();
-
 
   const employees: User[] = usersResponse?.data ?? [];
 
-  // ✅ ۴. تبدیل لیست الگوها به SelectOption
   const patternOptions: SelectOption[] = useMemo(() => {
     return rawPatterns?.map(p => ({ id: p.id, name: p.name })) || [];
   }, [rawPatterns]);
@@ -96,11 +89,12 @@ function AddToWorkPattern() {
     },
     { header: 'کد پرسنلی', accessorKey: 'employee.personnel_code', cell: ({ row }) => row.original.employee?.personnel_code || '---' },
     {
-      header: 'الگوی کاری فعلی', accessorKey: 'employee.work_pattern_id', cell: ({ row }) => {
-        const patternId = row.original.employee?.work_pattern_id;
-        const pattern = patternOptions.find(p => p.id === patternId);
-        return pattern?.name || '---';
-      }
+      // ✅✅✅ اصلاحیه کلیدی (هماهنگ با آپدیت types) ✅✅✅
+      header: 'الگوی کاری فعلی',
+      // به جای 'employee.work_pattern_id'، ما از 'accessorFn'
+      // برای خواندن نام از آبجکت تو در تو 'week_pattern' استفاده می‌کنیم
+      accessorFn: (row) => row.employee?.week_pattern?.name,
+      cell: info => info.getValue() || <span className="text-muted-foregroundL dark:text-muted-foregroundD">---</span>,
     },
     {
       header: 'وضعیت',
@@ -116,7 +110,7 @@ function AddToWorkPattern() {
         </span>
       )
     }
-  ], [patternOptions]);
+  ], []); // (وابستگی patternOptions حذف شد چون accessorFn مستقیم نام را می‌خواند)
 
 
   const table = useReactTable({
@@ -149,9 +143,6 @@ function AddToWorkPattern() {
       .rows
       .map(row => row.original.id);
 
-    // ۱. تنظیم حالت لودینگ
-    // (منطق loadingStates حذف شد چون استفاده نشده بود)
-
     // ۲. ایجاد آرایه پرامیس‌ها برای آپدیت
     const promises = selectedUserIds.map(userId =>
       patternAssignmentMutation.mutateAsync({ userId, workPatternId })
@@ -167,7 +158,6 @@ function AddToWorkPattern() {
         const successCount = results.filter(r => r.status === 'fulfilled').length;
         const errorCount = results.filter(r => r.status === 'rejected').length;
 
-        // ✅✅✅ اصلاح خطای ۱۴: اضافه کردن if check ✅✅✅
         if (successCount > 0 && selectedPattern) {
           toast.success(`${successCount} کارمند با موفقیت به الگوی "${selectedPattern.name}" تخصیص یافتند.`);
         }
@@ -178,7 +168,6 @@ function AddToWorkPattern() {
       .finally(() => {
         // ۴. پاکسازی نهایی
         setRowSelection({});
-        // setLoadingStates({}); // ✅ حذف شد
       });
   };
 

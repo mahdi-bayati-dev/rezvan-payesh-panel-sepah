@@ -1,52 +1,53 @@
 import { createBrowserRouter } from "react-router-dom";
 import { Suspense, lazy } from "react";
-import { Spinner } from "@/components/ui/Spinner";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { ProtectedRoute } from "@/routes/ProtectedRoute/ProtectedRoute";
+// ✅ اصلاح مسیر:
+import { Spinner } from "../components/ui/Spinner";
+import { MainLayout } from "../components/layout/MainLayout";
+import { ProtectedRoute } from "./ProtectedRoute/ProtectedRoute";
 
 // --- ۱. ایمپورت‌های جدید (مسیریاب هوشمند و صفحه جزئیات کاربر) ---
-const ReportsIndexPage = lazy(() => import("@/features/reports/routes/ReportsIndexPage"));
-const MyReportPageDetails = lazy(() => import("@/features/reports/routes/myReportPageDetails"));
+// ✅ اصلاح مسیر:
+const ReportsIndexPage = lazy(() => import("../features/reports/routes/ReportsIndexPage"));
+const MyReportPageDetails = lazy(() => import("../features/reports/routes/myReportPageDetails"));
 // ---
 
 // صفحات Lazy (قبلی)
-const DashboardPage = lazy(() => import("@/features/dashboard/routes/DashboardPage"));
-const LoginPage = lazy(() => import("@/features/auth/routes/LoginPage"));
-const RequestsPage = lazy(() => import("@/features/requests/routes/requestsPage"));
-const NewRequestPage = lazy(() => import("@/features/requests/routes/NewRequestPage"));
-const RequestDetailPage = lazy(() => import("@/features/requests/routes/RequestDetailPage"));
-const ExportSettingsPage = lazy(() => import("@/features/requests/routes/ExportSettingsPage"));
-const TableSettingsPage = lazy(() => import("@/features/requests/routes/TableSettingsPage"));
-// const ActivityReportPage = lazy(() => import("@/features/reports/routes/reportPage")); // (این دیگر مستقیماً استفاده نمی‌شود، بلکه توسط IndexPage فراخوانی می‌شود)
-const ReportsPageSkeleton = lazy(() => import("@/features/reports/Skeleton/SkeletonRepotrs"));
+// ✅ اصلاح مسیر:
+const DashboardPage = lazy(() => import("../features/dashboard/routes/DashboardPage"));
+const LoginPage = lazy(() => import("../features/auth/routes/LoginPage"));
+const RequestsPage = lazy(() => import("../features/requests/routes/requestsPage"));
+const NewRequestPage = lazy(() => import("../features/requests/routes/NewRequestPage"));
+const RequestDetailPage = lazy(() => import("../features/requests/routes/RequestDetailPage"));
+const ExportSettingsPage = lazy(() => import("../features/requests/routes/ExportSettingsPage"));
+const TableSettingsPage = lazy(() => import("../features/requests/routes/TableSettingsPage"));
+const ReportsPageSkeleton = lazy(() => import("../features/reports/Skeleton/SkeletonRepotrs"));
 
-const ActivityReportPageDetails = lazy(() => import("@/features/reports/routes/reportPageDetails"));
-const EmployeeReportsPage = lazy(() => import("@/features/reports/routes/EmployeeReportsPage"));
-const NewActivityRegistrationPage = lazy(() => import("@/features/reports/routes/NewReportPage"));
-const WorkPatternPage = lazy(() => import("@/features/work-pattern/routes/WorkPatternPage"));
-const WorkPatternPageSkeleton = lazy(() => import("@/features/work-pattern/Skeleton/Skeleton"));
+const ActivityReportPageDetails = lazy(() => import("../features/reports/routes/reportPageDetails"));
+const EmployeeReportsPage = lazy(() => import("../features/reports/routes/EmployeeReportsPage"));
+const NewActivityRegistrationPage = lazy(() => import("../features/reports/routes/NewReportPage"));
+const WorkPatternPage = lazy(() => import("../features/work-pattern/routes/WorkPatternPage"));
+const WorkPatternPageSkeleton = lazy(() => import("../features/work-pattern/Skeleton/Skeleton"));
 
-const NewWorkPatternPage = lazy(() => import("@/features/work-pattern/routes/NewPatternSelectorPage"));
-const AddToWorkPattern = lazy(() => import("@/features/work-pattern/routes/AddToWorkPatternPage"))
-const WorkPatternsEdit = lazy(() => import('@/features/work-pattern/routes/EditWeekPatternPage'))
-const WorkPatternsEmployeesPage = lazy(() => import('@/features/work-pattern/routes/WorkPatternEmployeesPage'))
-const EditShiftSchedulePage = lazy(() => import('@/features/shift-schedule/routes/EditShiftSchedulePage'))
-const EditShiftScheduleFormSkeleton = lazy(() => import('@/features/shift-schedule/Skeleton/EditShiftScheduleFormSkeleton'))
+const NewWorkPatternPage = lazy(() => import("../features/work-pattern/routes/NewPatternSelectorPage"));
+const WorkPatternsEdit = lazy(() => import('../features/work-pattern/routes/EditWeekPatternPage'))
+const WorkPatternsEmployeesPage = lazy(() => import('../features/work-pattern/routes/WorkPatternEmployeesPage'))
+const EditShiftSchedulePage = lazy(() => import('../features/shift-schedule/routes/EditShiftSchedulePage'))
+const EditShiftScheduleFormSkeleton = lazy(() => import('../features/shift-schedule/Skeleton/EditShiftScheduleFormSkeleton'))
 
-const WorkGroupPage = lazy(() => import("@/features/work-group/routes/workGroupPage"))
-const WorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/workGroupDetailPage"))
-const NewWorkGroupDetailPage = lazy(() => import("@/features/work-group/routes/NewWorkGroupPage"))
-const OrganizationPage = lazy(() => import('@/features/Organization/routes/OrganizationPage'))
-const OrganizationDetailPage = lazy(() => import('@/features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
-const CreateUser = lazy(() => import('@/features/User/components/userCreate/CreateUserPage'))
-const AssignUserPage = lazy(() => import('@/features/User/components/AssignUser/AssignUserPage'))
-const UserProfilePage = lazy(() => import('@/features/User/components/userPage/UserProfilePage'))
-const WorkCalendarPage = lazy(() => import('@/features/work-calendar/routes/WorkCalendarPage'))
+const WorkGroupPage = lazy(() => import("../features/work-group/routes/workGroupPage"))
+const WorkGroupDetailPage = lazy(() => import("../features/work-group/routes/workGroupDetailPage"))
+const NewWorkGroupDetailPage = lazy(() => import("../features/work-group/routes/NewWorkGroupPage"))
+const OrganizationPage = lazy(() => import('../features/Organization/routes/OrganizationPage'))
+const OrganizationDetailPage = lazy(() => import('../features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
+const CreateUser = lazy(() => import('../features/User/components/userCreate/CreateUserPage'))
+const AssignUserPage = lazy(() => import('../features/User/components/AssignUser/AssignUserPage'))
+const UserProfilePage = lazy(() => import('../features/User/components/userPage/UserProfilePage'))
+const WorkCalendarPage = lazy(() => import('../features/work-calendar/routes/WorkCalendarPage'))
 
-const AdminManagement = lazy(() => import('@/features/User/components/userPage/AdminManagementPage'))
+const AdminManagement = lazy(() => import('../features/User/components/userPage/AdminManagementPage'))
 
-const DevicePage = lazy(() => import('@/features/devices/routes/DevicePage'));
-const ErrorPage = lazy(() => import("@/routes/ErrorPage"));
+const DevicePage = lazy(() => import('../features/devices/routes/DevicePage'));
+const ErrorPage = lazy(() => import("./ErrorPage")); // ✅ اصلاح مسیر:
 
 export const router = createBrowserRouter([
   {
@@ -114,10 +115,6 @@ export const router = createBrowserRouter([
             path: "/reports",
             element: (
               <Suspense fallback={<ReportsPageSkeleton />}>
-                {/* این کامپوننت هوشمند (ReportsIndexPage) است
-                  که خودش بر اساس نقش کاربر (Role) تصمیم می‌گیرد 
-                  صفحه ادمین (ActivityReportPage) یا صفحه کاربر (MyReportsPage) را نشان دهد.
-                */}
                 <ReportsIndexPage />
               </Suspense>
             ),
@@ -196,14 +193,7 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-          {
-            path: "/work-patterns/add-to-work-pattern",
-            element: (
-              <Suspense fallback={<Spinner />}>
-                < AddToWorkPattern />
-              </Suspense>
-            ),
-          },
+
           {
             path: "/work-patterns/edit/:patternId",
             element: (
@@ -212,14 +202,18 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+
+          // ✅✅✅ اصلاحیه کلیدی (مشکل شماره ۱) ✅✅✅
+          // روت باید هر دو پارامتر :patternType و :patternId را بپذیرد
           {
-            path: `/work-patterns/employees/:patternId`,
+            path: `/work-patterns/employees/:patternType/:patternId`,
             element: (
               <Suspense fallback={<Spinner />}>
                 < WorkPatternsEmployeesPage />
               </Suspense>
             ),
           },
+
           {
             path: "/shift-schedules/edit/:patternId",
             element: (

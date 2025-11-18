@@ -10,7 +10,7 @@ import type {
 export interface WorkPattern {
   id: number;
   name: string;
-  type: "fixed"; // یا هر تایپ دیگری که ممکن است وجود داشته باشد
+  type: "fixed" | "floating";
   start_time: string; // H:i
   end_time: string; // H:i
   work_duration_minutes: number;
