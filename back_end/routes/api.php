@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\SystemDiagnosticsController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
+use App\Http\Controllers\Api\WorkGroupEmployeeController;
 use App\Http\Controllers\DevicesController;
 use App\Http\Middleware\CheckLicenseStatus;
 use App\Http\Resources\UserResource;
@@ -63,6 +64,9 @@ Route::middleware(['auth:api',
 
     //users
     Route::apiResource('users', UserController::class);
+
+    //manage work group users
+    Route::patch('/work-groups/{workGroup}/employees', [WorkGroupEmployeeController::class, 'updateEmployees']);
 
     //devices
     Route::apiResource('devices', DevicesController::class);
