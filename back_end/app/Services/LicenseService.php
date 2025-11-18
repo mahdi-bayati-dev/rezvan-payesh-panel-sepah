@@ -37,11 +37,6 @@ class LicenseService
 
         $key = substr($this->trialEncryptionKey, 0, 32);
 
-        if (base64_decode($key, true) !== false) {
-
-            $key = base64_decode($key);
-        }
-
         return new Encrypter($key, 'AES-256-CBC');
     }
 
