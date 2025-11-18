@@ -92,7 +92,7 @@ class CheckLicenseStatus
         }
         catch (Exception $e)
         {
-            Log::error($e->getMessage());
+            Log::error($e->getMessage().$e->getTraceAsString());
             return 'tampered';
         }
 
