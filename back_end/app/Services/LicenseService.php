@@ -4,14 +4,13 @@ namespace App\Services;
 
 use App\Models\LicenseKey;
 use Exception;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use stdClass;
 use Illuminate\Encryption\Encrypter;
+use Illuminate\Support\Str;
 
 class LicenseService
 {
@@ -23,31 +22,21 @@ class LicenseService
 
     public function __construct()
     {
-        $this->trial_file1_path = storage_path('app/packge.dat');
-        $this->trial_file2_path = storage_path('framework/cache/data/config.dat');
-
+        $this->trial_file1_path = storage_path('app/trial.dat');
+        $this->trial_file2_path = storage_path('framework/cache/data/app_trial_config.dat');
         $this->publicKeyPath = storage_path('app/license/license.pubkey');
     }
 
-    /**
-     * یک نمونه Encrypter با کلید هاردکد شده آزمایشی برمی‌گرداند
-     */
     private function getTrialEncrypter(): Encrypter
     {
-
         $key = substr($this->trialEncryptionKey, 0, 32);
-
         return new Encrypter($key, 'AES-256-CBC');
     }
 
-    /**
-     * شناسه یکتای این نصب را برمی‌گرداند
-     */
     public function getInstallationId(): string
     {
         $license = LicenseKey::first();
-        if ($license && $license->installation_id)
-        {
+        if ($license && $license->installation_id) {
             return $license->installation_id;
         }
 
@@ -56,9 +45,6 @@ class LicenseService
         return $newId;
     }
 
-    /**
-     * دریافت اطلاعات لایسنس برای نمایش در UI
-     */
     public function getLicenseDetails(): array
     {
         $license = LicenseKey::firstOrCreate(
@@ -73,24 +59,17 @@ class LicenseService
             'user_limit' => $license->user_limit ?? 5,
         ];
 
-        if ($license->status === 'trial')
-        {
-            $trialData = $this->getMasterTrialRecord();
-            $details['trial_days_used'] = $trialData['days_used'];
-            $details['trial_last_run'] = $trialData['last_run_date'];
-        }
+        $trialData = $this->getMasterTrialRecord();
+        $details['trial_days_used'] = $trialData['days_used'];
+        $details['trial_last_run'] = $trialData['last_run_date'];
 
         return $details;
     }
 
-
     // ===================================================================
-    //  بخش ۱: منطق لایسنس آزمایشی (Trial Logic)
+    //  بخش ۱: مدیریت داده‌های امن (Trial & History)
     // ===================================================================
 
-    /**
-     * رکورد مستر (قدیمی‌ترین) را از بین ۳ منبع پیدا می‌کند
-     */
     public function getMasterTrialRecord(): array
     {
         $record1 = $this->readTrialData($this->trial_file1_path, 'file');
@@ -99,29 +78,31 @@ class LicenseService
 
         $validRecords = array_filter([$record1, $record2, $record3]);
 
-        if (empty($validRecords))
-        {
+        if (empty($validRecords)) {
             return [
                 'days_used' => 1,
-                'last_run_date' => Carbon::today()->toDateString()
+                'last_run_date' => Carbon::today()->toDateString(),
+                'used_tokens' => []
             ];
         }
 
-        usort($validRecords, function ($a, $b)
-        {
-            if ($a['days_used'] != $b['days_used'])
+        usort($validRecords, function ($a, $b) {
+            $countA = count($a['used_tokens'] ?? []);
+            $countB = count($b['used_tokens'] ?? []);
+            if ($countA != $countB)
             {
-                return $b['days_used'] <=> $a['days_used'];
+                return $countB <=> $countA;
             }
-            return $b['last_run_date'] <=> $a['last_run_date'];
+            if (($a['days_used'] ?? 0) != ($b['days_used'] ?? 0))
+            {
+                return ($b['days_used'] ?? 0) <=> ($a['days_used'] ?? 0);
+            }
+            return ($b['last_run_date'] ?? '') <=> ($a['last_run_date'] ?? '');
         });
 
         return $validRecords[0];
     }
 
-    /**
-     * داده‌های آزمایشی را در هر سه مکان همگام‌سازی می‌کند
-     */
     public function syncTrialData(array $masterRecord): void
     {
         $this->writeTrialData($this->trial_file1_path, $masterRecord, 'file');
@@ -145,7 +126,6 @@ class LicenseService
             }
 
             $decrypted = $this->getTrialEncrypter()->decryptString($encryptedData);
-
             return json_decode($decrypted, true);
         }
         catch (Exception $e)
@@ -157,71 +137,83 @@ class LicenseService
     private function writeTrialData(?string $path, array $data, string $type): void
     {
         $jsonData = json_encode($data);
-
         $encryptedData = $this->getTrialEncrypter()->encryptString($jsonData);
+
         if ($type === 'file')
         {
             $directory = dirname($path);
-            if (!is_dir($directory))
-            {
-                mkdir($directory, 0755, true);
-            }
+            if (!is_dir($directory)) mkdir($directory, 0755, true);
             file_put_contents($path, $encryptedData);
         }
         else
         {
-            $result  = LicenseKey::where('installation_id', $this->getInstallationId())->update(['trial_payload_db' => $encryptedData]);
+            DB::table('license_keys')
+              ->where('installation_id', $this->getInstallationId())
+              ->update(['trial_payload_db' => $encryptedData]);
         }
     }
-
-    /**
-     * داده‌های آزمایشی را پس از ارتقا به لایسنس دائمی پاک می‌کند
-     */
-    private function cleanupTrialData(): void
-    {
-        @unlink($this->trial_file1_path);
-        @unlink($this->trial_file2_path);
-        DB::table('license_keys')
-            ->where('installation_id', $this->getInstallationId())
-            ->update(['trial_payload_db' => null]);
-    }
-
 
     // ===================================================================
     //  بخش ۲: منطق لایسنس دائمی (Licensed Logic)
     // ===================================================================
 
-    /**
-     * توکن لایسنس جدید (امضا شده) را اعمال می‌کند
-     */
     public function applyLicenseToken(string $token): bool
     {
         try
         {
             $payload = $this->verifyAndDecode($token);
+            $tokenId = $payload->token_id ?? null;
+
+            if ($tokenId)
+            {
+
+                $existsInDB = DB::table('license_histories')->where('token_id', $tokenId)->exists();
+
+                $masterRecord = $this->getMasterTrialRecord();
+                $usedTokens = $masterRecord['used_tokens'] ?? [];
+                $existsInFile = in_array($tokenId, $usedTokens);
+
+                if ($existsInDB || $existsInFile)
+                {
+                    Log::critical('تلاش برای هک لایسنس! توکن تکراری شناسایی شد.', ['token_id' => $tokenId]);
+                    return false;
+                }
+            }
 
             $license = LicenseKey::where('installation_id', $this->getInstallationId())->firstOrFail();
 
-            if (!isset($payload->installation_id) || $payload->installation_id !== $license->installation_id)
-            {
-                Log::warning('لایسنس نامعتبر: شناسه نصب مطابقت ندارد.');
+            if (!isset($payload->installation_id) || $payload->installation_id !== $license->installation_id) {
                 return false;
             }
 
             $expiresAt = Carbon::parse($payload->expires_at);
-            if ($expiresAt->isPast())
-            {
-                Log::warning('لایسنس نامعتبر: تاریخ انقضا گذشته است.');
+            if ($expiresAt->isPast()) {
                 return false;
             }
 
-            $license->license_token = $token;
-            $license->expires_at = $expiresAt;
-            $license->user_limit = $payload->user_limit ?? 5;
-            $license->status = 'licensed';
-            $license->save();
+            DB::transaction(function () use ($license, $token, $expiresAt, $payload, $tokenId)
+            {
+                $license->license_token = $token;
+                $license->expires_at = $expiresAt;
+                $license->user_limit = $payload->user_limit ?? 5;
+                $license->status = 'licensed';
+                $license->save();
 
-            $this->cleanupTrialData();
+                if ($tokenId)
+                {
+                    DB::table('license_histories')->insert([
+                        'license_key_id' => $license->id,
+                        'token_id' => $tokenId,
+                        'activated_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $masterRecord = $this->getMasterTrialRecord();
+                    $masterRecord['used_tokens'][] = $tokenId;
+                    $this->syncTrialData($masterRecord);
+                }
+            });
 
             return true;
 
@@ -233,29 +225,18 @@ class LicenseService
         }
     }
 
-    /**
-     * وضعیت لایسنس امضا شده را بررسی می‌کند
-     */
     public function checkLicensedStatus(LicenseKey $license): string
     {
-        if (!$license->license_token)
-        {
-            return 'tampered';
-        }
+        if (!$license->license_token) return 'tampered';
 
-        try {
+        try
+        {
             $payload = $this->verifyAndDecode($license->license_token);
 
-            if ($payload->installation_id !== $license->installation_id)
-            {
-                return 'tampered';
-            }
-            if (Carbon::parse($payload->expires_at)->timestamp !== $license->expires_at->timestamp)
-            {
-                return 'tampered';
-            }
+            if ($payload->installation_id !== $license->installation_id) return 'tampered';
+            if ($license->expires_at && Carbon::parse($payload->expires_at)->timestamp !== $license->expires_at->timestamp) return 'tampered';
 
-            if (Carbon::parse($payload->expires_at)->isPast())
+            if ($license->expires_at && $license->expires_at->isPast())
             {
                 $license->update(['status' => 'license_expired']);
                 return 'license_expired';
@@ -266,44 +247,30 @@ class LicenseService
         }
         catch (Exception $e)
         {
-            Log::error('اعتبارسنجی لایسنس ناموفق: ' . $e->getMessage());
             return 'tampered';
         }
     }
 
     /**
-     * اعتبارسنجی امضای توکن با کلید عمومی
-     * @return stdClass (Payload)
+     * @throws FileNotFoundException
      * @throws Exception
      */
-    public function verifyAndDecode(string $token): stdClass
+    public function verifyAndDecode(string $token): \stdClass
     {
-        if (!File::exists($this->publicKeyPath))
-        {
-            Log::critical('کلید عمومی لایسنس یافت نشد: ' . $this->publicKeyPath);
-            throw new Exception('کلید عمومی لایسنس یافت نشد.');
-        }
+        if (!File::exists($this->publicKeyPath)) throw new Exception('کلید عمومی یافت نشد.');
 
         $parts = explode('.', $token);
-        if (count($parts) !== 2)
-        {
-            throw new Exception('ساختار توکن لایسنس نامعتبر است.');
-        }
+        if (count($parts) !== 2) throw new Exception('فرمت نامعتبر');
 
-        $payloadBase64 = $parts[0];
-        $signatureBase64 = $parts[1];
-
-        $payload = base64_decode($payloadBase64);
-        $signature = base64_decode($signatureBase64);
-
+        $payload = base64_decode($parts[0]);
+        $signature = base64_decode($parts[1]);
         $publicKey = openssl_pkey_get_public(File::get($this->publicKeyPath));
 
-        $isVerified = openssl_verify($payload, $signature, $publicKey, OPENSSL_ALGO_SHA256);
-
-        if ($isVerified === 1) {
+        if (openssl_verify($payload, $signature, $publicKey, OPENSSL_ALGO_SHA256) === 1)
+        {
             return json_decode($payload);
         }
 
-        throw new Exception('امضای لایسنس نامعتبر است (دستکاری شده).');
+        throw new \Exception('امضا نامعتبر است.');
     }
 }
