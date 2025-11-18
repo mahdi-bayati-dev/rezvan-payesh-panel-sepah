@@ -9,6 +9,7 @@ use App\Models\LicenseKey;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\LicenseService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,6 +36,26 @@ class UserController extends Controller
         $currentUserEmployee = $currentUser->employee;
 
         $query = User::with(['employee.organization', 'roles', 'employee.workGroup', 'employee.shiftSchedule', 'employee.weekPattern']);
+
+        if ($request->has('work_group_id'))
+        {
+            $groupId = $request->input('work_group_id');
+
+            if ($groupId === 'null' || is_null($groupId))
+            {
+                $query->whereHas('employee', function (Builder $q)
+                {
+                    $q->whereNull('work_group_id');
+                });
+            }
+            else
+            {
+                $query->whereHas('employee', function (Builder $q) use ($groupId) {
+                    $q->where('work_group_id', $groupId);
+                });
+            }
+        }
+
         $adminOrg = $currentUserEmployee?->organization;
 
         if(!$adminOrg && ($currentUser->hasRole('org-admin-l2') || $currentUser->hasRole('org-admin-l3')) )
