@@ -1,7 +1,6 @@
 // src/features/dashboard/routes/DashboardPage.tsx
 
 import { useState, useMemo, type ReactNode } from "react";
-// ایمپورت آیکون‌های مورد نیاز
 import {
   UserCheck,
   Clock,
@@ -9,20 +8,22 @@ import {
   CalendarOff,
   Briefcase,
   Users,
+  BarChart3
 } from "lucide-react";
 
-// ایمپورت React Query
 import { useQuery } from '@tanstack/react-query';
+import { useAppSelector } from "@/hook/reduxHooks";
+import { selectUserRoles } from "@/store/slices/authSlice";
+import { ROLES } from "@/constants/roles";
 
-// ایمپورت‌های مربوط به تاریخ و API
 import { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+
 import {
   fetchDashboardData,
   type DashboardData,
   type SummaryStats,
-  // [✅ اصلاح مسیر ایمپورت]
 } from "@/features/dashboard/api/dashboardApi";
 
 import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
@@ -34,10 +35,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 type TimeFilter = "daily" | "weekly" | "monthly";
 
-// ====================================================================
-// تعریف نوع داده برای کارت‌های آمار (همان ساختار SummaryStats)
-// ====================================================================
-
+// پیکربندی کارت‌های آماری
 interface StatConfig {
   key: keyof SummaryStats;
   title: string;
@@ -46,174 +44,172 @@ interface StatConfig {
   variant: 'success' | 'warning' | 'danger' | 'info';
 }
 
-
-// پیکربندی ثابت کارت‌ها
 const statsConfig: StatConfig[] = [
   {
     key: "total_present",
-    title: "کارمندان حاضر",
+    title: "حاضرین امروز",
     linkText: "مشاهده",
-    icon: <UserCheck size={20} className="text-green-500" />,
+    icon: <UserCheck size={20} className="text-green-600 dark:text-green-400" />,
     variant: 'success',
   },
   {
     key: "total_lateness",
-    title: "تاخیرهای امروز",
+    title: "تاخیرها",
     linkText: "مشاهده",
-    icon: <Clock size={20} className="text-yellow-500" />,
+    icon: <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />,
     variant: 'warning',
   },
   {
     key: "total_early_departure",
-    title: "خروج زودهنگام",
+    title: "تعجیل خروج",
     linkText: "مشاهده",
-    icon: <Briefcase size={20} className="text-orange-500" />,
+    icon: <Briefcase size={20} className="text-orange-600 dark:text-orange-400" />,
     variant: 'danger',
   },
   {
     key: "total_on_leave",
-    title: "مرخصی‌های امروز",
+    title: "مرخصی روزانه",
     linkText: "مشاهده",
-    icon: <CalendarOff size={20} className="text-indigo-500" />,
+    icon: <CalendarOff size={20} className="text-indigo-600 dark:text-indigo-400" />,
     variant: 'info',
   },
   {
     key: "total_absent",
-    title: "کارمندان غایب", // (Not Available)
+    title: "غایبین / بدون شیفت",
     linkText: "مشاهده",
-    icon: <UserX size={20} className="text-red-500" />,
+    icon: <UserX size={20} className="text-red-600 dark:text-red-400" />,
     variant: 'danger',
   },
   {
     key: "total_employees_scoped",
-    title: "کل کارمندان تحت پوشش",
-    linkText: "مشاهده لیست",
-    icon: <Users size={20} className="text-blue-500" />,
+    title: "کل پرسنل",
+    linkText: "مشاهده",
+    icon: <Users size={20} className="text-blue-600 dark:text-blue-400" />,
     variant: 'info',
   },
 ];
 
-
-// ====================================================================
-// کامپوننت اصلی DashboardPage
-// ====================================================================
-
 const DashboardPage = () => {
   const [activeFilter, setActiveFilter] = useState<TimeFilter>("daily");
-
   const [selectedDate, setSelectedDate] = useState<DateObject | null>(
     new DateObject({ calendar: persian, locale: persian_fa })
   );
 
-  // [استفاده از React Query]
-  // ۱. کلید کوئری: شامل متغیرهای وابسته است تا با تغییر آنها، کوئری رفچ شود.
-  const queryKey = ['dashboardData', activeFilter, selectedDate ? selectedDate.format("YYYY-MM-DD") : null];
+  // دریافت نقش کاربر برای مدیریت نمایش
+  const userRoles = useAppSelector(selectUserRoles);
 
-  // ۲. هوک useQuery
+  // کلید کوئری یکتا
+  const queryKey = ['dashboardData', activeFilter, selectedDate?.format("YYYY-MM-DD")];
+
   const { data, isLoading, isError, error, refetch } = useQuery<DashboardData, Error>({
     queryKey: queryKey,
-    // تابع واکشی: از ماژول API که بهینه‌سازی کردیم استفاده می‌کند
     queryFn: () => fetchDashboardData(selectedDate, activeFilter),
-    // [نکته بهینه]: اگر فیلتر روزانه است، داده‌ها را 5 دقیقه stale نگه می‌داریم
-    staleTime: activeFilter === 'daily' ? 1000 * 60 * 5 : 1000 * 60 * 10,
-    // [نکته UX]: اگر توکن وجود نداشت، React Query خطا می‌دهد و مدیریت آن در Interceptor انجام می‌شود.
-    enabled: true, // همیشه فعال است
+    staleTime: 1000 * 60 * 2, // کش ۲ دقیقه‌ای
+    refetchOnWindowFocus: true 
   });
 
   // ====================================================================
-  // منطق آماده‌سازی داده‌های چارت (تبدیل ساختار API به ساختار Recharts)
+  // 1. آماده‌سازی داده‌های نمودار (با ایمنی کامل)
   // ====================================================================
-  // [استفاده از useMemo]: برای جلوگیری از re-calculation غیرضروری
   const chartData = useMemo(() => {
-    return data?.live_organization_stats
-      .flatMap(parentOrg => parentOrg.children_stats)
+    if (!data?.live_organization_stats) return [];
+    
+    return data.live_organization_stats
+      // [پچ امنیتی برای L2]:
+      // ممکن است children_stats نال باشد، با || [] جلوی کرش را می‌گیریم.
+      .flatMap(parentOrg => parentOrg.children_stats || [])
       .map(childStat => ({
         name: childStat.org_name,
         value: childStat.count
-      })) || [];
+      }));
   }, [data]);
+
+  // ====================================================================
+  // 2. لاجیک نمایش سکشن نمودار
+  // ====================================================================
+  const showChartSection = useMemo(() => {
+    if (isLoading) return true; // در حال لودینگ اسکلت نشان می‌دهیم
+
+    // اگر کاربر فقط ادمین L3 است، نمودار سازمانی (که خالیست) را نشان نده
+    const isL3Only = userRoles.includes(ROLES.ADMIN_L3) && 
+                     !userRoles.includes(ROLES.ADMIN_L2) && 
+                     !userRoles.includes(ROLES.SUPER_ADMIN);
+    
+    if (isL3Only) return false;
+
+    return true;
+  }, [isLoading, userRoles]);
 
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* پیام خطا در صورت وجود */}
-      {isError && (
-        <Alert variant="destructive">
-          <AlertTitle>خطای حیاتی</AlertTitle>
-          <AlertDescription>
-            خطا در بارگذاری اطلاعات: {(error as Error).message}. لطفا صفحه را رفرش کنید یا شبکه ای خود را بررسی کنید.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="p-4 bg-backgroundL-500 dark:bg-backgroundD flex flex-col gap-6 rounded-2xl border border-borderL dark:border-borderD transition-colors">
-        {/* هدر شامل فیلترهای زمان و تاریخ */}
+    <div className="flex flex-col gap-6 pb-10">
+      {/* کانتینر بالا: فیلترها و کارت‌ها */}
+      <div className="p-5 bg-backgroundL-500 dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD shadow-sm">
         <DashboardHeader
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
         />
-        <span className="my-2 flex items-center">
-          <span className="h-px flex-1 bg-borderL/50 dark:bg-borderD/50"></span>
-        </span>
+        
+        <div className="my-4 h-px bg-borderL/60 dark:bg-borderD/60" />
 
-        {/* ======================= کارت‌های آمار ======================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-2">
+        {/* گرید کارت‌ها */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {isLoading ? (
-            // اسکلت لودینگ برای کارت‌ها
             statsConfig.map((stat) => (
-              <div key={stat.key} className="flex flex-col gap-4 rounded-2xl border border-borderL bg-secondaryL/50 p-4 dark:border-borderD dark:bg-secondaryD/50 h-28">
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-8 w-1/3" />
-                <Skeleton className="h-4 w-1/4 self-end" />
+              <div key={stat.key} className="h-32 rounded-2xl border border-borderL p-4 bg-secondaryL/20 dark:border-borderD">
+                <Skeleton className="h-4 w-24 mb-4" />
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-full mt-auto" />
               </div>
             ))
+          ) : isError ? (
+             <Alert variant="destructive" className="col-span-full">
+              <AlertTitle>خطای دریافت اطلاعات</AlertTitle>
+              <AlertDescription>{(error as Error).message}</AlertDescription>
+            </Alert>
           ) : data ? (
-            // نمایش داده‌های واقعی
             statsConfig.map((stat) => (
               <StatCard
                 key={stat.key}
                 title={stat.title}
-                // استفاده از Type Assertion برای اطمینان از دسترسی به کلید
-                value={data.summary_stats[stat.key as keyof SummaryStats] || 0}
+                value={data.summary_stats[stat.key] ?? 0} 
                 linkText={stat.linkText}
                 icon={stat.icon}
-                onLinkClick={() => console.log(`Clicked on ${stat.title} | API Key: ${stat.key}`)}
+                onLinkClick={() => console.log(`Maps to: ${stat.key}`)}
               />
             ))
-          ) : (
-            // اگر داده‌ای نبود (مثلاً به دلیل خطای API)
-            <p className="col-span-full text-center text-muted-foregroundL dark:text-muted-foregroundD">
-              داده‌های آماری در حال حاضر در دسترس نیست.
-            </p>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* ======================= چارت آمار سازمان‌ها ======================= */}
-      <div className="bg-backgroundL-500 dark:bg-backgroundD p-6 rounded-2xl border border-borderL dark:border-borderD transition-colors">
-        <h3 className="text-lg font-bold text-foregroundL dark:text-foregroundD mb-4 text-right">
-          آمار تفکیکی حاضرین بر اساس سازمان
-        </h3>
-        {isLoading ? (
-          <div className="h-80 flex items-center justify-center">
-            <Spinner text="در حال بارگذاری نمودار سازمان‌ها..." size="lg" />
+      {/* کانتینر پایین: نمودار (مشروط) */}
+      {showChartSection && (
+        <div className="bg-backgroundL-500 dark:bg-backgroundD p-6 rounded-2xl border border-borderL dark:border-borderD shadow-sm min-h-[400px]">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold text-foregroundL dark:text-foregroundD flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primaryL dark:text-primaryD" />
+              آمار تفکیکی سازمان‌ها
+            </h3>
+            <button 
+              onClick={() => refetch()} 
+              disabled={isLoading}
+              className="text-xs bg-secondaryL hover:bg-secondaryL/80 dark:bg-secondaryD dark:text-secondary-foregroundD px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isLoading ? "در حال بروزرسانی..." : "بروزرسانی نمودار"}
+            </button>
           </div>
-        ) : (
-          <AttendanceChart data={chartData} />
-        )}
-      </div>
-      {/* [نکته UX]: دکمه دستی Refetch برای زمانی که کاربر می‌خواهد داده‌ها را آپدیت کند */}
-      <div className="flex justify-end p-2">
-        <button
-          onClick={() => refetch()}
-          disabled={isLoading}
-          className="bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD px-4 py-2 rounded-lg text-sm hover:bg-primaryL/20 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? <Spinner size="xs" text="در حال به‌روزرسانی..." /> : "به‌روزرسانی دستی آمار"}
-        </button>
-      </div>
+
+          {isLoading ? (
+             <div className="flex items-center justify-center h-[300px]">
+                <Spinner size="lg" text="در حال ترسیم نمودار..." />
+             </div>
+          ) : (
+            <AttendanceChart data={chartData} />
+          )}
+        </div>
+      )}
     </div>
   );
 };
