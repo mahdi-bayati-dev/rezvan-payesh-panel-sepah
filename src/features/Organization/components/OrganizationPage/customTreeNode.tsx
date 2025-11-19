@@ -6,7 +6,7 @@ import { type Organization } from '@/features/Organization/types';
 // --- هوک‌ها ---
 import { useDeleteOrganization } from '@/features/Organization/hooks/useOrganizations';
 
-// --- کامپوننت‌های UI (بدون تغییر) ---
+// --- کامپوننت‌های UI ---
 import { Button } from '@/components/ui/Button';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
@@ -22,7 +22,6 @@ import {
     Users
 } from 'lucide-react';
 
-// --- ۱. افزودن پراپ onEdit ---
 interface OrganizationNodeProps {
     node: Organization;
     level: number;
@@ -31,7 +30,7 @@ interface OrganizationNodeProps {
     onToggle: (nodeId: number | string) => void;
     onAddChild: (parentId: number) => void;
     onNodeClick: (nodeId: number) => void;
-    onEdit: (organization: Organization) => void; // پراپ جدید
+    onEdit: (organization: Organization) => void;
 }
 
 export const OrganizationNode = ({
@@ -42,10 +41,9 @@ export const OrganizationNode = ({
     onToggle,
     onAddChild,
     onNodeClick,
-    onEdit // دریافت پراپ جدید
+    onEdit
 }: OrganizationNodeProps) => {
 
-    // --- مدیریت حذف (بدون تغییر) ---
     const deleteMutation = useDeleteOrganization();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -68,19 +66,17 @@ export const OrganizationNode = ({
         });
     };
 
-    // --- منطق باز/بسته بودن (بدون تغییر) ---
     const isExpanded = expandedIds[String(node.id)] === true;
     const hasChildren = node.children && node.children.length > 0;
     const indent = level * 20;
 
     return (
         <>
-            {/* ردیف اصلی نود (بدون تغییر) */}
             <div
                 style={{ paddingRight: `${indent}px` }}
-                className={`flex gap-2 items-center h-10 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 `}
+                className={`flex gap-2 items-center h-10 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200`}
             >
-                {/* ۱. آیکون باز/بسته کردن (بدون تغییر) */}
+                {/* ۱. آیکون باز/بسته کردن (برای همه قابل دسترسی است) */}
                 <div
                     className="w-6 flex items-center justify-center"
                     onClick={(e) => {
@@ -97,67 +93,68 @@ export const OrganizationNode = ({
                     )}
                 </div>
 
-                {/* ۲. آیکون و نام سازمان (بدون تغییر) */}
+                {/* ۲. آیکون و نام سازمان */}
                 <Building className="h-4 w-4 mr-2 text-muted-foregroundL dark:text-primaryD" />
-                <span className="truncate dark:text-primaryD">{node.name}</span>
+                <span 
+                    className="truncate dark:text-primaryD cursor-pointer hover:text-blue-600"
+                    // اجازه می‌دهیم با کلیک روی متن هم به صفحه جزئیات برود (تجربه کاربری بهتر)
+                    onClick={() => onNodeClick(node.id)}
+                >
+                    {node.name}
+                </span>
 
-                {/* ۳. فاصله انداز (بدون تغییر) */}
+                {/* فاصله انداز */}
                 <div className="flex-grow" />
 
-                {/* ۴. منوی عملیات (تغییر در آیتم ویرایش) */}
-                {isSuperAdmin && (
-                    <div className="ml-2" onClick={(e) => e.stopPropagation()}>
-                        <Dropdown>
-                            <DropdownTrigger>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4 cursor-pointer dark:text-primaryD" />
-                                </Button>
-                            </DropdownTrigger>
-                            <DropdownContent>
-                                {/* آیتم "مشاهده کارمندان" (بدون تغییر) */}
-                                <DropdownItem
-                                    icon={<Users className="h-4 w-4" />}
-                                    onClick={() => onNodeClick(node.id)}
-                                >
-                                    مشاهده کارمندان
-                                </DropdownItem>
+                {/* ۳. منوی عملیات (اصلاح شده: شرط isSuperAdmin برداشته شد) */}
+                <div className="ml-2" onClick={(e) => e.stopPropagation()}>
+                    <Dropdown>
+                        <DropdownTrigger>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4 cursor-pointer dark:text-primaryD" />
+                            </Button>
+                        </DropdownTrigger>
+                        <DropdownContent>
+                            {/* آیتم "مشاهده کارمندان": برای همه نقش‌ها فعال است */}
+                            <DropdownItem
+                                icon={<Users className="h-4 w-4" />}
+                                onClick={() => onNodeClick(node.id)}
+                            >
+                                مشاهده کارمندان
+                            </DropdownItem>
 
-                                {isSuperAdmin && (
-                                    <>
-                                        {/* آیتم "افزودن" (بدون تغییر) */}
-                                        <DropdownItem
-                                            icon={<Plus className="h-4 w-4" />}
-                                            onClick={() => onAddChild(node.id)}
-                                        >
-                                            افزودن زیرمجموعه
-                                        </DropdownItem>
+                            {/* آیتم‌های مدیریتی: فقط برای Super Admin */}
+                            {isSuperAdmin && (
+                                <>
+                                    <DropdownItem
+                                        icon={<Plus className="h-4 w-4" />}
+                                        onClick={() => onAddChild(node.id)}
+                                    >
+                                        افزودن زیرمجموعه
+                                    </DropdownItem>
 
-                                        {/* --- ۲. به‌روزرسانی آیتم ویرایش --- */}
-                                        <DropdownItem
-                                            icon={<Edit2 className="h-4 w-4" />}
-                                            // به جای alert، تابع onEdit را با آبجکت نود صدا می‌زنیم
-                                            onClick={() => onEdit(node)}
-                                        >
-                                            ویرایش
-                                        </DropdownItem>
+                                    <DropdownItem
+                                        icon={<Edit2 className="h-4 w-4" />}
+                                        onClick={() => onEdit(node)}
+                                    >
+                                        ویرایش
+                                    </DropdownItem>
 
-                                        {/* آیتم "حذف" (بدون تغییر) */}
-                                        <DropdownItem
-                                            icon={<Trash2 className="h-4 w-4" />}
-                                            onClick={() => setShowDeleteConfirm(true)}
-                                            className="text-red-600 dark:text-red-500"
-                                        >
-                                            حذف
-                                        </DropdownItem>
-                                    </>
-                                )}
-                            </DropdownContent>
-                        </Dropdown>
-                    </div>
-                )}
+                                    <DropdownItem
+                                        icon={<Trash2 className="h-4 w-4" />}
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="text-red-600 dark:text-red-500"
+                                    >
+                                        حذف
+                                    </DropdownItem>
+                                </>
+                            )}
+                        </DropdownContent>
+                    </Dropdown>
+                </div>
             </div>
 
-            {/* بخش رندر فرزندان (بدون تغییر) */}
+            {/* رندر بازگشتی فرزندان */}
             {isExpanded && hasChildren && (
                 <div className="children-container">
                     {node.children!.map(childNode => (
@@ -165,42 +162,44 @@ export const OrganizationNode = ({
                             key={childNode.id}
                             node={childNode}
                             level={level + 1}
-                            isSuperAdmin={isSuperAdmin}
+                            isSuperAdmin={isSuperAdmin} // پراپ را پاس می‌دهیم
                             expandedIds={expandedIds}
                             onToggle={onToggle}
                             onAddChild={onAddChild}
                             onNodeClick={onNodeClick}
-                            onEdit={onEdit} // --- ۳. پاس دادن پراپ به فرزندان ---
+                            onEdit={onEdit}
                         />
                     ))}
                 </div>
             )}
 
-            {/* مودال حذف (بدون تغییر) */}
-            <ConfirmationModal
-                isOpen={showDeleteConfirm}
-                onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={handleDelete}
-                title="تأیید حذف"
-                message={
-                    <>
-                        <p>
-                            آیا از حذف سازمان <strong className="font-bold">{node.name}</strong> مطمئن هستید؟
-                        </p>
-                        {deleteError && (
-                            <div className="mt-4">
-                                <Alert variant="destructive">
-                                    <AlertTitle>خطا</AlertTitle>
-                                    <AlertDescription>{deleteError}</AlertDescription>
-                                </Alert>
-                            </div>
-                        )}
-                    </>
-                }
-                variant="danger"
-                confirmText={deleteMutation.isPending ? "در حال حذف..." : "حذف کن"}
-                cancelText="انصراف"
-            />
+            {/* مودال حذف فقط برای ادمین رندر می‌شود، اما شرط داخل هندلر هم چک می‌کند */}
+            {isSuperAdmin && (
+                <ConfirmationModal
+                    isOpen={showDeleteConfirm}
+                    onClose={() => setShowDeleteConfirm(false)}
+                    onConfirm={handleDelete}
+                    title="تأیید حذف"
+                    message={
+                        <>
+                            <p>
+                                آیا از حذف سازمان <strong className="font-bold">{node.name}</strong> مطمئن هستید؟
+                            </p>
+                            {deleteError && (
+                                <div className="mt-4">
+                                    <Alert variant="destructive">
+                                        <AlertTitle>خطا</AlertTitle>
+                                        <AlertDescription>{deleteError}</AlertDescription>
+                                    </Alert>
+                                </div>
+                            )}
+                        </>
+                    }
+                    variant="danger"
+                    confirmText={deleteMutation.isPending ? "در حال حذف..." : "حذف کن"}
+                    cancelText="انصراف"
+                />
+            )}
         </>
     );
 };

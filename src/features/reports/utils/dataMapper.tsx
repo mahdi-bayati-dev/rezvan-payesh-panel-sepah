@@ -3,10 +3,8 @@ import {
     type ApiAttendanceLog,
 } from "@/features/reports/types";
 
-import { parseISO } from "date-fns";
-import { format } from "date-fns-jalali";
-import { faIR } from "date-fns/locale";
-import { toPersianNumbers } from "./toPersianNumbers";
+// اصلاح: حذف date-fns چون برای تبدیل به شمسی از Intl استفاده می‌کنیم
+import { toPersianNumbers } from "@/features/reports/utils/toPersianNumbers";
 
 const mapEventType = (
     eventType: "check_in" | "check_out"
@@ -25,55 +23,68 @@ export const mapApiLogToActivityLog = (
     apiLog: ApiAttendanceLog
 ): ActivityLog => {
 
-    // لاگ‌های دیباگ حذف شدند
+    // 1. استراتژی Local Time: حذف Z برای نادیده گرفتن تایم‌زون
+    const rawTimestamp = apiLog.timestamp.replace('Z', '').replace('+00:00', '');
+    
+    // 2. ساخت آبجکت تاریخ
+    const timestamp = new Date(rawTimestamp);
 
-    const timestamp = parseISO(apiLog.timestamp);
+    // 3. تبدیل به تاریخ شمسی با استفاده از API استاندارد Intl
+    // این متد به صورت خودکار تقویم را به شمسی (Persian) تبدیل می‌کند
+    const jalaliDate = new Intl.DateTimeFormat("fa-IR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        calendar: "persian" // تضمین استفاده از تقویم شمسی
+    }).format(timestamp); 
+    // خروجی مثال: "۱۴۰۳/۱۱/۰۵"
+
+    // 4. استخراج ساعت به فرمت ۲۴ ساعته
+    const timeString = new Intl.DateTimeFormat("fa-IR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false, // فرمت ۲۴ ساعته
+        // calendar: "persian" // برای ساعت فرقی نمی‌کند اما محض اطمینان
+    }).format(timestamp);
+
 
     const employeeName = apiLog.employee
         ? `${apiLog.employee.first_name} ${apiLog.employee.last_name}`
         : "کاربر نامشخص";
 
     const employeeIdNum = apiLog.employee_id;
-    // ID داخل آبجکت employee همان User ID است
-    const employeeUserId = apiLog.employee ? apiLog.employee.id : 0;
+    const employeeUserId = apiLog.employee ? apiLog.employee.user_id : 0;
 
-    // --- [اصلاح کلیدی] ---
-    // حالا `personnel_code` رو می‌خونیم (که در API شما وجود داره)
-    // به جای `employee_code` (که در تایپ اشتباه بود)
     const employeeCode = apiLog.employee
         ? apiLog.employee.personnel_code || `ID: ${employeeIdNum}`
         : `ID: ${apiLog.employee_id}`;
-    // --- [پایان اصلاح] ---
 
     const employeeAvatar = apiLog.employee
         ? (apiLog.employee as any).avatarUrl
         : undefined;
 
     const isManual = apiLog.source_type !== "auto";
+    const isAllowed = apiLog.is_allowed === undefined ? true : apiLog.is_allowed;
 
-    const isAllowed =
-        apiLog.is_allowed === undefined
-            ? true
-            : apiLog.is_allowed;
-
-    // آبجکت کارمند مپ شده
     const mappedEmployee = {
-        id: employeeIdNum, // شناسه کارمندی
-        userId: employeeUserId, // شناسه کاربری (برای رفتن به پروفایل)
+        id: employeeIdNum,
+        userId: employeeUserId,
         name: employeeName,
         employeeId: toPersianNumbers(employeeCode),
         avatarUrl: employeeAvatar,
     };
 
-    // لاگ‌های دیباگ حذف شدند
-
     return {
         id: apiLog.id.toString(),
-        employee: mappedEmployee, // استفاده از آبجکت مپ شده
+        employee: mappedEmployee,
         activityType: mapEventType(apiLog.event_type),
         trafficArea: apiLog.source_name,
-        date: toPersianNumbers(format(timestamp, "yyyy/MM/dd", { locale: faIR })),
-        time: toPersianNumbers(format(timestamp, "HH:mm")),
+        
+        // استفاده از تاریخ شمسی تولید شده
+        // تابع toPersianNumbers را هم صدا می‌زنیم تا اگر مرورگر اعداد انگلیسی داد، فارسی شوند
+        date: toPersianNumbers(jalaliDate),
+        time: toPersianNumbers(timeString),
+        
         lateness_minutes: apiLog.lateness_minutes || 0,
         early_departure_minutes: apiLog.early_departure_minutes || 0,
         is_allowed: isAllowed,

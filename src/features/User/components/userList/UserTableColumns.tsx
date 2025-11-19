@@ -43,7 +43,7 @@ export const columns: ColumnDef<User>[] = [
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondaryL dark:bg-secondaryD group-hover:bg-primaryL/10">
                         <UserIcon className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD group-hover:text-primaryL" />
                     </span>
-                    <span className="font-medium group-hover:text-primaryL">{displayName}</span>
+                    <span className="font-medium group-hover:text-infoD-foreground">{displayName}</span>
                 </Link>
             );
         },

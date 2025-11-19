@@ -1,14 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { CirclePlus } from 'lucide-react';
-// [بهینه] هوک useEmployeeOptions دیگر اینجا لازم نیست
-import { useCreateLog } from '../hooks/hook';
-import { NewReportForm } from '../components/NewActivityRegistration/NewReportForm';
+// مسیرهای Alias استاندارد
+import { useCreateLog } from '@/features/reports/hooks/hook';
+import { NewReportForm } from '@/features/reports/components/NewActivityRegistration/NewReportForm';
 import { type NewReportFormData } from '@/features/reports/Schema/newReportSchema';
-import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
-import gregorian from "react-date-object/calendars/gregorian";
 
-// ۲. [اصلاحیه] تابع کمکی برای اطمینان از دو رقمی بودن (padding)
-// این تابع اعداد لاتین تحویل می‌دهد
 function pad(num: number): string {
     return num < 10 ? '0' + num : num.toString();
 }
@@ -17,45 +13,27 @@ export default function NewReportPage() {
     const navigate = useNavigate();
     const createLogMutation = useCreateLog();
 
-    // [بهینه] این هوک حذف شد چون منطق به داخل فرم منتقل می‌شود
-    // const { data: employeeOptions, isLoading: isLoadingEmployees } = useEmployeeOptions();
-
-
     const handleCreateReport = (data: NewReportFormData) => {
+        const date = data.date!; 
+        const time = data.time; // "07:00"
 
-        // --- بخش تاریخ (بدون تغییر) ---
-        const date = data.date!;
-        const gregorianDate = date.convert(gregorian);
-        const year = gregorianDate.year;
-        const month = gregorianDate.month.number;
-        const day = gregorianDate.day;
-        const time = data.time; // مثلا: "08:00"
+        // تبدیل تاریخ شمسی به میلادی
+        const jsDate = date.toDate(); 
+        const year = jsDate.getFullYear();
+        const month = pad(jsDate.getMonth() + 1); // ماه در JS از 0 شروع می‌شود
+        const day = pad(jsDate.getDate());
 
-        // --- ✅ [اصلاح کلیدی با date-fns-tz] ---
+        // ✅ استراتژی جدید: ارسال دقیق همان ساعتی که کاربر وارد کرده (بدون UTC شدن)
+        // این باعث می‌شود دیتای ثبت دستی دقیقاً مشابه دیتای دوربین AI شود.
+        // مثال: کاربر 07:00 انتخاب می‌کند -> ارسال 07:00 -> ذخیره 07:00
+        const finalTimestampString = `${year}-${month}-${day} ${time}:00`;
 
-        // ۱. رشته تاریخ و زمان محلی (تهران)
-        const localTimestampString = `${year}-${pad(month)}-${pad(day)} ${time}:00`;
-        const timeZone = "Asia/Tehran";
-
-        // ۲. تبدیل زمان محلی (تهران) به آبجکت Date استاندارد (در UTC)
-        // (این بخش درست بود و تغییر نمی‌کند)
-        const utcDate = fromZonedTime(localTimestampString, timeZone);
-
-        // ۳. [اصلاح] فرمت‌دهی آبجکت Date به فرمت دلخواه API
-        const formattedTimestampUTC = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
-        // نتیجه: "2025-11-08 04:30:00"
-
-        // --- [پایان اصلاح] ---
-
-        console.log('داده‌های فرم:', data);
-        console.log('زمان محلی (تهران):', localTimestampString);
-        console.log('زمان ارسالی (فرمت شده برای API):', formattedTimestampUTC);
+        console.log('🚀 [Local Mode] Sending Payload:', finalTimestampString);
 
         const apiPayload = {
             employee_id: data.employee!.id,
             event_type: data.event_type,
-            // ۴. استفاده از رشته‌ی فرمت‌شده‌ی جدید
-            timestamp: formattedTimestampUTC,
+            timestamp: finalTimestampString,
             remarks: data.remarks,
         };
 
@@ -65,6 +43,7 @@ export default function NewReportPage() {
             },
         });
     };
+
     const handleCancel = () => {
         navigate('/reports');
     };
@@ -79,12 +58,7 @@ export default function NewReportPage() {
             <NewReportForm
                 onSubmit={handleCreateReport}
                 onCancel={handleCancel}
-                // [رفع خطا ۱۰] - در React Query v5،
-                // پراپرتی لودینگ جهش (mutation) از isLoading به isPending تغییر کرده است
                 isSubmitting={createLogMutation.isPending}
-            // [بهینه] این پراپ‌ها دیگر لازم نیستند
-            // employeeOptions={employeeOptions || []}
-            // isLoadingEmployees={isLoadingEmployees}
             />
         </div>
     );

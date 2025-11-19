@@ -1,49 +1,27 @@
-
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
-import { useEffect } from 'react';
-
-// --- ۱. هوک‌ها و تایپ‌ها ---
+import { useEffect, useMemo } from 'react';
 import {
     type OrganizationFormData,
     organizationFormSchema
-} from '@/features/Organization/Schema/organizationFormSchema'; // (مسیر اسکیما را بررسی کنید)
-import { type Organization } from '@/features/Organization/types';
-import { useCreateOrganization, useUpdateOrganization } from '@/features/Organization/hooks/useOrganizations'; // (مسیر هوک‌ها را بررسی کنید)
-
-// --- ۲. کامپوننت‌های UI ---
+} from '@/features/Organization/Schema/organizationFormSchema';
+import { type Organization, type FlatOrgOption } from '@/features/Organization/types';
+import { useCreateOrganization, useUpdateOrganization } from '@/features/Organization/hooks/useOrganizations';
 import { Button } from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { Loader2 } from 'lucide-react';
-// (شما به یک SelectBox برای انتخاب والد نیاز خواهید داشت،
-// اما برای سادگی در فرم ایجاد، فقط parent_id را به صورت مخفی می‌گیریم)
-
-// --- ۲. تعریف پراپ‌های ورودی فرم ---
-interface FlatOrgOption {
-    id: number;
-    name: string;
-    level: number;
-    parent_id: number | null;
-}
 
 interface OrganizationFormProps {
-    /**
-     * اگر آبجکت سازمان پاس داده شود، فرم در حالت "ویرایش" خواهد بود
-     */
-    defaultOrganization?: Organization | null; // (null را هم قبول کند)
-    /**
-     * (برای حالت ایجاد) ID والد پیش‌فرض 
-     */
+    defaultOrganization?: Organization | null;
     defaultParentId?: number | null;
-    /**
-     * (برای حالت ویرایش) لیست مسطح همه‌ی سازمان‌ها برای دراپ‌다운 انتخاب والد
-     */
     organizationList?: FlatOrgOption[];
     /**
-     * تابعی که پس از موفقیت فراخوانی می‌شود
+     * لیست ID هایی که نباید به عنوان والد انتخاب شوند
+     * (شامل خود سازمان و تمام فرزندانش)
      */
+    forbiddenParentIds?: number[];
     onSuccess: () => void;
 }
 
@@ -51,56 +29,46 @@ export const OrganizationForm = ({
     defaultOrganization = null,
     defaultParentId = null,
     organizationList = [],
+    forbiddenParentIds = [],
     onSuccess,
 }: OrganizationFormProps) => {
 
     const isEditMode = !!defaultOrganization;
     const idToUpdate = defaultOrganization?.id;
 
-    // --- راه‌اندازی React Hook Form (بدون تغییر) ---
     const {
         register,
         handleSubmit,
         setError,
         reset,
-        // watch,
         formState: { errors, isSubmitting },
     } = useForm<OrganizationFormData>({
         resolver: zodResolver(organizationFormSchema),
-        defaultValues: isEditMode
-            ? {
-                name: defaultOrganization.name,
-                parent_id: defaultOrganization.parent_id,
-            }
-            : {
-                name: "",
-                parent_id: defaultParentId,
-            },
+        defaultValues: {
+            name: "",
+            parent_id: null
+        },
     });
 
-    // --- راه‌اندازی Mutation ها (بدون تغییر) ---
     const createMutation = useCreateOrganization();
     const updateMutation = useUpdateOrganization();
 
-    // --- مدیریت Submit (بدون تغییر) ---
     const onSubmit = async (formData: OrganizationFormData) => {
         try {
             if (isEditMode && idToUpdate) {
-                // --- حالت ویرایش ---
                 await updateMutation.mutateAsync(
                     { id: idToUpdate, payload: formData },
                     {
                         onSuccess: () => {
-                            toast.success(`سازمان "${formData.name}" با موفقیت به‌روزرسانی شد.`);
+                            toast.success(`سازمان "${formData.name}" به‌روزرسانی شد.`);
                             onSuccess();
                         },
                     }
                 );
             } else {
-                // --- حالت ایجاد ---
                 await createMutation.mutateAsync(formData, {
                     onSuccess: () => {
-                        toast.success(`سازمان "${formData.name}" با موفقیت ایجاد شد.`);
+                        toast.success(`سازمان "${formData.name}" ایجاد شد.`);
                         onSuccess();
                     },
                 });
@@ -115,7 +83,6 @@ export const OrganizationForm = ({
         }
     };
 
-    // --- افکت برای ریست کردن فرم (بدون تغییر) ---
     useEffect(() => {
         if (isEditMode && defaultOrganization) {
             reset({
@@ -130,20 +97,19 @@ export const OrganizationForm = ({
         }
     }, [defaultOrganization, defaultParentId, isEditMode, reset]);
 
+    // فیلتر کردن لیست برای جلوگیری از انتخاب خود یا فرزندان به عنوان والد
+    const filteredParentOptions = useMemo(() => {
+        if (!isEditMode) return [];
 
-    // --- ۴. فیلتر کردن لیست والدها در حالت ویرایش ---
-    // در حالت ویرایش، یک سازمان نمی‌تواند والد خودش باشد
-    const filteredParentOptions = organizationList.filter(
-        (org) => org.id !== idToUpdate // خود سازمان فعلی را حذف کن
-        // TODO (پیشرفته): در اینجا باید فرزندان این سازمان را هم حذف کنید
-        // تا از ایجاد حلقه‌های بی‌نهایت (circular dependency) جلوگیری شود.
-        // این کار نیازمند داشتن لیست کامل فرزندان (descendants) است.
-    );
-
+        return organizationList.filter(org => {
+            // اگر ID در لیست ممنوعه است، نشان نده
+            if (forbiddenParentIds.includes(org.id)) return false;
+            return true;
+        });
+    }, [organizationList, forbiddenParentIds, isEditMode]);
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" dir="rtl">
-            {/* خطای سرور (بدون تغییر) */}
             {errors.root?.serverError && (
                 <Alert variant="destructive">
                     <AlertTitle>خطا</AlertTitle>
@@ -153,7 +119,6 @@ export const OrganizationForm = ({
                 </Alert>
             )}
 
-            {/* فیلد نام (بدون تغییر) */}
             <Input
                 label="نام سازمان"
                 {...register("name")}
@@ -162,56 +127,44 @@ export const OrganizationForm = ({
                 autoFocus
             />
 
-            {/* --- ۵. فیلد انتخاب والد (فقط در حالت ویرایش) --- */}
-            {/* در حالت ایجاد، parent_id به صورت مخفی از defaultParentId ست می‌شود.
-              اما در حالت ویرایش، ما به کاربر اجازه تغییر والد را می‌دهیم.
-            */}
             {isEditMode && (
                 <div>
-                    <label htmlFor="parent_id" className="block text-sm font-medium mb-1">
+                    <label htmlFor="parent_id" className="block text-sm font-medium mb-1 text-foreground dark:text-foregroundD">
                         سازمان والد (سرگروه)
                     </label>
                     <select
                         id="parent_id"
-                        className="w-full h-10 border border-gray-300 dark:border-gray-700 rounded-md px-3 bg-white dark:bg-gray-800"
+                        className="w-full h-10 border border-input rounded-md px-3 bg-background dark:bg-backgroundD text-foreground dark:text-foregroundD focus:ring-2 focus:ring-ring"
                         disabled={isSubmitting}
-                        // ما از register استفاده می‌کنیم و با valueAs، مقدار رشته‌ای
-                        // <select> را به null یا number تبدیل می‌کنیم
                         {...register("parent_id", {
                             setValueAs: (value) => (value === "null" || value === "") ? null : Number(value)
                         })}
-                    // مقدار پیش‌فرض را از defaultValues می‌خواند
                     >
-                        {/* گزینه ریشه */}
-                        <option value="null">
-                            - ریشه (بدون والد) -
-                        </option>
-
-                        {/* مپ کردن روی لیست فیلتر شده */}
+                        <option value="null">- ریشه (بدون والد) -</option>
                         {filteredParentOptions.map(org => (
                             <option key={org.id} value={org.id}>
-                                {/* استفاده از 'ـ' برای نمایش تورفتگی */}
-                                {'ـ '.repeat(org.level)} {org.name}
+                                {'\u00A0\u00A0\u00A0'.repeat(org.level)} {org.level > 0 ? '└ ' : ''} {org.name}
                             </option>
                         ))}
                     </select>
                     {errors.parent_id && (
-                        <p className="text-red-500 text-sm mt-1">{errors.parent_id.message}</p>
+                        <p className="text-destructive text-sm mt-1">{errors.parent_id.message}</p>
+                    )}
+                    {filteredParentOptions.length === 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                            هیچ سازمان والدی برای انتخاب وجود ندارد (نمی‌توان فرزندان را به عنوان والد انتخاب کرد).
+                        </p>
                     )}
                 </div>
             )}
 
-
-            {/* دکمه‌های فرم (بدون تغییر) */}
             <div className="flex justify-end pt-4">
                 <Button
                     type="submit"
                     disabled={isSubmitting}
                     variant="primary"
                 >
-                    {isSubmitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                    ) : null}
+                    {isSubmitting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
                     {isEditMode ? "ذخیره تغییرات" : "ایجاد سازمان"}
                 </Button>
             </div>

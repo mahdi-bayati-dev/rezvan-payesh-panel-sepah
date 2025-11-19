@@ -14,13 +14,11 @@ interface DetailAvatarProps {
 export const DetailAvatar = ({
     name,
     avatarUrl,
-    placeholderText = '??', // یک فال‌بک پیش‌فرض
+    // placeholderText = '??',
 }: DetailAvatarProps) => {
 
     // ساخت URL فال‌بک بر اساس placeholder
-    const fallbackUrl = `https://placehold.co/96x96/E2E8F0/64748B?text=${encodeURIComponent(
-        placeholderText
-    )}`;
+    const fallbackUrl = "/img/avatars/2.png"
 
     // هندلر خطا برای زمانی که avatarUrl داده شده ولی لود نمی‌شود
     const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
