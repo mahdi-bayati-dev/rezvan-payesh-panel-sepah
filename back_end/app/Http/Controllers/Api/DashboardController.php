@@ -203,8 +203,9 @@ class DashboardController extends Controller
             {
                 return collect();
             }
+            $managerEmployee->organization->load('children');
             // بارگذاری فرزندان برای نمایش در نمودار زنده
-            return collect([$managerEmployee->organization])->load('children');
+            return collect([$managerEmployee->organization]);
         }
 
         if ($user->hasRole('super_admin'))
