@@ -25,7 +25,12 @@ class ShiftScheduleController extends Controller
      */
     public function index(Request $request)
     {
-        $schedules = ShiftSchedule::orderBy('name')->paginate(15);
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
+        $schedules = ShiftSchedule::orderBy('name')->paginate($perPage);
         return new ShiftScheduleCollection($schedules);
     }
 

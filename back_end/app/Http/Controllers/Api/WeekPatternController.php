@@ -21,12 +21,17 @@ class WeekPatternController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
        $weekPatterns = WeekPattern::with([
             'saturdayPattern', 'sundayPattern', 'mondayPattern',
             'tuesdayPattern', 'wednesdayPattern', 'thursdayPattern', 'fridayPattern'
-        ])->orderBy('name')->paginate(15);
+        ])->orderBy('name')->paginate($perPage);
 
         return new WeekPatternCollection($weekPatterns);
     }

@@ -103,7 +103,12 @@ class MyAttendanceLogController extends Controller
 
         $query->orderBy($sortByColumn, $sortDir);
 
-        $logs = $query->paginate(15)
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
+        $logs = $query->paginate($perPage)
                       ->withQueryString();
 
         return new AttendanceLogCollection($logs);

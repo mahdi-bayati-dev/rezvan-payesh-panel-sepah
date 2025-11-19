@@ -17,12 +17,17 @@ class WorkPatternController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
         $workPatterns = WorkPattern::query()
             ->when($request->query('type'), function ($query, $type) {
                 $query->where('type', $type);
             })
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate($perPage);
         return new WorkPatternCollection($workPatterns);
     }
 

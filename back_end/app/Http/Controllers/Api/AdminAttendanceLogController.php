@@ -32,7 +32,12 @@ class AdminAttendanceLogController extends Controller
         {
             $query->where('timestamp', '<=', $request->date_to);
         }
-        $logs = $query->latest('timestamp')->paginate(20);
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
+        $logs = $query->latest('timestamp')->paginate($perPage);
         return AttendanceLogResource::collection($logs);
 
     }
