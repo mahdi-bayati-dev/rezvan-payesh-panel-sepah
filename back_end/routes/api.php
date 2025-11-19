@@ -66,7 +66,7 @@ Route::middleware(['auth:api',
     Route::apiResource('users', UserController::class);
 
     //manage work group users
-    Route::patch('/work-groups/{WorkGroup}/employees', [WorkGroupEmployeeController::class, 'updateEmployees']);
+    Route::patch('/work-groups/{workGroup}/employees', [WorkGroupEmployeeController::class, 'updateEmployees']);
 
     //devices
     Route::apiResource('devices', DevicesController::class);
