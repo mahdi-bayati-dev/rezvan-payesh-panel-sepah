@@ -20,6 +20,7 @@
         "morilog/jalali": "^3.4",
         "opcodesio/log-viewer": "^3.21",
         "owen-it/laravel-auditing": "^14.0",
+        "predis/predis": "^3.2",
         "pusher/pusher-php-server": "^7.2",
         "spatie/laravel-backup": "^9.3",
         "spatie/laravel-permission": "^6.21",
