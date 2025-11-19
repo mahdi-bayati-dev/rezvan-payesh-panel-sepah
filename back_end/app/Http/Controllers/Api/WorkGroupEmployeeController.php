@@ -18,6 +18,7 @@ class WorkGroupEmployeeController extends Controller
     public function updateEmployees(Request $request, WorkGroup $workGroup): JsonResponse
     {
         $this->authorize('update', $workGroup);
+        dd("OK");
         $validated = $request->validate([
             'employee_ids' => 'required|array',
             'employee_ids.*' => 'exists:employees,id',
