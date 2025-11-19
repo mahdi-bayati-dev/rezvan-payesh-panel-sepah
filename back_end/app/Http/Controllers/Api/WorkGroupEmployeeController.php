@@ -17,7 +17,6 @@ class WorkGroupEmployeeController extends Controller
      */
     public function updateEmployees(Request $request, WorkGroup $workGroup): JsonResponse
     {
-        dd("Route Hit! ID is: " . $workGroup);
         $this->authorize('update', $workGroup);
         $validated = $request->validate([
             'employee_ids' => 'required|array',
