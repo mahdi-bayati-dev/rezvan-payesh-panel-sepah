@@ -94,22 +94,21 @@ class ShiftScheduleController extends Controller
 
                         if (isset($slotData['is_off']) && $slotData['is_off'] === false) {
 
-                            $start = Carbon::parse($slotData['start_time']);
-                            $end = Carbon::parse($slotData['end_time']);
+                            $start = Carbon::createFromFormat('H:i', $slotData['start_time']);
+                            $end = Carbon::createFromFormat('H:i', $slotData['end_time']);
 
                             if ($end->lt($start)) {
                                 $end->addDay();
                             }
 
                             $workDurationMinutes = $end->diffInMinutes($start);
-                            // ------------------------------------------------
 
                             $workPattern = $this->workPatternService->findOrCreatePattern([
                                 'name' => $slotData['name'],
                                 'start_time' => $slotData['start_time'],
                                 'end_time' => $slotData['end_time'],
-                                'type' => $slotData['type'] ?? 'fixed',
-                                'work_duration_minutes' => $workDurationMinutes,
+                                'type' => 'fixed',
+                                'work_duration_minutes' => abs($workDurationMinutes), // ارسال مقدار محاسبه شده
                             ]);
 
                             $work_pattern_id = $workPattern->id;
@@ -132,8 +131,8 @@ class ShiftScheduleController extends Controller
             return new ShiftScheduleResource($schedule->load('slots.workPattern'));
 
         } catch (\Exception $e) {
-            Log::error("Shift Creation Error: " . $e->getMessage());
-            return response()->json(['message' => 'خطا در ثبت برنامه شیفتی', 'error' => $e->getMessage()], 500);
+            Log::error("Error creating shift schedule: " . $e->getMessage());
+            return response()->json(['message' => 'خطا در ایجاد برنامه شیفتی.', 'details' => $e->getMessage()], 500);
         }
     }
 
@@ -171,13 +170,17 @@ class ShiftScheduleController extends Controller
         if ($shiftSchedule->workGroups()->exists() || $shiftSchedule->employees()->exists()) {
              return response()->json(['message' => 'Cannot delete shift schedule because it is assigned to work groups or employees.'], 409);
         }
+
         try {
-            $shiftSchedule->slots()->delete();
-            $shiftSchedule->delete();
+            DB::transaction(function() use ($shiftSchedule) {
+                $shiftSchedule->slots()->delete();
+                $shiftSchedule->delete();
+            });
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
             return response()->json(['message' => 'Failed to delete schedule'], 500);
         }
+
         return response()->json(null, 204);
     }
 }
