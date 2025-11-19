@@ -1,11 +1,10 @@
 // src/features/dashboard/api/dashboardApi.ts
 
 import axiosInstance from "@/lib/AxiosConfig";
-// [نکته مهم]: DateObject باید به عنوان مقدار (Value) ایمپورت شود نه Type
 import { DateObject } from "react-multi-date-picker";
 
 // ====================================================================
-// ۱. تعریف اینترفیس‌ها (طبق مستندات دقیق بک‌اند)
+// ۱. تعریف اینترفیس‌ها (Admin Dashboard)
 // ====================================================================
 
 export interface ChildOrgStat {
@@ -17,10 +16,10 @@ export interface ChildOrgStat {
 export interface LiveOrganizationStat {
   parent_org_id: number;
   parent_org_name: string;
-  children_stats: ChildOrgStat[];
+  children_stats: ChildOrgStat[] | null; // ممکن است نال باشد
 }
 
-export interface SummaryStats {
+export interface AdminSummaryStats {
   date: string;
   total_lateness: number;
   total_present: number;
@@ -30,21 +29,57 @@ export interface SummaryStats {
   total_employees_scoped: number;
 }
 
-export interface DashboardData {
-  summary_stats: SummaryStats;
+export interface AdminDashboardData {
+  summary_stats: AdminSummaryStats;
   live_organization_stats: LiveOrganizationStat[];
 }
 
 // ====================================================================
-// ۲. توابع کمکی (اصلاح فرمت تاریخ برای لاراول)
+// ۲. تعریف اینترفیس‌ها (User Dashboard)
+// ====================================================================
+
+export interface UserDashboardData {
+  absences_count: number;
+  leaves_approved_count: number;
+  early_exits_count: number;
+}
+
+// ====================================================================
+// ۳. تایپ ترکیبی (Discriminated Union)
 // ====================================================================
 
 /**
- * تبدیل اعداد فارسی به انگلیسی
- * ورودی: "۱۴۰۳-۰۸-۲۹"
- * خروجی: "1403-08-29"
- * دلیل: دیتابیس و لاراول با اعداد فارسی در کوئری‌ها مشکل دارند.
+ * این تایپ می‌تواند یا دیتای ادمین باشد یا دیتای کاربر.
+ * ما از وجود فیلد 'summary_stats' برای تشخیص نوع آن استفاده می‌کنیم.
  */
+export type DashboardResponse = AdminDashboardData | UserDashboardData;
+
+// ====================================================================
+// ۴. Type Guards (توابع محافظ تایپ)
+// ====================================================================
+
+/**
+ * بررسی می‌کند که آیا دیتا مربوط به پنل مدیریت است؟
+ */
+export function isAdminDashboard(
+  data: DashboardResponse
+): data is AdminDashboardData {
+  return (data as AdminDashboardData).summary_stats !== undefined;
+}
+
+/**
+ * بررسی می‌کند که آیا دیتا مربوط به پنل کاربر عادی است؟
+ */
+export function isUserDashboard(
+  data: DashboardResponse
+): data is UserDashboardData {
+  return (data as UserDashboardData).absences_count !== undefined;
+}
+
+// ====================================================================
+// ۵. توابع کمکی
+// ====================================================================
+
 const fixPersianNumbers = (str: string): string => {
   const persianNumbers = [
     /۰/g,
@@ -59,7 +94,6 @@ const fixPersianNumbers = (str: string): string => {
     /۹/g,
   ];
   const englishNumbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
   let result = str;
   for (let i = 0; i < 10; i++) {
     result = result.replace(persianNumbers[i], englishNumbers[i]);
@@ -68,50 +102,43 @@ const fixPersianNumbers = (str: string): string => {
 };
 
 // ====================================================================
-// ۳. متد فراخوانی API
+// ۶. فراخوانی API
 // ====================================================================
 
-const API_ENDPOINT = "/admin-panel";
+const API_ENDPOINT = "/panel"; // طبق مستندات جدید
 
 export async function fetchDashboardData(
   dateObj: DateObject | null,
   timeFilter: string
-): Promise<DashboardData> {
+): Promise<DashboardResponse> {
   let dateParam: string | undefined = undefined;
 
   if (dateObj) {
-    // [راه حل نهایی ارور ۵۰۰]:
-    // 1. استفاده از جداکننده خط تیره (-) به جای اسلش (/)
-    //    چون explode لاراول روی (-) تنظیم شده است.
     const rawPersianDate = dateObj.format("YYYY-MM-DD");
-
-    // 2. تبدیل اعداد به انگلیسی
-    // خروجی نهایی: "1403-08-29"
     dateParam = fixPersianNumbers(rawPersianDate);
   }
 
   try {
-    // لاگ جهت اطمینان (باید مثلاً "1403-08-29" باشد)
-    // console.log("Sending Date to API:", dateParam);
-
-    const response = await axiosInstance.get<DashboardData>(API_ENDPOINT, {
+    const response = await axiosInstance.get<DashboardResponse>(API_ENDPOINT, {
       params: {
         date: dateParam,
+        // نکته: طبق مستندات، برای User Dashboard شاید فیلتر تاریخ اعمال نشود (همیشه ماه جاری)،
+        // اما ارسال آن ضرری ندارد و برای Admin لازم است.
         filter: timeFilter,
       },
     });
-    console.log(response.data);
 
-    const data = response.data;
+    // لاگ برای دیباگ
+    console.log("Dashboard API Response:", response.data);
 
-    // اعتبارسنجی پاسخ: جلوگیری از undefined بودن آرایه‌ها
-    if (!data.summary_stats || !Array.isArray(data.live_organization_stats)) {
-      throw new Error("فرمت پاسخ API با مستندات مطابقت ندارد.");
+    return response.data;
+  } catch (error: any) {
+    // هندل کردن خطای خاص ۴۰۴ طبق مستندات (کارمند یافت نشد)
+    if (error.response && error.response.status === 404) {
+      throw new Error(
+        "رکورد کارمند برای این کاربر یافت نشد. لطفاً با پشتیبانی تماس بگیرید."
+      );
     }
-
-    return data;
-  } catch (error) {
-    console.error("Dashboard API Error:", error);
     throw error;
   }
 }
