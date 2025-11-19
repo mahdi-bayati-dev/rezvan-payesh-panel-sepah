@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\GenerateScheduleShiftsController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LeaveTypeController;
-use App\Http\Controllers\Api\LicenseController;
+use App\Http\Controllers\Api\PackController;
 use App\Http\Controllers\Api\MyAttendanceLogController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ReportController;
@@ -31,8 +31,8 @@ use Illuminate\Support\Facades\Log;
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 Route::middleware('auth:api')->prefix('license')->group(function () {
-    Route::get('/', [LicenseController::class, 'show'])->name('license.show');
-    Route::post('/', [LicenseController::class, 'update'])->name('license.update');
+    Route::get('/', [PackController::class, 'show'])->name('license.show');
+    Route::post('/', [PackController::class, 'update'])->name('license.update');
 });
 
 Route::middleware(['auth:api',

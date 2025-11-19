@@ -7,7 +7,7 @@ use App\Services\CheckSystem as LicenseService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
-class LicenseController extends Controller
+class PackController extends Controller
 {
 
 

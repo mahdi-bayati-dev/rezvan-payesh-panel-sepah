@@ -60,7 +60,7 @@ class CheckSystem
                 ['installation_id' => $recoveredId],
                 [
                     'status' => 'tampered',
-                    'user_limit' => 5,
+                    'user_limit' => 10,
                 ]
             );
             return $recoveredId;

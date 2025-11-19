@@ -24,7 +24,7 @@ return new class extends Migration
 
             $table->timestamp('expires_at')->nullable();
 
-            $table->integer('user_limit')->default(5);
+            $table->integer('user_limit')->default(99999);
 
             $table->timestamps();
         });
