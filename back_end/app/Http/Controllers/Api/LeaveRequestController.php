@@ -47,8 +47,12 @@ class LeaveRequestController extends Controller
         {
             $query->where('status', $request->status);
         }
-
-        $leaveRequests = $query->orderBy('start_time', 'desc')->paginate(15);
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
+        $leaveRequests = $query->orderBy('start_time', 'desc')->paginate($perPage);
 
         return LeaveRequestResource::collection($leaveRequests);
     }

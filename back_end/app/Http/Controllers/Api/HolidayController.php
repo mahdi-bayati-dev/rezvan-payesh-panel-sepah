@@ -34,6 +34,11 @@ class HolidayController extends Controller
         $startDate = $request->query('start_date') ? Carbon::parse($request->query('start_date')) : null;
         $endDate = $request->query('end_date') ? Carbon::parse($request->query('end_date')) : null;
 
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
         $holidays = Holiday::query()
             ->when($startDate, function ($query, $start) {
                 $query->where('date', '>=', $start);
@@ -42,7 +47,7 @@ class HolidayController extends Controller
                 $query->where('date', '<=', $end);
             })
             ->orderBy('date')
-            ->paginate(15);
+            ->paginate($perPage);
 
         return new HolidayCollection($holidays);
     }

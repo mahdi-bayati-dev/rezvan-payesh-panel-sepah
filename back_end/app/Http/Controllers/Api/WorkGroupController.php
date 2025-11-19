@@ -17,10 +17,15 @@ class WorkGroupController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
         $this->authorize('viewAny', WorkGroup::class);
         $work_groups = WorkGroup::with(['weekPattern', 'shiftSchedule'])
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate($perPage);
 
         return new WorkGroupCollection($work_groups);
     }

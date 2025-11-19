@@ -112,7 +112,12 @@ class UserController extends Controller
                 $q->whereRaw('1 = 0');
             }
         });
-        $users = $query->paginate(15)->withQueryString();
+        $perPage = (int) $request->input('per_page', 20);
+        if ($perPage > 100)
+        {
+            $perPage = 100;
+        }
+        $users = $query->paginate($perPage)->withQueryString();
 
         return new UserCollection($users);
     }
