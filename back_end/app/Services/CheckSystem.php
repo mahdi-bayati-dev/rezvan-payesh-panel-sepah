@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\LicenseKey;
+use App\Models\Status;
 use Exception;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Carbon;
@@ -35,7 +35,7 @@ class CheckSystem
 
     public function getInstallationId(): string
     {
-        $license = LicenseKey::first();
+        $license = Status::first();
         if ($license && $license->installation_id)
         {
             return $license->installation_id;
@@ -56,7 +56,7 @@ class CheckSystem
         {
             Log::alert('LICENSE TAMPERING: LicenseKey row deleted. Recovering ID to prevent Trial Reset.', ['recovered_id' => $recoveredId]);
 
-            LicenseKey::firstOrCreate(
+            Status::firstOrCreate(
                 ['installation_id' => $recoveredId],
                 [
                     'status' => 'tampered',
@@ -67,13 +67,13 @@ class CheckSystem
         }
 
         $newId = Str::uuid();
-        LicenseKey::firstOrCreate([], ['installation_id' => $newId, 'status' => 'trial']);
+        Status::firstOrCreate([], ['installation_id' => $newId, 'status' => 'trial']);
         return $newId;
     }
 
     public function getLicenseDetails(): array
     {
-        $license = LicenseKey::firstOrCreate(
+        $license = Status::firstOrCreate(
             ['installation_id' => $this->getInstallationId()],
             ['status' => 'trial']
         );
@@ -207,7 +207,7 @@ class CheckSystem
                 }
             }
 
-            $license = LicenseKey::where('installation_id', $this->getInstallationId())->firstOrFail();
+            $license = Status::where('installation_id', $this->getInstallationId())->firstOrFail();
 
             if (!isset($payload->installation_id) || $payload->installation_id !== $license->installation_id) {
                 return false;
@@ -252,7 +252,7 @@ class CheckSystem
         }
     }
 
-    public function checkLicensedStatus(LicenseKey $license): string
+    public function checkLicensedStatus(Status $license): string
     {
         if (!$license->license_token) return 'tampered';
 

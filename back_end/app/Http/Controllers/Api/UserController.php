@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
-use App\Models\LicenseKey;
+use App\Models\Status;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\CheckSystem;
@@ -130,7 +130,7 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $installationId = $this->licenseService->getInstallationId();
-        $license = LicenseKey::where('installation_id', $installationId)->first();
+        $license = Status::where('installation_id', $installationId)->first();
         $limit = $license->user_limit;
         if ($license->status === 'trial')
         {
