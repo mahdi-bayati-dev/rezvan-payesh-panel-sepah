@@ -1,27 +1,23 @@
 // features/requests/components/mainRequests/RequestsFilter.tsx
-import { useState, useMemo, Fragment } from "react";
+import { useState, Fragment } from "react";
 import { X, SlidersHorizontal, CirclePlus, Settings2 } from "lucide-react";
 import { Link } from 'react-router-dom';
-// ✅ [FIX] استفاده از مسیرهای نسبی
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 
 // --- ایمپورت‌های ---
-// ✅ [FIX] استفاده از مسیرهای نسبی
-import { useLeaveTypes } from '../../hook/useLeaveTypes';
-// (مسیر هوک سازمان‌ها بر اساس لاگ خطای قبلی شما اصلاح شد)
-// توجه: فرض می‌کنیم این هوک آرگومان نمی‌پذیرد (برای رفع خطای TS2554).
-import { useOrganizations } from '@/features/Organization/hooks/useOrganizations'; // مسیر اصلاح شد
-import { type Organization } from '@/features/Organization/types/index';
-import type { User, LeaveType } from '../../types'; // (اصلاح مسیر)
+// import { useLeaveTypes } from '../../hook/useLeaveTypes';
+// import { useOrganizations } from '@/features/Organization/hooks/useOrganizations'; // مسیر اصلاح شد
+// import { type Organization } from '@/features/Organization/types/index';
+import type { User } from '../../types'; // (اصلاح مسیر)
 import { Dialog, Transition } from "@headlessui/react";
-// ✅ [FIX] استفاده از مسیرهای نسبی
 import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
-import { type DateObject } from "react-multi-date-picker"; // ✅ ایمپورت DateObject
+import { type DateObject } from "react-multi-date-picker";
 
 
 /**
- * (تابع flattenOrganizations - بدون تغییر)
+ * (تابع flattenOrganizations - فعلا کامنت شد چون استفاده نمی‌شود)
  */
+/*
 const flattenOrganizations = (
   orgs: Organization[],
   level = 0
@@ -45,8 +41,10 @@ const flattenOrganizations = (
   }
   return flatList;
 };
+*/
 
-// (تابع processLeaveTypes - بدون تغییر)
+// (تابع processLeaveTypes - فعلا کامنت شد)
+/*
 const processLeaveTypes = (types: LeaveType[]) => {
   const categories: SelectOption[] = [];
   const allTypes: SelectOption[] = [];
@@ -63,6 +61,7 @@ const processLeaveTypes = (types: LeaveType[]) => {
   });
   return { categories, allTypes };
 };
+*/
 
 
 interface RequestsFilterProps {
@@ -87,12 +86,12 @@ const mockStatuses: SelectOption[] = [
 
 const RequestsFilter = ({
   currentUser,
-  organization,
-  onOrganizationChange,
-  category,
-  onCategoryChange,
-  leaveType,
-  onLeaveTypeChange,
+  // organization, // فعلا استفاده نمیشود
+  // onOrganizationChange,
+  // category,
+  // onCategoryChange,
+  // leaveType,
+  // onLeaveTypeChange,
   status,
   onStatusChange,
   date,
@@ -104,37 +103,41 @@ const RequestsFilter = ({
   const canCreateRequest = !!currentUser?.employee;
 
   const isSuperAdmin = currentUser?.roles?.includes('super_admin') ?? false;
-  const isManager = isSuperAdmin ||
-    (currentUser?.roles?.includes('org-admin-l2') ?? false) ||
-    (currentUser?.roles?.includes('org-admin-l3') ?? false);
+  // const isManager = isSuperAdmin ||
+  //   (currentUser?.roles?.includes('org-admin-l2') ?? false) ||
+  //   (currentUser?.roles?.includes('org-admin-l3') ?? false);
 
 
   // --- اتصال فیلترها به API ---
+  
+  /* TODO: این بخش‌ها به دلیل عدم پشتیبانی API فعلاً غیرفعال شدند.
+    پس از پیاده‌سازی فیلترهای organization_id و leave_type_id در بک‌اند،
+    این کدها را از کامنت خارج کنید.
+  */
+
+  /*
   // تنها در صورتی که مدیر باشد، به انواع مرخصی نیاز داریم.
   const { data: leaveTypesData, isLoading: isLoadingLeaveTypes } = useLeaveTypes({
     enabled: isManager,
   });
 
   // تنها در صورتی که مدیر باشد، به سازمان‌ها نیاز داریم.
-  // ✅ رفع خطای TS2554: فرض می‌کنیم useOrganizations آرگومان نمی‌پذیرد
-  // اگر این هوک باید آرگومان enabled بپذیرد، باید تعریف آن در ماژول Organization اصلاح شود
   const { data: orgData, isLoading: isLoadingOrgs } = useOrganizations();
 
-  // (تبدیل داده‌ها - بدون تغییر)
   const organizationOptions = useMemo(() => {
     if (!orgData) return [];
     return flattenOrganizations(orgData);
   }, [orgData]);
 
-  // اگر کاربر عادی باشد، این لیست‌ها خالی هستند
   const { categories: categoryOptions, allTypes: leaveTypeOptions } = useMemo(() => {
     if (!leaveTypesData) return { categories: [], allTypes: [] };
     return processLeaveTypes(leaveTypesData);
   }, [leaveTypesData]);
+  */
 
 
   const filterContent = (
-    <div className="flex flex-col gap-y-6 p-4 sm:p-6 bg-backgroundL-500 mx-auto dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD h-fit"> {/* ✅ ریسپانسیو: padding بیشتر در موبایل و دسکتاپ */}
+    <div className="flex flex-col gap-y-6 p-4 sm:p-6 bg-backgroundL-500 mx-auto dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD h-fit">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-right text-foregroundL dark:text-foregroundD">
           فیلترها
@@ -147,8 +150,8 @@ const RequestsFilter = ({
         </button>
       </div>
 
-      {/* ۱. فیلترهای مدیریتی (فقط برای مدیران) */}
-      {isManager && (
+      {/* ۱. فیلترهای مدیریتی (فقط برای مدیران) - فعلا غیرفعال */}
+      {/* {isManager && (
         <>
           <SelectBox
             label="سازمان"
@@ -177,7 +180,14 @@ const RequestsFilter = ({
             disabled={isLoadingLeaveTypes}
           />
         </>
-      )}
+      )} */}
+      
+      {/* پیام موقت برای مدیران (اختیاری) */}
+      {/* {isManager && (
+          <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD bg-gray-100 dark:bg-zinc-800 p-2 rounded">
+              فیلترهای پیشرفته به زودی فعال خواهند شد.
+          </p>
+      )} */}
 
       {/* ۲. فیلتر وضعیت (برای همه) */}
       <SelectBox
@@ -196,11 +206,10 @@ const RequestsFilter = ({
         placeholder="انتخاب تاریخ"
         inputClassName="py-2.5 pr-10 pl-3"
         containerClassName="w-full"
-        // این فیلتر به دلیل محدودیت API در سمت فرانت (Client-Side) کار می‌کند.
         title="این فیلتر تاریخ را در نتایج لود شده جستجو می‌کند."
       />
 
-      {/* (دکمه‌ها - بدون تغییر) */}
+      {/* دکمه‌ها */}
       {canCreateRequest && (
         <Link
           to='/requests/new'
@@ -224,7 +233,6 @@ const RequestsFilter = ({
     </div>
   );
 
-  // (بقیه کامپوننت - بدون تغییر)
   return (
     <>
       <div className="md:hidden flex justify-end mb-4">
@@ -261,7 +269,6 @@ const RequestsFilter = ({
             leaveFrom="translate-x-0 opacity-100"
             leaveTo="translate-x-full opacity-0"
           >
-            {/* ✅ ریسپانسیو: حداکثر عرض در موبایل و padding مناسب */}
             <Dialog.Panel className="fixed inset-y-0 right-0 w-full max-w-xs sm:max-w-sm bg-backgroundL-500 dark:bg-backgroundD shadow-xl overflow-y-auto rounded-l-2xl p-4">
               {filterContent}
             </Dialog.Panel>

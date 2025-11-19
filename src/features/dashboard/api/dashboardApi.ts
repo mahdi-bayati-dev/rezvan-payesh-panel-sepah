@@ -2,7 +2,7 @@
 
 import axiosInstance from "@/lib/AxiosConfig";
 // [نکته مهم]: DateObject باید به عنوان مقدار (Value) ایمپورت شود نه Type
-import { DateObject } from "react-multi-date-picker"; 
+import { DateObject } from "react-multi-date-picker";
 
 // ====================================================================
 // ۱. تعریف اینترفیس‌ها (طبق مستندات دقیق بک‌اند)
@@ -46,9 +46,20 @@ export interface DashboardData {
  * دلیل: دیتابیس و لاراول با اعداد فارسی در کوئری‌ها مشکل دارند.
  */
 const fixPersianNumbers = (str: string): string => {
-  const persianNumbers = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+  const persianNumbers = [
+    /۰/g,
+    /۱/g,
+    /۲/g,
+    /۳/g,
+    /۴/g,
+    /۵/g,
+    /۶/g,
+    /۷/g,
+    /۸/g,
+    /۹/g,
+  ];
   const englishNumbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-  
+
   let result = str;
   for (let i = 0; i < 10; i++) {
     result = result.replace(persianNumbers[i], englishNumbers[i]);
@@ -63,18 +74,17 @@ const fixPersianNumbers = (str: string): string => {
 const API_ENDPOINT = "/admin-panel";
 
 export async function fetchDashboardData(
-    dateObj: DateObject | null,
-    timeFilter: string
+  dateObj: DateObject | null,
+  timeFilter: string
 ): Promise<DashboardData> {
-  
   let dateParam: string | undefined = undefined;
-  
+
   if (dateObj) {
     // [راه حل نهایی ارور ۵۰۰]:
     // 1. استفاده از جداکننده خط تیره (-) به جای اسلش (/)
     //    چون explode لاراول روی (-) تنظیم شده است.
     const rawPersianDate = dateObj.format("YYYY-MM-DD");
-    
+
     // 2. تبدیل اعداد به انگلیسی
     // خروجی نهایی: "1403-08-29"
     dateParam = fixPersianNumbers(rawPersianDate);
@@ -82,20 +92,21 @@ export async function fetchDashboardData(
 
   try {
     // لاگ جهت اطمینان (باید مثلاً "1403-08-29" باشد)
-    // console.log("Sending Date to API:", dateParam); 
+    // console.log("Sending Date to API:", dateParam);
 
     const response = await axiosInstance.get<DashboardData>(API_ENDPOINT, {
-        params: {
-            date: dateParam,
-            filter: timeFilter,
-        }
+      params: {
+        date: dateParam,
+        filter: timeFilter,
+      },
     });
+    console.log(response.data);
 
     const data = response.data;
-    
+
     // اعتبارسنجی پاسخ: جلوگیری از undefined بودن آرایه‌ها
     if (!data.summary_stats || !Array.isArray(data.live_organization_stats)) {
-        throw new Error("فرمت پاسخ API با مستندات مطابقت ندارد.");
+      throw new Error("فرمت پاسخ API با مستندات مطابقت ندارد.");
     }
 
     return data;
