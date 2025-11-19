@@ -219,11 +219,14 @@ class GenerateEmployeeShifts implements ShouldQueue
                 $workPattern = $slot->workPattern;
 
                 // ۱۰. ثبت شیفت
-                if ($workPattern) {
+                if ($workPattern)
+                {
 
-                    $startTime = $slot->override_start_time ?? $workPattern->start_time;
+                    $rawStartTime = $slot->override_start_time ?? $workPattern->start_time;
+                    $rawEndTime = $slot->override_end_time ?? $workPattern->end_time;
 
-                    $endTime = $slot->override_end_time ?? $workPattern->end_time;
+                    $formattedStartTime = $rawStartTime ? Carbon::parse($rawStartTime)->format('H:i') : null;
+                    $formattedEndTime = $rawEndTime ? Carbon::parse($rawEndTime)->format('H:i') : null;
 
 
                     EmployeeShift::updateOrCreate(
@@ -235,8 +238,8 @@ class GenerateEmployeeShifts implements ShouldQueue
                             'work_pattern_id' => $slot->work_pattern_id,
                             'is_off_day' => is_null($slot->work_pattern_id),
                             'shift_schedule_id' => $schedule->id,
-                            'expected_start_time' => $startTime?->format('H:i'),
-                            'expected_end_time' => $endTime?->format('H:i'),
+                            'expected_start_time' => $formattedStartTime,
+                            'expected_end_time' => $formattedEndTime,
                             'source' => 'scheduled',
                         ]
                     );
