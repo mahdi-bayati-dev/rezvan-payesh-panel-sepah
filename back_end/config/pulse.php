@@ -122,7 +122,7 @@ return [
 
     'middleware' => [
         'web',
-        'auth.basic:pulse_web,username',
+        'auth.basic:pulse_web,user_name',
     ],
 
     /*
