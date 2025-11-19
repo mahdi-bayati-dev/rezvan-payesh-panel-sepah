@@ -48,7 +48,7 @@ class WorkGroupEmployeeController extends Controller
 
             return response()->json([
                 'message' => $message,
-                'current_count' => $workGroup->employees()->count()
+                'current_count' => $workGroup->employee()->count()
             ]);
 
         }
