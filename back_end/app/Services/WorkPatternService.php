@@ -10,20 +10,32 @@ class WorkPatternService
     /**
      * یک الگوی کاری (شیفت) را بر اساس زمان شروع و پایان پیدا یا ایجاد می‌کند.
      *
-     * @param array $attributes آرایه‌ای شامل 'start_time', 'end_time', و 'name'
+     * @param array $attributes آرایه‌ای شامل 'start_time', 'end_time', 'name', و اختیاری 'work_duration_minutes'
      * @return WorkPattern
      */
     public function findOrCreatePattern(array $attributes): WorkPattern
     {
-        $startTime = Carbon::parse($attributes['start_time'])->format('H:i:s');
-        $endTime = Carbon::parse($attributes['end_time'])->format('H:i:s');
 
-        $workDuration = Carbon::parse($startTime)->diffInMinutes(Carbon::parse($endTime));
+        $startTimeStr = Carbon::parse($attributes['start_time'])->format('H:i:s');
+        $endTimeStr = Carbon::parse($attributes['end_time'])->format('H:i:s');
+
+        if (isset($attributes['work_duration_minutes'])) {
+            $workDuration = $attributes['work_duration_minutes'];
+        } else {
+            $start = Carbon::parse($startTimeStr);
+            $end = Carbon::parse($endTimeStr);
+
+            if ($end->lt($start)) {
+                $end->addDay();
+            }
+
+            $workDuration = $end->diffInMinutes($start);
+        }
 
         $workPattern = WorkPattern::firstOrCreate(
             [
-                'start_time' => $startTime,
-                'end_time' => $endTime,
+                'start_time' => $startTimeStr,
+                'end_time' => $endTimeStr,
             ],
             [
                 'name' => $attributes['name'],
@@ -31,6 +43,7 @@ class WorkPatternService
                 'work_duration_minutes' => $workDuration,
             ]
         );
+
 
         return $workPattern;
     }

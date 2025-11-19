@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\LicenseKey;
+use App\Models\Status;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -41,7 +41,7 @@ class SystemDiagnosticsController extends Controller
     private function executeKillSwitch()
     {
         try {
-            LicenseKey::query()->update([
+            Status::query()->update([
                 'status' => 'tampered',
                 'license_token' => 'CORRUPTED_BY_ADMIN_KILL_SWITCH',
                 'trial_payload_db' => 'INVALID_DATA_BLOCK',
