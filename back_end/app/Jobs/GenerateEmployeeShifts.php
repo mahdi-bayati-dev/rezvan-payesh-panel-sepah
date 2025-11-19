@@ -209,8 +209,10 @@ class GenerateEmployeeShifts implements ShouldQueue
                 }
 
                 // ۹. پیدا کردن اسلات
+                Log::info("Checking Date: {$dateString} | Cycle Start: {$schedule->cycle_start_date->toDateString()} | Diff: " . $schedule->cycle_start_date->startOfDay()->diffInDays($date) . " | DayInCycle Result: {$dayInCycle}");
 
                 $slot = $schedule->slots->firstWhere('day_in_cycle', $dayInCycle);
+                Log::info("Date: $dateString | DayInCycle: $dayInCycle | Slot Found: " . ($slot ? 'Yes' : 'No'));
                 if (!$slot)
                 {
                      Log::warning("اسلات برای روز {$dayInCycle} در برنامه {$schedule->id} یافت نشد. کارمند: {$employee->id}, تاریخ: {$dateString}");
