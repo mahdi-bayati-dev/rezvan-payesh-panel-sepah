@@ -7,8 +7,7 @@ import {
     type PaginationState,
     type RowSelectionState,
 } from "@tanstack/react-table";
-import { toast } from 'react-toastify';
-import { Loader2, UserPlus, Check, Search } from 'lucide-react';
+import { Loader2, UserPlus, Check, Search, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // --- هوک‌ها و تایپ‌ها ---
@@ -21,13 +20,14 @@ import { DataTable } from '@/components/ui/DataTable/index';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
 import { Button } from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Alert, AlertDescription } from '@/components/ui/Alert';
 
 interface AvailableEmployeesTableProps {
     groupId: number;
     groupName: string;
 }
 
-// (هوک Debounce)
+// هوک Debounce برای بهینه‌سازی جستجو
 const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
     React.useEffect(() => {
@@ -37,100 +37,73 @@ const useDebounce = (value: string, delay: number) => {
     return debouncedValue;
 };
 
-
-/**
- * جدول نمایش کارمندانی که در حال حاضر عضو گروه نیستند.
- */
-// ✅ حل خطای TS6133: groupName با _ جایگزین شد چون استفاده نمی‌شود
-export default function AvailableEmployeesTable({ groupId, groupName: _groupName }: AvailableEmployeesTableProps) {
+export default function AvailableEmployeesTable({ groupId }: AvailableEmployeesTableProps) {
     const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 });
+    // در اینجا keys آبجکت rowSelection برابر با employee.id خواهند بود (نه ایندکس)
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
 
-    // --- ۱. فچ کردن کارمندان خارج از گروه ---
-    const { data: userResponse, isLoading, } = useUsers({
+    // 1. دریافت لیست کارمندان آزاد (بدون گروه)
+    const { data: userResponse, isLoading } = useUsers({
         page: pagination.pageIndex + 1,
         per_page: pagination.pageSize,
         search: debouncedSearch,
-        // ✅ استفاده از فیلتر جدید (کارمندان آزاد)
-        is_not_assigned_to_group: true,
+        is_not_assigned_to_group: true, // فیلتر بسیار مهم سمت سرور
     });
 
-    const addMutation = useAddEmployeeToGroup();
+    const { mutate: addEmployees, isPending: isAdding } = useAddEmployeeToGroup();
+
     const users = useMemo(() => userResponse?.data ?? [], [userResponse]);
     const pageCount = useMemo(() => userResponse?.meta?.last_page ?? 0, [userResponse]);
 
-    // ✅ تعریف selectedCount
+    // تعداد آیتم‌های انتخاب شده
     const selectedCount = Object.keys(rowSelection).length;
 
-    // --- ۲. افزودن دسته‌ای / تکی کارمند به گروه ---
-    const handleAddEmployees = (employeeIds: number[]) => {
-        if (employeeIds.length === 0) return;
-
-        addMutation.mutate(
-            { groupId, employeeIds },
+    // --- هندلر افزودن ---
+    const handleAddEmployees = (ids: number[]) => {
+        addEmployees(
             {
-                // onSuccess اکنون پیام را از هوک دریافت می‌کند
-                onSuccess: (message) => {
-                    toast.success(message);
-                    setRowSelection({}); // پاک کردن انتخاب‌ها
-                },
-                onError: (error) => {
-                    // پیام خطا در هوک مدیریت می‌شود، اینجا فقط یک fallback است
-                    toast.error(`خطا در افزودن: ${(error as any)?.message || 'خطای سرور'}`);
+                groupId,
+                payload: {
+                    employee_ids: ids,
+                    action: 'attach'
+                }
+            },
+            {
+                onSuccess: () => {
+                    setRowSelection({}); // پاک کردن انتخاب‌ها پس از موفقیت
                 }
             }
         );
     };
 
-    // افزودن تکی (از دکمه درون ردیف)
-    const handleAddSingleEmployee = (user: User) => {
-        // ✅ اصلاح کلیدی: اطمینان از وجود employee.id
-        if (!user.employee?.id) {
-            toast.error("پروفایل کارمندی یا ID کارمند یافت نشد.");
-            return;
-        }
-        // ✅ ارسال employee.id
-        handleAddEmployees([user.employee.id]);
-    };
-
-    // افزودن انتخابی (از دکمه بالا)
+    // افزودن دسته‌ای (Bulk Action)
     const handleAddSelectedEmployees = () => {
-        // ✅ اصلاح کلیدی: جمع‌آوری employee.id از ردیف‌های انتخاب شده
-        const selectedEmployeeIds = Object.keys(rowSelection)
-            .map(Number)
-            .map(index => users[index]?.employee?.id)
-            .filter((id): id is number => id !== undefined && id !== null);
-
-        if (selectedEmployeeIds.length > 0) {
-            handleAddEmployees(selectedEmployeeIds);
-        } else {
-            toast.warn("هیچ کارمند دارای پروفایل برای افزودن انتخاب نشده است.");
-        }
+        // چون getRowId را تنظیم کردیم، کلیدهای rowSelection همان employeeId هستند
+        const selectedIds = Object.keys(rowSelection).map(Number);
+        handleAddEmployees(selectedIds);
     };
 
-    // --- ۳. تعریف ستون‌ها ---
+    // --- تعریف ستون‌ها ---
     const columns: ColumnDef<User>[] = useMemo(() => [
-        // ستون Checkbox
         {
             id: 'select',
             header: ({ table }) => (
                 <input
                     type="checkbox"
                     checked={table.getIsAllPageRowsSelected()}
-                    onChange={(value) => table.toggleAllPageRowsSelected(!!value.target.checked)}
-                    aria-label="Select all"
-                    className="w-4 h-4 rounded text-primaryL focus:ring-primaryL"
+                    onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+                    className="w-4 h-4 rounded accent-primaryL dark:accent-primaryD cursor-pointer"
                 />
             ),
             cell: ({ row }) => (
                 <input
                     type="checkbox"
                     checked={row.getIsSelected()}
-                    onChange={(value) => row.toggleSelected(!!value.target.checked)}
-                    aria-label="Select row"
-                    className="w-4 h-4 rounded text-primaryL focus:ring-primaryL"
+                    disabled={!row.getCanSelect()}
+                    onChange={(e) => row.toggleSelected(!!e.target.checked)}
+                    className="w-4 h-4 rounded accent-primaryL dark:accent-primaryD cursor-pointer disabled:opacity-50"
                 />
             ),
             enableSorting: false,
@@ -141,9 +114,17 @@ export default function AvailableEmployeesTable({ groupId, groupName: _groupName
             id: "full_name",
             header: "نام کارمند",
             cell: ({ row }) => (
-                <Link to={`/organizations/users/${row.original.id}`} className="font-medium hover:text-primaryL dark:hover:text-primaryD transition-colors">
-                    {row.getValue('full_name') as string || row.original.user_name}
-                </Link>
+                <div className="flex flex-col">
+                    <Link to={`/organizations/users/${row.original.id}`} className="font-medium hover:text-primaryL dark:hover:text-primaryD transition-colors">
+                        {row.getValue('full_name') as string || row.original.user_name}
+                    </Link>
+                    {!row.original.employee && (
+                        <span className="text-[10px] text-red-500 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            فاقد پروفایل کارمندی
+                        </span>
+                    )}
+                </div>
             ),
         },
         {
@@ -154,23 +135,30 @@ export default function AvailableEmployeesTable({ groupId, groupName: _groupName
         },
         {
             id: "actions",
-            header: "افزودن",
-            cell: ({ row }) => (
-                <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleAddSingleEmployee(row.original); }}
-                    disabled={addMutation.isPending || !row.original.employee?.id} // غیرفعال کردن اگر employee.id نباشد
-                    className='w-20 justify-center'
-                >
-                    {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                </Button>
-            ),
+            header: "عملیات",
+            cell: ({ row }) => {
+                const empId = row.original.employee?.id;
+                return (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        // جلوگیری از کلیک روی دکمه وقتی در حال افزودن هستیم یا پروفایل ناقص است
+                        disabled={isAdding || !empId}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (empId) handleAddEmployees([empId]);
+                        }}
+                        className="hover:bg-primaryL hover:text-white dark:hover:bg-primaryD transition-colors"
+                    >
+                        {isAdding ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                        <span className="ml-1 text-xs">افزودن</span>
+                    </Button>
+                );
+            },
         },
-    ], [addMutation.isPending]);
+    ], [isAdding]); // فقط وقتی وضعیت لودینگ تغییر کرد ستون‌ها را بازسازی کن
 
-
-    // --- ۴. راه‌اندازی TanStack Table ---
+    // --- تنظیمات جدول ---
     const table = useReactTable({
         data: users,
         columns,
@@ -180,42 +168,66 @@ export default function AvailableEmployeesTable({ groupId, groupName: _groupName
         onRowSelectionChange: setRowSelection,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        enableRowSelection: true,
         manualPagination: true,
-        manualFiltering: true,
+        
+        // ✅✅✅ نکته حیاتی: تعریف شناسه منحصر به فرد برای هر سطر بر اساس Employee ID
+        // این کار باعث می‌شود selection state با مقادیر واقعی کار کند نه ایندکس آرایه
+        getRowId: (row) => row.employee?.id ? String(row.employee.id) : `user-${row.id}`,
+        
+        // غیرفعال کردن انتخاب برای کاربرانی که employee profile ندارند
+        enableRowSelection: (row) => !!row.original.employee?.id,
     });
 
     return (
-        <div className="bg-backgroundL-500 dark:bg-backgroundD p-4 rounded-xl shadow-inner border border-borderL dark:border-borderD space-y-4">
-            {/* نوار ابزار بالا (جستجو و دکمه افزودن دسته‌ای) */}
-            <div className="flex justify-between items-center gap-4">
-                <div className="relative w-full max-w-sm">
+        <div className="bg-backgroundL-500 dark:bg-backgroundD p-5 rounded-xl shadow-sm border border-borderL dark:border-borderD space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="relative w-full max-w-xs">
                     <Input
-                        label=''
-                        placeholder="جستجو در کارمندان..."
+                        label=""
+                        placeholder="جستجو (نام، کد پرسنلی)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pr-10"
+                        className="pr-9"
                     />
                     <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL" />
                 </div>
 
-                <Button
-                    variant="primary"
-                    onClick={handleAddSelectedEmployees}
-                    disabled={selectedCount === 0 || addMutation.isPending}
-                >
-                    {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Check className="h-4 w-4 ml-2" />}
-                    {selectedCount > 0 ? `افزودن ${selectedCount} کارمند` : "افزودن انتخاب‌شده‌ها"}
-                </Button>
+                {selectedCount > 0 && (
+                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                         <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
+                            {selectedCount} کارمند انتخاب شده
+                        </span>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleAddSelectedEmployees}
+                            disabled={isAdding}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                            {isAdding ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Check className="h-4 w-4 ml-2" />}
+                            افزودن گروهی
+                        </Button>
+                    </div>
+                )}
             </div>
+
+            {/* راهنما برای حالت خالی بودن */}
+            {!isLoading && users.length === 0 && (
+                <Alert className="bg-muted/50 border-none">
+                    <AlertDescription className="flex items-center text-muted-foregroundL">
+                        <AlertCircle className="h-4 w-4 ml-2" />
+                        هیچ کارمند آزادی یافت نشد. تمام کارمندان دارای پروفایل، هم‌اکنون عضو گروه‌های کاری هستند.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <DataTable
                 table={table}
-                isLoading={isLoading || addMutation.isPending}
-                notFoundMessage="هیچ کارمند آزادی برای افزودن یافت نشد."
+                isLoading={isLoading}
+                notFoundMessage="کارمندی یافت نشد."
             />
-            {pageCount > 0 && <DataTablePagination table={table} />}
+            
+            {pageCount > 1 && <div className="mt-4"><DataTablePagination table={table} /></div>}
         </div>
     );
 }
