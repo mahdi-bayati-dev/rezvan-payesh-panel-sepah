@@ -1,20 +1,46 @@
 // src/components/layout/Header.tsx
 
 import { Menu } from "lucide-react";
-import { useAppSelector } from "@/store";
+import { useAppSelector } from "@/store"; // یا "@/hook/reduxHooks" اگر هوک‌ها آنجا هستند
+import { selectUserRoles } from "@/store/slices/authSlice";
+import { ROLES } from "@/constants/roles";
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
-export const Header = ({ onMenuClick }: HeaderProps) => {
+// نگاشت نام نقش‌ها به متن فارسی برای نمایش در Badge
+const ROLE_LABELS = {
+  [ROLES.SUPER_ADMIN]: "مدیر ارشد",
+  [ROLES.ADMIN_L2]: "ادمین سطح ۲",
+  [ROLES.ADMIN_L3]: "ادمین سطح ۳",
+  [ROLES.USER]: "کاربر عادی",
+};
 
-  const theme = useAppSelector((state) => state.ui.theme)
+export const Header = ({ onMenuClick }: HeaderProps) => {
+  const theme = useAppSelector((state) => state.ui.theme);
+  // دریافت نقش‌های کاربر از Redux
+  const userRoles = useAppSelector(selectUserRoles);
 
   const logoSrc =
     theme === "dark"
-      ? "/img/img-header/logo-2.webp" // مسیر مطلق از ریشه سایت
-      : "/img/img-header/logo-1.webp"; // مسیر مطلق از ریشه سایت
+      ? "/img/img-header/logo-2.webp"
+      : "/img/img-header/logo-1.webp";
+
+  /**
+   * تابع کمکی برای پیدا کردن بالاترین نقش کاربر جهت نمایش.
+   * اولویت نمایش: سوپر ادمین > ادمین ۲ > ادمین ۳ > کاربر
+   */
+  const getDisplayRoleLabel = () => {
+    if (!userRoles || userRoles.length === 0) return "کاربر مهمان";
+
+    if (userRoles.includes(ROLES.SUPER_ADMIN)) return ROLE_LABELS[ROLES.SUPER_ADMIN];
+    if (userRoles.includes(ROLES.ADMIN_L2)) return ROLE_LABELS[ROLES.ADMIN_L2];
+    if (userRoles.includes(ROLES.ADMIN_L3)) return ROLE_LABELS[ROLES.ADMIN_L3];
+    if (userRoles.includes(ROLES.USER)) return ROLE_LABELS[ROLES.USER];
+
+    return "کاربر سیستم"; // حالت پیش‌فرض اگر نقش ناشناخته بود
+  };
 
   return (
     <header className="flex items-center justify-between px-4 z-10 bg-backgroundL border-b border-borderL shadow-sm transition-colors duration-300 dark:bg-backgroundD dark:border-borderD">
@@ -38,12 +64,12 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             رضـــوان پایش
           </h1>
         </div>
+
+        {/* نمایش داینامیک نقش کاربر */}
         <span className="rounded-full font-bold bg-secondaryL px-2.5 py-0.5 text-sm whitespace-nowrap text-secondary-foregroundL md:mr-5 dark:bg-secondaryD dark:text-secondary-foregroundD">
-          ادمین سطح یک
+          {getDisplayRoleLabel()}
         </span>
       </div>
-
-
     </header>
   );
 };
