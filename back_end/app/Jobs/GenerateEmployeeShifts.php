@@ -111,7 +111,7 @@ class GenerateEmployeeShifts implements ShouldQueue
                         EmployeeShift::updateOrCreate(
                             [
                                 'employee_id' => $employee->id,
-                                'date' => $date
+                                'date' => $date->toDateString()
                             ],
                             [
                                 'work_pattern_id' => null,
@@ -137,7 +137,7 @@ class GenerateEmployeeShifts implements ShouldQueue
                     EmployeeShift::updateOrCreate(
                         [
                             'employee_id' => $employee->id,
-                            'date' => $date
+                            'date' => $date->toDateString()
                         ],
                         [
                             'work_pattern_id' => null,
@@ -234,7 +234,7 @@ class GenerateEmployeeShifts implements ShouldQueue
                     EmployeeShift::updateOrCreate(
                         [
                             'employee_id' => $employee->id,
-                            'date' => $date
+                            'date' => $date->toDateString()
                         ],
                         [
                             'work_pattern_id' => $slot->work_pattern_id,
