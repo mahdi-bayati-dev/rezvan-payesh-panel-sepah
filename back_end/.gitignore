@@ -2,6 +2,7 @@
 .DS_Store
 build.php
 .env
+phpstan.neon
 .env.backup
 .env.production
 .phpactor.json
