@@ -21,7 +21,7 @@ class WorkGroupEmployeeController extends Controller
         $validated = $request->validate([
             'employee_ids' => 'required|array',
             'employee_ids.*' => 'exists:employees,id',
-            'action' => 'required|in:attach,detach', // عملیات مجاز: اتصال یا جدا کردن
+            'action' => 'required|in:attach,detach',
         ]);
 
         $employeeIds = $validated['employee_ids'];
