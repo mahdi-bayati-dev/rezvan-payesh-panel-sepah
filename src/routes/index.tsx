@@ -8,7 +8,6 @@ import { ALL_ACCESS, ADMIN_ACCESS, SUPER_ADMIN_ONLY } from "@/constants/roles";
 
 // --- Lazy Imports ---
 const LicensePage = lazy(() => import("@/features/license/routes/licensePage"));
-
 const ReportsIndexPage = lazy(() => import("../features/reports/routes/ReportsIndexPage"));
 const MyReportPageDetails = lazy(() => import("../features/reports/routes/myReportPageDetails"));
 const DashboardPage = lazy(() => import("../features/dashboard/routes/DashboardPage"));
@@ -47,7 +46,7 @@ const UnauthorizedPage = lazy(() => import("./UnauthorizedPage"));
 
 export const router = createBrowserRouter([
   {
-    element: <ProtectedRoute />, // ابتدا چک می‌کند لاگین است یا نه
+    element: <ProtectedRoute />,
     errorElement: <ErrorPage />,
     children: [
       {
@@ -61,8 +60,11 @@ export const router = createBrowserRouter([
           {
             element: <RoleBasedGuard allowedRoles={ALL_ACCESS} />,
             children: [
-              // [افزوده شد] روت صفحه لایسنس
-              // این روت باید برای همه نقش‌ها در دسترس باشد
+              // [تغییر مهم]: داشبورد به اینجا منتقل شد تا همه دسترسی داشته باشند
+              {
+                path: "/",
+                element: <Suspense fallback={<Spinner />}><DashboardPage /></Suspense>,
+              },
               {
                 path: "license",
                 element: <Suspense fallback={<Spinner />}><LicensePage /></Suspense>,
@@ -124,11 +126,7 @@ export const router = createBrowserRouter([
           {
             element: <RoleBasedGuard allowedRoles={ADMIN_ACCESS} />,
             children: [
-              {
-                path: "/", // داشبورد اصلی
-                element: <Suspense fallback={<Spinner />}><DashboardPage /></Suspense>,
-              },
-              // ... سایر روت‌های ادمین
+              // [حذف شد]: داشبورد از اینجا برداشته شد
               {
                 path: "organizations",
                 element: <Suspense fallback={<Spinner />}><OrganizationPage /></Suspense>,
