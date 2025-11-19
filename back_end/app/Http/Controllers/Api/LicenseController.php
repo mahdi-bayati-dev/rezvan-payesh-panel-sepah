@@ -3,17 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\LicenseService;
+use App\Services\CheckSystem as LicenseService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class LicenseController extends Controller
 {
-    protected $licenseService;
 
-    public function __construct(LicenseService $licenseService)
+
+    public function __construct(protected LicenseService $licenseService)
     {
-        $this->licenseService = $licenseService;
     }
 
     /**
