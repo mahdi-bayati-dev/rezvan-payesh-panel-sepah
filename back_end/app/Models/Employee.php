@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use GeneaLabs\LaravelModelCaching\Traits\Cachable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Illuminate\Support\Carbon;
 
 class Employee extends Model
 {
-    use HasFactory,softDeletes;
+    use HasFactory,softDeletes,Cachable;
 
     protected $fillable = [
         'user_id',

@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use GeneaLabs\LaravelModelCaching\Traits\Cachable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceLog extends Model
 {
-    use HasFactory;
+    use HasFactory,Cachable;
 
     public const TYPE_CHECK_IN = 'check_in';
     public const TYPE_CHECK_OUT = 'check_out';

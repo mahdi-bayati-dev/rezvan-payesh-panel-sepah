@@ -245,6 +245,7 @@ class GenerateEmployeeShifts implements ShouldQueue
                             'source' => 'scheduled',
                         ]
                     );
+
                 }
                 else
                 {
