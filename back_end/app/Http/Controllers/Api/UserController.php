@@ -29,11 +29,11 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-
         $this->authorize('viewAny', User::class);
 
         $currentUser = $request->user();
         $currentUserEmployee = $currentUser->employee;
+
 
         $query = User::with(['employee.organization', 'roles', 'employee.workGroup', 'employee.shiftSchedule', 'employee.weekPattern']);
 
@@ -58,17 +58,23 @@ class UserController extends Controller
 
         $adminOrg = $currentUserEmployee?->organization;
 
-        if(!$adminOrg && ($currentUser->hasRole('org-admin-l2') || $currentUser->hasRole('org-admin-l3')) )
+        if (!$adminOrg && ($currentUser->hasRole('org-admin-l2') || $currentUser->hasRole('org-admin-l3')))
         {
-            $query->where(false);
+            $query->whereRaw('1 = 0');
         }
-        else if ($currentUser->hasRole('org-admin-l2') ) {
 
-            $query->whereHas('employee.organization', function ($q) use ($adminOrg) {
-                $q->whereIsDescendantOfOrSelf($adminOrg);
+        else if ($currentUser->hasRole('org-admin-l2')) {
+
+
+            $allowedOrgIds = $adminOrg->descendantsAndSelf()->pluck('id');
+
+            $query->whereHas('employee', function ($q) use ($allowedOrgIds) {
+                $q->whereIn('organization_id', $allowedOrgIds);
             });
+
             $query->where('id', '!=', $currentUser->id);
         }
+
         elseif ($currentUser->hasRole('org-admin-l3'))
         {
             $query->whereHas('employee', function ($q) use ($adminOrg) {
@@ -79,15 +85,15 @@ class UserController extends Controller
 
         $query->when($request->input('search'), function ($q, $searchTerm)
         {
-            $q->select('users.*')
-              ->leftJoin('employees', 'users.id', '=', 'employees.user_id')
-              ->where(function ($subQuery) use ($searchTerm) {
-                  $subQuery->where('users.user_name', 'like', "%{$searchTerm}%")
-                           ->orWhere('users.email', 'like', "%{$searchTerm}%")
-                           ->orWhere('employees.first_name', 'like', "%{$searchTerm}%")
-                           ->orWhere('employees.last_name', 'like', "%{$searchTerm}%")
-                           ->orWhere('employees.personnel_code', 'like', "%{$searchTerm}%");
-              });
+            $q->where(function ($mainQ) use ($searchTerm) {
+                $mainQ->where('username', 'like', "%{$searchTerm}%") // فیلد user_name نداریم، username استاندارد است
+                      ->orWhere('email', 'like', "%{$searchTerm}%")
+                      ->orWhereHas('employee', function ($subQuery) use ($searchTerm) {
+                          $subQuery->where('first_name', 'like', "%{$searchTerm}%")
+                                   ->orWhere('last_name', 'like', "%{$searchTerm}%")
+                                   ->orWhere('personnel_code', 'like', "%{$searchTerm}%");
+                      });
+            });
         });
 
         $query->when($request->input('role'), function ($q, $roleName) {
@@ -98,13 +104,16 @@ class UserController extends Controller
 
         $query->when($request->input('organization_id'), function ($q, $orgId)
         {
-            $organization = Organization::find($orgId);
-            if ($organization)
+
+            $targetOrg = Organization::find($orgId);
+
+            if ($targetOrg)
             {
-                $orgIds = $organization->descendantsAndSelf()->pluck('id');
-                $q->whereHas('employee.organization', function ($orgQuery) use ($orgIds)
+                $orgIds = $targetOrg->descendantsAndSelf()->pluck('id');
+
+                $q->whereHas('employee', function ($orgQuery) use ($orgIds)
                 {
-                    $orgQuery->whereIn('id', $orgIds);
+                    $orgQuery->whereIn('organization_id', $orgIds);
                 });
             }
             else
@@ -112,15 +121,16 @@ class UserController extends Controller
                 $q->whereRaw('1 = 0');
             }
         });
+
         $perPage = (int) $request->input('per_page', 20);
-        if ($perPage > 100)
-        {
-            $perPage = 100;
-        }
-        $users = $query->paginate($perPage)->withQueryString();
+        if ($perPage > 100) $perPage = 100;
+        if ($perPage < 1) $perPage = 20;
+
+        $users = $query->latest()->paginate($perPage)->withQueryString();
 
         return new UserCollection($users);
     }
+
 
     /**
      * Store a newly created resource in storage.
