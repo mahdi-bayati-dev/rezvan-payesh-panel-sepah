@@ -29,6 +29,8 @@ class EmployeeShift extends Model
     protected $casts = [
         'date' => 'date',
         'is_off_day' => 'boolean',
+        'override_start_time' => 'datetime',
+        'override_end_time' => 'datetime',
     ];
 
     /**
