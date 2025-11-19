@@ -6,16 +6,13 @@ import {
     type ColumnDef,
     type PaginationState,
 } from "@tanstack/react-table";
-import { toast } from 'react-toastify';
-import { Loader2, Trash2 } from 'lucide-react';
+import {  UserX } from 'lucide-react'; // Trash2 پاک شد چون استفاده نمیشد
 import { Link } from 'react-router-dom';
 
-// --- هوک‌ها و تایپ‌ها ---
 import { type User } from '@/features/User/types/index';
 import { useUsers } from '@/features/User/hooks/hook';
 import { useRemoveEmployeeFromGroup } from '@/features/work-group/hooks/hook';
 
-// --- کامپوننت‌های UI ---
 import { DataTable } from '@/components/ui/DataTable/index';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
 import { Button } from '@/components/ui/Button';
@@ -26,51 +23,39 @@ interface AssignedEmployeesTableProps {
     groupName: string;
 }
 
-/**
- * جدول نمایش کارمندانی که در حال حاضر عضو گروه هستند.
- */
 export default function AssignedEmployeesTable({ groupId, groupName }: AssignedEmployeesTableProps) {
     const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 });
-    const [modalUser, setModalUser] = useState<User | null>(null);
+    const [userToRemove, setUserToRemove] = useState<User | null>(null);
 
-    // --- ۱. فچ کردن کارمندان عضو گروه ---
+    // دریافت اعضای همین گروه خاص
     const { data: userResponse, isLoading } = useUsers({
         page: pagination.pageIndex + 1,
         per_page: pagination.pageSize,
-        work_group_id: groupId, // ✅ فیلتر: کارمندانی که work_group_id آن‌ها برابر با groupId است
-        // search و role برای سادگی در اینجا حذف شده‌اند اما می‌توانند اضافه شوند.
+        work_group_id: groupId,
     });
 
-    const removeMutation = useRemoveEmployeeFromGroup();
+    const { mutate: removeEmployee, isPending: isRemoving } = useRemoveEmployeeFromGroup();
 
     const users = useMemo(() => userResponse?.data ?? [], [userResponse]);
     const pageCount = useMemo(() => userResponse?.meta?.last_page ?? 0, [userResponse]);
 
-    // --- ۲. حذف کارمند از گروه ---
-    const handleRemoveEmployee = (user: User) => {
-        // ✅ اصلاح کلیدی: اطمینان از وجود employee.id
-        if (!user.employee?.id) {
-            toast.error("خطا: ID پروفایل کارمندی کاربر یافت نشد.");
-            return;
-        }
-        removeMutation.mutate(
-            // ✅ ارسال employee.id
-            { groupId, employeeIds: [user.employee.id] },
+    const handleConfirmRemove = () => {
+        if (!userToRemove?.employee?.id) return;
+
+        removeEmployee(
             {
-                // onSuccess اکنون پیام را از هوک دریافت می‌کند
-                onSuccess: (message) => { 
-                    toast.success(message);
-                    setModalUser(null);
-                },
-                onError: (error) => {
-                    // پیام خطا در هوک مدیریت می‌شود، اینجا فقط یک fallback است
-                    toast.error(`خطا در حذف: ${(error as any)?.message || 'خطای سرور'}`);
+                groupId,
+                payload: {
+                    employee_ids: [userToRemove.employee.id],
+                    action: 'detach' // طبق داکیومنت برای حذف
                 }
+            },
+            {
+                onSuccess: () => setUserToRemove(null)
             }
         );
     };
 
-    // --- ۳. تعریف ستون‌ها ---
     const columns: ColumnDef<User>[] = useMemo(() => [
         {
             accessorFn: (row) => `${row.employee?.first_name || ''} ${row.employee?.last_name || ''}`,
@@ -90,22 +75,22 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
         },
         {
             id: "actions",
-            header: "حذف",
+            header: "عملیات",
             cell: ({ row }) => (
-                <Button 
-                    variant="ghost" 
+                <Button
+                    variant="ghost"
                     size="icon"
-                    onClick={(e) => { e.stopPropagation(); setModalUser(row.original); }}
-                    // ✅ غیرفعال کردن اگر employee.id نباشد
-                    disabled={removeMutation.isPending || !row.original.employee?.id}
+                    className="text-muted-foregroundL hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setUserToRemove(row.original); }}
+                    disabled={isRemoving || !row.original.employee?.id}
+                    title="حذف از گروه"
                 >
-                    {removeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    <UserX className="h-4 w-4" />
                 </Button>
             ),
         },
-    ], [removeMutation.isPending]);
+    ], [isRemoving]);
 
-    // --- ۴. راه‌اندازی TanStack Table ---
     const table = useReactTable({
         data: users,
         columns,
@@ -118,22 +103,34 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
     });
 
     return (
-        <div className="bg-backgroundL-500 dark:bg-backgroundD p-4 rounded-xl shadow-inner border border-borderL dark:border-borderD">
+        <div className="bg-backgroundL-500 dark:bg-backgroundD p-5 rounded-xl shadow-sm border border-borderL dark:border-borderD h-full">
             <DataTable
                 table={table}
-                isLoading={isLoading || removeMutation.isPending}
-                notFoundMessage={`هیچ کارمندی در گروه "${groupName}" یافت نشد.`}
+                isLoading={isLoading}
+                notFoundMessage={`هیچ کارمندی در گروه "${groupName}" عضو نیست.`}
             />
-            {pageCount > 0 && <DataTablePagination table={table} />}
 
-            {/* مودال تأیید حذف */}
+            {pageCount > 1 && <div className="mt-4"><DataTablePagination table={table} /></div>}
+
             <ConfirmationModal
-                isOpen={!!modalUser}
-                onClose={() => setModalUser(null)}
-                onConfirm={() => modalUser && handleRemoveEmployee(modalUser)}
-                title={`حذف کارمند از گروه: ${groupName}`}
-                message={`آیا مطمئنید که می‌خواهید کارمند "${modalUser?.employee?.first_name} ${modalUser?.employee?.last_name}" را از این گروه حذف کنید؟`}
-                confirmText={removeMutation.isPending ? "در حال حذف..." : "حذف کن"}
+                isOpen={!!userToRemove}
+                onClose={() => setUserToRemove(null)}
+                onConfirm={handleConfirmRemove}
+                title="حذف کارمند از گروه"
+                message={
+                    <>
+                        <span>
+                            آیا از حذف کارمند <strong className="text-red-600">{userToRemove?.employee?.first_name} {userToRemove?.employee?.last_name}</strong> از گروه <strong>{groupName}</strong> اطمینان دارید؟
+                        </span>
+                        {/* ✅ اصلاح مهم: تغییر <p> به <span className="block"> 
+                            این کار از خطای Hydration جلوگیری می‌کند چون ConfirmationModal احتمالاً خودش پیام را در <p> می‌گذارد.
+                        */}
+                        <span className="block text-xs text-muted-foregroundL mt-2">
+                            این کارمند پس از حذف در وضعیت "آزاد" قرار می‌گیرد.
+                        </span>
+                    </>
+                }
+                confirmText={isRemoving ? "در حال انجام..." : "بله، حذف شود"}
                 variant="danger"
             />
         </div>
