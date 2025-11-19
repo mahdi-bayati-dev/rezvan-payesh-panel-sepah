@@ -12,6 +12,8 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Illuminate\Support\Collection;
+use Morilog\Jalali\Jalalian;
+
 class AttendanceLogExport implements FromQuery, WithHeadings, WithMapping
 {
     protected User $user;
@@ -131,7 +133,7 @@ class AttendanceLogExport implements FromQuery, WithHeadings, WithMapping
             case 'organization_name':
                 return $log->employee?->organization?->name;
             case 'timestamp':
-                return $log->timestamp->toDateTimeString();
+                return Jalalian::fromCarbon($log->timestamp)->format('Y/m/d H:i:s');
             case 'event_type':
                 return $log->event_type === 'check_in' ? 'ورود' : 'خروج';
             case 'lateness_minutes':
