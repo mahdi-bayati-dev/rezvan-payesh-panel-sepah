@@ -88,6 +88,12 @@ class AuthServiceProvider extends ServiceProvider
                 ->exists();
         });
 
+
         $this->registerPolicies();
+
+        Gate::define('viewPulse', function (User $user)
+        {
+            return $user->hasRole('super_admin');
+        });
     }
 }

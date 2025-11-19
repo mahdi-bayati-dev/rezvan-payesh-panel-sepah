@@ -29,10 +29,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::define('viewPulse', function (User $user)
-        {
-            return $user->hasRole('super_admin');
-        });
 
         Employee::observe(EmployeeObserver::class);
         WorkGroup::observe(WorkGroupObserver::class);
