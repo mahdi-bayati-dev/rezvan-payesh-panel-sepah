@@ -4,9 +4,11 @@ import { Spinner } from "../components/ui/Spinner";
 import { MainLayout } from "../components/layout/MainLayout";
 import { ProtectedRoute } from "./ProtectedRoute/ProtectedRoute";
 import { RoleBasedGuard } from "./RoleBasedGuard/RoleBasedGuard";
-import { ALL_ACCESS, ADMIN_ACCESS, SUPER_ADMIN_ONLY } from "@/constants/roles"; // استفاده از ثابت‌ها
+import { ALL_ACCESS, ADMIN_ACCESS, SUPER_ADMIN_ONLY } from "@/constants/roles";
 
-// --- Lazy Imports (همان ایمپورت‌های قبلی شما) ---
+// --- Lazy Imports ---
+const LicensePage = lazy(() => import("@/features/license/routes/licensePage"));
+
 const ReportsIndexPage = lazy(() => import("../features/reports/routes/ReportsIndexPage"));
 const MyReportPageDetails = lazy(() => import("../features/reports/routes/myReportPageDetails"));
 const DashboardPage = lazy(() => import("../features/dashboard/routes/DashboardPage"));
@@ -59,6 +61,12 @@ export const router = createBrowserRouter([
           {
             element: <RoleBasedGuard allowedRoles={ALL_ACCESS} />,
             children: [
+              // [افزوده شد] روت صفحه لایسنس
+              // این روت باید برای همه نقش‌ها در دسترس باشد
+              {
+                path: "license",
+                element: <Suspense fallback={<Spinner />}><LicensePage /></Suspense>,
+              },
               {
                 path: "requests",
                 element: <Suspense fallback={<Spinner />}><RequestsPage /></Suspense>,
@@ -103,9 +111,8 @@ export const router = createBrowserRouter([
                 path: "work-calender",
                 element: <Suspense fallback={<Spinner />}><WorkCalendarPage /></Suspense>,
               },
-              // صفحه پروفایل کاربر و تنظیمات شخصی معمولاً برای همه باز است
               {
-                path: "organizations/users/:userId", // اگر کاربر فقط پروفایل خود را می‌بیند، باید در کامپوننت کنترل شود
+                path: "organizations/users/:userId",
                 element: <Suspense fallback={<Spinner />}><UserProfilePage /></Suspense>,
               }
             ]
@@ -113,7 +120,6 @@ export const router = createBrowserRouter([
 
           // ------------------------------------------------------------
           // ۲. روت‌های مشترک ادمین‌ها (سوپر + L2 + L3)
-          // (کاربر عادی دسترسی ندارد)
           // ------------------------------------------------------------
           {
             element: <RoleBasedGuard allowedRoles={ADMIN_ACCESS} />,
@@ -122,8 +128,7 @@ export const router = createBrowserRouter([
                 path: "/", // داشبورد اصلی
                 element: <Suspense fallback={<Spinner />}><DashboardPage /></Suspense>,
               },
-
-              // سازمان‌ها
+              // ... سایر روت‌های ادمین
               {
                 path: "organizations",
                 element: <Suspense fallback={<Spinner />}><OrganizationPage /></Suspense>,
@@ -145,28 +150,24 @@ export const router = createBrowserRouter([
 
           // ------------------------------------------------------------
           // ۳. روت‌های مخصوص سوپر ادمین
-          // (L2 و L3 و کاربر عادی دسترسی ندارند)
           // ------------------------------------------------------------
           {
             element: <RoleBasedGuard allowedRoles={SUPER_ADMIN_ONLY} />,
             children: [
-              // --- انتقال یافته‌ها: شروع ---
               { path: "work-patterns", element: <Suspense fallback={<WorkPatternPageSkeleton />}><WorkPatternPage /></Suspense> },
               { path: "work-patterns/assign", element: <Suspense fallback={<Spinner />}><AddToWorkPatternPage /></Suspense> },
               { path: "work-patterns/new-work-patterns", element: <Suspense fallback={<Spinner />}><NewWorkPatternPage /></Suspense> },
               { path: "work-patterns/edit/:patternId", element: <Suspense fallback={<Spinner />}><WorkPatternsEdit /></Suspense> },
               { path: "work-patterns/employees/:patternType/:patternId", element: <Suspense fallback={<Spinner />}><WorkPatternsEmployeesPage /></Suspense> },
               { path: "shift-schedules/edit/:patternId", element: <Suspense fallback={<EditShiftScheduleFormSkeleton />}><EditShiftSchedulePage /></Suspense> },
-              // --- انتقال یافته‌ها: پایان ---
               {
-                path: "device-management", // مدیریت دستگاه‌ها
+                path: "device-management",
                 element: <Suspense fallback={<Spinner />}><DevicePage /></Suspense>,
               },
               {
-                path: "admin-management", // مدیریت ادمین‌ها
+                path: "admin-management",
                 element: <Suspense fallback={<Spinner />}><AdminManagement /></Suspense>,
               },
-              // گروه‌های کاری (طبق درخواست شما برای L2, L3 ممنوع شد)
               {
                 path: "work-groups",
                 element: <Suspense fallback={<Spinner />}><WorkGroupPage /></Suspense>,
