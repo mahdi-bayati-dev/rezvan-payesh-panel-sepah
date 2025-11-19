@@ -1,6 +1,6 @@
 <?php
 
-namespace Api;
+namespace Tests\Feature\Api;
 
 use App\Models\Employees;
 use App\Models\ShiftSchedule;
