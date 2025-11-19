@@ -52,7 +52,25 @@ class ShiftScheduleController extends Controller
 
             'slots.*.name' => 'nullable|string|max:255|required_if:slots.*.is_off,false',
             'slots.*.start_time' => 'nullable|date_format:H:i|required_if:slots.*.is_off,false',
-            'slots.*.end_time' => 'nullable|date_format:H:i|required_if:slots.*.is_off,false|after:slots.*.start_time',
+            'slots.*.end_time' => [
+                'nullable',
+                'date_format:H:i',
+                'required_if:slots.*.is_off,false',
+                function ($attribute, $value, $fail) use ($request)
+                {
+                    $index = explode('.', $attribute)[1];
+                    $startTime = $request->input("slots.{$index}.start_time");
+                    $isOff = $request->input("slots.{$index}.is_off");
+
+                    if (!$isOff && $startTime && $value)
+                    {
+                        if ($startTime === $value)
+                        {
+                            $fail('زمان شروع و پایان شیفت نمی‌تواند یکسان باشد.');
+                        }
+                    }
+                },
+            ],
         ]);
         if ($validator->fails())
         {
@@ -75,8 +93,11 @@ class ShiftScheduleController extends Controller
             $slotsToCreate = [];
             for ($day = 1; $day <= $schedule->cycle_length_days; $day++) {
                 $work_pattern_id = null;
-                if (isset($slotsMap[$day])) {
-                    if (isset($slotData['is_off']) && $slotData['is_off'] === false) {
+                if (isset($slotsMap[$day]))
+                {
+                    $slotData = $slotsMap[$day];
+                    if (isset($slotData['is_off']) && $slotData['is_off'] === false)
+                    {
                         $workPattern = $this->workPatternService->findOrCreatePattern([
                             'name' => $slotData['name'],
                             'start_time' => $slotData['start_time'],
