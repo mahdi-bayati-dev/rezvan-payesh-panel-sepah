@@ -2,13 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\Employees;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\WeekPattern;
 use App\Models\WorkGroup;
-use App\Models\WorkPattern; // برای ایجاد الگوهای اتمی
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\WorkPattern;
 use Illuminate\Database\Seeder;
 
 class EmployeeWorkSeeder extends Seeder
@@ -82,11 +81,11 @@ class EmployeeWorkSeeder extends Seeder
             'shift_schedule_id' => null,
         ]);
 
-        // --- ۴. ساخت کارمندان (Employees) ---
+        // --- ۴. ساخت کارمندان (Employee) ---
 
         // کارمند ۱: در گروه اداری، برنامه را از گروه ارث می‌برد
         $user1 = User::factory()->create(['email' => 'employee1@example.com']);
-        Employees::factory()->create([
+        Employee::factory()->create([
             'user_id' => $user1->id,
             'first_name' => 'علی',
             'last_name' => 'رضایی',
@@ -100,7 +99,7 @@ class EmployeeWorkSeeder extends Seeder
 
         // کارمند ۲: در گروه تولید، برنامه را از گروه ارث می‌برد
         $user2 = User::factory()->create(['email' => 'employee2@example.com']);
-        Employees::factory()->create([
+        Employee::factory()->create([
             'user_id' => $user2->id,
             'organization_id' => $softwareUnit->id,
             'first_name' => 'زهرا',
@@ -114,7 +113,7 @@ class EmployeeWorkSeeder extends Seeder
 
         // کارمند ۳: در گروه اداری، اما برنامه اختصاصی تمام‌وقت دارد (override)
         $user3 = User::factory()->create(['email' => 'employee3@example.com']);
-        Employees::factory()->create([
+        Employee::factory()->create([
             'user_id' => $user3->id,
             'organization_id' => $hrUnit->id,
             'first_name' => 'محمد',
@@ -133,7 +132,7 @@ class EmployeeWorkSeeder extends Seeder
         $otherUsers = User::factory()->count(10)->create();
         $otherUsers->each(function ($user) use ($adminGroup, $productionGroup, $hrUnit, $softwareUnit) {
             $isAminGroup = fake()->boolean();
-            Employees::factory()->create([
+            Employee::factory()->create([
                 'user_id' => $user->id,
                 'organization_id' => $isAminGroup ? $hrUnit->id : $softwareUnit->id,
                 'work_group_id' => fake()->randomElement([$adminGroup->id, $productionGroup->id]),

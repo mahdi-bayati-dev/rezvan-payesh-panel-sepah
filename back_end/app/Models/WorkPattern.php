@@ -30,9 +30,7 @@ class WorkPattern extends Model
     protected function startTime(): Attribute
     {
         return Attribute::make(
-            // $value مقداری است که از دیتابیس می‌آید
             get: fn ($value) => $value ? Carbon::parse($value)->format('H:i') : null,
-            // $value مقداری است که از ریکوئست می‌آید (H:i)
             set: fn ($value) => $value ? Carbon::parse($value)->format('H:i:s') : null
         );
     }
