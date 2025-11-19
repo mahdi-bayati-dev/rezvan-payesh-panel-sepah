@@ -1,34 +1,24 @@
-// ساختار داده‌ای پایه برای یک دستگاه
+// src/features/devices/types/index.ts
+
+/**
+ * 💡 اینترفیس مدل دستگاه (دوربین) طبق مستندات جدید API
+ * Endpoint: /api/cameras-status
+ */
 export interface Device {
-  id: number;
-  name: string;
-  registration_area: string; // 💡 اصلاح شده
-  type: string; // 💡 اصلاح شده (می‌توانید دقیق‌تر تایپ کنید)
-  status: string; // 💡 اصلاح شده (در Postman "online" است)
-  last_heartbeat_at: string | null;
-  last_known_ip: string | null;
-  created_at: string;
-  updated_at: string;
+  api_key: string;        // شناسه یکتا (جایگزین ID عددی)
+  name: string;           // نام نمایشی دستگاه
+  source_name: string;    // نام مکان یا منبع (Descriptive location)
+  status: "online" | "offline"; // وضعیت دقیق
+  last_seen: string;      // زمان آخرین رویت (YYYY-MM-DD HH:MM:SS) یا "Never"
+  health_url: string | null; // لینک مستقیم بررسی سلامت (در صورت آنلاین بودن)
 }
 
-// ساختار داده‌ای مورد انتظار از پاسخ API برای لیست صفحه‌بندی شده (Laravel Pagination)
-// این یک Type استاندارد برای داده‌های صفحه‌بندی شده است.
-export interface PaginatedResponse<T> {
-  current_page: number;
-  data: T[];
-  first_page_url: string;
-  from: number;
-  last_page: number;
-  last_page_url: string;
-  links: {
-    url: string | null;
-    label: string;
-    active: boolean;
-  }[];
-  next_page_url: string | null;
-  path: string;
-  per_page: number;
-  prev_page_url: string | null;
-  to: number;
-  total: number;
+/**
+ * 💡 اینترفیس پاسخ کلی API
+ * شامل متادیتای کلی و لیست دوربین‌ها
+ */
+export interface DevicesAPIResponse {
+  total: number;          // تعداد کل دوربین‌ها
+  cameras: Device[];      // آرایه لیست دوربین‌ها
+  generated_at: string;   // زمان تولید پاسخ سمت سرور
 }

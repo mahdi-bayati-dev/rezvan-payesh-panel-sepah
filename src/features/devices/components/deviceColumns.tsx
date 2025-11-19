@@ -1,88 +1,116 @@
+// src/features/devices/components/deviceColumns.tsx
 
 import { type ColumnDef } from "@tanstack/react-table";
 import type { Device } from "../types";
-import Badge from "@/components/ui/Badge"; // فرض می‌کنیم کامپوننت Badge دارید
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-// import { Button } from "@/components/ui/Button"; // برای دکمه‌های عملیات
-
-// این کامپوننت ستون‌های جدول شما را تعریف می‌کند
+import Badge from "@/components/ui/Badge"; // فرض بر وجود کامپوننت Badge
+import { ArrowUpDown, Activity, Wifi, WifiOff } from "lucide-react";
 
 /**
- * 💡 کامپوننت برای نمایش وضعیت به صورت Badge
+ * 💡 کامپوننت سلول وضعیت (جدا شده برای خوانایی بهتر)
  */
 const StatusCell = ({ status }: { status: Device["status"] }) => {
-    // 💡 منطق اصلاح شده بر اساس دیتای Postman
     const isOnline = status === "online";
-
-    // کامنت: variant ها باید با BadgeProps شما مطابقت داشته باشند
-    const variant = isOnline ? "success" : "danger";
-    const text = isOnline ? "آنلاین" : status || "آفلاین";
-
-
-
+    
     return (
-        <Badge
-            label={text}
-            variant={variant}
-            className="text-xs"
-        />
+        <div className="flex items-center gap-2">
+            {isOnline ? (
+                <Wifi className="w-4 h-4 text-emerald-500" />
+            ) : (
+                <WifiOff className="w-4 h-4 text-red-500" />
+            )}
+            <Badge
+                label={isOnline ? "آنلاین" : "آفلاین"}
+                variant={isOnline ? "success" : "danger"}
+                className="text-xs px-2 py-0.5"
+            />
+        </div>
     );
 };
 
+/**
+ * 💡 تعریف ستون‌های جدول
+ */
 export const columns: ColumnDef<Device>[] = [
-    {
-        accessorKey: "id",
-        header: "ID",
-        cell: ({ row }) => <div className="font-medium">{row.getValue("id")}</div>,
-    },
     {
         accessorKey: "name",
         header: "نام دستگاه",
-        cell: ({ row }) => <div className="text-right">{row.getValue("name")}</div>,
+        cell: ({ row }) => (
+            <div className="flex flex-col">
+                <span className="font-medium text-gray-800 dark:text-gray-200">
+                    {row.getValue("name")}
+                </span>
+                {/* نمایش API Key به صورت ریز زیر نام برای دسترسی سریع ادمین */}
+                <span className="text-[10px] text-gray-400 font-mono">
+                    Key: {row.original.api_key}
+                </span>
+            </div>
+        ),
     },
     {
-        accessorKey: "registration_area",
-        header: "منطقه ثبت",
-        cell: ({ row }) => <div className="text-right">{row.getValue("registration_area")}</div>,
+        accessorKey: "source_name",
+        header: "موقعیت / منبع",
+        cell: ({ row }) => (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+                {row.getValue("source_name")}
+            </div>
+        ),
     },
     {
         accessorKey: "status",
-        header: "وضعیت",
+        header: "وضعیت شبکه",
         cell: ({ row }) => <StatusCell status={row.getValue("status")} />,
     },
     {
-        accessorKey: "created_at",
+        accessorKey: "last_seen",
+        // قابلیت مرتب‌سازی برای پیدا کردن دستگاه‌هایی که قطع شده‌اند
         header: ({ column }) => {
-            // کامنت: افزودن قابلیت مرتب‌سازی به ستون تاریخ
             return (
                 <button
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-primary transition-colors"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 >
-                    تاریخ ثبت
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    آخرین رویت
+                    <ArrowUpDown className="ml-1 h-3 w-3" />
                 </button>
             )
         },
         cell: ({ row }) => {
-            // کامنت: فرمت کردن تاریخ (می‌توانید از کتابخانه date-fns یا جلالی استفاده کنید)
-            const formattedDate = new Date(row.getValue("created_at")).toLocaleDateString("fa-IR");
-            return <div className="">{formattedDate}</div>;
+            const rawDate = row.getValue("last_seen") as string;
+            
+            if (!rawDate || rawDate === "Never") {
+                return <span className="text-gray-400 text-xs italic">هرگز دیده نشده</span>;
+            }
+            
+            // نمایش تاریخ به فرمت لوکال و خوانا
+            return (
+                <div className="text-xs font-mono text-gray-600 dark:text-gray-300" dir="ltr">
+                    {rawDate}
+                </div>
+            );
         },
     },
     {
         id: "actions",
         header: "عملیات",
         cell: ({ row }) => {
-            const device = row.original;
-            // کامنت: اینجا می‌توانید Dropdown یا دکمه مشاهده جزئیات را قرار دهید
+            const { health_url, status } = row.original;
+            
+            // اگر دستگاه آفلاین است یا لینک سلامت ندارد، دکمه غیرفعال نمایش داده شود
+            if (status === "offline" || !health_url) {
+                return <span className="text-gray-300 text-xs cursor-not-allowed opacity-50">بررسی سلامت</span>;
+            }
+
             return (
-                <button
-                    className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
-                    onClick={() => console.log("مشاهده جزئیات:", device.id)}
+                <a
+                    href={health_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium transition-colors border border-blue-200 bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"
+                    title="باز کردن لینک سلامت دستگاه"
                 >
-                    <MoreHorizontal className="h-5 w-5" />
-                </button>
+                    <Activity className="h-3 w-3" />
+                    بررسی سلامت
+                </a>
             );
         },
     },
