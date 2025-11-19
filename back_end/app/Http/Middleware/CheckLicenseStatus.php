@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\LicenseKey;
-use App\Services\LicenseService;
+use App\Services\CheckSystem;
 use Closure;
 use Exception;
 use Illuminate\Http\Request;
@@ -17,7 +17,7 @@ class CheckLicenseStatus
 
     private int $max_trial_days_allowed = 30;
 
-    public function __construct(protected LicenseService $licenseService)
+    public function __construct(protected CheckSystem $licenseService)
     {
 
     }

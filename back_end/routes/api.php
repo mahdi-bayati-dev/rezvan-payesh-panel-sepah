@@ -48,8 +48,8 @@ Route::middleware(['auth:api',
             ->name('attendance-logs.show');
     });
 
-    //admin panel
-    Route::get("/admin-panel", [DashboardController::class, 'getStats'])->name('dashboard');
+    // dashboard
+    Route::get("/panel", [DashboardController::class, 'index'])->name('dashboard');
 
 
 

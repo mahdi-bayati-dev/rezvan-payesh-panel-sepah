@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Str;
 
-class LicenseService
+class CheckSystem
 {
     private string $trialEncryptionKey = 'mpN3gJUJh2XMGXOlbP7BcNgOCKbFuKvZCIssgX7eJO2A320q50';
     private string $trial_file1_path;

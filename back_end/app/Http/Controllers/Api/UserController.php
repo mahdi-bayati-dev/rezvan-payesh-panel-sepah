@@ -8,7 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Models\LicenseKey;
 use App\Models\Organization;
 use App\Models\User;
-use App\Services\LicenseService;
+use App\Services\CheckSystem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    public function __construct(protected LicenseService $licenseService)
+    public function __construct(protected CheckSystem $licenseService)
     {
 
     }
