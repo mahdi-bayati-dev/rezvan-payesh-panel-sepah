@@ -1,7 +1,5 @@
 /**
  * اینترفیس اصلی آبجکت سازمان
- * این شکل داده‌ای است که API در همه‌جا (Index, Show, Store, Update)
- * در داخل فیلد 'data' برمی‌گرداند.
  */
 export interface Organization {
   id: number;
@@ -10,42 +8,32 @@ export interface Organization {
   created_at: string;
   updated_at: string;
 
-  // --- روابطی که API لود می‌کند ---
-
-  // (در صورت لود شدن در متد Show)
   employees_count?: number;
-  employees?: any[]; // (می‌توانید تایپ Employee را بعداً بسازید)
+  employees?: any[];
 
-  // (در صورت لود شدن در متد Index یا Show)
-  // children شامل آرایه‌ای از خود آبجکت‌های Organization است
+  // children همیشه آرایه‌ای از سازمان‌هاست (حتی اگر خالی باشد)
   children?: Organization[];
 
-  // (در صورت لود شدن در متد Index ادمین L2)
-  // descendants نیز شامل آرایه‌ای از آبجکت‌های Organization است
+  // descendants برای ادمین‌های سطح پایین ممکن است پر شود
   descendants?: Organization[];
 }
 
 /**
- * تایپ پاسخی که API در متد Index (لیست) برای Super Admin برمی‌گرداند
- * (یک آرایه از سازمان‌ها)
+ * ریسپانس استاندارد API که همیشه دیتا داخل فیلد data است
  */
-export interface OrganizationCollectionResponse {
-  data: Organization[];
+export interface ApiResponse<T> {
+  data: T;
+  message?: string; // معمولا API ها پیام هم دارند
 }
 
-/**
- * تایپ پاسخی که API در متد Show (تکی) یا در Index برای ادمین L2/L3 برمی‌گرداند
- * (یک آبجکت تکی سازمان)
- */
-export interface OrganizationResourceResponse {
-  data: Organization;
-}
+// تایپ‌های کمکی برای تمیزی کد
+export type OrganizationCollection = Organization[];
+export type OrganizationResource = Organization;
 
-
-// --- ۱. اصلاحیه: اینترفیس درخت به اینجا منتقل شد ---
-// این تایپ، داده‌های سفارشی ما برای هر آیتم درخت را مشخص می‌کند
-export interface OrganizationTreeItem {
+// آیتم مسطح شده برای استفاده در دراپ‌داون‌ها
+export interface FlatOrgOption {
+  id: number;
   name: string;
-  // آبجکت کامل سازمان را نگه می‌داریم تا برای منوی سه‌نقطه در دسترس باشد
-  originalData: Organization | null;
+  level: number;
+  parent_id: number | null;
 }

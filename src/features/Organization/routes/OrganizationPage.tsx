@@ -1,38 +1,22 @@
-"use client";
 
-// --- ۱. ایمپورت‌های مورد نیاز ---
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// --- هوک‌ها و تایپ‌ها ---
 import { useOrganizations } from '@/features/Organization/hooks/useOrganizations';
-import { type Organization } from '@/features/Organization/types'; // ایمپورت تایپ
-// --- Redux (بدون تغییر) ---
+import { type Organization, type FlatOrgOption } from '@/features/Organization/types';
 import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
 
-// --- کامپوننت‌های UI ---
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { PlusCircle } from 'lucide-react';
-import { OrganizationForm } from '@/features/Organization/components/newOrganization/OrganizationForm';
 import { Modal, ModalHeader, ModalBody } from '@/components/ui/Modal';
+import { OrganizationForm } from '@/features/Organization/components/newOrganization/OrganizationForm';
 import { OrganizationNode } from '@/features/Organization/components/OrganizationPage/customTreeNode';
-
-import { Skeleton } from '@/components/ui/Skeleton'; // اسکلت پایه
+import { Skeleton } from '@/components/ui/Skeleton';
 import { OrganizationTreeSkeleton } from '@/features/Organization/Skeleton/SkeletonNode';
-import { OrganizationFormSkeleton } from '@/features/Organization/Skeleton/OrganizationFormSkeleton'
-interface FlatOrgOption {
-    id: number;
-    name: string;
-    level: number;
-    parent_id: number | null;
-}
+import { OrganizationFormSkeleton } from '@/features/Organization/Skeleton/OrganizationFormSkeleton';
 
-/**
- * یک آرایه از سازمان‌های تودرتو را به یک لیست مسطح تبدیل می‌کند
- * تا در دراپ‌다운 فرم ویرایش استفاده شود.
- */
+// تبدیل درخت به لیست مسطح
 const flattenOrganizations = (
     orgs: Organization[],
     level = 0
@@ -54,105 +38,104 @@ const flattenOrganizations = (
     return flatList;
 };
 
+/**
+ * پیدا کردن تمام ID های زیرمجموعه یک سازمان خاص
+ * برای جلوگیری از انتخاب فرزند به عنوان والد (Circular Dependency)
+ */
+const getAllDescendantIds = (org: Organization): number[] => {
+    let ids: number[] = [];
+    if (org.children && org.children.length > 0) {
+        for (const child of org.children) {
+            ids.push(child.id);
+            ids = ids.concat(getAllDescendantIds(child));
+        }
+    }
+    return ids;
+};
+
 
 function OrganizationPage() {
-
-    // --- Redux (بدون تغییر) ---
     const user = useAppSelector(selectUser);
     const isSuperAdmin = user?.roles?.includes('super_admin') ?? false;
+    const navigate = useNavigate();
 
-    // --- State مودال ایجاد (بدون تغییر) ---
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [parentIdToCreate, setParentIdToCreate] = useState<number | null>(null);
 
-    // --- ۳. State جدید برای مودال ویرایش ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null);
+    // نگهداری ID هایی که نباید در فرم ویرایش انتخاب شوند
+    const [forbiddenParentIds, setForbiddenParentIds] = useState<number[]>([]);
 
-    const navigate = useNavigate();
-    // --- فچ کردن داده‌ها (بدون تغییر) ---
     const {
-        data: organizationsData, // این همان آرایه تودرتو (درخت) است
+        data: organizationsData,
         isLoading,
         isError,
         error,
     } = useOrganizations();
 
-    // --- ۴. ساخت لیست مسطح برای فرم ویرایش ---
-    // useMemo باعث می‌شود این لیست فقط زمانی که داده‌های اصلی تغییر می‌کنند، دوباره ساخته شود
     const flatOrganizationList = useMemo(() => {
         if (!organizationsData) return [];
         return flattenOrganizations(organizationsData);
     }, [organizationsData]);
 
-
-    // --- State باز/بسته بودن (بدون تغییر) ---
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
     const handleToggle = useCallback((nodeId: string | number) => {
         const id = String(nodeId);
-        setExpandedIds(prev => ({
-            ...prev,
-            [id]: !prev[id] // هرچی بود برعکس کن
-        }));
+        setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
     }, []);
 
-    // --- مدیریت ناوبری (بدون تغییر) ---
     const handleNodeClick = useCallback((nodeId: number) => {
         navigate(`/organizations/${nodeId}`);
     }, [navigate]);
 
-    // --- مدیریت مودال ایجاد (بدون تغییر) ---
     const handleOpenCreateRootModal = () => {
         setParentIdToCreate(null);
         setIsCreateModalOpen(true);
     };
+
     const handleOpenCreateChildModal = useCallback((parentId: number) => {
         setParentIdToCreate(parentId);
         setIsCreateModalOpen(true);
     }, []);
+
     const handleCloseCreateModal = () => {
         setIsCreateModalOpen(false);
         setParentIdToCreate(null);
     };
 
-    // --- ۵. توابع مدیریت مودال ویرایش ---
     const handleOpenEditModal = useCallback((organization: Organization) => {
         setEditingOrganization(organization);
+        
+        // محاسبه ID هایی که نباید انتخاب شوند (خودش + تمام فرزندانش)
+        const descendants = getAllDescendantIds(organization);
+        setForbiddenParentIds([organization.id, ...descendants]);
+        
         setIsEditModalOpen(true);
     }, []);
 
     const handleCloseEditModal = () => {
         setIsEditModalOpen(false);
         setEditingOrganization(null);
+        setForbiddenParentIds([]);
     };
 
-
-    // (بخش Loading/Error بدون تغییر)
     if (isLoading) {
         return (
-            // ما کل صفحه (شامل هدر) را اسکلت‌بندی می‌کنیم
             <div className="p-4 md:p-6" dir="rtl">
-                {/* شبیه‌سازی هدر صفحه */}
                 <div className="flex justify-between items-center mb-6">
                     <Skeleton className="h-8 w-1/3" />
                     <Skeleton className="h-10 w-36" />
                 </div>
-
-                {/* شبیه‌سازی چیدمان گرید دو ستونه */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* ستون درخت */}
-                    <div className="md:col-span-2">
-                        <OrganizationTreeSkeleton />
-                    </div>
-                    {/* ستون فرم */}
-                    <div className="md:col-span-1">
-                        <OrganizationFormSkeleton />
-                    </div>
+                    <div className="md:col-span-2"><OrganizationTreeSkeleton /></div>
+                    <div className="md:col-span-1"><OrganizationFormSkeleton /></div>
                 </div>
             </div>
         );
     }
+
     if (isError) {
         return (
             <div className="p-8 max-w-2xl mx-auto" dir="rtl">
@@ -168,38 +151,28 @@ function OrganizationPage() {
 
     return (
         <div className="p-4 md:p-8 space-y-6" dir="rtl">
-            {/* هدر صفحه (بدون تغییر) */}
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold dark:text-borderL">چارت سازمانی</h1>
                 {isSuperAdmin && (
-                    <Button
-                        variant="primary"
-                        onClick={handleOpenCreateRootModal}
-                    >
+                    <Button variant="primary" onClick={handleOpenCreateRootModal}>
                         <PlusCircle className="h-4 w-4 ml-2" />
                         افزودن سازمان ریشه
                     </Button>
                 )}
             </div>
 
-            {/* کانتینر درخت */}
-            <div
-                className="w-full p-4 rounded-lg border border-borderL dark:border-borderD 
-				bg-backgroundL-500 dark:bg-backgroundD overflow-auto pb-48 "
-            >
-
+            <div className="w-full p-4 rounded-lg border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD overflow-auto pb-48">
                 {(organizationsData && organizationsData.length > 0) ? (
                     organizationsData.map(rootNode => (
                         <OrganizationNode
-                            onNodeClick={handleNodeClick}
                             key={rootNode.id}
-                            node={rootNode} // خود آبجکت سازمان
-                            level={0} // سطح ریشه
+                            node={rootNode}
+                            level={0}
                             isSuperAdmin={isSuperAdmin}
-                            expandedIds={expandedIds} // استیت باز/بسته بودن
-                            onToggle={handleToggle} // تابع تغییر استیت
+                            expandedIds={expandedIds}
+                            onToggle={handleToggle}
                             onAddChild={handleOpenCreateChildModal}
-                            // --- ۶. پاس دادن تابع ویرایش ---
+                            onNodeClick={handleNodeClick}
                             onEdit={handleOpenEditModal}
                         />
                     ))
@@ -210,28 +183,20 @@ function OrganizationPage() {
                 )}
             </div>
 
-            {/* مودال ایجاد سازمان (بدون تغییر) */}
             <Modal isOpen={isCreateModalOpen} onClose={handleCloseCreateModal}>
                 <ModalHeader onClose={handleCloseCreateModal}>
                     <h3 className="text-lg font-bold">
-                        {parentIdToCreate
-                            ? "ایجاد زیرمجموعه جدید"
-                            : "ایجاد سازمان ریشه جدید"}
+                        {parentIdToCreate ? "ایجاد زیرمجموعه جدید" : "ایجاد سازمان ریشه جدید"}
                     </h3>
                 </ModalHeader>
                 <ModalBody>
                     <OrganizationForm
-                        // در حالت ایجاد، ما لیست سازمان‌ها را نیاز نداریم
-                        // (مگر اینکه بخواهید امکان انتخاب والد را همینجا هم بدهید)
                         defaultParentId={parentIdToCreate}
-                        onSuccess={() => {
-                            handleCloseCreateModal();
-                        }}
+                        onSuccess={handleCloseCreateModal}
                     />
                 </ModalBody>
             </Modal>
 
-            {/* --- ۷. مودال جدید ویرایش --- */}
             <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal}>
                 <ModalHeader onClose={handleCloseEditModal}>
                     <h3 className="text-lg font-bold">
@@ -239,20 +204,14 @@ function OrganizationPage() {
                     </h3>
                 </ModalHeader>
                 <ModalBody>
-                    {/* ما همان فرم قبلی را استفاده می‌کنیم، اما این بار 
-                      هم آبجکت سازمان (برای پر کردن فیلدها) 
-                      و هم لیست مسطح (برای دراپ‌다운 والد) را به آن پاس می‌دهیم
-                    */}
                     <OrganizationForm
-                        defaultOrganization={editingOrganization!} // آبجکت برای ویرایش
-                        organizationList={flatOrganizationList} // لیست برای انتخاب والد
-                        onSuccess={() => {
-                            handleCloseEditModal();
-                        }}
+                        defaultOrganization={editingOrganization}
+                        organizationList={flatOrganizationList}
+                        forbiddenParentIds={forbiddenParentIds} // پراپ جدید برای جلوگیری از لوپ
+                        onSuccess={handleCloseEditModal}
                     />
                 </ModalBody>
             </Modal>
-
         </div>
     );
 }

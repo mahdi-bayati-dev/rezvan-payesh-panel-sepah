@@ -1,23 +1,25 @@
-import axiosInstance from "@/lib/AxiosConfig"; // (مسیر axiosInstance خودتان را بررسی کنید)
+import axiosInstance from "@/lib/AxiosConfig";
 import {
   type Organization,
-  type OrganizationCollectionResponse,
-  type OrganizationResourceResponse,
+  type ApiResponse,
 } from "@/features/Organization/types";
 import { type OrganizationFormData } from "@/features/Organization/Schema/organizationFormSchema";
 
 /**
  * 1. دریافت لیست سازمان‌ها (Index)
- * بر اساس نقش، این تابع یا OrganizationCollectionResponse یا OrganizationResourceResponse برمی‌گرداند.
- * این منطق در هوک useOrganizations مدیریت خواهد شد.
+ * خروجی نهایی این تابع باید دیتای خام باشد (یا آرایه یا آبجکت تکی)
+ * نرمال‌سازی نهایی در هوک انجام می‌شود.
  */
 export const fetchOrganizations = async (): Promise<
-  OrganizationCollectionResponse | OrganizationResourceResponse
+  Organization[] | Organization
 > => {
-  const { data } = await axiosInstance.get("/organizations");
-  console.log("==>", data);
-
-  return data;
+  // طبق مستندات:
+  // Super Admin -> { data: [...] }
+  // L2/L3 Admin -> { data: { ... } }
+  const response = await axiosInstance.get<
+    ApiResponse<Organization[] | Organization>
+  >("/organizations");
+  return response.data.data;
 };
 
 /**
@@ -26,8 +28,10 @@ export const fetchOrganizations = async (): Promise<
 export const createOrganization = async (
   payload: OrganizationFormData
 ): Promise<Organization> => {
-  // API یک آبجکت OrganizationResource برمی‌گرداند (شامل { data: ... })
-  const { data } = await axiosInstance.post("/organizations", payload);
+  const { data } = await axiosInstance.post<ApiResponse<Organization>>(
+    "/organizations",
+    payload
+  );
   return data.data;
 };
 
@@ -37,8 +41,10 @@ export const createOrganization = async (
 export const fetchOrganizationById = async (
   id: number
 ): Promise<Organization> => {
-  const { data } = await axiosInstance.get(`/organizations/${id}`);
-  return data.data; // API یک OrganizationResource برمی‌گرداند
+  const { data } = await axiosInstance.get<ApiResponse<Organization>>(
+    `/organizations/${id}`
+  );
+  return data.data;
 };
 
 /**
@@ -49,11 +55,13 @@ export const updateOrganization = async ({
   payload,
 }: {
   id: number;
-  // فرم ویرایش هم از همان اسکیما و تایپ ایجاد استفاده می‌کند
   payload: OrganizationFormData;
 }): Promise<Organization> => {
-  const { data } = await axiosInstance.put(`/organizations/${id}`, payload);
-  return data.data; // API یک OrganizationResource برمی‌گرداند
+  const { data } = await axiosInstance.put<ApiResponse<Organization>>(
+    `/organizations/${id}`,
+    payload
+  );
+  return data.data;
 };
 
 /**
@@ -61,5 +69,4 @@ export const updateOrganization = async ({
  */
 export const deleteOrganization = async (id: number): Promise<void> => {
   await axiosInstance.delete(`/organizations/${id}`);
-  // API 204 No Content برمی‌گرداند
 };
