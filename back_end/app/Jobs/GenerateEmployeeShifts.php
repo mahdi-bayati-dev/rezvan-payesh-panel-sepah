@@ -220,7 +220,6 @@ class GenerateEmployeeShifts implements ShouldQueue
 
                 // ۱۰. ثبت شیفت
                 if ($workPattern) {
-                    // زمان شروع: اگر override_start_time در اسلات هست، از آن استفاده کن، وگرنه از الگو
 
                     $startTime = $slot->override_start_time ?? $workPattern->start_time;
 
