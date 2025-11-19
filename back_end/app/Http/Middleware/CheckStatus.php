@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\LicenseKey;
+use App\Models\Status;
 use App\Services\CheckSystem;
 use Closure;
 use Exception;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Response as ResponseFacade;
 
-class CheckLicenseStatus
+class CheckStatus
 {
 
     private int $max_trial_days_allowed = 30;
@@ -28,7 +28,7 @@ class CheckLicenseStatus
     public function handle(Request $request, Closure $next): Response
     {
         $installationId = $this->licenseService->getInstallationId();
-        $license = LicenseKey::where('installation_id', $installationId)->first();
+        $license = Status::where('installation_id', $installationId)->first();
 
         $status = $license->status;
         $finalStatus = $status;
@@ -63,7 +63,7 @@ class CheckLicenseStatus
     /**
      * منطق بررسی وضعیت آزمایشی (Trial)
      */
-    private function handleTrialStatus(LicenseKey $license): string
+    private function handleTrialStatus(Status $license): string
     {
         $masterRecord = $this->licenseService->getMasterTrialRecord();
         $currentDate = Carbon::today()->toDateString();
@@ -102,7 +102,7 @@ class CheckLicenseStatus
     /**
      * منطق بررسی وضعیت لایسنس (Licensed)
      */
-    private function handleLicensedStatus(LicenseKey $license): string
+    private function handleLicensedStatus(Status $license): string
     {
         $status = $this->licenseService->checkLicensedStatus($license);
 

@@ -4,8 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class LicenseKey extends Model
+class Status extends Model
 {
+    protected $table = 'license_keys';
     protected $fillable = [
         'installation_id',
         'status',
