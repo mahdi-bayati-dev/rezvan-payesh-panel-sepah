@@ -1,10 +1,10 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+// src/lib/utils/cn.ts
 
 /**
- * تابع استاندارد cn برای ترکیب کلاس‌های Tailwind
- * این تابع تداخل کلاس‌ها را حل می‌کند (مثلاً p-4 جایگزین p-2 می‌شود)
+ * نسخه ساده‌سازی شده و بومی (Native) تابع cn.
+ * این نسخه هیچ وابستگی خارجی (مانند clsx یا tailwind-merge) ندارد.
+ * * کاربرد: حذف مقادیر null/undefined/false و چسباندن کلاس‌ها به هم.
  */
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+export function cn(...classes: (string | undefined | null | false)[]) {
+  return classes.filter(Boolean).join(" ");
 }
