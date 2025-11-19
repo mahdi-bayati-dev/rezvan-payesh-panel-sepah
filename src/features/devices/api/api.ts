@@ -1,37 +1,19 @@
-// devices/api/api.ts
+// src/features/devices/api/api.ts
 
 import axiosInstance from "@/lib/AxiosConfig";
-import type {  Device } from "../types";
+import type { DevicesAPIResponse } from "../types";
 
-const BASE_PATH = "/devices";
+// آدرس اندپوینت طبق مستندات
+const API_URL = "/cameras-status";
 
 /**
- * 💡 تابع برای دریافت لیست دستگاه‌ها (صفحه‌بندی شده)
- * @param page - شماره صفحه
- * @param pageSize - تعداد آیتم در هر صفحه
- * @returns - پاسخ صفحه‌بندی شده شامل آرایه‌ای از دستگاه‌ها
+ * 💡 دریافت وضعیت لحظه‌ای تمام دوربین‌ها
+ * متد: GET
+ * @returns پرامیس شامل لیست دوربین‌ها و اطلاعات کلی
  */
-// 💡 تغییر ۱: نوع بازگشتی به Promise<Device[]> تغییر کرد
-export async function getDevices(
-  page: number = 1,
-  pageSize: number = 10
-): Promise<Device[]> {
-  // کامنت مهم: ارسال پارامترهای page و per_page (معمولاً لاراول از per_page استفاده می‌کند)
-  const response = await axiosInstance.get(BASE_PATH, {
-    params: {
-      page: page,
-      per_page: pageSize, // پارامتر pageSize را اضافه می‌کنیم
-    },
-  });
-  // 💡 تغییر ۲: چون API آبجکت صفحه‌بندی نیست، فقط داده‌ها را برمی‌گردانیم
-  // (توجه: اگر API شما صفحه‌بندی را پشتیبانی نمی‌کند، پارامترهای بالا نادیده گرفته می‌شوند)
-  return response.data;
-}
-/**
- * 💡 تابع برای دریافت جزئیات یک دستگاه تکی
- * (بدون تغییر)
- */
-export async function getDevice(deviceId: number): Promise<Device> {
-  const response = await axiosInstance.get(`${BASE_PATH}/${deviceId}`);
+export async function getDevicesStatus(): Promise<DevicesAPIResponse> {
+  // نکته: طبق مستندات، این درخواست Query Parameter ندارد
+  // هدر Accept: application/json معمولاً در axiosInstance تنظیم شده است
+  const response = await axiosInstance.get<DevicesAPIResponse>(API_URL);
   return response.data;
 }
