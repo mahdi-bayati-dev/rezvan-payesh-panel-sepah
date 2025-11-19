@@ -44,6 +44,10 @@ return [
             'driver' => 'passport',
             'provider' => 'users',
         ],
+        'pulse_web'=>[
+            'driver' => 'session',
+            'provider' => 'users',
+        ]
     ],
 
     /*
