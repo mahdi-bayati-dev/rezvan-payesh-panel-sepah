@@ -1,26 +1,23 @@
-import { MoreVertical, Eye, User, Check } from 'lucide-react'; // ۱. آیکون‌ها
+import { MoreVertical, Eye, User, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { type ActivityLog } from '@/features/reports/types/index';
+import { type ActivityLog } from '../../types/index'; // مسیر نسبی برای اطمینان
 import {
     Dropdown,
     DropdownTrigger,
     DropdownContent,
     DropdownItem,
 } from '@/components/ui/Dropdown';
-// [جدید] ایمپورت دکمه
 import { Button } from '@/components/ui/Button';
 
-// ۲. پراپ‌ها (بدون تغییر)
 type ActivityLogActionsProps = {
     log: ActivityLog;
-    onEdit: (log: ActivityLog) => void;
+    onEdit: (log: ActivityLog) => void; // فعلاً استفاده نمی‌شود اما در اینترفیس هست
     onApprove: (log: ActivityLog) => void;
 };
 
 export const ActionsMenuCell = ({ log, onApprove }: ActivityLogActionsProps) => {
     const navigate = useNavigate();
 
-    // ۳. توابع هندلر (بدون تغییر)
     const handleViewDetails = () => {
         navigate(`/reports/${log.id}`);
     };
@@ -29,53 +26,52 @@ export const ActionsMenuCell = ({ log, onApprove }: ActivityLogActionsProps) => 
         navigate(`/reports/employee/${log.employee.id}`);
     };
 
-    // const handleEdit = () => {
-    //     onEdit(log);
-    // };
-
     const handleApprove = () => {
         onApprove(log);
     };
 
-    // --- [اصلاح کلیدی] ۴. منطق UI هوشمند ---
+    // شرط نمایش دکمه تایید:
+    // ۱. اگر کلاً تایید نشده باشد (!is_allowed)
+    // ۲. اگر دارای مغایرت (تاخیر یا تعجیل) باشد (حتی اگر قبلاً تایید شده باشد، شاید نیاز به تایید مجدد/موجه کردن باشد)
+    const showApproveOption = !log.is_allowed || log.lateness_minutes > 0 || log.early_departure_minutes > 0;
 
-    // اگر لاگ "در انتظار تایید" است، دکمه اصلی تایید را نشان بده
-    if (!log.is_allowed) {
-        return (
-            <div className="text-left">
+    return (
+        <div className="flex items-center justify-end gap-2">
+
+            {/* دکمه تایید سریع (فقط برای رکوردهایی که هنوز تایید اولیه نشده‌اند) */}
+            {/* این دکمه بیرون منو می‌ماند تا دسترسی سریع برای ادمین حفظ شود */}
+            {!log.is_allowed && (
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={handleApprove}
-                    // استایل سفارشی برای دکمه تایید (سبز رنگ)
-                    className="flex items-center gap-1 text-successL border-successL hover:bg-successL/10 hover:text-successL
+                    className="hidden md:flex items-center gap-1 h-8 px-3
+                               text-successL border-successL hover:bg-successL/10 hover:text-successL
                                dark:text-successD dark:border-successD dark:hover:bg-successD/10 dark:hover:text-successD"
+                    title="تایید سریع"
                 >
                     <Check className="w-4 h-4" />
-                    <span>تأیید</span>
+                    <span className="text-xs">تایید</span>
                 </Button>
-            </div>
-        );
-    }
+            )}
 
-    // در غیر این صورت (لاگ تایید شده است)، منوی سه‌نقطه را نشان بده
-    return (
-        <div className="text-left">
+            {/* منوی عملیات (همیشه نمایش داده می‌شود) */}
             <Dropdown>
                 <DropdownTrigger>
                     <button
                         type="button"
                         className="p-2 rounded-md hover:bg-secondaryL dark:hover:bg-secondaryD
-                         text-muted-foregroundL dark:text-muted-foregroundD transition-colors"
+                                 text-muted-foregroundL dark:text-muted-foregroundD transition-colors"
                     >
                         <MoreVertical className="w-5 h-5" />
                     </button>
                 </DropdownTrigger>
+
                 <DropdownContent>
-                    {/* آیتم‌های ناوبری */}
                     <DropdownItem onClick={handleViewDetails} icon={<Eye className="w-4 h-4" />}>
                         مشاهده جزئیات
                     </DropdownItem>
+
                     <DropdownItem
                         onClick={handleViewEmployeeReport}
                         icon={<User className="w-4 h-4" />}
@@ -83,12 +79,22 @@ export const ActionsMenuCell = ({ log, onApprove }: ActivityLogActionsProps) => 
                         گزارش فردی
                     </DropdownItem>
 
+                    {/* ✅ گزینه تایید که به درخواست شما اضافه شد */}
+                    {showApproveOption && (
+                        <>
+                            {/* یک خط جداکننده برای تمیزی */}
+                            <div className="h-px bg-borderL dark:bg-borderD my-1 opacity-50" />
 
-
-                    {/* دیگر نیازی به آیتم "تایید تردد" در اینجا نیست،
-                      چون این منو فقط برای لاگ‌های تایید شده نمایش داده می‌شود.
-                    */}
-
+                            <DropdownItem
+                                onClick={handleApprove}
+                                // رنگ سبز برای تمایز
+                                className="text-successL dark:text-successD focus:bg-successL/10 dark:focus:bg-successD/10"
+                                icon={<Check className="w-4 h-4" />}
+                            >
+                                {!log.is_allowed ? 'تایید نهایی' : 'موجه کردن مغایرت'}
+                            </DropdownItem>
+                        </>
+                    )}
                 </DropdownContent>
             </Dropdown>
         </div>
