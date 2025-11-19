@@ -13,11 +13,11 @@ class WorkGroupEmployeeController extends Controller
 {
     /**
      * مدیریت اعضای گروه کاری (افزودن یا حذف)
-     * PATCH /api/work-groups/{workGroup}/employees
+     * PATCH /api/work-groups/{WorkGroup}/employees
      */
-    public function updateEmployees(Request $request, WorkGroup $workGroup): JsonResponse
+    public function updateEmployees(Request $request, WorkGroup $WorkGroup): JsonResponse
     {
-        $this->authorize('update', $workGroup);
+        $this->authorize('update', $WorkGroup);
         $validated = $request->validate([
             'employee_ids' => 'required|array',
             'employee_ids.*' => 'exists:employees,id',
@@ -32,7 +32,7 @@ class WorkGroupEmployeeController extends Controller
             if ($action === 'attach')
             {
                 Employee::whereIn('id', $employeeIds)->update([
-                    'work_group_id' => $workGroup->id
+                    'work_group_id' => $WorkGroup->id
                 ]);
                 $message = 'کارمندان با موفقیت به گروه اضافه شدند.';
             }
@@ -48,7 +48,7 @@ class WorkGroupEmployeeController extends Controller
 
             return response()->json([
                 'message' => $message,
-                'current_count' => $workGroup->employees()->count()
+                'current_count' => $WorkGroup->employees()->count()
             ]);
 
         }
