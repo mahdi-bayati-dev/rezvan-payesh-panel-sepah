@@ -54,15 +54,15 @@ class AttendanceLogController extends Controller
         if ($schedule) {
             if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN) {
 
-                if ($schedule->expected_start_time && $logTimestamp->gt($schedule->expected_start_time))
+                if ($schedule->override_start_time && $logTimestamp->gt($schedule->override_start_time))
                 {
-                     $lateness_minutes = $logTimestamp->diffInMinutes($schedule->expected_start_time);
+                     $lateness_minutes = $logTimestamp->diffInMinutes($schedule->override_start_time);
                 }
             }
             elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT)
             {
-                if ($schedule->expected_end_time && $logTimestamp->lt($schedule->expected_end_time)) {
-                    $early_departure_minutes = $schedule->expected_end_time->diffInMinutes($logTimestamp);
+                if ($schedule->override_end_time && $logTimestamp->lt($schedule->override_end_time)) {
+                    $early_departure_minutes = $schedule->override_end_time->diffInMinutes($logTimestamp);
                 }
             }
         }
