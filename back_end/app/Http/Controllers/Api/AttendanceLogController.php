@@ -98,10 +98,10 @@ class AttendanceLogController extends Controller
             [
                 'device_id' => $device->id,
                 'source_name' => $validated['source_name'] ?? $device->name,
-                'source_type' => 'device',
+                'source_type' => 'auto',
                 'lateness_minutes' => $lateness_minutes,
                 'early_departure_minutes' => $early_departure_minutes,
-                'remarks' => 'Auto-registered by Device/AI',
+                'remarks' => $validated['source_name'],
             ]
         );
 
