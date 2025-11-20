@@ -38,7 +38,7 @@ class AttendanceLogController extends Controller
         if (!$device) {
             return response()->json(['message' => 'Invalid API Key.'], 401);
         }
-        if ($device->status !== 'active') { // معمولاً active استفاده می‌شود، نه online
+        if ($device->status !== 'online') { // معمولاً active استفاده می‌شود، نه online
             return response()->json(['message' => 'Device is not active.'], 403);
         }
 
