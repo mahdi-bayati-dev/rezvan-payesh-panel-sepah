@@ -52,17 +52,39 @@ class AttendanceLogController extends Controller
 
 
         if ($schedule) {
-            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN) {
+            // تبدیل تاریخ لاگ به فقط تاریخ (بدون ساعت) برای ترکیب با زمان‌های شیفت
+            $dateOnly = $logTimestamp->format('Y-m-d');
 
-                if ($schedule->override_start_time && $logTimestamp->gt($schedule->override_start_time))
-                {
-                     $lateness_minutes = $logTimestamp->diffInMinutes($schedule->override_start_time);
+            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN) {
+                // دریافت زمان شروع (چه override چه عادی)
+                $startTimeString = $schedule->override_start_time ?? $schedule->start_time ?? null; // فرض بر اینکه start_time در پترن است
+
+                if ($startTimeString) {
+                    // ساخت آبجکت کربن کامل برای زمان شروع شیفت در همان روز
+                    $shiftStartTime = Carbon::parse($dateOnly . ' ' . $startTimeString);
+
+                    // حالا مقایسه دو آبجکت کربن صحیح است
+                    if ($logTimestamp->gt($shiftStartTime)) {
+                        $lateness_minutes = $logTimestamp->diffInMinutes($shiftStartTime);
+                    }
                 }
             }
-            elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT)
-            {
-                if ($schedule->override_end_time && $logTimestamp->lt($schedule->override_end_time)) {
-                    $early_departure_minutes = $schedule->override_end_time->diffInMinutes($logTimestamp);
+            elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT) {
+                // دریافت زمان پایان
+                $endTimeString = $schedule->override_end_time ?? $schedule->end_time ?? null;
+
+                if ($endTimeString) {
+                    // ساخت آبجکت کربن کامل برای زمان پایان شیفت
+                    $shiftEndTime = Carbon::parse($dateOnly . ' ' . $endTimeString);
+
+                    // هندل کردن شیفت شب‌کار (اگر پایان شیفت فردا صبح است)
+                    if (Carbon::parse($endTimeString)->lt(Carbon::parse($startTimeString ?? '00:00'))) {
+                        $shiftEndTime->addDay();
+                    }
+
+                    if ($logTimestamp->lt($shiftEndTime)) {
+                        $early_departure_minutes = $shiftEndTime->diffInMinutes($logTimestamp);
+                    }
                 }
             }
         }
