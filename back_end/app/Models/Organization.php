@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 
-class Organization extends Model
+class Organization extends Model implements Auditable
 {
-    use HasFactory,HasRecursiveRelationships;
+    use AuditableTrait, HasFactory,HasRecursiveRelationships;
     protected $fillable =
         [
             'name', 'parent_id'

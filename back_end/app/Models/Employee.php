@@ -10,10 +10,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 
-class Employee extends Model
+class Employee extends Model implements Auditable
 {
-    use HasFactory,softDeletes,Cachable;
+    use HasFactory,softDeletes,Cachable,AuditableTrait;
+
+    protected $auditEvents = [
+        'updated',
+        'deleted',
+    ];
 
     protected $fillable = [
         'user_id',
