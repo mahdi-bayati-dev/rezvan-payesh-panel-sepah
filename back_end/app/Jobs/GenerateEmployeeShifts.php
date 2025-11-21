@@ -156,6 +156,19 @@ class GenerateEmployeeShifts implements ShouldQueue
                     $dayOfWeekName = strtolower($date->format('l'));
                     $relationName = $dayOfWeekName . 'Pattern';
                     $dedicatedPattern = $employee->weekPattern->{$relationName};
+
+                    $expectedStart = $dedicatedPattern->start_time
+                        ? Carbon::parse("{$dateString} {$dedicatedPattern->start_time}")
+                        : null;
+
+                    $expectedEnd = $dedicatedPattern->end_time
+                        ? Carbon::parse("{$dateString} {$dedicatedPattern->end_time}")
+                        : null;
+
+                    if ($expectedEnd && $expectedStart && $expectedEnd->lte($expectedStart)) {
+                        $expectedEnd->addDay();
+                    }
+
                     if ($dedicatedPattern)
                     {
                         EmployeeShift::updateOrCreate(
@@ -167,10 +180,10 @@ class GenerateEmployeeShifts implements ShouldQueue
                                 'work_pattern_id' => $dedicatedPattern->id,
                                 // بررسی اینکه آیا نوع الگو 'off' است یا خیر
                                 'is_off_day' => ($dedicatedPattern->type === 'off'),
-                                'shift_schedule_id' => null, // چون از برنامه چرخشی نیست
-                                'source' => 'manual', // منبع: الگوی اختصاصی کارمند
-                                'expected_start_time' => $dedicatedPattern->start_time,
-                                'expected_end_time' => $dedicatedPattern->end_time,
+                                'shift_schedule_id' => null,
+                                'source' => 'manual',
+                                'expected_start_time' => $expectedStart,
+                                'expected_end_time' => $expectedEnd,
                             ]
                         );
                     }
@@ -221,49 +234,44 @@ class GenerateEmployeeShifts implements ShouldQueue
                 $workPattern = $slot->workPattern;
 
                 // ۱۰. ثبت شیفت
-                if ($workPattern)
+
+                $startTime = $slot->override_start_time
+                    ? $slot->override_start_time->format('H:i')
+                    : ($workPattern?->start_time ?? null);
+
+                $expectedStart = $startTime
+                    ? Carbon::parse("{$dateString} {$startTime}")
+                    : null;
+
+                $endTime = $slot->override_end_time
+                    ? $slot->override_end_time->format('H:i')
+                    : ($workPattern?->end_time ?? null);
+
+                $expectedEnd = $endTime
+                    ? Carbon::parse("{$dateString} {$endTime}")
+                    : null;
+                if ($expectedEnd && $expectedStart && $expectedEnd->lte($expectedStart))
                 {
-
-                    $rawStartTime = $slot->override_start_time ?? $workPattern->start_time;
-                    $rawEndTime = $slot->override_end_time ?? $workPattern->end_time;
-
-                    $formattedStartTime = $rawStartTime ? Carbon::parse($rawStartTime)->format('H:i') : null;
-                    $formattedEndTime = $rawEndTime ? Carbon::parse($rawEndTime)->format('H:i') : null;
-
-
-                    EmployeeShift::updateOrCreate(
-                        [
-                            'employee_id' => $employee->id,
-                            'date' => $date->toDateString()
-                        ],
-                        [
-                            'work_pattern_id' => $slot->work_pattern_id,
-                            'is_off_day' => is_null($slot->work_pattern_id),
-                            'shift_schedule_id' => $schedule->id,
-                            'expected_start_time' => $formattedStartTime,
-                            'expected_end_time' => $formattedEndTime,
-                            'source' => 'scheduled',
-                        ]
-                    );
-
+                    $expectedEnd->addDay();
                 }
-                else
-                {
-                    EmployeeShift::updateOrCreate(
-                        [
-                            'employee_id' => $employee->id,
-                            'date' => $dateString
-                        ],
-                        [
-                            'work_pattern_id' => null,
-                            'is_off_day' => true,
-                            'shift_schedule_id' => $schedule->id,
-                            'source' => 'scheduled',
-                            'expected_start_time' => null,
-                            'expected_end_time' => null,
-                        ]
-                    );
-                }
+
+                $isOffDay = !$workPattern || $workPattern->type === 'off';
+
+                EmployeeShift::updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'date' => $date->toDateString()
+                    ],
+                    [
+                        'work_pattern_id' => $slot->work_pattern_id,
+                        'is_off_day' => $isOffDay,
+                        'shift_schedule_id' => $schedule->id,
+                        'expected_start_time' => $isOffDay ? null : $expectedStart,
+                        'expected_end_time' => $isOffDay ? null : $expectedEnd,
+                        'source' => 'scheduled',
+                    ]
+                );
+
             }
         }
         Log::info("پایان جاب GenerateEmployeeShifts برای برنامه ID: {$this->scheduleId}, دوره: " . $this->startDate->toDateString() . " تا " . $this->endDate->toDateString());
@@ -304,11 +312,9 @@ class GenerateEmployeeShifts implements ShouldQueue
         else
         {
             $diffInDays = $normalizedCycleStartDate->diffInDays($date);
-            // محاسبه روز موثر با آفست
-           $effectiveDay = ($diffInDays + $employeeOffset) % $cycleLength;
+           $effectiveDay = (($diffInDays + $employeeOffset) % $cycleLength + $cycleLength) % $cycleLength;
         }
 
-        // شماره روز از 1 شروع می‌شود
         return $effectiveDay + 1;
     }
 
