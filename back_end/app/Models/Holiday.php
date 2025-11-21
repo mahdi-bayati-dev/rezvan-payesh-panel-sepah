@@ -5,10 +5,13 @@ namespace App\Models;
 use GeneaLabs\LaravelModelCaching\Traits\Cachable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 
-class Holiday extends Model
+class Holiday extends Model implements Auditable
 {
-    use HasFactory,Cachable;
+    use AuditableTrait, HasFactory,Cachable;
+
 
     protected $fillable = [
         'date',

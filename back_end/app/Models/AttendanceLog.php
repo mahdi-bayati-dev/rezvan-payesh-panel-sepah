@@ -6,10 +6,12 @@ use GeneaLabs\LaravelModelCaching\Traits\Cachable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 
-class AttendanceLog extends Model
+class AttendanceLog extends Model implements Auditable
 {
-    use HasFactory,Cachable;
+    use AuditableTrait, HasFactory,Cachable;
 
     public const TYPE_CHECK_IN = 'check_in';
     public const TYPE_CHECK_OUT = 'check_out';
@@ -80,4 +82,17 @@ class AttendanceLog extends Model
     }
 
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::auditing(function ($model)
+        {
+
+            if ($model->source_type === self::SOURCE_MANUAL_ADMIN || $model->source_type === self::SOURCE_MANUAL_ADMIN_EDIT ) {
+                return true;
+            }
+            return false;
+        });
+    }
 }
