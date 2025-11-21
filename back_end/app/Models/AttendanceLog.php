@@ -82,17 +82,19 @@ class AttendanceLog extends Model implements Auditable
     }
 
 
-//    protected static function boot(): void
-//    {
-//        parent::boot();
-//
-//        static::auditing(function ($model)
-//        {
-//
-//            if ($model->source_type === self::SOURCE_MANUAL_ADMIN || $model->source_type === self::SOURCE_MANUAL_ADMIN_EDIT ) {
-//                return true;
-//            }
-//            return false;
-//        });
-//    }
+    protected static function boot()
+    {
+        parent::boot();
+
+
+        static::registerModelEvent('auditing', function ($model) {
+
+            if ($model->event_type === 'auto')
+            {
+                return false;
+            }
+
+            return true;
+        });
+    }
 }

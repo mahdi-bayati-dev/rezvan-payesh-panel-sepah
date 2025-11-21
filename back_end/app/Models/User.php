@@ -19,7 +19,7 @@ class User extends Authenticatable implements OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
 
-    use HasFactory, Notifiable,HasApiTokens, HasRoles, softDeletes,AuditableTrait;
+    use HasFactory, Notifiable,HasApiTokens, HasRoles, softDeletes;
     /**
      * The attributes that are mass assignable.
      *
