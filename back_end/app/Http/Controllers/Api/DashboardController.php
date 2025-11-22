@@ -71,8 +71,8 @@ class DashboardController extends Controller
                 $query->whereBetween('start_time', [$startOfMonth, $today])
                       ->orWhereBetween('end_time', [$startOfMonth, $today])
                       ->orWhere(function ($q) use ($startOfMonth, $today) {
-                          $q->where('start_date', '<', $startOfMonth)
-                            ->where('end_date', '>', $today);
+                          $q->where('start_time', '<', $startOfMonth)
+                            ->where('end_time', '>', $today);
                       });
             })
             ->count();
