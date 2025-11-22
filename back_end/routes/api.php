@@ -117,13 +117,21 @@ Route::middleware(['auth:api',
     Route::delete('/holidays/{date}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
 
 
-    //export
+    //export report
     Route::post('/reports/attendance/export', [ReportController::class, 'requestAttendanceExport'])
          ->middleware('role:super_admin|org-admin-l2|org-admin-l3');
-    //download export
+
+    //export leave request
+    Route::get('/leave-requests/export', [LeaveRequestController::class, 'export'])
+        ->name('leave-requests.export');
+
+
+    //download export report
     Route::get('/reports/download/reports/{filename}', [ReportController::class, 'downloadReport'])
          ->middleware('signed')
          ->name('reports.download');
+
+    //download export leave request
 
 
 

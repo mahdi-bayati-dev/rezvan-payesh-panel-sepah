@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\LeaveRequest;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Auth\Access\Response;
@@ -32,6 +33,35 @@ class LeaveRequestPolicy
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole(['org-admin-l2', 'org-admin-l3']);
+    }
+
+    public function see(User $user , Organization $organization): bool
+    {
+        if(!$user->hasAnyRole(['org-admin-l2', 'org-admin-l3']))
+        {
+            return false;
+        }
+        $targetOrg = Organization::find($organization->id);
+        $manager_org_id = $user->employee->organization_id;
+        if (!$manager_org_id || !$manager_org_id->organization) {
+            Log::warning("User {$user->id} has admin role but no employee profile or organization.");
+            return false;
+        }
+
+        if (!isset($targetOrg))
+        {
+            Log::warning("the selected org is not valid");
+            return false;
+        }
+        if($user->hasRole("org-admin-l3"))
+        {
+            return $manager_org_id == $targetOrg->id;
+        }
+        elseif ($user->hasRole("org-admin-l2"))
+        {
+            return $manager_org_id && $targetOrg->ancestors()->where('id', $manager_org_id->id)->exists();
+        }
+        return false;
     }
 
     /**

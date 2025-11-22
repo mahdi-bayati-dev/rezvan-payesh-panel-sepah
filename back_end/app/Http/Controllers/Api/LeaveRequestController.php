@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\LeaveRequestProcessed;
 use App\Events\LeaveRequestSubmitted;
+use App\Exports\LeaveRequestsExport;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\LeaveRequestResource;
+use App\Jobs\GenerateLeaveReportJob;
 use App\Models\LeaveRequest;
+use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class LeaveRequestController extends Controller
@@ -174,5 +178,72 @@ class LeaveRequestController extends Controller
 
         $leaveRequest->load(['employee', 'leaveType', 'processor']);
         return new LeaveRequestResource($leaveRequest);
+    }
+
+    public function export(Request $request)
+    {
+
+        $this->authorize('viewAny', LeaveRequest::class);
+
+        $currentUser = $request->user();
+        $currentUserEmployee = $currentUser->employee;
+
+        $query = LeaveRequest::with(['employee.organization', 'employee.workGroup']);
+
+        $adminOrg = $currentUserEmployee?->organization;
+
+        if (!$adminOrg && ($currentUser->hasRole('org-admin-l2') || $currentUser->hasRole('org-admin-l3')))
+        {
+            $query->whereRaw('1 = 0');
+        }
+        else if ($currentUser->hasRole('org-admin-l2')) {
+            $allowedOrgIds = $adminOrg->descendantsAndSelf()->pluck('id');
+            $query->whereHas('employee', function ($q) use ($allowedOrgIds) {
+                $q->whereIn('organization_id', $allowedOrgIds);
+            });
+        }
+        elseif ($currentUser->hasRole('org-admin-l3')) {
+            $query->whereHas('employee', function ($q) use ($adminOrg) {
+                $q->where('organization_id', $adminOrg->id);
+            });
+        }
+
+
+
+        if ($request->has('organization_id')) {
+            $targetOrg = Organization::find($request->input('organization_id'));
+            if ($targetOrg) {
+                $orgIds = $targetOrg->descendantsAndSelf()->pluck('id');
+                $query->whereHas('employee', function ($q) use ($orgIds) {
+                    $q->whereIn('organization_id', $orgIds);
+                });
+            }
+        }
+
+        if ($request->input('search')) {
+            $searchTerm = $request->input('search');
+            $query->whereHas('employee', function ($q) use ($searchTerm) {
+                $q->where('first_name', 'like', "%{$searchTerm}%")
+                    ->orWhere('last_name', 'like', "%{$searchTerm}%")
+                    ->orWhere('personnel_code', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        if ($request->input('from_date')) {
+            $query->whereDate('start_date', '>=', $request->input('from_date'));
+        }
+        if ($request->input('to_date')) {
+            $query->whereDate('end_date', '<=', $request->input('to_date'));
+        }
+
+        if ($request->input('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $query->latest();
+
+        $fileName = 'exit-requests-' . now()->format('Y-m-d-His') . '.xlsx';
+
+        return Excel::download(new LeaveRequestsExport($query), $fileName);
     }
 }
