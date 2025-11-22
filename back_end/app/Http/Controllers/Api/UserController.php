@@ -438,8 +438,8 @@ class UserController extends Controller
              $user->employee->refresh();
 
              $response = Http::put('https://ai.eitebar.ir/v1/user', [
-                 'personnel_code' => $employeeData->personnel_code,
-                 'gender' => $employeeData->gender,
+                 'personnel_code' => $user->employee->personnel_code,
+                 'gender' => $user->employee->gender,
                  'images' => !empty($paths) ? json_encode($paths) : null,
              ]);
 
