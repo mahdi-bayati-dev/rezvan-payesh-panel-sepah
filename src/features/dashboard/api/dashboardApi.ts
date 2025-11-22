@@ -2,6 +2,8 @@
 
 import axiosInstance from "@/lib/AxiosConfig";
 import { DateObject } from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
 
 // ====================================================================
 // ۱. تعریف اینترفیس‌ها (Admin Dashboard)
@@ -16,7 +18,7 @@ export interface ChildOrgStat {
 export interface LiveOrganizationStat {
   parent_org_id: number;
   parent_org_name: string;
-  children_stats: ChildOrgStat[] | null; // ممکن است نال باشد
+  children_stats: ChildOrgStat[] | null;
 }
 
 export interface AdminSummaryStats {
@@ -48,28 +50,18 @@ export interface UserDashboardData {
 // ۳. تایپ ترکیبی (Discriminated Union)
 // ====================================================================
 
-/**
- * این تایپ می‌تواند یا دیتای ادمین باشد یا دیتای کاربر.
- * ما از وجود فیلد 'summary_stats' برای تشخیص نوع آن استفاده می‌کنیم.
- */
 export type DashboardResponse = AdminDashboardData | UserDashboardData;
 
 // ====================================================================
-// ۴. Type Guards (توابع محافظ تایپ)
+// ۴. Type Guards
 // ====================================================================
 
-/**
- * بررسی می‌کند که آیا دیتا مربوط به پنل مدیریت است؟
- */
 export function isAdminDashboard(
   data: DashboardResponse
 ): data is AdminDashboardData {
   return (data as AdminDashboardData).summary_stats !== undefined;
 }
 
-/**
- * بررسی می‌کند که آیا دیتا مربوط به پنل کاربر عادی است؟
- */
 export function isUserDashboard(
   data: DashboardResponse
 ): data is UserDashboardData {
@@ -102,38 +94,72 @@ const fixPersianNumbers = (str: string): string => {
 };
 
 // ====================================================================
-// ۶. فراخوانی API
+// ۶. فراخوانی API (با لاگ دقیق و استراتژی حذف پارامتر)
 // ====================================================================
 
-const API_ENDPOINT = "/panel"; // طبق مستندات جدید
+const API_ENDPOINT = "/panel";
 
 export async function fetchDashboardData(
   dateObj: DateObject | null,
   timeFilter: string
 ): Promise<DashboardResponse> {
-  let dateParam: string | undefined = undefined;
+  // ۱. شروع لاگ‌گیری ورودی‌ها
+  console.group("🚀 Dashboard API Fetch");
+  console.log("Input Date:", dateObj?.format("YYYY-MM-DD"));
+  console.log("Input Filter:", timeFilter);
 
+  const params: Record<string, string> = {};
+
+  // ۲. مدیریت تاریخ (فقط اگر امروز نبود ارسال کن)
   if (dateObj) {
-    const rawPersianDate = dateObj.format("YYYY-MM-DD");
-    dateParam = fixPersianNumbers(rawPersianDate);
+    const today = new DateObject({ calendar: persian, locale: persian_fa });
+    const selectedDateStr = fixPersianNumbers(dateObj.format("YYYY-MM-DD"));
+    const todayStr = fixPersianNumbers(today.format("YYYY-MM-DD"));
+
+    if (selectedDateStr !== todayStr) {
+      params.date = selectedDateStr;
+      console.log("Date param ADDED (Not Today):", selectedDateStr);
+    } else {
+      console.log("Date param SKIPPED (Is Today)");
+    }
   }
+
+  // ۳. مدیریت فیلتر (اصلاحیه مهم: اگر daily بود نفرست!)
+  // چون کاربر عادی با filter=daily کرش می‌کند (ارور ستون end_date)
+  if (timeFilter && timeFilter !== "daily") {
+    params.filter = timeFilter;
+    console.log("Filter param ADDED:", timeFilter);
+  } else {
+    console.log("Filter param SKIPPED (Is Daily/Default)");
+  }
+
+  console.log("Final Params being sent to server:", params);
 
   try {
     const response = await axiosInstance.get<DashboardResponse>(API_ENDPOINT, {
-      params: {
-        date: dateParam,
-        // نکته: طبق مستندات، برای User Dashboard شاید فیلتر تاریخ اعمال نشود (همیشه ماه جاری)،
-        // اما ارسال آن ضرری ندارد و برای Admin لازم است.
-        filter: timeFilter,
-      },
+      params: params,
     });
 
-    // لاگ برای دیباگ
-    console.log("Dashboard API Response:", response.data);
-
+    console.log("✅ API Success Response:", response.data);
+    console.groupEnd();
     return response.data;
   } catch (error: any) {
-    // هندل کردن خطای خاص ۴۰۴ طبق مستندات (کارمند یافت نشد)
+    console.error("❌ API Error Occurred");
+
+    // نمایش جزئیات کامل خطا برای تشخیص باگ بک‌اند
+    if (error.response) {
+      console.log("Status:", error.response.status);
+      console.log("Headers:", error.response.headers);
+      // این لاگ دقیقاً متن ارور SQL را در کنسول به ما نشان می‌دهد
+      console.log("Response Body (Server Error):", error.response.data);
+    } else if (error.request) {
+      console.log("No response received (Network Error)");
+    } else {
+      console.log("Request setup error:", error.message);
+    }
+    console.groupEnd();
+
+    // هندل کردن خطای ۴۰۴ طبق بیزنس
     if (error.response && error.response.status === 404) {
       throw new Error(
         "رکورد کارمند برای این کاربر یافت نشد. لطفاً با پشتیبانی تماس بگیرید."
