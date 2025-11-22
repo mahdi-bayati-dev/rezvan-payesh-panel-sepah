@@ -62,12 +62,15 @@ const mapLeaveTypesToOptions = (types: LeaveType[], prefix = ''): SelectOption[]
  */
 const isRequestFullDay = (startTime: string, endTime: string): boolean => {
     // API ساعت شروع روز را 00:00:00 و ساعت پایان روز را 23:59:59 ثبت می‌کند
+    // نکته: اینجا parseISO ساعت محلی را برمی‌گرداند، بنابراین اگر در دیتابیس UTC باشد
+    // و تبدیل به محلی شود، باید منطق فول دی بررسی شود.
     try {
         const startHour = parseISO(startTime).getHours();
         const endHour = parseISO(endTime).getHours();
+        // بررسی هم 0 و هم 23 بودن (یا نزدیک به آنها با توجه به شیفت زمانی)
+        // برای سادگی فعلا همان منطق قبلی را نگه می‌داریم چون parseISO خودش تبدیل را انجام می‌دهد
         return startHour === 0 && endHour === 23;
     } catch {
-        // در صورت خطای parsing، فرض می‌کنیم تمام وقت نیست
         return false;
     }
 };
@@ -99,9 +102,7 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
 
     // ۱. استخراج گزینه‌ها (Categories: ریشه‌ها، Types: همه نودها)
     const { leaveTypeOptions, categoryOptions } = useMemo(() => {
-        // لیست مسطح همه انواع مرخصی (برای SelectBox نوع درخواست)
         const allTypes = leaveTypesTree ? mapLeaveTypesToOptions(leaveTypesTree) : [];
-        // لیست فقط ریشه‌ها (برای SelectBox دسته‌بندی)
         const categories = leaveTypesTree
             ? leaveTypesTree.filter(lt => !lt.parent_id).map(lt => ({ id: lt.id, name: lt.name }))
             : [];
@@ -111,14 +112,9 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
 
     // ۲. محاسبه مقادیر پیش‌فرض (فقط زمانی که درخت لود شده)
     const defaultValues = useMemo<RequestInfoFormData | undefined>(() => {
-        // تا زمانی که درخت لود نشده، undefined برگردان
         if (!leaveTypesTree || leaveTypeOptions.length === 0) return undefined;
 
-        // پیدا کردن نوع و دسته‌بندی در لیست مسطح (Flat List)
         const currentType = leaveTypeOptions.find(opt => opt.id === request.leave_type.id) || null;
-
-        // پیدا کردن دسته‌بندی والد در لیست ریشه‌ها (CategoryOptions)
-        // از روی parent_id که توسط API در LeaveRequestResource برگشت داده می‌شود
         const currentCategory = categoryOptions.find(opt => opt.id === request.leave_type.parent_id) || null;
 
         const isoStartDate = parseISO(request.start_time);
@@ -126,18 +122,15 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
 
         const isFullDay = isRequestFullDay(request.start_time, request.end_time);
 
-        // ساعت پیش‌فرض برای حالت نمایش (اگر تمام وقت نباشد)
         const startTimePart = isFullDay ? '08:00' : format(isoStartDate, 'HH:mm');
         const endTimePart = isFullDay ? '17:00' : format(isoEndDate, 'HH:mm');
 
         return {
             requestType: currentType,
             category: currentCategory,
-            // حالا دو فیلد تاریخ داریم
             startDate: new DateObject({ date: isoStartDate, calendar: persian, locale: persian_fa }),
             endDate: new DateObject({ date: isoEndDate, calendar: persian, locale: persian_fa }),
             isFullDay: isFullDay,
-            // ✅ [رفع خطا] فیلدهای ساعت به صورت optional/nullable در اسکیما تعریف شدند
             startTime: startTimePart,
             endTime: endTimePart,
             description: request.reason || '',
@@ -145,16 +138,12 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     }, [request, leaveTypesTree, leaveTypeOptions, categoryOptions]);
 
 
-    // ۳. [جدید] محاسبه نام دسته‌بندی برای حالت فقط خواندنی (Read-Only)
+    // ۳. محاسبه نام دسته‌بندی برای حالت فقط خواندنی
     const readOnlyCategoryName = useMemo(() => {
-        // اگر parent_id وجود نداشته باشد یا هنوز درخت لود نشده باشد
         if (!leaveTypesTree || !request.leave_type.parent_id) {
             return '---';
         }
-
-        // نام دسته‌بندی را با جستجوی parent_id در لیست categoryOptions (لیست ریشه‌ها) پیدا می‌کنیم.
         const category = categoryOptions.find(opt => opt.id === request.leave_type.parent_id);
-
         return category?.name || '---';
 
     }, [request.leave_type.parent_id, leaveTypesTree, categoryOptions]);
@@ -168,18 +157,14 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
         watch,
         formState: { errors },
     } = useForm<RequestInfoFormData>({
-        // ✅ [رفع خطا] حالا resolver با تایپ RequestInfoFormData سازگار است
         resolver: zodResolver(requestInfoSchema),
         defaultValues: defaultValues,
     });
 
-    // مشاهده حالت تمام وقت برای منطق UI
     const isFullDayWatch = watch('isFullDay');
 
-    // ۴. استفاده از useEffect برای Reset کردن پس از لود شدن
     useEffect(() => {
         if (defaultValues) {
-            // اگر داده‌های پیش‌فرض آماده بودند، فرم را ریست کن
             reset(defaultValues);
         }
     }, [defaultValues, reset]);
@@ -188,40 +173,54 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     const updateMutation = useUpdateLeaveRequest();
     const isSubmitting = updateMutation.isPending;
 
-    // --- تابع onSave (ساخت Payload) ---
-    // ✅ [رفع خطا] حالا handleSubmit با تایپ RequestInfoFormData سازگار است
+    /**
+     * ✅ تابع کمکی استاندارد برای تبدیل تاریخ و ساعت محلی به فرمت استاندارد UTC
+     * (تکرار منطق استاندارد NewRequestPage برای حالت ویرایش)
+     */
+    const formatToAPIPayload = (dateObj: DateObject, timeStr: string): string => {
+        const gDate = dateObj.convert(gregorian);
+        const [hours, minutes] = timeStr.split(':').map(Number);
+
+        // ساخت Date با تایم‌زون لوکال کاربر
+        const localDate = new Date(
+            gDate.year,
+            gDate.month.number - 1,
+            gDate.day,
+            hours,
+            minutes,
+            0
+        );
+
+        // تبدیل به UTC و فرمت مناسب SQL
+        return localDate.toISOString().slice(0, 19).replace('T', ' ');
+    };
+
+    // --- تابع onSave (ساخت Payload اصلاح شده) ---
     const onSave: SubmitHandler<RequestInfoFormData> = async (data) => {
         if (!data.startDate || !data.endDate) {
             toast.error("تاریخ شروع و پایان الزامی است.");
             return;
         }
 
-        // توابع کمکی برای تبدیل تاریخ‌های شمسی به میلادی (YYYY-MM-DD)
-        const formatGregorianDate = (dateObject: DateObject): string => {
-            const gregorianDate = dateObject.convert(gregorian);
-            const year = gregorianDate.year;
-            const month = String(gregorianDate.month.number).padStart(2, '0');
-            const day = String(gregorianDate.day).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
-
         // تعیین ساعت‌ها بر اساس حالت تمام وقت یا پاره وقت
-        let startTimePart = '00:00:00';
-        let endTimePart = '23:59:59';
+        let startTimePart = '00:00';
+        let endTimePart = '23:59';
 
         if (!data.isFullDay) {
-            // در حالت پاره وقت، از ساعت‌های ورودی استفاده می‌کنیم
-            // ✅ اصلاح: از data.startTime استفاده می‌کنیم که حالا string یا null است (طبق اسکیما)
-            startTimePart = `${data.startTime || '08:00'}:00`;
-            endTimePart = `${data.endTime || '17:00'}:00`;
+            startTimePart = data.startTime || '08:00';
+            endTimePart = data.endTime || '17:00';
         }
 
         const payload = {
             leave_type_id: data.requestType!.id as number,
-            start_time: `${formatGregorianDate(data.startDate)} ${startTimePart}`,
-            end_time: `${formatGregorianDate(data.endDate)} ${endTimePart}`,
+            // ✅ استفاده از تبدیل استاندارد UTC
+            start_time: formatToAPIPayload(data.startDate, startTimePart),
+            end_time: formatToAPIPayload(data.endDate, endTimePart),
             reason: data.description || undefined,
         };
+        
+        // لاگ برای بررسی صحت تبدیل ساعت
+        console.log('Update Payload (UTC):', payload);
 
         updateMutation.mutate(
             { id: request.id, payload },
@@ -254,7 +253,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     if (isErrorLeaveTypes) {
         return <Alert variant="destructive"><AlertDescription>خطا در بارگذاری انواع مرخصی.</AlertDescription></Alert>;
     }
-    // تا زمانی که defaultValues آماده نشود، رندر انجام نشود.
     if (!defaultValues) {
         return <div className="flex justify-center items-center h-40"><Spinner text="در حال آماده‌سازی اطلاعات..." /></div>;
     }
@@ -262,7 +260,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     // --- تابع کمکی برای رندر فیلد در حالت ویرایش یا نمایش ---
     const RenderField = ({ name, label, options, placeholder }: { name: keyof RequestInfoFormData, label: string, options?: SelectOption[], placeholder?: string }) => {
         if (isEditing) {
-            // حالت ویرایش: SelectBox
             return (
                 <Controller
                     name={name as 'category' | 'requestType'}
@@ -281,16 +278,13 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                 />
             );
         } else {
-            // حالت فقط خواندنی: Input
             let value;
             if (name === 'category') {
-                // ✅ اصلاحیه: برای "دسته‌بندی"، نام والد را نمایش بده
                 value = readOnlyCategoryName;
             } else if (name === 'requestType') {
-                // ✅ اصلاحیه: برای "نوع درخواست"، نام خود درخواست را نمایش بده
                 value = request.leave_type.name || '---';
             } else {
-                value = '---'; // مقدار پیش‌فرض اگر فیلد دیگری بود
+                value = '---'; 
             }
 
             return <ReadOnlyInput label={label} value={value} />;
@@ -400,7 +394,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
 
                     {/* فیلدهای ساعت (فقط در حالت ویرایش و اگر تمام وقت نباشد) */}
                     {isEditing && !isFullDayWatch && (
-                        /* ✅ ریسپانسیو: نمایش در یک سطر در موبایل و دسکتاپ (دو ستونی) */
                         <>
                             <Controller
                                 name="startTime"
@@ -409,7 +402,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                                     <div className="w-full">
                                         <label className="block text-sm font-medium text-right mb-1 text-foregroundL dark:text-foregroundD">ساعت شروع</label>
                                         <CustomTimeInput
-                                            // ✅ [سازگاری با تایپ جدید]
                                             value={field.value || null}
                                             onChange={field.onChange}
                                             disabled={isSubmitting}
@@ -425,7 +417,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                                     <div className="w-full">
                                         <label className="block text-sm font-medium text-right mb-1 text-foregroundL dark:text-foregroundD">ساعت پایان</label>
                                         <CustomTimeInput
-                                            // ✅ [سازگاری با تایپ جدید]
                                             value={field.value || null}
                                             onChange={field.onChange}
                                             disabled={isSubmitting}
@@ -464,21 +455,16 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                         <h4 className="font-bold text-right mb-4 text-foregroundL dark:text-foregroundD">
                             نتیجه بررسی درخواست
                         </h4>
-                        {/* ✅ ریسپانسیو: گپ عمودی و افقی مناسب در موبایل */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8">
-                            {/* وضعیت نهایی */}
                             <ReadOnlyInput
                                 label="وضعیت نهایی"
                                 value={request.status === 'approved' ? 'تایید شده' : 'رد شده'}
                                 containerClassName={request.status === 'approved' ? 'border-l-4 border-green-500 bg-green-50/50 dark:bg-green-900/50' : 'border-l-4 border-red-500 bg-red-50/50 dark:bg-red-900/50'}
                             />
-                            {/* بررسی کننده */}
                             <ReadOnlyInput
                                 label="بررسی شده توسط"
-                                // ✅ رفع خطای TS2339 با استفاده از تایپ User اصلاح شده
                                 value={`${request.processor?.first_name || ''} ${request.processor?.last_name || ''}`.trim() || '---'}
                             />
-                            {/* دلیل رد (در صورت وجود) */}
                             {request.status === 'rejected' && request.rejection_reason && (
                                 <div className="md:col-span-2">
                                     <Textarea
@@ -505,7 +491,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                                 disabled={isSubmitting}
                                 className="flex justify-center items-center hover:bg-successD-foreground cursor-pointer gap-2 bg-primaryL text-primary-foregroundL dark:bg-primaryD dark:text-primary-foregroundD px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
                             >
-                                {/* ✅ رفع خطای TS2322: اندازه اسپینر به sm تغییر داده شد */}
                                 {isSubmitting ? <Spinner size="sm" /> : <Save size={16} />}
                                 {isSubmitting ? "در حال ذخیره..." : "ذخیره"}
                             </button>

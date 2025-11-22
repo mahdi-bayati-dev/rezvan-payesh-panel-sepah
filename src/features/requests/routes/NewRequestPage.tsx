@@ -34,6 +34,40 @@ const NewRequestPage = () => {
     const currentUser = useAppSelector(selectUser) as User | null;
 
     /**
+     * ✅ تابع کمکی استاندارد برای تبدیل تاریخ و ساعت محلی به فرمت استاندارد UTC برای دیتابیس
+     * این تابع مشکل اختلاف ساعت (Timezone Shift) را حل می‌کند.
+     * * @param dateObj آبجکت تاریخ انتخاب شده (شمسی یا میلادی)
+     * @param timeStr رشته ساعت (مثلا "08:00")
+     * @returns رشته فرمت شده برای SQL اما با زمان UTC (مثلا "2025-05-20 04:30:00")
+     */
+    const formatToAPIPayload = (dateObj: DateObject, timeStr: string): string => {
+        // ۱. تبدیل تاریخ به میلادی (اگر شمسی باشد)
+        const gDate = dateObj.convert(gregorian);
+
+        // ۲. تجزیه ساعت و دقیقه
+        const [hours, minutes] = timeStr.split(':').map(Number);
+
+        // ۳. ساخت آبجکت Date جاوااسکریپت
+        // نکته کلیدی: این Date با Timezone مرورگر کاربر (ایران) ساخته می‌شود
+        const localDate = new Date(
+            gDate.year,
+            gDate.month.number - 1, // ماه‌های JS از 0 شروع می‌شوند
+            gDate.day,
+            hours,
+            minutes,
+            0 // ثانیه
+        );
+
+        // ۴. تبدیل به ISO String (که خودکار ساعت را به UTC تبدیل می‌کند)
+        // مثال: اگر ایران باشیم (GMT+3:30) و ساعت 08:00 باشد، خروجی می‌شود T04:30:00Z
+        const isoString = localDate.toISOString();
+
+        // ۵. فرمت نهایی برای بک‌اند (حذف T و Z برای سازگاری با فیلد Timestamp دیتابیس‌های SQL)
+        // خروجی نهایی: "2025-05-20 04:30:00"
+        return isoString.slice(0, 19).replace('T', ' ');
+    };
+
+    /**
      * این تابع داده‌های نهایی و اعتبارسنجی شده را از فرم دریافت می‌کند
      * و برای ارسال به API آماده می‌کند.
      */
@@ -45,47 +79,36 @@ const NewRequestPage = () => {
             return;
         }
 
-        // --- ✅✅✅ منطق جدید: مدیریت تاریخ شروع، پایان و ساعت‌ها ---
+        // --- ✅✅✅ منطق اصلاح شده: مدیریت دقیق Timezone ---
         if (!data.startDate || !data.endDate) {
             toast.error("تاریخ شروع و پایان الزامی است.");
             return;
         }
 
-        // توابع کمکی برای تبدیل تاریخ‌های شمسی به میلادی (YYYY-MM-DD)
-        const formatGregorianDate = (dateObject: DateObject): string => {
-            // ۱. تبدیل به میلادی
-            const gregorianDate = dateObject.convert(gregorian);
-            // ۲. ساخت رشته تاریخ با اعداد لاتین
-            const year = gregorianDate.year;
-            const month = String(gregorianDate.month.number).padStart(2, '0');
-            const day = String(gregorianDate.day).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
-
         // تعیین ساعت‌ها بر اساس حالت تمام وقت یا پاره وقت
-        let startTimePart = '00:00:00'; // پیش‌فرض ساعت شروع روز
-        let endTimePart = '23:59:59';   // پیش‌فرض ساعت پایان روز
+        let startTimePart = '00:00'; // ساعت شروع روز کاری
+        let endTimePart = '23:59';   // ساعت پایان روز کاری
 
         if (!data.isFullDay) {
             // در حالت پاره وقت، از ساعت‌های ورودی استفاده می‌کنیم
-            // (که به دلیل ولیدیشن اسکیمای جدید، اکنون تضمین شده‌اند که وجود دارند و undefined نیستند)
-            // ✅ اصلاح: از || '' استفاده می‌کنیم تا typescript را راضی نگه داریم
-            startTimePart = `${data.startTime || '08:00'}:00`;
-            endTimePart = `${data.endTime || '17:00'}:00`;
+            startTimePart = data.startTime || '08:00';
+            endTimePart = data.endTime || '17:00';
         }
 
-        // ساخت تاریخ و زمان نهایی برای API
+        // ساخت تاریخ و زمان نهایی برای API با تبدیل به UTC
         const apiPayload = {
             leave_type_id: data.requestType!.id as number,
-            // ترکیب تاریخ شروع میلادی و ساعت شروع
-            start_time: `${formatGregorianDate(data.startDate)} ${startTimePart}`,
-            // ترکیب تاریخ پایان میلادی و ساعت پایان
-            end_time: `${formatGregorianDate(data.endDate)} ${endTimePart}`,
+
+            // ✅ استفاده از تابع جدید برای هندل کردن اختلاف ساعت
+            start_time: formatToAPIPayload(data.startDate, startTimePart),
+            end_time: formatToAPIPayload(data.endDate, endTimePart),
+
             reason: data.description || undefined,
         };
 
-        // این لاگ باید تاریخ و ساعت‌های صحیح را نشان دهد
-        console.log('آبجکت آماده برای ارسال به API:', apiPayload);
+        // لاگ برای دیباگ: باید ببینید ساعت‌ها نسبت به ورودی کاربر 3:30 عقب‌تر هستند (اگر در ایران هستید)
+        // این یعنی درست کار می‌کند چون بک‌اند آن را UTC در نظر می‌گیرد.
+        console.log('آبجکت آماده برای ارسال به API (UTC converted):', apiPayload);
 
         // --- پایان منطق جدید ---
 
