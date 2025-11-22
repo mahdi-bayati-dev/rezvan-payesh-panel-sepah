@@ -1,12 +1,8 @@
-"use client";
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreHorizontal, Edit2, Trash2, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-// (مسیرها بر اساس فایل شما - فرض می‌کنم اینها مسیرهای مستعار صحیح شما هستند)
-// ✅ اصلاح: استفاده از حروف کوچک برای نام فایل‌ها
 import { Button } from "@/components/ui/Button";
 import {
     Dropdown,
@@ -15,92 +11,77 @@ import {
     DropdownItem
 } from "@/components/ui/Dropdown";
 import { type User } from "@/features/User/types";
+import { useDeleteUser } from '@/features/User/hooks/hook';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
-// ✅ ایمپورت هوک حذف کاربر
-import { useDeleteUser } from '@/features/User/hooks/hook'; // (فرض می‌کنیم هوک useDeleteUser وجود دارد یا باید تعریف شود)
-
-// ✅ تعریف ConfirmationModal (فرض می‌کنیم در مسیر عمومی موجود است)
-import { ConfirmationModal } from '@/components/ui/ConfirmationModal'; // (مجدداً، این باید در روت برنامه در دسترس باشد)
-
-
-/**
- * این کامپوننت به صورت مجزا ساخته شده تا بتواند از هوک useNavigate
- * بدون نقض قوانین React (react-hooks/rules-of-hooks) استفاده کند.
- */
 const ActionsCell: React.FC<{ user: User }> = ({ user }) => {
     const navigate = useNavigate();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    // ✅ فرض می‌کنیم هوک حذف کاربر در User/hooks/hook.ts وجود دارد (در غیر این صورت باید تعریف شود)
+
     const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
 
-    const handleViewProfile = () => {
-        // (هدایت به صفحه پروفایل کاربر)
-        navigate(`/organizations/users/${user.id}`);
-    };
+    const handleViewProfile = () => navigate(`/organizations/users/${user.id}`);
 
-    // ✅ تابع بازکننده مودال حذف
-    const handleDelete = () => {
-        setIsDeleteModalOpen(true);
-    };
-
-    // ✅ تابع تایید حذف
     const confirmDelete = () => {
         deleteUser(user.id, {
             onSuccess: () => {
-                toast.success(`کاربر ${user.user_name} با موفقیت حذف شد.`);
+                toast.success(`کاربر ${user.user_name} حذف شد.`);
+                setIsDeleteModalOpen(false);
             },
             onError: (error) => {
-                // خطای عمومی در هوک مدیریت می‌شود، اینجا فقط یک پیام اضافی می‌دهیم
-                toast.error(`خطا در حذف کاربر: ${(error as Error).message}`);
-            },
-            onSettled: () => setIsDeleteModalOpen(false)
+                console.error(error);
+            }
         });
     };
 
-
     return (
-        <div className="text-left" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+            {/* ✅ Fix: حذف پراپ‌های open و onOpenChange چون در تایپ Dropdown وجود ندارند */}
             <Dropdown>
                 <DropdownTrigger>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <span className="sr-only">باز کردن منو</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+                    >
+                        <span className="sr-only">منوی عملیات</span>
+                        <MoreHorizontal className="h-4 w-4 text-gray-500" />
                     </Button>
                 </DropdownTrigger>
-                <DropdownContent>
-                    <DropdownItem
-                        icon={<Eye className="h-4 w-4" />}
-                        onClick={handleViewProfile}
-                    >
-                        مشاهده پروفایل
+                {/* ✅ Fix: حذف align="end" چون در تایپ DropdownContent وجود ندارد */}
+                <DropdownContent className="w-48">
+                    <DropdownItem icon={<Eye className="h-4 w-4" />} onClick={handleViewProfile}>
+                        پروفایل کامل
                     </DropdownItem>
-                    <DropdownItem
-                        icon={<Edit2 className="h-4 w-4" />}
-                        // (ویرایش هم به همان صفحه پروفایل می‌رود)
-                        onClick={handleViewProfile}
-                    >
-                        ویرایش کاربر
+
+                    <DropdownItem icon={<Edit2 className="h-4 w-4" />} onClick={handleViewProfile}>
+                        ویرایش اطلاعات
                     </DropdownItem>
+
                     <DropdownItem
                         icon={<Trash2 className="h-4 w-4" />}
-                        onClick={handleDelete} // ✅ فراخوانی بازکننده مودال
-                        className="text-red-600 dark:text-red-500"
+                        onClick={() => setIsDeleteModalOpen(true)}
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
                     >
                         حذف کاربر
                     </DropdownItem>
                 </DropdownContent>
             </Dropdown>
 
-            {/* ✅ مودال حذف */}
             <ConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={confirmDelete}
-                title="تایید حذف کاربر"
-                message={`آیا مطمئنید که می‌خواهید کاربر "${user.user_name}" را حذف کنید؟ این عمل غیرقابل بازگشت است.`}
-                confirmText={isDeleting ? 'در حال حذف...' : 'حذف کن'}
+                title="حذف کاربر"
+                message={
+                    <span>
+                        آیا مطمئنید می‌خواهید کاربر <strong>{user.user_name}</strong> را حذف کنید؟
+                        <br />
+                        <span className="text-sm text-red-500 mt-1 block">این عملیات غیرقابل بازگشت است.</span>
+                    </span>
+                }
+                confirmText={isDeleting ? 'در حال حذف...' : 'بله، حذف شود'}
                 variant="danger"
-                icon={<Trash2 className="h-6 w-6 text-red-600" aria-hidden="true" />}
             />
         </div>
     );

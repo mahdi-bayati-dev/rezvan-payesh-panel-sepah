@@ -8,26 +8,27 @@ import { useUpdateUserProfile } from '@/features/User/hooks/hook';
 import {
     type ContactFormData,
     contactFormSchema,
-} from '@/features/User/Schema/userProfileFormSchema'; // ✅ اصلاح مسیر به types
+} from '@/features/User/Schema/userProfileFormSchema';
 
-import Input from '@/components/ui/Input'; // ✅ مسیر مستعار و حروف کوچک
-import FormSection from '@/features/User/components/userPage/FormSection'; // ✅ مسیر نسبی صحیح
+import Input from '@/components/ui/Input';
+import FormSection from '@/features/User/components/userPage/FormSection';
+import Textarea from '@/components/ui/Textarea';
 
-/**
- * فرم ۴: اطلاعات تماس
- */
 const ContactForm: React.FC<{ user: User }> = ({ user }) => {
     const [isEditing, setIsEditing] = useState(false);
     const updateMutation = useUpdateUserProfile();
 
-    const defaultValues = useMemo(() => ({
-        employee: user.employee ? {
-            phone_number: user.employee.phone_number,
-            house_number: user.employee.house_number,
-            sos_number: user.employee.sos_number,
-            address: user.employee.address,
-        } : null
-    }), [user]);
+    const defaultValues = useMemo((): ContactFormData => {
+        if (!user.employee) return { employee: null };
+        return {
+            employee: {
+                phone_number: user.employee.phone_number || null,
+                house_number: user.employee.house_number || null,
+                sos_number: user.employee.sos_number || null,
+                address: user.employee.address || null,
+            }
+        };
+    }, [user]);
 
     const {
         register,
@@ -53,6 +54,8 @@ const ContactForm: React.FC<{ user: User }> = ({ user }) => {
 
     const handleCancel = () => { reset(defaultValues); setIsEditing(false); };
 
+    if (!user.employee) return null;
+
     return (
         <FormSection
             title="اطلاعات تماس و آدرس"
@@ -68,27 +71,31 @@ const ContactForm: React.FC<{ user: User }> = ({ user }) => {
                     label="موبایل"
                     {...register("employee.phone_number")}
                     error={errors.employee?.phone_number?.message}
+                    className="dir-ltr text-left"
                 />
                 <Input
                     label="تلفن منزل"
                     {...register("employee.house_number")}
                     error={errors.employee?.house_number?.message}
+                    className="dir-ltr text-left"
                 />
                 <Input
                     label="تلفن اضطراری"
                     {...register("employee.sos_number")}
                     error={errors.employee?.sos_number?.message}
+                    className="dir-ltr text-left"
                 />
             </div>
-            <Input
-                label="آدرس"
-                {...register("employee.address")}
-                error={errors.employee?.address?.message}
-            // (بهتر است از TextArea استفاده شود)
-            />
+            <div className="mt-2">
+                <Textarea
+                    label="آدرس سکونت"
+                    {...register("employee.address")}
+                    error={errors.employee?.address?.message}
+                    rows={3}
+                />
+            </div>
         </FormSection>
     );
 };
 
 export default ContactForm;
-

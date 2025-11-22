@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Calendar } from "lucide-react";
 import DatePicker, {
     DateObject,
@@ -7,12 +7,13 @@ import DatePicker, {
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 
-// ۱. تایپ‌ها تصحیح شدند
+// ۱. اصلاح تایپ‌ها برای پشتیبانی از انواع ورودی‌های فرم
 type PersianDatePickerProps = Omit<
     DatePickerProps,
     "calendar" | "locale" | "value" | "onChange" | "render"
 > & {
-    value: DateObject | null;
+    // ✅ اصلاح مهم: ورودی می‌تواند رشته (از دیتابیس)، آبجکت (از پیکر)، یا خالی باشد
+    value: DateObject | string | null | undefined;
     onChange: (date: DateObject | null) => void;
     label: string;
     containerClassName?: string;
@@ -20,7 +21,7 @@ type PersianDatePickerProps = Omit<
     error?: string;
 };
 
-// کامپONنت داخلی برای نمایش input
+// کامپوننت داخلی برای نمایش input (بدون تغییر در منطق، فقط استایل)
 const CustomDatePickerInput = React.forwardRef<
     HTMLInputElement,
     {
@@ -43,7 +44,6 @@ const CustomDatePickerInput = React.forwardRef<
     dark:focus:ring-primaryD
   `;
 
-
     const errorStyle = error
         ? "border-destructiveL dark:border-destructiveD focus:ring-destructiveL dark:focus:ring-destructiveD"
         : "";
@@ -53,7 +53,6 @@ const CustomDatePickerInput = React.forwardRef<
         .replace(/\s+/g, " ");
 
     return (
-        // نکته: نمایش خطا را از div کلیک‌خور خارج کردیم تا بهتر باشد
         <div className="relative w-full">
             <div className="relative" onClick={openCalendar}>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -66,12 +65,11 @@ const CustomDatePickerInput = React.forwardRef<
                     ref={ref}
                     value={value}
                     placeholder={placeholder}
-                    className={combinedClassName} // استایل خطا اکنون اعمال می‌شود
+                    className={combinedClassName}
                 />
             </div>
-            {/* پیام خطا در زیر input نمایش داده می‌شود */}
             {error && (
-                <p className="mt-1 text-xs text-right text-[color:var(--color-destructiveL)] dark:text-[color:var(--color-destructiveD)]">
+                <p className="mt-1 text-xs text-right text-destructiveL dark:text-destructiveD">
                     {error}
                 </p>
             )}
@@ -81,7 +79,7 @@ const CustomDatePickerInput = React.forwardRef<
 
 CustomDatePickerInput.displayName = "CustomDatePickerInput";
 
-// کامپوننت اصلی که والد (NewRequestForm) از آن استفاده می‌کند
+// کامپوننت اصلی
 const PersianDatePickerInput: React.FC<PersianDatePickerProps> = ({
     value,
     onChange,
@@ -91,21 +89,29 @@ const PersianDatePickerInput: React.FC<PersianDatePickerProps> = ({
     inputClassName,
     ...props
 }) => {
-    return (
-        // یک div برای نگهداری لیبل و DatePicker
-        <div className="w-full">
 
-            <label className="block text-sm font-medium text-right mb-1 text-[color:var(--color-foregroundL)] dark:text-[color:var(--color-foregroundD)]">
+    // ✅ منطق تبدیل: اگر مقدار رشته است، به DateObject تبدیل شود تا پیکر بتواند نمایش دهد
+    const dateValue = useMemo(() => {
+        if (!value) return null;
+        if (value instanceof DateObject) return value;
+        // اگر رشته است (مثلا "2024-01-01") آن را تبدیل کن
+        return new DateObject(value);
+    }, [value]);
+
+    return (
+        <div className="w-full">
+            <label className="block text-sm font-medium text-right mb-1 text-foregroundL dark:text-foregroundD">
                 {label}
             </label>
 
             <DatePicker
-                value={value}
+                value={dateValue} // مقدار تبدیل شده را پاس می‌دهیم
                 onChange={onChange}
                 calendar={persian}
                 locale={persian_fa}
-                calendarPosition="bottom-lift"
+                calendarPosition="bottom-right"
                 className={containerClassName}
+                fixMainPosition={true}
                 render={(valueFromDatePicker, openCalendar) => (
                     <CustomDatePickerInput
                         value={valueFromDatePicker}
@@ -117,8 +123,6 @@ const PersianDatePickerInput: React.FC<PersianDatePickerProps> = ({
                 )}
                 {...props}
             />
-
-
         </div>
     );
 };
