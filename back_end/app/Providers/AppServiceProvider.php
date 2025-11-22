@@ -31,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
 
-        Broadcast::routes(['middleware' => ['auth:sanctum']]);
+        Broadcast::routes(['middleware' => ['auth:api']]);
         Employee::observe(EmployeeObserver::class);
         WorkGroup::observe(WorkGroupObserver::class);
         AttendanceLog::observe(AttendanceLogObserver::class);
