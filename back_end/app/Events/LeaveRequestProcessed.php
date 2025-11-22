@@ -33,7 +33,7 @@ class LeaveRequestProcessed implements ShouldBroadcast
         }
 
         return [
-            new PrivateChannel('user.' . $employee->user_id),
+            new PrivateChannel('App.User.' . $employee->user_id),
         ];
 
     }
