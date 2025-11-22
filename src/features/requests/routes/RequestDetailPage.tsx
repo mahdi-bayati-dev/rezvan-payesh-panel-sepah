@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns-jalali';
 import { toast } from 'react-toastify';
+import { ShieldAlert, ArrowRight } from 'lucide-react'; // ✅ اضافه شدن ArrowRight
 
 import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
@@ -22,11 +23,28 @@ import type { SelectOption } from '@/components/ui/SelectBox';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
-const RequestDetailHeader = ({ number, date }: { number: string; date: string }) => (
+// ✅ ۱. آپدیت هدر برای داشتن دکمه بازگشت
+interface RequestDetailHeaderProps {
+  number: string;
+  date: string;
+  onBack: () => void;
+}
+
+const RequestDetailHeader = ({ number, date, onBack }: RequestDetailHeaderProps) => (
   <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
-    <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD">
-      مشاهده درخواست
-    </h2>
+    <div className="flex items-center gap-3">
+      {/* دکمه بازگشت */}
+      <button
+        onClick={onBack}
+        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-muted-foregroundL dark:text-muted-foregroundD transition-colors cursor-pointer"
+        title="بازگشت به لیست درخواست‌ها"
+      >
+        <ArrowRight size={20} />
+      </button>
+      <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD">
+        مشاهده درخواست
+      </h2>
+    </div>
     <div className="flex gap-4 text-sm text-muted-foregroundL dark:text-muted-foregroundD">
       <span>{`#${number}`}</span>
       <span>{date}</span>
@@ -64,13 +82,17 @@ const RequestDetailPage = () => {
   } = useLeaveRequestById(numericRequestId);
 
   const request = useMemo(() => requestData?.data, [requestData]);
+
+  const isOwnRequest = useMemo(() => {
+    if (!currentUser?.employee || !request) return false;
+    return currentUser.employee.id === request.employee.id;
+  }, [currentUser, request]);
+
   const processMutation = useProcessLeaveRequest();
   const isSubmitting = processMutation.isPending;
 
   const [status, setStatus] = useState<SelectOption | null>(null);
   const [adminResponse, setAdminResponse] = useState('');
-
-  // ✅ [جدید] استیت برای نگهداری خطای اعتبارسنجی سمت کلاینت
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useMemo(() => {
@@ -81,9 +103,7 @@ const RequestDetailPage = () => {
     }
   }, [request]);
 
-  // ✅ [بهبود یافته] هندلر تایید با منطق "توقف و نمایش خطا" (Fail-Fast)
   const handleConfirm = async () => {
-    // ۱. ریست کردن خطاها
     setValidationError(null);
 
     if (!request || !status) {
@@ -93,12 +113,10 @@ const RequestDetailPage = () => {
 
     const trimmedResponse = adminResponse.trim();
 
-    // ۲. قانون بیزنس: اگر "رد" انتخاب شد، توضیحات اجباری است.
-    // این کار باعث می‌شود کاربر قبل از ارسال درخواست به سرور متوجه اشتباه شود.
     if (status.id === 'rejected' && !trimmedResponse) {
       const errorMsg = "برای رد کردن درخواست، وارد کردن دلیل (توضیحات) الزامی است.";
       setValidationError(errorMsg);
-      return; // اینجا تابع قطع می‌شود و درخواستی به سرور نمی‌رود
+      return;
     }
 
     const payload = {
@@ -108,9 +126,7 @@ const RequestDetailPage = () => {
 
     processMutation.mutate(
       { id: request.id, payload },
-      {
-        // لاجیک onSuccess/onError در هوک مدیریت می‌شود
-      }
+      {}
     );
   };
 
@@ -152,9 +168,11 @@ const RequestDetailPage = () => {
     <div className="flex flex-col-reverse md:flex-row gap-6 p-4 sm:p-6">
 
       <main className="flex-1 flex flex-col gap-6 p-4 sm:p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
+        {/* ✅ ۲. اتصال تابع بازگشت به هدر */}
         <RequestDetailHeader
           number={String(request.id)}
           date={format(parseISO(request.created_at), 'yyyy/MM/dd')}
+          onBack={handleCancel}
         />
         <div className="flex flex-col xl:flex-row gap-6">
           <div className="w-full xl:w-80">
@@ -169,21 +187,30 @@ const RequestDetailPage = () => {
       <aside className="w-full md:w-72 xl:w-80 flex-shrink-0">
 
         {isManager ? (
-          <RequestActionsPanel
-            request={request}
-            status={status}
-            // UX: با تغییر انتخاب، خطای قبلی را پاک کن
-            onStatusChange={(val) => { setStatus(val); if (val) setValidationError(null); }}
-            response={adminResponse}
-            // UX: با تایپ کردن، خطای قبلی را پاک کن
-            onResponseChange={(val) => { setAdminResponse(val); if (val) setValidationError(null); }}
-            onConfirm={handleConfirm}
-            onCancel={handleCancel}
-            onExport={handleExport}
-            isSubmitting={isSubmitting}
-            // ارسال خطا به کامپوننت UI
-            errorMessage={validationError}
-          />
+          isOwnRequest ? (
+            <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-center">
+              <ShieldAlert className="w-12 h-12 mx-auto text-amber-600 dark:text-amber-500 mb-3" />
+              <h3 className="font-bold text-amber-800 dark:text-amber-400 mb-2">
+                تضاد منافع
+              </h3>
+              <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
+                شما نمی‌توانید درخواست مرخصی مربوط به خودتان را بررسی (تایید یا رد) کنید. این درخواست باید توسط مدیر مافوق یا هم‌رده بررسی شود.
+              </p>
+            </div>
+          ) : (
+            <RequestActionsPanel
+              request={request}
+              status={status}
+              onStatusChange={(val) => { setStatus(val); if (val) setValidationError(null); }}
+              response={adminResponse}
+              onResponseChange={(val) => { setAdminResponse(val); if (val) setValidationError(null); }}
+              onConfirm={handleConfirm}
+              onCancel={handleCancel}
+              onExport={handleExport}
+              isSubmitting={isSubmitting}
+              errorMessage={validationError}
+            />
+          )
         ) : (
           <div className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD text-sm text-center text-muted-foregroundL dark:text-muted-foregroundD">
             نتیجه درخواست در انتهای صفحه و پس از بررسی توسط مدیر ثبت می‌شود.

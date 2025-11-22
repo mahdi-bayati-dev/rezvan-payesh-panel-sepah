@@ -99,13 +99,19 @@ const RequestsFilter = ({
 }: RequestsFilterProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // --- بررسی دسترسی‌ها ---
-  const canCreateRequest = !!currentUser?.employee;
-
+  // --- تعیین نقش‌ها ---
   const isSuperAdmin = currentUser?.roles?.includes('super_admin') ?? false;
+  
   // const isManager = isSuperAdmin ||
   //   (currentUser?.roles?.includes('org-admin-l2') ?? false) ||
   //   (currentUser?.roles?.includes('org-admin-l3') ?? false);
+
+  // --- ✅ اصلاحیه نهایی: منطق نمایش دکمه ثبت درخواست ---
+  // ۱. کاربر باید لاگین باشد (!!currentUser)
+  // ۲. کاربر نباید سوپر ادمین باشد (!isSuperAdmin)
+  // نکته: ما اینجا وجود employee را چک نمی‌کنیم تا مشکل لود اولیه (Hydration) پیش نیاید.
+  // اگر کاربر معمولی باشد ولی پروفایل کارمندی نداشته باشد، دکمه را می‌بیند اما در صفحه بعد (NewRequestPage) گارد امنیتی جلوی او را می‌گیرد.
+  const canCreateRequest = !!currentUser && !isSuperAdmin;
 
 
   // --- اتصال فیلترها به API ---
