@@ -1,6 +1,5 @@
 // features/requests/components/requestDetails/RequestActionsPanel.tsx
 
-// ۱. [اصلاح حرفه‌ای] تایپ ورودی از Request (Mock) به LeaveRequest (API) تغییر کرد
 import type { LeaveRequest } from "@/features/requests/types";
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import Textarea from '@/components/ui/Textarea';
@@ -8,29 +7,25 @@ import { Printer, X, Check, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '@/components/ui/Spinner';
 
-// ۲. [اصلاح حرفه‌ای] گزینه‌های وضعیت اکنون با مقادیر واقعی API مطابقت دارند
 const statusOptions: SelectOption[] = [
     { id: 'approved', name: 'تایید شده' },
     { id: 'rejected', name: 'رد شده' },
-    { id: 'pending', name: 'در انتظار' }, // (ممکن است نخواهید "در انتظار" قابل انتخاب باشد)
+    { id: 'pending', name: 'در انتظار' },
 ];
 
 interface RequestActionsPanelProps {
-    request: LeaveRequest; // <-- تایپ اصلاح شد
-
-    // پراپ‌های مربوط به وضعیت (Status)
+    request: LeaveRequest;
     status: SelectOption | null;
     onStatusChange: (value: SelectOption | null) => void;
-
-    // پراپ‌های مربوط به توضیحات/پاسخ ادمین
     response: string;
     onResponseChange: (value: string) => void;
-
-    // پراپ‌های مربوط به دکمه‌ها
-    onConfirm: () => void; // این تابع توسط والد (DetailPage) ارائه می‌شود
+    onConfirm: () => void;
     onCancel: () => void;
     onExport: () => void;
-    isSubmitting: boolean; // برای غیرفعال کردن دکمه‌ها
+    isSubmitting: boolean;
+
+    // ✅ [جدید] پراپ برای دریافت پیام خطا از والد
+    errorMessage?: string | null;
 }
 
 export const RequestActionsPanel = ({
@@ -43,6 +38,7 @@ export const RequestActionsPanel = ({
     onCancel,
     onExport,
     isSubmitting,
+    errorMessage, // دریافت خطا
 }: RequestActionsPanelProps) => {
 
     const navigate = useNavigate();
@@ -50,9 +46,7 @@ export const RequestActionsPanel = ({
         navigate('/requests/export-settings');
     };
 
-    // ۳. [اصلاح حرفه‌ای]
-    // وضعیت فعلی درخواست را چک می‌کنیم. اگر "تایید شده" یا "رد شده" باشد،
-    // فرم پردازش (تغییر وضعیت و پاسخ ادمین) باید غیرفعال شود.
+    // وضعیت فعلی درخواست را چک می‌کنیم تا اگر نهایی شده، فرم غیرفعال شود
     const isProcessed = request.status === 'approved' || request.status === 'rejected';
 
     return (
@@ -60,24 +54,25 @@ export const RequestActionsPanel = ({
             <h3 className="text-lg font-bold text-right mb-6 dark:text-backgroundL-500">گزینه ها</h3>
             <div className="flex flex-col gap-y-6">
 
-                {/* ۴. اتصال SelectBox به پراپ‌های والد */}
                 <SelectBox
                     label="تغییر وضعیت"
                     placeholder={isProcessed ? "وضعیت قبلاً ثبت شده" : "انتخاب کنید"}
                     options={statusOptions}
                     value={status}
                     onChange={onStatusChange}
-                    // اگر در حال ارسال بود یا قبلا پردازش شده، غیرفعال کن
                     disabled={isSubmitting || isProcessed}
                 />
 
                 <Textarea
-                    label="پاسخ ادمین / دلیل رد (اختیاری)"
+                    label="پاسخ ادمین / دلیل رد (برای رد کردن الزامی است)"
                     placeholder={isProcessed ? "پاسخ قبلاً ثبت شده" : "توضیحات خود را بنویسید..."}
                     rows={5}
                     value={response}
                     onChange={(e) => onResponseChange(e.target.value)}
                     disabled={isSubmitting || isProcessed}
+                    // ✅ [جدید] اتصال پیام خطا به کامپوننت Textarea
+                    // این باعث می‌شود کادر قرمز شود و پیام خطا زیر آن نمایش داده شود
+                    error={errorMessage || undefined}
                 />
 
                 <div className="flex items-center gap-2 transition-all">
@@ -85,7 +80,7 @@ export const RequestActionsPanel = ({
                         onClick={handleGoToSettings}
                         aria-label="تنظیمات خروجی گزارش"
                         className=" border border-borderL rounded-2xl p-2 cursor-pointer hover:bg-blue hover:text-backgroundL-500 dark:border-borderD dark:text-backgroundL-500"
-                        disabled={isSubmitting} // دکمه تنظیمات همیشه فعال است
+                        disabled={isSubmitting}
                     >
                         <Settings2 />
                     </button>
@@ -99,11 +94,9 @@ export const RequestActionsPanel = ({
                     </button>
                 </div>
 
-                {/* دکمه ها */}
                 <div className="flex gap-4">
                     <button
                         onClick={onConfirm}
-                        // اگر در حال ارسال بود یا قبلا پردازش شده، غیرفعال کن
                         disabled={isSubmitting || isProcessed}
                         className="flex-1 flex items-center cursor-pointer justify-center gap-2 bg-primaryL text-white hover:bg-successD-foreground px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:bg-gray-400"
                     >

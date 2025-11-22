@@ -3,12 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns-jalali';
+import { toast } from 'react-toastify';
+import { ShieldAlert, ArrowRight } from 'lucide-react'; // ✅ اضافه شدن ArrowRight
 
-// --- ✅ ۱. ایمپورت‌های مورد نیاز برای بررسی دسترسی ---
 import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
 import { type User } from '@/features/requests/types';
-// ---------------------------------------------------
 
 import {
   useLeaveRequestById,
@@ -23,12 +23,28 @@ import type { SelectOption } from '@/components/ui/SelectBox';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
-// (هدر صفحه بدون تغییر)
-const RequestDetailHeader = ({ number, date }: { number: string; date: string }) => (
+// ✅ ۱. آپدیت هدر برای داشتن دکمه بازگشت
+interface RequestDetailHeaderProps {
+  number: string;
+  date: string;
+  onBack: () => void;
+}
+
+const RequestDetailHeader = ({ number, date, onBack }: RequestDetailHeaderProps) => (
   <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
-    <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD">
-      مشاهده درخواست
-    </h2>
+    <div className="flex items-center gap-3">
+      {/* دکمه بازگشت */}
+      <button
+        onClick={onBack}
+        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-muted-foregroundL dark:text-muted-foregroundD transition-colors cursor-pointer"
+        title="بازگشت به لیست درخواست‌ها"
+      >
+        <ArrowRight size={20} />
+      </button>
+      <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD">
+        مشاهده درخواست
+      </h2>
+    </div>
     <div className="flex gap-4 text-sm text-muted-foregroundL dark:text-muted-foregroundD">
       <span>{`#${number}`}</span>
       <span>{date}</span>
@@ -36,26 +52,21 @@ const RequestDetailHeader = ({ number, date }: { number: string; date: string })
   </div>
 );
 
-// (گزینه‌های وضعیت بدون تغییر)
 const statusOptions: SelectOption[] = [
   { id: 'approved', name: 'تایید شده' },
   { id: 'rejected', name: 'رد شده' },
   { id: 'pending', name: 'در حال بررسی' },
 ];
 
-
 const RequestDetailPage = () => {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
   const numericRequestId = Number(requestId);
 
-  // --- ✅ ۲. دریافت اطلاعات کاربر فعلی از Redux ---
   const currentUser = useAppSelector(selectUser) as User | null;
 
-  // --- ۳. تشخیص اینکه آیا کاربر فعلی "مدیر" است یا "کاربر" ---
   const isManager = useMemo(() => {
     if (!currentUser?.roles) return false;
-    // بر اساس مستندات API، این سه رول مدیر محسوب می‌شوند
     return (
       currentUser.roles.includes("super_admin") ||
       currentUser.roles.includes("org-admin-l2") ||
@@ -63,7 +74,6 @@ const RequestDetailPage = () => {
     );
   }, [currentUser]);
 
-  // --- ۴. اتصال به React Query (بدون تغییر) ---
   const {
     data: requestData,
     isLoading,
@@ -72,12 +82,18 @@ const RequestDetailPage = () => {
   } = useLeaveRequestById(numericRequestId);
 
   const request = useMemo(() => requestData?.data, [requestData]);
+
+  const isOwnRequest = useMemo(() => {
+    if (!currentUser?.employee || !request) return false;
+    return currentUser.employee.id === request.employee.id;
+  }, [currentUser, request]);
+
   const processMutation = useProcessLeaveRequest();
   const isSubmitting = processMutation.isPending;
 
-  // --- ۵. State های محلی (بدون تغییر) ---
   const [status, setStatus] = useState<SelectOption | null>(null);
   const [adminResponse, setAdminResponse] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useMemo(() => {
     if (request) {
@@ -87,22 +103,30 @@ const RequestDetailPage = () => {
     }
   }, [request]);
 
-
-  // --- ۶. توابع مدیریت‌کننده (بدون تغییر) ---
   const handleConfirm = async () => {
+    setValidationError(null);
+
     if (!request || !status) {
-      alert("داده‌های درخواست کامل نیست.");
+      toast.error("لطفا ابتدا وضعیت درخواست را مشخص کنید.");
       return;
     }
+
+    const trimmedResponse = adminResponse.trim();
+
+    if (status.id === 'rejected' && !trimmedResponse) {
+      const errorMsg = "برای رد کردن درخواست، وارد کردن دلیل (توضیحات) الزامی است.";
+      setValidationError(errorMsg);
+      return;
+    }
+
     const payload = {
       status: status.id as "approved" | "rejected",
-      rejection_reason: status.id === 'rejected' ? adminResponse : undefined,
+      rejection_reason: trimmedResponse || undefined,
     };
+
     processMutation.mutate(
       { id: request.id, payload },
-      {
-        // (onSuccess/onError در هوک مدیریت می‌شود)
-      }
+      {}
     );
   };
 
@@ -111,11 +135,9 @@ const RequestDetailPage = () => {
   };
 
   const handleExport = () => {
-    console.log("در حال آماده‌سازی خروجی برای درخواست:", request?.id);
     alert("خروجی PDF آماده شد (شبیه‌سازی)");
   };
 
-  // --- ۷. مدیریت حالات لودینگ و خطا (بدون تغییر) ---
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -123,7 +145,6 @@ const RequestDetailPage = () => {
       </div>
     );
   }
-  // (ادامه مدیریت خطاها...)
   if (isError) {
     return (
       <Alert variant="destructive" className="m-4">
@@ -143,57 +164,58 @@ const RequestDetailPage = () => {
     );
   }
 
-  // --- ۸. رندر صفحه اصلی ---
   return (
-    <div className="flex flex-col-reverse md:flex-row gap-6 p-4 sm:p-6"> {/* ✅ ریسپانسیو: padding مناسب */}
+    <div className="flex flex-col-reverse md:flex-row gap-6 p-4 sm:p-6">
 
-      {/* کارت اصلی محتوا (بدون تغییر) */}
-      <main className="flex-1 flex flex-col gap-6 p-4 sm:p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD"> {/* ✅ ریسپانسیو: padding مناسب */}
+      <main className="flex-1 flex flex-col gap-6 p-4 sm:p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
+        {/* ✅ ۲. اتصال تابع بازگشت به هدر */}
         <RequestDetailHeader
           number={String(request.id)}
           date={format(parseISO(request.created_at), 'yyyy/MM/dd')}
+          onBack={handleCancel}
         />
-        {/* ✅ ریسپانسیو: محتوای داخلی را در موبایل عمودی و در دسکتاپ افقی نمایش بده */}
         <div className="flex flex-col xl:flex-row gap-6">
-          {/* ✅ ریسپانسیو: در موبایل تمام عرض و در دسکتاپ عرض مشخص */}
           <div className="w-full xl:w-80">
             <RequesterInfoCard request={request} />
           </div>
           <div className="flex-1">
-            {/* کارت اطلاعات درخواست (RequestInfoCard)
-              در فایل بعدی (RequestInfoCard.tsx) اصلاح می‌شود
-              تا نتیجه (دلیل رد) را نمایش دهد.
-            */}
             <RequestInfoCard request={request} />
           </div>
         </div>
       </main>
 
-      {/* سایدبار (گزینه‌ها) */}
-      <aside className="w-full md:w-72 xl:w-80 flex-shrink-0"> {/* ✅ ریسپانسیو: عرض ثابت برای سایدبار */}
+      <aside className="w-full md:w-72 xl:w-80 flex-shrink-0">
 
-        {/* --- ✅ [رفع باگ ۱] اعمال دسترسی --- */}
-        {/* پنل اکشن (تایید/رد) فقط زمانی نمایش داده می‌شود
-          که کاربر لاگین کرده، "مدیر" باشد.
-        */}
         {isManager ? (
-          <RequestActionsPanel
-            request={request}
-            status={status}
-            onStatusChange={setStatus}
-            response={adminResponse}
-            onResponseChange={setAdminResponse}
-            onConfirm={handleConfirm}
-            onCancel={handleCancel}
-            onExport={handleExport}
-            isSubmitting={isSubmitting}
-          />
+          isOwnRequest ? (
+            <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-center">
+              <ShieldAlert className="w-12 h-12 mx-auto text-amber-600 dark:text-amber-500 mb-3" />
+              <h3 className="font-bold text-amber-800 dark:text-amber-400 mb-2">
+                تضاد منافع
+              </h3>
+              <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
+                شما نمی‌توانید درخواست مرخصی مربوط به خودتان را بررسی (تایید یا رد) کنید. این درخواست باید توسط مدیر مافوق یا هم‌رده بررسی شود.
+              </p>
+            </div>
+          ) : (
+            <RequestActionsPanel
+              request={request}
+              status={status}
+              onStatusChange={(val) => { setStatus(val); if (val) setValidationError(null); }}
+              response={adminResponse}
+              onResponseChange={(val) => { setAdminResponse(val); if (val) setValidationError(null); }}
+              onConfirm={handleConfirm}
+              onCancel={handleCancel}
+              onExport={handleExport}
+              isSubmitting={isSubmitting}
+              errorMessage={validationError}
+            />
+          )
         ) : (
           <div className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD text-sm text-center text-muted-foregroundL dark:text-muted-foregroundD">
-            نتیجه درخواست در انتهای  صفحه ای درخواست  بعد از بررسی توسط ادمین ثبت میشود
+            نتیجه درخواست در انتهای صفحه و پس از بررسی توسط مدیر ثبت می‌شود.
           </div>
         )}
-
 
       </aside>
     </div>

@@ -1,48 +1,48 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useMemo } from "react"; // ✅ ۱. ایمپورت useMemo
-
-// ✅ اصلاح مسیردهی: استفاده از مسیر نسبی (relative path)
+import { useMemo } from "react"; 
 import { EditShiftScheduleForm } from "../components/EditShiftScheduleForm";
-// ✅ اصلاح مسیردهی: استفاده از مسیر نسبی
 import { useEditShiftScheduleForm } from "../hooks/useEditShiftScheduleForm";
-// ✅ اصلاح بزرگی/کوچکی حروف: 'Alert' به 'alert'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
-
 import { EditShiftScheduleFormSkeleton } from "@/features/shift-schedule/Skeleton/EditShiftScheduleFormSkeleton";
 
-// --- ✅ ۲. ایمپورت‌های مورد نیاز برای بهینه‌سازی ---
-import { useWorkPatternsList } from '@/features/work-group/hooks/hook';
+// هوک لیست الگوها
+import { useWorkPatterns } from '@/features/work-pattern/hooks/useWorkPatternsHookGet';
 import { type WorkPatternBase } from '@/features/shift-schedule/types';
-// --- پایان ایمپورت‌های جدید ---
 
 export default function EditShiftSchedulePage() {
     const navigate = useNavigate();
     const { patternId } = useParams<{ patternId: string }>();
     const shiftScheduleId = patternId ?? null;
 
-    // --- ✅ ۳. فراخوانی هر دو هوک در کامپوننت والد ---
-
-    // هوک اول: دریافت اطلاعات اصلی برنامه شیفتی
+    // 1. دریافت اطلاعات فرم ویرایش
     const editFormHook = useEditShiftScheduleForm({
         shiftScheduleId: shiftScheduleId,
         onSuccess: () => {
             navigate('/work-patterns');
         }
     });
-    const {  isLoadingInitialData, generalApiError } = editFormHook;
+    const { isLoadingInitialData, generalApiError } = editFormHook;
 
-    // هوک دوم: دریافت لیست الگوهای کاری (برای دراپ‌داون‌ها)
-    const { data: rawPatterns, isLoading: isLoadingPatterns } =
-        useWorkPatternsList();
+    // 2. دریافت لیست الگوها برای دراپ‌داون
+    const { data: patternsData, isLoading: isLoadingPatterns } = useWorkPatterns();
+    const rawPatterns = patternsData?.patterns || [];
 
-    // --- ✅ ۴. پردازش داده‌های ثانویه در والد ---
+    // 3. فیلتر کردن و آماده‌سازی لیست الگوها
     const availablePatterns: WorkPatternBase[] = useMemo(() => {
-        return rawPatterns?.map((p) => ({ id: p.id, name: p.name })) || [];
+        if (!rawPatterns) return [];
+
+        // ✅✅✅ اصلاح مهم برای رفع خطای کلید تکراری:
+        // ما فقط الگوهایی را می‌خواهیم که از نوع 'SHIFT_SCHEDULE' نباشند (فقط الگوهای ثابت).
+        // این کار باعث می‌شود تداخل ID بین جدول‌های مختلف از بین برود.
+        return rawPatterns
+            .filter(p => p.pattern_type !== 'SHIFT_SCHEDULE')
+            .map((p) => ({ 
+                id: p.id, 
+                name: p.name 
+            }));
     }, [rawPatterns]);
 
-    // --- پایان فراخوانی‌ها ---
-
-    // کامنت: مدیریت عدم وجود ID
+    // مدیریت عدم وجود ID
     if (!shiftScheduleId) {
         return (
             <div className="p-8" dir="rtl">
@@ -54,15 +54,12 @@ export default function EditShiftSchedulePage() {
         );
     }
 
-    // --- ✅ ۵. منطق لودینگ یکپارچه ---
-    // اسکلت لودینگ را تا زمانی که *هر دو* درخواست API کامل نشده‌اند، نمایش بده
+    // نمایش لودینگ
     if (isLoadingInitialData || isLoadingPatterns) {
-        return (
-            <EditShiftScheduleFormSkeleton />
-        )
+        return <EditShiftScheduleFormSkeleton />;
     }
 
-    // مدیریت خطا (بدون تغییر)
+    // نمایش خطا
     if (generalApiError && generalApiError.includes("خطا در بارگذاری")) {
         return (
             <div className="p-8" dir="rtl">
@@ -74,17 +71,12 @@ export default function EditShiftSchedulePage() {
         );
     }
 
-    // --- ✅ ۶. رندر کامپوننت Presentational با پاس دادن Props ---
     return (
         <EditShiftScheduleForm
-            // کامنت: ارسال تمام متدها و وضعیت‌ها از هوک Edit
             {...editFormHook}
-            
-            // کامنت: پاس دادن داده‌های ثانویه به عنوان Prop
-            availablePatterns={availablePatterns} // <-- ✅ Prop جدید
-
+            availablePatterns={availablePatterns}
             onCancel={() => {
-                navigate(-1); // بازگشت به عقب هنگام لغو
+                navigate(-1);
             }}
         />
     );

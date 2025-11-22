@@ -32,7 +32,7 @@ function NewWorkGroupPage() {
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => navigate('/work-group')}
+                    onClick={() => navigate('/work-groups')}
                     className="h-10 w-10"
                 >
                     <ArrowRight className="h-5 w-5 text-muted-foregroundL dark:text-muted-foregroundD" />

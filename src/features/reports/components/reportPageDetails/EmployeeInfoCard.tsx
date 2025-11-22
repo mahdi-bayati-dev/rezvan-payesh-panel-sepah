@@ -1,104 +1,67 @@
 import type { ActivityLog } from "@/features/reports/types";
 import { UserInfoCard, type InfoRowData } from "@/components/ui/UserInfoCard";
-// [اصلاح ۱] حالا تایپ Employee رو مستقیم ایمپورت می‌کنیم
 import type { Employee as UserEmployeeProfile } from "@/features/User/types/index";
 import { toPersianNumbers } from "@/features/reports/utils/toPersianNumbers";
 
-// import { useNavigate } from "react-router-dom";
-// import { Button } from "@/components/ui/Button";
-// import { User } from "lucide-react";
+// کامپوننت UserInfoCard باید بتواند آواتار را هندل کند
+// اما اگر UserInfoCard از تگ img معمولی استفاده می‌کند، بهتر است
+// آدرس عکس را قبل از ارسال پردازش کنیم یا خود UserInfoCard را آپدیت کنیم.
+// در اینجا فرض می‌کنیم UserInfoCard از پراپ avatarUrl استفاده می‌کند.
 
 interface EmployeeInfoCardProps {
-  logEmployee: ActivityLog["employee"]; // دیتای ناقص از لاگ
-  userEmployee?: UserEmployeeProfile | null; // دیتای کامل کارمند (آبجکت Employee)
+  logEmployee: ActivityLog["employee"];
+  userEmployee?: UserEmployeeProfile | null;
 }
-
-const getAvatarPlaceholder = (
-  firstName?: string,
-  lastName?: string
-): string => {
-  const fName = firstName || "";
-  const lName = lastName || "";
-  return `${fName.charAt(0)}${lName.charAt(0)}`.trim() || "??";
-};
 
 export const EmployeeInfoCard = ({
   logEmployee,
   userEmployee,
 }: EmployeeInfoCardProps) => {
-  
-  // const navigate = useNavigate();
-  
-  // --- [اصلاح ۲] ---
-  // ID لازم برای دکمه (User ID) در logEmployee.userId قرار دارد
-  // (که در dataMapper ست شده)
-  // const employeeProfileId = logEmployee.userId;
-  // --- [پایان اصلاح] ---
 
-  // const handleGoToProfile = () => {
-  //   if (employeeProfileId) {
-  //     navigate(`/organizations/users/${employeeProfileId}`);
-  //   } else {
-  //     console.error('[EmployeeInfoCard] GoToProfile clicked but employeeProfileId is 0 or nullish.');
-  //   }
-  // };
-
-  // --- [اصلاح ۳] اولویت‌بندی نمایش ---
-  // ما همیشه نام و کد پرسنلی را از خود لاگ (logEmployee) می‌خوانیم
-  // چون اون مربوط به همین گزارش هست.
   const name = logEmployee.name;
-  const personnelCode = logEmployee.employeeId; // این از dataMapper میاد (فارسی شده)
-  // --- [پایان اصلاح] ---
+  const personnelCode = logEmployee.employeeId;
 
+  // نکته مهم: در اینجا avatarUrl را مستقیماً پاس می‌دهیم. 
+  // اگر کامپوننت UserInfoCard قابلیت هندل کردن خطای عکس را ندارد، 
+  // باید آن کامپوننت هم آپدیت شود تا از <Avatar /> استفاده کند.
   const avatarUrl = logEmployee.avatarUrl;
-  const avatarPlaceholder = getAvatarPlaceholder(
-    logEmployee.name.split(' ')[0], // استفاده از نام خود لاگ
-    logEmployee.name.split(' ')[1]
-  );
+
+  // این بخش برای کامپوننت‌های قدیمی که نیاز به حروف اول اسم دارند
+  const getAvatarPlaceholder = (fullName: string) => {
+    if (!fullName) return "??";
+    const parts = fullName.split(' ');
+    const f = parts[0]?.[0] || "";
+    const l = parts[1]?.[0] || "";
+    return `${f}${l}`;
+  };
+
+  const avatarPlaceholder = getAvatarPlaceholder(name);
 
   const infoRows: InfoRowData[] = [
     {
       label: "کد پرسنلی",
-      value: personnelCode, // [اصلاح] استفاده از متغیر بالا
+      value: personnelCode,
     },
-    // --- [جدید] افزودن شماره تماس ---
     {
       label: "شماره تماس",
-      // toPersianNumbers خودش null و undefined رو مدیریت می‌کنه و "---" برمی‌گردونه
       value: toPersianNumbers(userEmployee?.phone_number),
     },
-    // --- [پایان جدید] ---
     {
       label: "سازمان",
-      // [اصلاح ۴] حالا userEmployee خود آبجکت کارمند است
       value: userEmployee?.organization?.name || "نامشخص",
     },
-    // {
-    //   label: "گروه کاری",
-    //   // [اصلاح ۵] حالا userEmployee خود آبجکت کارمند است
-    //   value: userEmployee?.work_group?.name || "نامشخص",
-    // },
   ];
 
   return (
     <div className="flex flex-col gap-4">
+      {/* اطمینان حاصل کن که UserInfoCard از منطق مشابه Avatar استفاده می‌کند */}
       <UserInfoCard
         title="مشخصات کارمند"
-        name={name} // [اصلاح] استفاده از نام خود لاگ
+        name={name}
         avatarUrl={avatarUrl}
         avatarPlaceholder={avatarPlaceholder}
         infoRows={infoRows}
       />
-      
-      {/* <Button
-        variant="outline"
-        onClick={handleGoToProfile}
-        disabled={!employeeProfileId} // دکمه با userId فعال می‌شود
-        className="w-full flex items-center justify-center gap-2"
-      >
-        <User className="w-4 h-4" />
-        <span>مشاهده پروفایل کارمند</span>
-      </Button> */}
     </div>
   );
 };
