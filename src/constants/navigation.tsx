@@ -9,7 +9,8 @@ import {
   Network,
   Mails,
   Puzzle,
-  ListCheck
+  ListCheck,
+  ShieldCheck // آیکون مناسب برای لایسنس
 } from "lucide-react";
 import { ALL_ACCESS, ADMIN_ACCESS, SUPER_ADMIN_ONLY } from "./roles";
 
@@ -25,8 +26,6 @@ export const mainNavItems: NavItem[] = [
     label: "داشبورد",
     href: "/",
     icon: <LayoutDashboard size={20} />,
-    // [تغییر مهم]: قبلاً ADMIN_ACCESS بود، حالا چون API ساپورت می‌کند،
-    // برای همه (از جمله کاربر عادی) باز می‌شود.
     allowedRoles: ALL_ACCESS,
   },
   {
@@ -76,5 +75,13 @@ export const mainNavItems: NavItem[] = [
     href: "/admin-management",
     icon: <Puzzle size={20} />,
     allowedRoles: SUPER_ADMIN_ONLY,
+  },
+  // [افزوده شده]: آیتم لایسنس
+  // نکته: این آیتم در فایل Sidebar.tsx بر اساس وضعیت لایسنس فیلتر می‌شود
+  {
+    label: "لایسنس نرم‌افزار",
+    href: "/license",
+    icon: <ShieldCheck size={20} />,
+    allowedRoles: SUPER_ADMIN_ONLY, // معمولاً فقط ادمین اصلی باید ببیند
   },
 ];
