@@ -11,6 +11,7 @@ use App\Observers\AttendanceLogObserver;
 use App\Observers\EmployeeObserver;
 use App\Observers\LeaveRequestObserver;
 use App\Observers\WorkGroupObserver;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -30,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
 
+        Broadcast::routes(['middleware' => ['auth:sanctum']]);
         Employee::observe(EmployeeObserver::class);
         WorkGroup::observe(WorkGroupObserver::class);
         AttendanceLog::observe(AttendanceLogObserver::class);
