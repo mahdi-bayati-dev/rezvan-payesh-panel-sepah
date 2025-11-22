@@ -1,41 +1,42 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import { DateObject } from "react-multi-date-picker";
+import gregorian from "react-date-object/calendars/gregorian";
+import gregorian_en from "react-date-object/locales/gregorian_en";
 
-// ✅ اصلاح: تغییر آدرس‌دهی از @/features/... به ../../...
+// Schemas & Hooks
 import {
     type CreateUserFormData,
     createUserFormSchema
 } from '../../Schema/userProfileFormSchema';
 import { useCreateUser } from '../../hooks/hook';
-
-// ✅ اصلاح: استفاده از useWorkGroups که در هوک اصلی اضافه شد
 import {
     useWorkPatternsList,
     useShiftSchedulesList,
-    useWorkGroups // ✅ حل خطای TS2724: از هوک جدید استفاده شد
-} from '@/features/work-group/hooks/hook'; // ✅ اصلاح مسیر به alias برای هماهنگی با tsc
+    useWorkGroups
+} from '@/features/work-group/hooks/hook';
 import { type BaseNestedItem } from '@/features/work-group/types';
 
-// ✅ اصلاح: تغییر آدرس‌دهی و بزرگی/کوچکی حروف کامپوننت‌ها
+// UI Components
 import Input from '@/components/ui/Input';
-import SelectBox from '@/components/ui/SelectBox';
-import { type SelectOption } from '@/components/ui/SelectBox';
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import Textarea from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
-import { Loader2, Save, X } from 'lucide-react';
+import { Loader2, Save, X, User, Building2, Phone, Lock } from 'lucide-react';
+import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 
-// --- گزینه‌های ثابت (بدون تغییر) ---
+// --- Options ---
 const statusOptions: SelectOption[] = [
     { id: 'active', name: 'فعال' },
     { id: 'inactive', name: 'غیرفعال' },
 ];
 const roleOptions: SelectOption[] = [
-    { id: 'user', name: 'کارمند (user)' },
-    { id: 'org-admin-l3', name: 'ادمین L3' },
-    { id: 'org-admin-l2', name: 'ادمین L2' },
+    { id: 'user', name: 'کارمند (User)' },
+    { id: 'org-admin-l3', name: 'ادمین (L3)' },
+    { id: 'org-admin-l2', name: 'ادمین (L2)' },
 ];
 const genderOptions: SelectOption[] = [
     { id: 'male', name: 'مرد' },
@@ -59,311 +60,255 @@ const toSelectOption = (item: BaseNestedItem): SelectOption => ({
     name: item.name,
 });
 
-/**
- * فرم ایجاد کاربر — نسخه نهایی با رفع خطا
- */
+// ✅✅✅ اصلاح UI: حذف overflow-hidden برای باز شدن سلکت باکس‌ها
+const FormSectionCard = ({ title, icon: Icon, children }: { title: string, icon: any, children: React.ReactNode }) => (
+    // ۱. حذف overflow-hidden از اینجا
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm mb-6 relative">
+        {/* ۲. اضافه کردن rounded-t-xl به هدر تا گوشه‌های بالا گرد بمانند */}
+        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-t-xl px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
+            <div className="p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm text-primaryL dark:text-primaryD">
+                <Icon className="w-5 h-5" />
+            </div>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200">{title}</h3>
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {children}
+        </div>
+    </div>
+);
+
 export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizationId }) => {
     const navigate = useNavigate();
     const createMutation = useCreateUser();
 
-    // --- (فچ لیست‌ها و تبدیل به SelectOption... بدون تغییر) ---
     const { data: rawWorkPatterns, isLoading: isLoadingWP } = useWorkPatternsList();
     const { data: rawShiftSchedules, isLoading: isLoadingSS } = useShiftSchedulesList();
-    // ✅ استفاده از useWorkGroups
     const { data: rawWorkGroups, isLoading: isLoadingWG } = useWorkGroups(1, 9999);
 
-    const workGroupOptions = useMemo(
-        () => rawWorkGroups?.data?.map(toSelectOption) || [],
-        [rawWorkGroups]
-    );
-    const shiftScheduleOptions = useMemo(
-        () => rawShiftSchedules?.map(toSelectOption) || [],
-        [rawShiftSchedules]
-    );
-    const workPatternOptions = useMemo(
-        () => rawWorkPatterns?.map(toSelectOption) || [],
-        [rawWorkPatterns]
-    );
+    const workGroupOptions = useMemo(() => rawWorkGroups?.data?.map(toSelectOption) || [], [rawWorkGroups]);
+    const shiftScheduleOptions = useMemo(() => rawShiftSchedules?.map(toSelectOption) || [], [rawShiftSchedules]);
+    const workPatternOptions = useMemo(() => rawWorkPatterns?.map(toSelectOption) || [], [rawWorkPatterns]);
 
-    const defaultShiftSchedule = useMemo(() => {
-        return shiftScheduleOptions[0] || { id: 1, name: 'نامشخص' };
+    const defaultShiftScheduleId = useMemo(() => {
+        return shiftScheduleOptions.length > 0 ? Number(shiftScheduleOptions[0].id) : 1;
     }, [shiftScheduleOptions]);
 
-
-    // --- defaultValues (هماهنگ با zod) ---
-    const defaultValues = useMemo((): CreateUserFormData => ({
-        user_name: "",
-        email: "",
-        password: "",
-        role: "user",
-        status: "active",
+    const defaultValues = useMemo((): any => ({
+        user_name: "", email: "", password: "", role: "user", status: "active",
         employee: {
             organization_id: organizationId,
-            first_name: "",
-            last_name: "",
-            personnel_code: "",
-            phone_number: "", // Zod این را الزامی می‌داند
-            gender: "male",
-            is_married: false,
-            education_level: "diploma",
-            house_number: "",
-            sos_number: "",
+            first_name: "", last_name: "", personnel_code: "", phone_number: "",
+            gender: "male", is_married: false, education_level: "diploma",
+            house_number: "", sos_number: "", shift_schedule_id: defaultShiftScheduleId,
 
-            shift_schedule_id: Number(defaultShiftSchedule.id) || 1,
-
-            // فیلدهای Nullable (که Zod preprocess آن‌ها را null می‌کند)
-            position: "",
-            starting_job: "",
-            father_name: "",
-            birth_date: "",
-            nationality_code: "",
-            address: "",
+            position: null,
+            starting_job: null,
+            father_name: null,
+            birth_date: null,
+            nationality_code: null,
+            address: null,
             work_group_id: null,
             work_pattern_id: null,
         }
-    }), [organizationId, defaultShiftSchedule.id]);
+    }), [organizationId, defaultShiftScheduleId]);
 
-    // --- React Hook Form ---
     const {
         register,
         handleSubmit,
         control,
         setError,
-        formState: { errors, isDirty },
-        reset,
+        formState: { errors }
     } = useForm<CreateUserFormData>({
-        // ✅ با اصلاح Schema، این Resolver اکنون باید بدون خطا کار کند
         resolver: zodResolver(createUserFormSchema),
         defaultValues,
     });
 
-    // --- آپدیت پیش‌فرض شیفت وقتی لود شد ---
-    useEffect(() => {
-        const currentDefaultId = Number(defaultValues.employee.shift_schedule_id);
-        const newDefaultId = Number(defaultShiftSchedule.id);
-
-        if (newDefaultId !== 1 && newDefaultId !== currentDefaultId) {
-            reset({
-                ...defaultValues,
-                employee: {
-                    ...defaultValues.employee,
-                    shift_schedule_id: newDefaultId,
-                }
-            });
-        }
-    }, [defaultShiftSchedule.id, reset, defaultValues]);
-
-    // --- onSubmit (بدون تغییر منطقی) ---
     const onSubmit: SubmitHandler<CreateUserFormData> = async (formData) => {
+        const sanitizedEmployee = {
+            ...formData.employee,
+            father_name: formData.employee?.father_name || null,
+            nationality_code: formData.employee?.nationality_code || null,
+            position: formData.employee?.position || null,
+            address: formData.employee?.address || null,
+            work_group_id: formData.employee?.work_group_id || null,
+            work_pattern_id: formData.employee?.work_pattern_id || null,
+        };
+
+        const finalPayload = {
+            ...formData,
+            employee: sanitizedEmployee
+        };
+
         try {
-            console.log("Payload ارسال شده (توسط Zod):", formData); // برای دیباگ
-
-            const newUser = await createMutation.mutateAsync(formData);
-
+            const newUser = await createMutation.mutateAsync(finalPayload as CreateUserFormData);
             toast.success(`کاربر "${newUser.employee?.first_name} ${newUser.employee?.last_name}" با موفقیت ایجاد شد.`);
             navigate(-1);
-
         } catch (err: any) {
             const validationErrors = err?.response?.data?.errors;
             if (validationErrors) {
-                toast.error("لطفاً فیلدهای الزامی را بررسی کنید.");
+                toast.error("لطفاً خطاهای فرم را بررسی کنید.");
                 Object.keys(validationErrors).forEach((key) => {
-                    setError(key as any, {
-                        type: 'server',
-                        message: validationErrors[key][0]
-                    });
+                    setError(key as any, { type: 'server', message: validationErrors[key][0] });
                 });
             } else {
-                console.error("خطای سرور:", err);
+                toast.error(`خطای سیستم: ${err?.response?.data?.message || "مشکلی پیش آمده است"}`);
             }
         }
     };
 
-    const isSubmitting = createMutation.isPending;
     const isLoading = isLoadingWP || isLoadingSS || isLoadingWG;
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="mr-2">در حال بارگذاری لیست‌ها...</span>
+            <div className="flex flex-col items-center justify-center h-64 space-y-4 text-muted-foregroundL">
+                <Loader2 className="h-10 w-10 animate-spin text-primaryL" />
+                <p>در حال آماده‌سازی فرم...</p>
             </div>
         );
     }
 
+    const handleDateChange = (date: DateObject | null, onChange: (val: string | null) => void) => {
+        if (date) {
+            const gregorianDate = date.convert(gregorian, gregorian_en).format("YYYY-MM-DD");
+            onChange(gregorianDate);
+        } else {
+            onChange(null);
+        }
+    };
+
     return (
-        // ✅ خطای بیلد (SubmitHandler) با اصلاح Schema حل می‌شود
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="pb-20">
 
-            {/* --- اطلاعات حساب --- */}
-            <fieldset className="space-y-4">
-                <h3 className="text-lg font-semibold pb-4 border-b">اطلاعات حساب</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="نام کاربری" {...register("user_name")} error={errors.user_name?.message} />
-                    <Input label="ایمیل" type="email" {...register("email")} error={errors.email?.message} />
-                    <Input label="رمز عبور" type="password" {...register("password")} error={errors.password?.message} />
+            <FormSectionCard title="اطلاعات حساب کاربری" icon={Lock}>
+                <Input label="نام کاربری" {...register("user_name")} error={errors.user_name?.message} autoFocus />
+                <Input label="ایمیل" type="email" {...register("email")} error={errors.email?.message} />
+                <Input label="رمز عبور" type="password" {...register("password")} error={errors.password?.message} />
 
-                    <Controller
-                        name="role"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                label="نقش"
-                                placeholder="انتخاب کنید..."
-                                options={roleOptions}
-                                value={roleOptions.find(o => o.id === field.value) || null}
-                                onChange={(opt) => field.onChange(opt?.id ?? null)}
-                                error={errors.role?.message}
-                            />
-                        )}
+                <Controller name="role" control={control} render={({ field }) => (
+                    <SelectBox
+                        placeholder='' label="نقش کاربری" options={roleOptions}
+                        value={roleOptions.find(o => o.id === field.value) || null}
+                        onChange={(opt) => field.onChange(opt?.id)}
+                        error={errors.role?.message}
                     />
-                    <Controller
-                        name="status"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                label="وضعیت"
-                                placeholder="انتخاب کنید..."
-                                options={statusOptions}
-                                value={statusOptions.find(o => o.id === field.value) || null}
-                                onChange={(opt) => field.onChange(opt?.id ?? "active")}
-                                error={errors.status?.message}
-                            />
-                        )}
+                )} />
+
+                <Controller name="status" control={control} render={({ field }) => (
+                    <SelectBox
+                        placeholder='' label="وضعیت" options={statusOptions}
+                        value={statusOptions.find(o => o.id === field.value) || null}
+                        onChange={(opt) => field.onChange(opt?.id)}
+                        error={errors.status?.message}
                     />
+                )} />
+            </FormSectionCard>
+
+            <FormSectionCard title="مشخصات فردی" icon={User}>
+                <Input label="نام" {...register("employee.first_name")} error={errors.employee?.first_name?.message} />
+                <Input label="نام خانوادگی" {...register("employee.last_name")} error={errors.employee?.last_name?.message} />
+                <Input label="کد ملی" {...register("employee.nationality_code")} error={errors.employee?.nationality_code?.message} />
+                <Input label="نام پدر" {...register("employee.father_name")} error={errors.employee?.father_name?.message} />
+
+                <Controller
+                    name="employee.birth_date"
+                    control={control}
+                    render={({ field }) => (
+                        <PersianDatePickerInput
+                            label="تاریخ تولد *"
+                            value={field.value}
+                            onChange={(date) => handleDateChange(date, field.onChange)}
+                            error={errors.employee?.birth_date?.message}
+                        />
+                    )}
+                />
+
+                <Controller name="employee.gender" control={control} render={({ field }) => (
+                    <SelectBox
+                        placeholder='' label="جنسیت" options={genderOptions}
+                        value={genderOptions.find(o => o.id === field.value) || null}
+                        onChange={(opt) => field.onChange(opt?.id)}
+                        error={errors.employee?.gender?.message}
+                    />
+                )} />
+                <Controller name="employee.is_married" control={control} render={({ field }) => (
+                    <SelectBox
+                        placeholder='' label="وضعیت تاهل" options={maritalStatusOptions}
+                        value={maritalStatusOptions.find(o => o.id === String(field.value)) || null}
+                        onChange={(opt) => field.onChange(opt?.id === 'true')}
+                        error={errors.employee?.is_married?.message}
+                    />
+                )} />
+                <Controller name="employee.education_level" control={control} render={({ field }) => (
+                    <SelectBox
+                        placeholder='' label="تحصیلات" options={educationLevelOptions}
+                        value={educationLevelOptions.find(o => o.id === field.value) || null}
+                        onChange={(opt) => field.onChange(opt?.id)}
+                        error={errors.employee?.education_level?.message}
+                    />
+                )} />
+            </FormSectionCard>
+
+            <FormSectionCard title="اطلاعات سازمانی" icon={Building2}>
+                <Input label="کد پرسنلی" {...register("employee.personnel_code")} error={errors.employee?.personnel_code?.message} />
+                <Input label="سمت" {...register("employee.position")} error={errors.employee?.position?.message} />
+
+                <Controller
+                    name="employee.starting_job"
+                    control={control}
+                    render={({ field }) => (
+                        <PersianDatePickerInput
+                            label="شروع به کار *"
+                            value={field.value}
+                            onChange={(date) => handleDateChange(date, field.onChange)}
+                            error={errors.employee?.starting_job?.message}
+                        />
+                    )}
+                />
+
+                <input type="hidden" {...register("employee.organization_id")} />
+
+                <Controller name="employee.work_group_id" control={control} render={({ field }) => (
+                    <SelectBox
+                        label="گروه کاری" placeholder="انتخاب کنید (اختیاری)" options={workGroupOptions}
+                        value={workGroupOptions.find((o: SelectOption) => o.id === field.value) || null}
+                        onChange={(opt) => field.onChange(opt?.id ?? null)}
+                        error={errors.employee?.work_group_id?.message}
+                    />
+                )} />
+                <Controller name="employee.shift_schedule_id" control={control} render={({ field }) => (
+                    <SelectBox
+                        placeholder='' label="برنامه شیفتی" options={shiftScheduleOptions}
+                        value={shiftScheduleOptions.find(o => o.id === field.value) || null}
+                        onChange={(opt) => field.onChange(opt?.id ? Number(opt.id) : 1)}
+                        error={errors.employee?.shift_schedule_id?.message}
+                    />
+                )} />
+                <Controller name="employee.work_pattern_id" control={control} render={({ field }) => (
+                    <SelectBox
+                        label="الگوی کاری" placeholder="انتخاب کنید (اختیاری)" options={workPatternOptions}
+                        value={workPatternOptions.find(o => o.id === field.value) || null}
+                        onChange={(opt) => field.onChange(opt?.id ?? null)}
+                        error={errors.employee?.work_pattern_id?.message}
+                    />
+                )} />
+            </FormSectionCard>
+
+            <FormSectionCard title="اطلاعات تماس" icon={Phone}>
+                <Input label="شماره موبایل" {...register("employee.phone_number")} error={errors.employee?.phone_number?.message} className="dir-ltr text-left" />
+                <Input label="تلفن منزل" {...register("employee.house_number")} error={errors.employee?.house_number?.message} className="dir-ltr text-left" />
+                <Input label="تلفن اضطراری" {...register("employee.sos_number")} error={errors.employee?.sos_number?.message} className="dir-ltr text-left" />
+                <div className="md:col-span-3">
+                    <Textarea label="آدرس سکونت" {...register("employee.address")} rows={3} error={errors.employee?.address?.message} />
                 </div>
-            </fieldset>
+            </FormSectionCard>
 
-            {/* --- مشخصات فردی --- */}
-            <fieldset className="space-y-4">
-                <h3 className="text-lg font-semibold pb-4 border-b">مشخصات فردی</h3 >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="نام" {...register("employee.first_name")} error={errors.employee?.first_name?.message} />
-                    <Input label="نام خانوادگی" {...register("employee.last_name")} error={errors.employee?.last_name?.message} />
-                    <Input label="نام پدر" {...register("employee.father_name")} error={errors.employee?.father_name?.message} />
-                    <Input label="کد ملی" {...register("employee.nationality_code")} error={errors.employee?.nationality_code?.message} />
-                    <Input label="تاریخ تولد" placeholder="YYYY-MM-DD" {...register("employee.birth_date")} error={errors.employee?.birth_date?.message} />
-
-                    <Controller
-                        name="employee.gender"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                placeholder=''
-                                label="جنسیت"
-                                options={genderOptions}
-                                value={genderOptions.find(o => o.id === field.value) || null}
-                                onChange={(opt) => field.onChange(opt?.id ?? "male")}
-                                error={errors.employee?.gender?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        name="employee.is_married"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                placeholder=''
-                                label="تاهل"
-                                options={maritalStatusOptions}
-                                value={maritalStatusOptions.find(o => o.id === String(field.value)) || null}
-                                onChange={(opt) => field.onChange(opt?.id === 'true')}
-                                error={errors.employee?.is_married?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        name="employee.education_level"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                placeholder=''
-                                label="تحصیلات"
-                                options={educationLevelOptions}
-                                value={educationLevelOptions.find(o => o.id === field.value) || null}
-                                onChange={(opt) => field.onChange(opt?.id ?? "diploma")}
-                                error={errors.employee?.education_level?.message}
-                            />
-                        )}
-                    />
-                </div>
-            </fieldset>
-
-            {/* --- اطلاعات سازمانی --- */}
-            <fieldset className="space-y-4">
-                <h3 className="text-lg font-semibold pb-4 border-b">اطلاعات سازمانی</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="کد پرسنلی" {...register("employee.personnel_code")} error={errors.employee?.personnel_code?.message} />
-                    <Input label="سمت" {...register("employee.position")} error={errors.employee?.position?.message} />
-                    <Input label="تاریخ شروع" placeholder="YYYY-MM-DD" {...register("employee.starting_job")} error={errors.employee?.starting_job?.message} />
-
-                    <input type="hidden" {...register("employee.organization_id")} />
-
-                    <Controller
-                        name="employee.work_group_id"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                label="گروه کاری"
-                                placeholder="اختیاری"
-                                options={workGroupOptions}
-                                // ✅ حل خطای TS7006: تایپ صریح SelectOption به پارامتر o داده شد
-                                value={workGroupOptions.find((o: SelectOption) => o.id === field.value) || null}
-                                onChange={(opt) => field.onChange(opt?.id ?? null)}
-                                error={errors.employee?.work_group_id?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        name="employee.shift_schedule_id"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                placeholder=''
-                                label="برنامه شیفتی"
-                                options={shiftScheduleOptions}
-                                value={shiftScheduleOptions.find(o => o.id === field.value) || null}
-                                onChange={(opt) => field.onChange(opt?.id ? Number(opt.id) : 1)}
-                                error={errors.employee?.shift_schedule_id?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        name="employee.work_pattern_id"
-                        control={control}
-                        render={({ field }) => (
-                            <SelectBox
-                                label="الگوی کاری"
-                                placeholder="اختیاری"
-                                options={workPatternOptions}
-                                value={workPatternOptions.find(o => o.id === field.value) || null}
-                                onChange={(opt) => field.onChange(opt?.id ?? null)}
-                                error={errors.employee?.work_pattern_id?.message}
-                            />
-                        )}
-                    />
-                </div>
-            </fieldset>
-
-            {/* --- اطلاعات تماس --- */}
-            <fieldset className="space-y-4">
-                <h3 className="text-lg font-semibold pb-4 border-b">اطلاعات تماس</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="موبایل" {...register("employee.phone_number")} error={errors.employee?.phone_number?.message} />
-                    <Input label="تلفن منزل" {...register("employee.house_number")} placeholder="" error={errors.employee?.house_number?.message} />
-                    <Input label="تلفن اضطراری" {...register("employee.sos_number")} placeholder="" error={errors.employee?.sos_number?.message} />
-                </div>
-                <Textarea label="آدرس" {...register("employee.address")} rows={3} error={errors.employee?.address?.message} />
-            </fieldset>
-
-            {/* --- دکمه‌ها --- */}
-            <div className="flex justify-end gap-4 pt-6 border-t">
-                <Button type="button" variant="ghost" onClick={() => navigate(-1)} disabled={isSubmitting}>
-                    <X className="h-4 w-4 ml-2" /> لغو
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-end gap-3 z-50">
+                <Button type="button" variant="ghost" onClick={() => navigate(-1)} disabled={createMutation.isPending}>
+                    <X className="h-4 w-4 ml-2" /> انصراف
                 </Button>
-                <Button type="submit" variant="primary" disabled={!isDirty || isSubmitting}>
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Save className="h-4 w-4 ml-2" />}
-                    ایجاد کاربر
+                <Button type="submit" variant="primary" className="min-w-[140px]" disabled={createMutation.isPending}>
+                    {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 ml-2" />}
+                    ثبت نهایی کاربر
                 </Button>
             </div>
         </form>

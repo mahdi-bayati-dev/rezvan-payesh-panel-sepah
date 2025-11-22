@@ -5,42 +5,33 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
 
-// --- هوک‌ها و تایپ‌ها (با مسیر نسبی) ---
-import { useUpdateUserProfile } from '../../../hooks/hook';
+import { useUpdateUserProfile } from '@/features/User/hooks/hook';
 import { type User } from '@/features/User/types/index';
 import {
     type AccountInfoFormData,
     accountInfoFormSchema
-} from '@/features/User/Schema/userProfileFormSchema'; // (استفاده از فایل types به‌روز شده)
+} from '@/features/User/Schema/userProfileFormSchema';
 
-// --- کامپوننت‌های UI (با مسیر نسبی و حروف کوچک) ---
 import Input from '@/components/ui/Input';
-import SelectBox from '@/components/ui/SelectBox'; // ✅ مسیر نسبی و حروف کوچک
-import { type SelectOption } from '@/components/ui/SelectBox'; // ✅ مسیر نسبی و حروف کوچک
-import FormSection from '../FormSection'; // ✅ مسیر نسبی
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
+import FormSection from '@/features/User/components/userPage/FormSection';
 
-// --- داده‌های ثابت برای SelectBox ---
 const statusOptions: SelectOption[] = [
     { id: 'active', name: 'فعال' },
     { id: 'inactive', name: 'غیرفعال' },
 ];
 
-/**
- * فرم ۱: اطلاعات حساب
- */
 const AccountInfoForm: React.FC<{ user: User }> = ({ user }) => {
     const [isEditing, setIsEditing] = useState(false);
     const updateMutation = useUpdateUserProfile();
 
-    // --- مقادیر پیش‌فرض ---
-    const defaultValues = useMemo(() => ({
+    const defaultValues = useMemo((): AccountInfoFormData => ({
         user_name: user.user_name,
         email: user.email,
         status: user.status,
-        // (اسکیما اجازه پسورد را می‌دهد اما ما فعلاً فرم آن را نمی‌گذاریم)
+        password: null, // رمز عبور در حالت عادی خالی است
     }), [user]);
 
-    // --- راه‌اندازی React Hook Form ---
     const {
         register,
         handleSubmit,
@@ -52,13 +43,15 @@ const AccountInfoForm: React.FC<{ user: User }> = ({ user }) => {
         defaultValues
     });
 
-    // افکت برای ریست کردن فرم در صورت تغییر داده‌ها از بیرون
     useEffect(() => { reset(defaultValues); }, [user, defaultValues, reset]);
 
-    // --- مدیریت Submit ---
     const onSubmit = (formData: AccountInfoFormData) => {
+        // اگر پسورد خالی بود، آن را از پی‌لود حذف می‌کنیم تا الکی آپدیت نشود
+        const payload = { ...formData };
+        if (!payload.password) delete (payload as any).password;
+
         updateMutation.mutate(
-            { userId: user.id, payload: formData },
+            { userId: user.id, payload },
             {
                 onSuccess: () => { toast.success("اطلاعات حساب به‌روزرسانی شد."); setIsEditing(false); },
                 onError: (err) => { toast.error(`خطا: ${(err as Error).message}`); }
@@ -66,12 +59,11 @@ const AccountInfoForm: React.FC<{ user: User }> = ({ user }) => {
         );
     };
 
-    // --- مدیریت لغو ---
-    const handleCancel = () => { reset(); setIsEditing(false); };
+    const handleCancel = () => { reset(defaultValues); setIsEditing(false); };
 
     return (
         <FormSection
-            title="اطلاعات حساب"
+            title="اطلاعات حساب کاربری"
             onSubmit={handleSubmit(onSubmit)}
             isEditing={isEditing}
             setIsEditing={setIsEditing}
@@ -84,14 +76,15 @@ const AccountInfoForm: React.FC<{ user: User }> = ({ user }) => {
                     label="نام کاربری"
                     {...register("user_name")}
                     error={errors.user_name?.message}
+                    dir="ltr"
                 />
                 <Input
                     label="ایمیل"
                     {...register("email")}
                     error={errors.email?.message}
+                    dir="ltr"
                 />
 
-                {/* --- ✅ استفاده از SelectBox واقعی --- */}
                 <Controller
                     name="status"
                     control={control}
@@ -100,19 +93,30 @@ const AccountInfoForm: React.FC<{ user: User }> = ({ user }) => {
                             label="وضعیت"
                             placeholder="انتخاب کنید"
                             options={statusOptions}
-                            // تبدیل مقدار خام ('active') به آبجکت ({ id: 'active', name: 'فعال' })
                             value={statusOptions.find(opt => opt.id === field.value) || null}
-                            // تبدیل آبجکت ({ id: 'active', name: 'فعال' }) به مقدار خام ('active')
                             onChange={(option) => field.onChange(option ? option.id : null)}
                             disabled={!isEditing || updateMutation.isPending}
                             error={errors.status?.message}
                         />
                     )}
                 />
+                
+                {isEditing && (
+                    <div className="md:col-span-3 border-t border-borderL dark:border-borderD pt-4 mt-2">
+                        <p className="text-xs text-muted-foregroundL mb-2">تنظیم رمز عبور جدید (فقط در صورتی که می‌خواهید تغییر دهید پر کنید)</p>
+                        <Input
+                            label="رمز عبور جدید"
+                            type="password"
+                            {...register("password")}
+                            error={errors.password?.message}
+                            dir="ltr"
+                            className="max-w-md"
+                        />
+                    </div>
+                )}
             </div>
         </FormSection>
     );
 };
 
 export default AccountInfoForm;
-

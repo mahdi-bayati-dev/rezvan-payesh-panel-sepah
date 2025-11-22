@@ -1,40 +1,26 @@
 import React from 'react';
 import { type User } from '@/features/User/types/index';
-// ✅ ایمپورت کامپوننت‌های جدید
 import { UserInfoCard, type InfoRowData } from '@/components/ui/UserInfoCard';
+import { formatDateToPersian } from '@/features/User/utils/dateHelper';
 
-// ✅ تابع کمکی (Helper) برای ساختن Placeholder آواتار (مثلا: علی رضایی -> "ع ر")
+// تابع کمکی برای ساخت حروف اختصاری آواتار
 const getAvatarPlaceholder = (firstName?: string, lastName?: string): string => {
-    const fName = firstName || '';
-    const lName = lastName || '';
-    // اولین حرف نام و اولین حرف نام خانوادگی
-    return `${fName.charAt(0)}${lName.charAt(0)}`.trim() || '??';
+    const f = firstName ? firstName.charAt(0).toUpperCase() : '';
+    const l = lastName ? lastName.charAt(0).toUpperCase() : '';
+    return (f + l) || 'U';
 };
 
-// ✅ تابع کمکی برای تبدیل تاریخ (که قبلاً هم داشتیم)
-const getPersianYear = (dateString: string | null | undefined): string => {
-    if (!dateString) return '---';
-    try {
-        return new Date(dateString).toLocaleDateString('fa-IR-u-nu-latn', { year: 'numeric' });
-    } catch (e) {
-        console.error("Invalid date for getPersianYear:", dateString, e);
-        return '---';
-    }
-};
-
-/**
- * سایدبار پروفایل (کامپوننت "هوشمند" که داده‌ها را مپ می‌کند)
- */
 const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
     const { employee } = user;
 
-    // --- ۱. آماده‌سازی داده‌ها برای کامپوننت گنگ ---
-
-    const displayName = employee ? `${employee.first_name} ${employee.last_name}`.trim() : user.user_name;
+    // نام نمایشی: اولویت با نام کارمند است، اگر نبود نام کاربری
+    const displayName = (employee?.first_name || employee?.last_name)
+        ? `${employee.first_name || ''} ${employee.last_name || ''}`.trim()
+        : user.user_name;
 
     const avatarPlaceholder = getAvatarPlaceholder(employee?.first_name, employee?.last_name);
 
-    // ✅ ساخت آرایه Data-Driven بر اساس تایپ InfoRowData
+    // داده‌های سایدبار
     const infoRows: InfoRowData[] = [
         {
             label: "کد پرسنلی",
@@ -42,33 +28,44 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
         },
         {
             label: "سازمان",
+            // داده organization یک آبجکت است، نام آن را نمایش می‌دهیم
             value: employee?.organization?.name || '---'
         },
         {
-            // ✅✅✅ اصلاحیه کلیدی (هماهنگ با آپدیت types) ✅✅✅
-            // به جای 'work_group_id'، ما 'work_group.name' را می‌خوانیم
             label: "گروه کاری",
+            // داده work_group یک آبجکت است
             value: employee?.work_group?.name || '---'
         },
         {
-            label: "سال ورود",
-            value: getPersianYear(employee?.starting_job)
+            label: "شروع همکاری",
+            // تبدیل فرمت ISO (2000-07-31T...) به شمسی خوانا (۱۰ مرداد ۱۳۷۹)
+            value: formatDateToPersian(employee?.starting_job, 'long')
+        },
+        {
+            label: "تاریخ ثبت‌نام",
+            value: formatDateToPersian(user.created_at, 'short')
         }
     ];
 
-    // --- ۲. رندر کردن کامپوننت گنگ ---
     return (
-        // (استایل‌های قبلی شما برای border و ... حفظ شده است)
-        <div className="p-6 rounded-r-lg  bg-backgroundL-500 dark:bg-backgroundD sticky top-8">
-
+        <div className="p-6 rounded-lg border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD sticky top-8 shadow-sm">
             <UserInfoCard
-                title="مشخصات کاربری" // (عنوان بالای کارت)
+                title="مشخصات کاربری"
                 name={displayName}
                 avatarPlaceholder={avatarPlaceholder}
-                // avatarUrl={user.employee?.avatar_url} // (اگر URL آواتار داشتید)
                 infoRows={infoRows}
             />
 
+            {/* نمایش نقش‌ها به صورت تگ */}
+            <div className="mt-6 flex flex-wrap gap-2 justify-center">
+                {user.roles?.map(role => (
+                    <span key={role} className="px-2 py-1 text-xs font-medium rounded-full bg-primaryL/10 text-primaryL border border-primaryL/20">
+                        {role === 'super_admin' ? 'مدیر کل' :
+                            role === 'org-admin-l2' ? 'ادمین سازمان (L2)' :
+                                role === 'org-admin-l3' ? 'ادمین واحد (L3)' : 'کارمند'}
+                    </span>
+                ))}
+            </div>
         </div>
     );
 };

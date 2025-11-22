@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { type Organization } from '@/features/Organization/types';
 
 // --- هوک‌ها ---
@@ -18,9 +18,9 @@ import {
     Plus,
     Building,
     ChevronDown,
-    ChevronRight,
     Users
 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface OrganizationNodeProps {
     node: Organization;
@@ -33,7 +33,10 @@ interface OrganizationNodeProps {
     onEdit: (organization: Organization) => void;
 }
 
-export const OrganizationNode = ({
+/**
+ * کامپوننت نود سازمانی
+ */
+const OrganizationNodeComponent = ({
     node,
     level,
     isSuperAdmin,
@@ -68,84 +71,88 @@ export const OrganizationNode = ({
 
     const isExpanded = expandedIds[String(node.id)] === true;
     const hasChildren = node.children && node.children.length > 0;
-    const indent = level * 20;
+    
+    const paddingRight = `${level * 1.5}rem`;
 
     return (
         <>
             <div
-                style={{ paddingRight: `${indent}px` }}
-                className={`flex gap-2 items-center h-10 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200`}
+                className={cn(
+                    "group flex items-center gap-3 py-2 px-3 my-1 rounded-lg transition-all duration-200 border border-transparent",
+                    "hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700",
+                    isExpanded && hasChildren ? "bg-gray-50 dark:bg-gray-800/30" : ""
+                )}
+                style={{ paddingRight: `calc(0.75rem + ${paddingRight})` }}
             >
-                {/* ۱. آیکون باز/بسته کردن (برای همه قابل دسترسی است) */}
-                <div
-                    className="w-6 flex items-center justify-center"
+                <button
+                    type="button"
+                    className={cn(
+                        "w-6 h-6 flex items-center justify-center rounded-md transition-colors",
+                        hasChildren ? "hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-muted-foregroundL" : "opacity-0 pointer-events-none"
+                    )}
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (hasChildren) {
-                            onToggle(node.id);
-                        }
+                        if (hasChildren) onToggle(node.id);
                     }}
                 >
                     {hasChildren && (
-                        isExpanded ?
-                            <ChevronDown className="h-4 w-4 dark:text-primaryD cursor-pointer" /> :
-                            <ChevronRight className="h-4 w-4 dark:text-primaryD cursor-pointer" />
+                        <ChevronDown 
+                            className={cn(
+                                "h-4 w-4 transition-transform duration-200",
+                                !isExpanded && "rotate-90" 
+                            )} 
+                        />
+                    )}
+                </button>
+
+                <div 
+                    className="flex items-center gap-2 flex-1 cursor-pointer min-w-0"
+                    onClick={() => onNodeClick(node.id)}
+                >
+                    <span className={cn(
+                        "p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
+                        "group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors"
+                    )}>
+                        <Building className="h-4 w-4" />
+                    </span>
+                    
+                    <span className="truncate text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-primaryL dark:group-hover:text-primaryD transition-colors">
+                        {node.name}
+                    </span>
+                    
+                    {hasChildren && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">
+                            {node.children?.length}
+                        </span>
                     )}
                 </div>
 
-                {/* ۲. آیکون و نام سازمان */}
-                <Building className="h-4 w-4 mr-2 text-muted-foregroundL dark:text-primaryD" />
-                <span 
-                    className="truncate dark:text-primaryD cursor-pointer hover:text-blue-600"
-                    // اجازه می‌دهیم با کلیک روی متن هم به صفحه جزئیات برود (تجربه کاربری بهتر)
-                    onClick={() => onNodeClick(node.id)}
-                >
-                    {node.name}
-                </span>
-
-                {/* فاصله انداز */}
-                <div className="flex-grow" />
-
-                {/* ۳. منوی عملیات (اصلاح شده: شرط isSuperAdmin برداشته شد) */}
-                <div className="ml-2" onClick={(e) => e.stopPropagation()}>
+                <div onClick={(e) => e.stopPropagation()}>
                     <Dropdown>
                         <DropdownTrigger>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4 cursor-pointer dark:text-primaryD" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100">
+                                <MoreHorizontal className="h-4 w-4 text-gray-500" />
                             </Button>
                         </DropdownTrigger>
                         <DropdownContent>
-                            {/* آیتم "مشاهده کارمندان": برای همه نقش‌ها فعال است */}
-                            <DropdownItem
-                                icon={<Users className="h-4 w-4" />}
-                                onClick={() => onNodeClick(node.id)}
-                            >
+                            <DropdownItem icon={<Users className="h-4 w-4" />} onClick={() => onNodeClick(node.id)}>
                                 مشاهده کارمندان
                             </DropdownItem>
 
-                            {/* آیتم‌های مدیریتی: فقط برای Super Admin */}
                             {isSuperAdmin && (
                                 <>
-                                    <DropdownItem
-                                        icon={<Plus className="h-4 w-4" />}
-                                        onClick={() => onAddChild(node.id)}
-                                    >
+                                    <DropdownItem icon={<Plus className="h-4 w-4" />} onClick={() => onAddChild(node.id)}>
                                         افزودن زیرمجموعه
                                     </DropdownItem>
-
-                                    <DropdownItem
-                                        icon={<Edit2 className="h-4 w-4" />}
-                                        onClick={() => onEdit(node)}
-                                    >
-                                        ویرایش
+                                    <DropdownItem icon={<Edit2 className="h-4 w-4" />} onClick={() => onEdit(node)}>
+                                        ویرایش نام
                                     </DropdownItem>
-
-                                    <DropdownItem
-                                        icon={<Trash2 className="h-4 w-4" />}
-                                        onClick={() => setShowDeleteConfirm(true)}
-                                        className="text-red-600 dark:text-red-500"
+                                    <DropdownItem 
+                                        icon={<Trash2 className="h-4 w-4" />} 
+                                        onClick={() => setShowDeleteConfirm(true)} 
+                                        className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                                     >
-                                        حذف
+                                        حذف سازمان
                                     </DropdownItem>
                                 </>
                             )}
@@ -154,15 +161,19 @@ export const OrganizationNode = ({
                 </div>
             </div>
 
-            {/* رندر بازگشتی فرزندان */}
             {isExpanded && hasChildren && (
-                <div className="children-container">
+                <div className="relative">
+                    <div 
+                        className="absolute top-0 bottom-0 border-r border-dashed border-gray-200 dark:border-gray-700"
+                        style={{ right: `calc(0.75rem + ${paddingRight} + 11px)` }} 
+                    />
+                    
                     {node.children!.map(childNode => (
                         <OrganizationNode
                             key={childNode.id}
                             node={childNode}
                             level={level + 1}
-                            isSuperAdmin={isSuperAdmin} // پراپ را پاس می‌دهیم
+                            isSuperAdmin={isSuperAdmin}
                             expandedIds={expandedIds}
                             onToggle={onToggle}
                             onAddChild={onAddChild}
@@ -173,33 +184,53 @@ export const OrganizationNode = ({
                 </div>
             )}
 
-            {/* مودال حذف فقط برای ادمین رندر می‌شود، اما شرط داخل هندلر هم چک می‌کند */}
             {isSuperAdmin && (
                 <ConfirmationModal
                     isOpen={showDeleteConfirm}
                     onClose={() => setShowDeleteConfirm(false)}
                     onConfirm={handleDelete}
-                    title="تأیید حذف"
+                    title="حذف واحد سازمانی"
                     message={
-                        <>
-                            <p>
-                                آیا از حذف سازمان <strong className="font-bold">{node.name}</strong> مطمئن هستید؟
-                            </p>
+                        <div className="space-y-2">
+                            <p>آیا از حذف <strong className="text-red-600">{node.name}</strong> اطمینان دارید؟</p>
+                            <p className="text-sm text-muted-foregroundL">توجه: با حذف این سازمان، تمام زیرمجموعه‌های آن نیز حذف خواهند شد.</p>
                             {deleteError && (
-                                <div className="mt-4">
-                                    <Alert variant="destructive">
-                                        <AlertTitle>خطا</AlertTitle>
-                                        <AlertDescription>{deleteError}</AlertDescription>
-                                    </Alert>
-                                </div>
+                                <Alert variant="destructive" className="mt-2">
+                                    <AlertTitle>خطا</AlertTitle>
+                                    <AlertDescription>{deleteError}</AlertDescription>
+                                </Alert>
                             )}
-                        </>
+                        </div>
                     }
                     variant="danger"
-                    confirmText={deleteMutation.isPending ? "در حال حذف..." : "حذف کن"}
+                    confirmText={deleteMutation.isPending ? "در حال حذف..." : "حذف شود"}
                     cancelText="انصراف"
                 />
             )}
         </>
     );
 };
+
+// ✅✅✅ اصلاحیه: منطق مقایسه memo
+export const OrganizationNode = memo(OrganizationNodeComponent, (prevProps, nextProps) => {
+    // 1. اگر خود دیتای نود تغییر کرده، رندر کن
+    if (prevProps.node !== nextProps.node) return false;
+    
+    // 2. وضعیت باز/بسته بودن خود نود را چک کن
+    const prevIsExpanded = prevProps.expandedIds[String(prevProps.node.id)];
+    const nextIsExpanded = nextProps.expandedIds[String(nextProps.node.id)];
+    if (prevIsExpanded !== nextIsExpanded) return false;
+
+    // 3. 🚨 نکته حیاتی: اگر نود در حال حاضر باز است (nextIsExpanded === true)، 
+    // باید حتما رندر شود تا expandedIds جدید را به فرزندانش پاس دهد.
+    // اگر رندر نشود، فرزندانش نسخه قدیمی expandedIds را دارند و متوجه تغییرات نمی‌شوند.
+    if (nextIsExpanded) return false;
+
+    // 4. چک کردن ادمین بودن
+    if (prevProps.isSuperAdmin !== nextProps.isSuperAdmin) return false;
+
+    // اگر هیچکدام از موارد بالا نبود، یعنی نود بسته است و تغییری نکرده -> رندر نکن (بهینه‌سازی)
+    return true; 
+});
+
+OrganizationNode.displayName = 'OrganizationNode';

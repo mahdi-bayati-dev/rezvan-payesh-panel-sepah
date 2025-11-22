@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// --- اسکیماهای تب‌های پروفایل (بدون تغییر) ---
+// --- اسکیماهای تب‌های پروفایل ---
 
 export const accountInfoFormSchema = z.object({
   user_name: z.string().min(1, "نام کاربری الزامی است."),
@@ -21,10 +21,11 @@ export const personalDetailsFormSchema = z.object({
       first_name: z.string().min(1, "نام الزامی است."),
       last_name: z.string().min(1, "نام خانوادگی الزامی است."),
 
-      // ✅ اصلاح: z.preprocess حذف شد
       father_name: z.string().nullable().optional(),
       nationality_code: z.string().nullable().optional(),
-      birth_date: z.string().nullable().optional(),
+
+      // ✅ اصلاح: حذف آبجکت { required_error } و استفاده از min
+      birth_date: z.string().min(1, "تاریخ تولد الزامی است."),
 
       gender: z.enum(["male", "female"]),
       is_married: z.boolean(),
@@ -50,9 +51,11 @@ export const organizationalFormSchema = z.object({
     .object({
       personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
 
-      // ✅ اصلاح: z.preprocess حذف شد
       position: z.string().nullable().optional(),
-      starting_job: z.string().nullable().optional(),
+
+      // ✅ اصلاح: حذف آبجکت { required_error } و استفاده از min
+      starting_job: z.string().min(1, "تاریخ شروع به کار الزامی است."),
+
       work_group_id: z.number().nullable().optional(),
       work_pattern_id: z.number().nullable().optional(),
       shift_schedule_id: z.number().nullable().optional(),
@@ -64,7 +67,6 @@ export type OrganizationalFormData = z.infer<typeof organizationalFormSchema>;
 export const contactFormSchema = z.object({
   employee: z
     .object({
-      // ✅ اصلاح: z.preprocess حذف شد
       phone_number: z.string().nullable().optional(),
       house_number: z.string().nullable().optional(),
       sos_number: z.string().nullable().optional(),
@@ -74,42 +76,34 @@ export const contactFormSchema = z.object({
 });
 export type ContactFormData = z.infer<typeof contactFormSchema>;
 
-// --- ✅ اسکیمای جدید: مدیریت دسترسی (تغییر نقش) ---
-// این اسکیما فقط شامل فیلد role است.
 export const accessManagementFormSchema = z.object({
   role: z.string().min(1, "انتخاب نقش الزامی است."),
 });
 export type AccessManagementFormData = z.infer<
   typeof accessManagementFormSchema
 >;
-// --- --- --- --- --- --- --- --- --- --- --- ---
 
 export type UserProfileFormData =
   | AccountInfoFormData
   | PersonalDetailsFormData
   | OrganizationalFormData
   | ContactFormData
-  // ✅ اضافه کردن تایپ فرم جدید
   | AccessManagementFormData;
 
 // --- اسکیمای فرم ایجاد کاربر ---
 export const createUserFormSchema = z.object({
-  // --- بخش User ---
   user_name: z.string().min(1, "نام کاربری الزامی است."),
   email: z.string().email("ایمیل نامعتبر است.").min(1, "ایمیل الزامی است."),
   password: z
     .string()
     .min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد.")
     .min(1, "رمز عبور الزامی است."),
-  // ✅ اصلاح: .default() حذف شد
   role: z.string().min(1, "انتخاب نقش الزامی است."),
   status: z.enum(["active", "inactive"], {
     message: "وضعیت باید 'active' یا 'inactive' باشد.",
   }),
-  // ✅ اصلاح: .default() حذف شد
-  // --- بخش Employee ---
+
   employee: z.object({
-    // الزامی
     first_name: z.string().min(1, "نام الزامی است."),
     last_name: z.string().min(1, "نام خانوادگی الزامی است."),
     personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
@@ -120,20 +114,20 @@ export const createUserFormSchema = z.object({
     gender: z.enum(["male", "female"], {
       message: "جنسیت باید 'male' یا 'female' باشد.",
     }),
-    // ✅ اصلاح: .default() حذف شد
-    is_married: z.boolean({ message: "وضعیت تاهل باید boolean باشد." }),
-    // ✅ اصلاح: .default() حذف شد
-    // ✅ اصلاح: z.preprocess حذف شد (این بخش از قبل درست بود)
+    is_married: z.boolean({ message: "وضعیت تاهل باید مشخص شود." }),
+
+    // ✅ اصلاح مهم: حذف { required_error: ... } که باعث خطای TS2769 می‌شد
+    // متد .min(1) خودش چک می‌کند که رشته خالی نباشد
+    birth_date: z.string().min(1, "تاریخ تولد الزامی است."),
+    starting_job: z.string().min(1, "تاریخ شروع به کار الزامی است."),
+
     position: z.string().nullable().optional(),
-    starting_job: z.string().nullable().optional(),
     father_name: z.string().nullable().optional(),
-    birth_date: z.string().nullable().optional(),
     nationality_code: z.string().nullable().optional(),
     address: z.string().nullable().optional(),
     work_group_id: z.number().nullable().optional(),
     work_pattern_id: z.number().nullable().optional(),
 
-    // فیلدهای NOT NULL در دیتابیس (باید default داشته باشند)
     education_level: z.enum([
       "diploma",
       "advanced_diploma",
@@ -142,16 +136,10 @@ export const createUserFormSchema = z.object({
       "doctorate",
       "post_doctorate",
     ]),
-    // ✅ اصلاح: .default() حذف شد
-    // ✅ اصلاح: .default() حذف شد
     house_number: z.string().min(1, "تلفن منزل الزامی است."),
-    // ✅ اصلاح: .default() حذف شد
     sos_number: z.string().min(1, "تلفن اضطراری الزامی است."),
-
     shift_schedule_id: z.number().positive("برنامه شیفتی الزامی است."),
-    // ✅ اصلاح: .default() حذف شد
   }),
 });
 
-// تایپ نهایی فرم ایجاد کاربر
 export type CreateUserFormData = z.infer<typeof createUserFormSchema>;

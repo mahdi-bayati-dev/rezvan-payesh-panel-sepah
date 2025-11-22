@@ -2,17 +2,18 @@
 
 import { type ColumnDef } from "@tanstack/react-table";
 import { Link } from 'react-router-dom';
-import { User as UserIcon } from "lucide-react";
+import { User as UserIcon, CalendarDays } from "lucide-react";
 
-// (مسیرهای مستعار با حروف کوچک)
+// مسیرهای مستعار
 import Badge from "@/components/ui/Badge";
 import { type BadgeVariant } from "@/components/ui/Badge";
 import { type User } from "@/features/User/types";
 
-// ✅ قدم نهایی: ایمپورت کامپوننت مجزایی که ساختیم
-// (از مسیر نسبی چون در همین پوشه است)
+// ایمپورت کامپوننت‌ها و توابع کمکی
 import ActionsCell from '@/features/User/components/userList/ActionsCell';
-// --- مپ کردن نقش‌ها (بدون تغییر) ---
+import { formatDateToPersian } from '@/features/User/utils/dateHelper';
+
+// مپ کردن نقش‌ها
 const roleVariantMap: Record<string, BadgeVariant> = {
     "super_admin": "danger",
     "org-admin-l2": "warning",
@@ -20,8 +21,6 @@ const roleVariantMap: Record<string, BadgeVariant> = {
     "user": "default",
 };
 
-// --- تعریف ستون‌ها ---
-// (این فایل اکنون فقط 'columns' را اکسپورت می‌کند)
 export const columns: ColumnDef<User>[] = [
     {
         accessorKey: "employee.full_name",
@@ -40,24 +39,26 @@ export const columns: ColumnDef<User>[] = [
                     className="flex items-center gap-2 group hover:underline"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondaryL dark:bg-secondaryD group-hover:bg-primaryL/10">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondaryL dark:bg-secondaryD group-hover:bg-primaryL/10 transition-colors">
                         <UserIcon className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD group-hover:text-primaryL" />
                     </span>
-                    <span className="font-medium group-hover:text-infoD-foreground">{displayName}</span>
+                    <span className="font-medium group-hover:text-infoD-foreground transition-colors">
+                        {displayName}
+                    </span>
                 </Link>
             );
         },
     },
     {
         accessorKey: "email",
-        header: "ایمیل / نام کاربری",
+        header: "اطلاعات تماس",
         cell: ({ row }) => {
             const user = row.original;
             return (
-                <div className="flex flex-col">
-                    <span className="text-sm">{user.email}</span>
-                    <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD">
-                        {user.user_name}
+                <div className="flex flex-col gap-1">
+                    <span className="text-sm font-medium">{user.email}</span>
+                    <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD dir-ltr text-right">
+                        @{user.user_name}
                     </span>
                 </div>
             );
@@ -67,25 +68,37 @@ export const columns: ColumnDef<User>[] = [
         accessorFn: (row) => row.employee?.position,
         id: "position",
         header: "عنوان شغلی",
-        cell: info => info.getValue() || "---",
+        cell: info => info.getValue() || <span className="text-muted-foregroundL/50">---</span>,
     },
     {
-        accessorFn: (row) => row.employee?.personnel_code,
-        id: "personnel_code",
-        header: "کد پرسنلی",
-        cell: info => info.getValue() || "---",
+        // ستون جدید: تاریخ عضویت
+        accessorKey: "created_at",
+        header: "تاریخ عضویت",
+        cell: ({ row }) => {
+            return (
+                <div className="flex items-center gap-1 text-xs text-muted-foregroundL">
+                    <CalendarDays className="h-3 w-3" />
+                    <span>{formatDateToPersian(row.original.created_at, 'short')}</span>
+                </div>
+            );
+        }
     },
     {
         id: "roles",
-        header: "نقش",
+        header: "نقش‌ها",
         cell: ({ row }) => {
             if (!row.original.roles || row.original.roles.length === 0) {
-                return "---";
+                return <span className="text-xs text-muted-foregroundL">بدون نقش</span>;
             }
             return (
                 <div className="flex flex-wrap gap-1">
                     {row.original.roles.map(role => {
-                        const displayLabel = role === "user" ? "کارمند" : role;
+                        // ترجمه نقش‌ها برای نمایش بهتر
+                        const displayLabel = role === "user" ? "کارمند" 
+                            : role === "super_admin" ? "ادمین کل"
+                            : role === "org-admin-l2" ? "ادمین سازمان"
+                            : role;
+                            
                         return (
                             <Badge
                                 key={role}
@@ -101,10 +114,6 @@ export const columns: ColumnDef<User>[] = [
     {
         id: "actions",
         header: "عملیات",
-        // ✅ تابع cell اکنون کامپوننت ActionsCell را رندر می‌کند
-        cell: ({ row }) => {
-            return <ActionsCell user={row.original} />;
-        },
+        cell: ({ row }) => <ActionsCell user={row.original} />,
     },
 ];
-
