@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('App.User.{id}', function ($user, $id)
 {
+    \Log::info("Broadcast Auth Check: User {$user->id} trying to access {$id}");
     return (int) $user->id === (int) $id;
 });
 
