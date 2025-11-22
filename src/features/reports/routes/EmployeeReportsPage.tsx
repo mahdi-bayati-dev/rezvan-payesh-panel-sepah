@@ -6,159 +6,170 @@ import {
     getPaginationRowModel,
     type PaginationState,
 } from '@tanstack/react-table';
-// [رفع خطا ۴] - ایمپورت Search استفاده نشده بود و حذف شد
 
-// --- کامپوننت‌های UI ---
+// کامپوننت‌های UI
 import { EmployeeReportHeader } from '../components/employeeReportPage/EmployeeReportHeader';
-// [رفع خطا ۵ و ۶] - ایمپورت allColumns تغییر نام پیدا کرد تا مشخص شود یک تابع است
 import { columns as createColumnGenerator } from '@/features/reports/components/reportsPage/TableColumns';
 import { DataTable } from '@/components/ui/DataTable';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
 import { EmployeeInfoCard } from '@/features/reports/components/reportPageDetails/EmployeeInfoCard';
+import { Skeleton } from '@/components/ui/Skeleton'; 
+import { AlertTriangle } from 'lucide-react';
 
-// --- ۱. ایمپورت هوک سفارشی ---
-// (هوک useEmployeeLogs در فایل hook.ts اصلاح شده است)
+// هوک‌ها
 import { useEmployeeLogs } from '../hooks/hook';
-import { Loader2, AlertTriangle } from 'lucide-react';
 
-// ... (کامپوننت‌های NotFoundCard و LoadingSkeleton) ...
-// فرض می‌کنیم کامپوننت‌های لودینگ و خطا در اینجا تعریف شده‌اند یا ایمپورت شده‌اند
-const LoadingSkeleton = () => (
-    <div className="flex items-center justify-center p-10">
-        <Loader2 className="w-10 h-10 animate-spin text-primaryL dark:text-primaryD" />
+// --- ۱. کامپوننت اسکلت اختصاصی (Anti-Layout Shift) ---
+const EmployeeReportPageSkeleton = () => (
+    <div className="p-4 max-w-7xl mx-auto animate-pulse">
+        <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
+            {/* هدر */}
+            <div className="flex justify-between mb-6 pb-4 border-b border-borderL dark:border-borderD">
+                <Skeleton className="h-8 w-1/3 rounded-lg" />
+                <Skeleton className="h-8 w-24 rounded-lg" />
+            </div>
+            
+            <div className="flex flex-col md:flex-row gap-6">
+                {/* سایدبار (کارت اطلاعات) */}
+                <aside className="w-full md:w-72 lg:w-80 flex-shrink-0 space-y-4">
+                    <Skeleton className="h-64 w-full rounded-2xl" />
+                </aside>
+
+                {/* بخش جدول */}
+                <section className="flex-1 space-y-4">
+                    <div className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
+                        {/* هدر جدول */}
+                        <div className="bg-secondaryL dark:bg-secondaryD p-3 h-12" />
+                        {/* ردیف‌های جدول */}
+                        <div className="p-3 space-y-3">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className="flex justify-between gap-4">
+                                    <Skeleton className="h-12 w-full rounded-lg" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
     </div>
 );
 
-const NotFoundCard = ({ message }: { message: string }) => (
+const NotFoundCard = ({ message, onBack }: { message: string, onBack?: () => void }) => (
     <div className="flex flex-col items-center justify-center p-10 min-h-[300px] bg-backgroundL-500 dark:bg-backgroundD rounded-2xl border border-destructiveL dark:border-destructiveD">
         <AlertTriangle className="w-12 h-12 text-destructiveL dark:text-destructiveD" />
         <h3 className="mt-4 text-xl font-bold text-destructiveL dark:text-destructiveD">
             خطا
         </h3>
-        <p className="mt-2 text-base text-muted-foregroundL dark:text-muted-foregroundD">
+        <p className="mt-2 text-base text-muted-foregroundL dark:text-muted-foregroundD mb-4">
             {message}
         </p>
+        {onBack && (
+            <button onClick={onBack} className="text-sm text-primaryL dark:text-primaryD hover:underline">
+                بازگشت به لیست
+            </button>
+        )}
     </div>
 );
-
 
 export default function EmployeeReportPage() {
     const { employeeApiId } = useParams<{ employeeApiId: string }>();
     const navigate = useNavigate();
 
-    // --- ۲. استیت صفحه‌بندی ---
+    // مدیریت صفحه بندی (Server-Side Pagination)
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
     });
     const pagination = useMemo(() => ({ pageIndex, pageSize }), [pageIndex, pageSize]);
 
-    // --- ۳. فراخوانی هوک با اطلاعات صفحه‌بندی ---
+    // واکشی دیتا
     const {
-        data: queryResult, // هوک اکنون { data, meta } برمی‌گرداند
+        data: queryResult,
         isLoading,
         isError
-    } = useEmployeeLogs(employeeApiId, pagination); // پاس دادن صفحه‌بندی
+    } = useEmployeeLogs(employeeApiId, pagination);
 
     const employeeLogs = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
-    const pageCount = meta?.last_page || 1; // تعداد صفحات از API
-
-    // --- ۴. اطلاعات کارمند ---
+    
+    // استخراج اطلاعات کارمند (با علم به اینکه فعلا از اولین لاگ گرفته می‌شود)
     const employeeInfo = useMemo(
         () => (employeeLogs && employeeLogs.length > 0 ? employeeLogs[0].employee : null),
         [employeeLogs]
     );
 
-    // --- ۵. [رفع خطا ۵ و ۶] ---
-    // allColumns یک تابع (createColumns) است و باید فراخوانی شود
-    // ستون‌ها (بدون "کارمند" و "عملیات")
-    const employeePageColumns = useMemo(
-        () => {
-            // چون این صفحه read-only است، توابع خالی پاس می‌دهیم
-            const allColumns = createColumnGenerator({
-                onEdit: () => { },
-                onApprove: () => { },
-            });
-            // ستون‌های 'employee' و 'actions' را فیلتر می‌کنیم
-            return allColumns.filter((col) => col.id !== 'employee' && col.id !== 'actions');
-        },
-        [] // وابستگی خالی صحیح است چون تابع جنریتور تغییر نمی‌کند
-    );
+    // ساخت ستون‌ها (حذف ستون‌های تکراری مثل نام کارمند)
+    const employeePageColumns = useMemo(() => {
+        const allColumns = createColumnGenerator({
+            onEdit: () => { },
+            onApprove: () => { },
+        });
+        return allColumns.filter((col) => col.id !== 'employee' && col.id !== 'actions');
+    }, []);
 
     const table = useReactTable({
-        data: employeeLogs, // داده‌های واقعی
+        data: employeeLogs,
         columns: employeePageColumns,
-        pageCount: pageCount, // تعداد صفحات از API
+        pageCount: meta?.last_page || 1,
         state: { pagination },
-        // --- ۶. فعالسازی صفحه‌بندی سرور-ساید ---
         manualPagination: true,
         onPaginationChange: setPagination,
-        // ---
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        // (فیلتر سمت کلاینت حذف شد)
     });
 
     const handleGoBack = () => {
         navigate('/reports');
     };
 
-    // --- ۷. [رفع خطا ۷ و ۸] ---
-    // افزودن return به بلاک‌های if تا تایپ‌اسکریپت از null نبودن employeeInfo مطمئن شود
-    if (isLoading && !employeeLogs.length) {
-        return (
-            <div className="p-4 max-w-7xl mx-auto">
-                <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
-                    <LoadingSkeleton />
-                </main>
-            </div>
-        );
+    // --- رندرینگ شرطی (Conditional Rendering) ---
+
+    // ۱. حالت لودینگ: استفاده از Skeleton کامل
+    if (isLoading) {
+        return <EmployeeReportPageSkeleton />;
     }
-    if (isError || (!isLoading && !employeeInfo)) {
+
+    // ۲. حالت خطا
+    if (isError) {
         return (
             <div className="p-4 max-w-7xl mx-auto">
                 <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
-                    <NotFoundCard message="گزارشات این کارمند یافت نشد یا خطایی رخ داده است." />
+                    <NotFoundCard message="خطایی در دریافت اطلاعات رخ داده است." onBack={handleGoBack} />
                 </main>
             </div>
         );
     }
 
-    // [رفع خطا ۳ و ۴] - اضافه کردن یک گارد (guard) نهایی
-    // گاهی اوقات تایپ‌اسکریپت در narrow کردن تایپ‌ها (فهمیدن اینکه متغیر null نیست)
-    // بعد از بلاک‌های if پیچیده دچار مشکل می‌شود.
-    // این if اضافی، به صراحت به TS اطمینان می‌دهد که employeeInfo نال نیست.
+    // ۳. حالت نبودن اطلاعات (لیست خالی)
     if (!employeeInfo) {
-        return (
+         return (
             <div className="p-4 max-w-7xl mx-auto">
                 <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
-                    <NotFoundCard message="اطلاعات کارمند یافت نشد." />
+                    <NotFoundCard message="هیچ گزارش فعالیتی برای این کارمند یافت نشد." onBack={handleGoBack} />
                 </main>
             </div>
         );
     }
 
-    // --- ۸. رندر (بدون تغییر) ---
-    // در این نقطه، تایپ‌اسکریپت می‌داند که employeeInfo قطعا null نیست
+    // ۴. رندر نهایی صفحه
     return (
-        <div className="p-4 max-w-7xl mx-auto">
+        <div className="p-4 max-w-7xl mx-auto animate-in fade-in duration-500">
             <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
-                {/* [رفع خطا ۷] - حالا اینجا امن است */}
                 <EmployeeReportHeader employeeName={employeeInfo.name} onBack={handleGoBack} />
+                
                 <div className="flex flex-col md:flex-row gap-6 pt-6">
                     <aside className="w-full md:w-72 lg:w-80 flex-shrink-0">
-                        {/* [رفع خطا ۸] - حالا اینجا امن است */}
-                        
                         <EmployeeInfoCard logEmployee={employeeInfo} />
                     </aside>
+                    
                     <section className="flex-1 space-y-4 min-w-0">
-                        {/* (فیلتر جستجو باید به API متصل شود) */}
-                        {/* <div className="relative w-full sm:w-60"> */}
-                        {/* ... input ... */}
-                        {/* </div> */}
                         <section className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
-                            <DataTable table={table} isLoading={isLoading} notFoundMessage="هیچ فعالیتی یافت نشد." />
+                            <DataTable 
+                                table={table} 
+                                isLoading={false} // لودینگ توسط صفحه هندل شده
+                                notFoundMessage="هیچ فعالیتی یافت نشد." 
+                            />
                         </section>
                         <DataTablePagination table={table} />
                     </section>
