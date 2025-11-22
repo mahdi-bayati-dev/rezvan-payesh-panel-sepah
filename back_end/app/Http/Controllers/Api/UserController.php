@@ -90,7 +90,7 @@ class UserController extends Controller
         $query->when($request->input('search'), function ($q, $searchTerm)
         {
             $q->where(function ($mainQ) use ($searchTerm) {
-                $mainQ->where('username', 'like', "%{$searchTerm}%") // فیلد user_name نداریم، username استاندارد است
+                $mainQ->where('user_name', 'like', "%{$searchTerm}%") // فیلد user_name نداریم، username استاندارد است
                       ->orWhere('email', 'like', "%{$searchTerm}%")
                       ->orWhereHas('employee', function ($subQuery) use ($searchTerm) {
                           $subQuery->where('first_name', 'like', "%{$searchTerm}%")
@@ -287,7 +287,7 @@ class UserController extends Controller
             $response = Http::post('https://ai.eitebar.ir/v1/user', [
                 'personnel_code' => $newEmployee->personnel_code,
                 'gender' => $newEmployee->gender,
-                'images' => !empty($paths) ? json_encode($paths) : null,
+                'images' => !empty($paths) ? $paths : null,
             ]);
 
             if ($response->status() != 200)
@@ -364,7 +364,7 @@ class UserController extends Controller
 
             // گزینه اختیاری برای حذف عکس‌های خاص (آرایه‌ای از IDها)
             'employee.delete_images' => ['nullable', 'array'],
-            'employee.delete_images.*' => ['integer', 'exists:EmployeeImages,id'],
+            'employee.delete_images.*' => ['integer', 'exists:employee_images,id'],
 
         ]);
 
@@ -413,9 +413,24 @@ class UserController extends Controller
                                          ->where('employee_id', $user->employee->id)
                                          ->get();
 
-                     foreach($imagesToDelete as $img) {
+                     $deletedPathsAI = $imagesToDelete->pluck('path')->toArray();
+
+                     foreach($imagesToDelete as $img)
+                     {
                          Storage::disk('public')->delete($img->path);
                          $img->delete();
+                     }
+                     if (!empty($deletedPathsAI))
+                     {
+                        try {
+                             Http::delete('https://ai.eitebar.ir/v1/user', [
+                                 'personnel_code' => $user->employee->personnel_code,
+                                 'gender' => $user->employee->gender,
+                                 'images' => $deletedPathsAI,
+                             ]);
+                        } catch (\Exception $e) {
+                             Log::error("Failed to sync deleted images with AI: " . $e->getMessage());
+                        }
                      }
              }
 
@@ -440,7 +455,7 @@ class UserController extends Controller
              $response = Http::put('https://ai.eitebar.ir/v1/user', [
                  'personnel_code' => $user->employee->personnel_code,
                  'gender' => $user->employee->gender,
-                 'images' => !empty($paths) ? json_encode($paths) : null,
+                 'images' => !empty($paths) ? $paths : null,
              ]);
 
              if ($response->status() != 200)
@@ -485,7 +500,7 @@ class UserController extends Controller
             $response = Http::delete('https://ai.eitebar.ir/v1/user', [
                 'personnel_code' => $employee->personnel_code,
                 'gender' => $employee->gender,
-                'images' => !empty($deletedPaths) ? json_encode($deletedPaths) : null,
+                'images' => !empty($deletedPaths) ? $deletedPaths : null,
             ]);
 
             if ($response->status() != 200)
@@ -498,7 +513,7 @@ class UserController extends Controller
 
         return response()->json(null, 204);
     }
-    
+
     /**
      * Check if the admin can manage resources within the target organization.
      */
