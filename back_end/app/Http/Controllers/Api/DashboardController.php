@@ -68,8 +68,8 @@ class DashboardController extends Controller
         $leavesApprovedCount = LeaveRequest::where('employee_id', $employeeId)
             ->where('status', LeaveRequest::STATUS_APPROVED)
             ->where(function ($query) use ($startOfMonth, $today) {
-                $query->whereBetween('start_date', [$startOfMonth, $today])
-                      ->orWhereBetween('end_date', [$startOfMonth, $today])
+                $query->whereBetween('start_time', [$startOfMonth, $today])
+                      ->orWhereBetween('end_time', [$startOfMonth, $today])
                       ->orWhere(function ($q) use ($startOfMonth, $today) {
                           $q->where('start_date', '<', $startOfMonth)
                             ->where('end_date', '>', $today);
