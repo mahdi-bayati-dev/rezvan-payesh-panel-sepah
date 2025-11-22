@@ -28,7 +28,7 @@ export const ConfirmationModal = ({
     icon,
     isLoading = false,
 }: ConfirmationModalProps) => {
-    // (کلاس‌های دکمه‌ها - بدون تغییر)
+    // (کلاس‌های دکمه‌ها)
     const confirmButtonClasses = {
         danger: 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500 text-white',
         warning: 'bg-yellow-500 hover:bg-yellow-600 focus-visible:ring-yellow-400 text-black',
@@ -36,7 +36,7 @@ export const ConfirmationModal = ({
         success: 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 text-white',
     }[variant];
 
-    // (آیکون‌های پیش‌فرض - بدون تغییر)
+    // (آیکون‌های پیش‌فرض)
     const defaultIcon = {
         danger: <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />,
         warning: <AlertTriangle className="h-6 w-6 text-yellow-500" aria-hidden="true" />,
@@ -96,8 +96,9 @@ export const ConfirmationModal = ({
                                             {title}
                                         </Dialog.Title>
 
+                                        {/* ✅ تغییر p به div برای رفع خطای Hydration */}
                                         <div className="mt-2 text-sm text-muted-foregroundL dark:text-muted-foregroundD">
-                                            <p>{message}</p>
+                                            {message}
                                         </div>
                                     </div>
                                 </div>
@@ -107,7 +108,6 @@ export const ConfirmationModal = ({
 
                                     <button
                                         type="button"
-
                                         className={`inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent px-5 py-2.5 sm:py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-backgroundD-800 transition-colors ${confirmButtonClasses} disabled:opacity-70 disabled:cursor-wait`}
                                         onClick={onConfirm}
                                         disabled={isLoading}
@@ -125,7 +125,6 @@ export const ConfirmationModal = ({
                                     {/* دکمه لغو */}
                                     <button
                                         type="button"
-
                                         className="inline-flex w-full sm:w-auto justify-center rounded-md border border-borderL dark:border-borderD bg-backgroundL-DEFAULT dark:bg-backgroundD-800 px-5 py-2.5 sm:py-2 text-sm font-medium text-foregroundL dark:text-foregroundD hover:bg-secondaryL dark:hover:bg-secondaryD focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-backgroundD-800 transition-colors disabled:opacity-50"
                                         onClick={onClose}
                                         disabled={isLoading}

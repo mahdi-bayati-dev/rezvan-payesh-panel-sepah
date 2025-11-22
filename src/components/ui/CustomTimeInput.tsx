@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-// ایمپورت تایپ به صورت جداگانه برای verbatimModuleSyntax
 import type { ChangeEvent } from 'react';
 import { Input } from '@headlessui/react';
+import clsx from 'clsx';
 
 interface CustomTimeInputProps {
     value: string | null;
@@ -10,11 +10,20 @@ interface CustomTimeInputProps {
     dir?: string;
     className?: string;
     placeholder?: string;
+    error?: boolean;
 }
 
+// --- توابع کمکی ---
+
 /**
- * کامنت: این تابع اعداد فارسی و عربی را به انگلیسی تبدیل می‌کند
- * و ورودی را تمیز و اعتبارسنجی می‌کند.
+ * تبدیل اعداد انگلیسی به فارسی فقط برای نمایش
+ */
+const toPersianDigits = (str: string) => {
+    return str.replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[parseInt(d)]);
+};
+
+/**
+ * پاکسازی و تبدیل ورودی به اعداد انگلیسی برای لاجیک برنامه
  */
 const cleanInput = (val: string, maxLength: number, maxVal: number): string => {
     if (!val) return '';
@@ -23,29 +32,25 @@ const cleanInput = (val: string, maxLength: number, maxVal: number): string => {
     const converted = val.replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 1776))
         .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 1632));
 
-    // ۲. حذف هر چیزی غیر از عدد و محدود کردن طول
+    // ۲. حذف هر چیزی غیر از عدد
     const numericVal = converted.replace(/[^0-9]/g, '').slice(0, maxLength);
+
     if (numericVal === '') return '';
 
-    // ۳. اعتبارسنجی مقدار ماکسیمم
-    // (فقط زمانی که کاربر در حال تایپ رقم دوم است)
+    // ۳. کنترل ماکسیمم (مثلاً ساعت نباید بیشتر از 23 باشد)
     if (numericVal.length === maxLength) {
         const num = parseInt(numericVal, 10);
-        if (num > maxVal) return String(maxVal); // مثلا اگر "30" تایپ شد، "23" برگردان
+        if (num > maxVal) return String(maxVal);
     }
 
     return numericVal;
 };
 
-/**
- * کامنت: این تابع یک عدد را می‌گیرد و آن را پد (pad) می‌کند (e.g., 7 -> "07")
- */
 const formatTimePart = (val: string): string => {
     const num = parseInt(val, 10);
     if (isNaN(num)) return '';
     return String(num).padStart(2, '0');
 };
-
 
 export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
     value,
@@ -54,14 +59,16 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
     dir = 'ltr',
     className = '',
     placeholder,
+    error = false,
 }) => {
+    // استیت داخلی همیشه اعداد انگلیسی را نگه می‌دارد
     const [hour, setHour] = useState('');
     const [minute, setMinute] = useState('');
 
     const hourRef = useRef<HTMLInputElement>(null);
     const minuteRef = useRef<HTMLInputElement>(null);
 
-    // افکت برای پر کردن اینپوت‌ها از مقدار value (props)
+    // همگام‌سازی با پراپ value
     useEffect(() => {
         if (value && /^\d{2}:\d{2}$/.test(value)) {
             const [h, m] = value.split(':');
@@ -73,90 +80,69 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
         }
     }, [value]);
 
-    /**
-     * کامنت: تابع مرکزی برای آپدیت فرم react-hook-form
-     */
     const triggerChange = (h: string, m: string) => {
-        // فقط زمانی که هر دو بخش کامل هستند، مقدار "HH:mm" را بفرست
         if (h.length === 2 && m.length === 2) {
             onChange(`${h}:${m}`);
         } else {
-            // در غیر این صورت (مثلا در حال تایپ)، مقدار null بفرست
             onChange(null);
         }
     };
 
-    // --- هندلرهای ساعت ---
+    // --- هندلرها ---
 
     const handleHourChange = (e: ChangeEvent<HTMLInputElement>) => {
-        // ۱. ورودی را تمیز کن (مثلاً "17" یا "23" یا "1")
+        // cleanInput مقدار را به انگلیسی برمی‌گرداند، حتی اگر کاربر فارسی تایپ کرده باشد
         const val = cleanInput(e.target.value, 2, 23);
-        // ۲. استیت داخلی را آپدیت کن
         setHour(val);
 
-        // ۳. اگر مقدار کامل شد (۲ رقم)، به اینپوت دقیقه بپر
         if (val.length === 2 && minuteRef.current) {
-            // ✅✅✅ راه حل باگ:
-            // قبل از پرش (که باعث blur می‌شود)، خودمان triggerChange را صدا می‌زنیم
             triggerChange(val, minute);
             minuteRef.current.focus();
             minuteRef.current.select();
         } else {
-            // اگر کامل نیست (مثلاً "1")، مقدار null بفرست
             triggerChange(val, minute);
         }
     };
 
     const handleHourBlur = () => {
-        // ✅✅✅ راه حل باگ:
-        // هرگز به استیت (hour) اعتماد نکن، چون ممکن است قدیمی باشد.
-        // مقدار نهایی را مستقیماً از DOM بخوان.
-        const currentDomValue = hourRef.current?.value || '';
+        // مقدار DOM ممکن است فارسی باشد، پس اول تمیزش می‌کنیم
+        const rawValue = hourRef.current?.value || '';
+        const englishValue = cleanInput(rawValue, 2, 23);
 
-        // اگر کاربر چیزی تایپ نکرده بود یا پاک کرده بود
-        if (currentDomValue === '') {
+        if (englishValue === '') {
             setHour('');
             triggerChange('', minute);
             return;
         }
-
-        // اگر مقدار ۲ رقمی بود (مثل "17")، handleHourChange کارش را کرده.
-        // ما فقط زمانی نیاز به پد (pad) کردن داریم که مقدار ۱ رقمی باشد (مثل "7").
-        if (currentDomValue.length === 1) {
-            const formatted = formatTimePart(currentDomValue); // "7" -> "07"
+        if (englishValue.length === 1) {
+            const formatted = formatTimePart(englishValue);
             setHour(formatted);
             triggerChange(formatted, minute);
         }
-        // اگر ۲ رقمی بود، هیچ کاری نکن.
     };
-
-    // --- هندلرهای دقیقه ---
 
     const handleMinuteChange = (e: ChangeEvent<HTMLInputElement>) => {
         const val = cleanInput(e.target.value, 2, 59);
-        setMinute(val); // ✅ اصلاح باگ کپی/پیست (setMinute به جای setHour)
-        triggerChange(hour, val); // آپدیت مقدار در حال تایپ
+        setMinute(val);
+        triggerChange(hour, val);
     };
 
     const handleMinuteBlur = () => {
-        // از همان منطق ساعت استفاده می‌کنیم (خواندن از DOM)
-        const currentDomValue = minuteRef.current?.value || '';
+        const rawValue = minuteRef.current?.value || '';
+        const englishValue = cleanInput(rawValue, 2, 59);
 
-        if (currentDomValue === '') {
+        if (englishValue === '') {
             setMinute('');
             triggerChange(hour, '');
             return;
         }
-
-        // پد کردن مقادیر تک رقمی (مثل "5" -> "05")
-        if (currentDomValue.length === 1) {
-            const formatted = formatTimePart(currentDomValue);
+        if (englishValue.length === 1) {
+            const formatted = formatTimePart(englishValue);
             setMinute(formatted);
             triggerChange(hour, formatted);
         }
     };
 
-    // هندلر برای پاک کردن با Backspace
     const handleMinuteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Backspace' && minute === '' && hourRef.current) {
             hourRef.current.focus();
@@ -164,66 +150,76 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
         }
     };
 
-    // --- بخش رندر (بدون تغییر) ---
-
     let placeholderHour = "HH";
     let placeholderMinute = "mm";
     if (placeholder && /^\d{2}:\d{2}$/.test(placeholder)) {
         [placeholderHour, placeholderMinute] = placeholder.split(':');
     }
-    const baseClasses = 'flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2';
-    const combinedClasses = [
-        baseClasses,
-        disabled ? 'cursor-not-allowed opacity-50' : '',
-        className || ''
-    ].filter(Boolean).join(' ');
-    const spanClasses = [
-        'mx-1 text-muted-foreground',
-        disabled ? 'opacity-50' : ''
-    ].filter(Boolean).join(' ');
-
 
     return (
         <div
-            className={combinedClasses}
-            dir={dir}
+            className={clsx(
+                // استایل‌ها
+                "flex w-full items-center justify-center py-2.5 px-3 rounded-lg text-sm transition-colors duration-200",
+                "bg-backgroundL-500 text-foregroundL border",
+                "dark:bg-backgroundD dark:text-foregroundD",
+                error
+                    ? "border-destructiveL dark:border-destructiveD"
+                    : "border-borderL dark:border-borderD",
+                !disabled && !error && "focus-within:ring-2 focus-within:ring-primaryL focus-within:border-transparent dark:focus-within:ring-primaryD",
+                !disabled && error && "focus-within:ring-2 focus-within:ring-destructiveL dark:focus-within:ring-destructiveD",
+                disabled && "opacity-50 cursor-not-allowed bg-stone-100 dark:bg-stone-700",
+                className
+            )}
+            dir={dir} // معمولاً برای ساعت LTR بهتر است، اما ارقام فارسی می‌شوند
         >
             <Input
                 ref={hourRef}
                 type="text"
                 inputMode="numeric"
-                value={hour}
+                // ✅ تبدیل به فارسی فقط برای نمایش
+                value={toPersianDigits(hour)}
                 onChange={handleHourChange}
                 onBlur={handleHourBlur}
                 placeholder={placeholderHour}
                 disabled={disabled}
-                className="w-9 bg-transparent text-center outline-none [appearance:textfield] placeholder:text-muted-foreground"
+                className="w-9 bg-transparent text-center outline-none p-0 border-none focus:ring-0 placeholder:text-muted-foregroundL dark:placeholder:text-muted-foregroundD text-foregroundL dark:text-foregroundD font-medium"
                 maxLength={2}
             />
-            <span className={spanClasses}>
+
+            <span className={clsx(
+                "mx-0.5 pb-0.5 font-bold",
+                "text-muted-foregroundL dark:text-muted-foregroundD",
+                disabled && 'opacity-50'
+            )}>
                 :
             </span>
+
             <Input
                 ref={minuteRef}
                 type="text"
                 inputMode="numeric"
-                value={minute}
+                // ✅ تبدیل به فارسی فقط برای نمایش
+                value={toPersianDigits(minute)}
                 onChange={handleMinuteChange}
                 onBlur={handleMinuteBlur}
                 onKeyDown={handleMinuteKeyDown}
                 placeholder={placeholderMinute}
                 disabled={disabled}
-                className="w-9 bg-transparent text-center outline-none [appearance:textfield] placeholder:text-muted-foreground"
+                className="w-9 bg-transparent text-center outline-none p-0 border-none focus:ring-0 placeholder:text-muted-foregroundL dark:placeholder:text-muted-foregroundD text-foregroundL dark:text-foregroundD font-medium"
                 maxLength={2}
             />
+
             <style>{`
-input[type="text"]::-webkit-outer-spin-button,
-input[type="text"]::-webkit-inner-spin-button {
- -webkit-appearance: none;
- margin: 0;
-}
-`}
-            </style>
+                input[inputmode="numeric"]::-webkit-outer-spin-button,
+                input[inputmode="numeric"]::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
+                input[inputmode="numeric"] {
+                    -moz-appearance: textfield;
+                }
+            `}</style>
         </div>
     );
 };

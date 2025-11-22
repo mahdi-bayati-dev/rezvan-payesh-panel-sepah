@@ -1,13 +1,13 @@
 import { type ColumnDef } from '@tanstack/react-table';
-// استفاده از Alias برای جلوگیری از خطای مسیر
 import { type ActivityLog } from '@/features/reports/types/index';
 import { ActionsMenuCell } from '@/features/reports/components/reportsPage/ActionsMenuCell';
 import Badge, { type BadgeVariant } from '@/components/ui/Badge';
 import { toPersianNumbers } from '@/features/reports/utils/toPersianNumbers';
-// آیکون‌های وضعیت
 import { Clock, AlertCircle, CheckCircle2, Hourglass } from 'lucide-react';
 
-// مپ کردن نوع فعالیت
+// ✅ ایمپورت کامپوننت آواتار جدید
+import { Avatar } from '@/components/ui/Avatar';
+
 const activityVariantMap: Record<ActivityLog['activityType'], BadgeVariant> = {
   entry: 'success',
   exit: 'info',
@@ -28,7 +28,7 @@ interface CreateColumnsProps {
 }
 
 export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): ColumnDef<ActivityLog>[] => [
-  // 1. مشخصات (بدون تغییر)
+  // 1. مشخصات (بهینه‌سازی شده با Avatar Component)
   {
     accessorKey: 'employee',
     header: 'مشخصات',
@@ -36,14 +36,11 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
       const { name, employeeId, avatarUrl } = row.original.employee;
       return (
         <div className="flex items-center gap-3">
-          <img
-            className="h-10 w-10 rounded-full object-cover border border-borderL dark:border-borderD"
-            src={avatarUrl || './img/avatars/2.png'}
+          {/* استفاده از کامپوننت جدید برای هندل کردن مسیرهای نسبی و ارورها */}
+          <Avatar 
+            src={avatarUrl} 
             alt={name}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = './img/avatars/2.png';
-            }}
+            className="h-10 w-10 rounded-full border border-borderL dark:border-borderD"
           />
           <div className="flex flex-col">
             <span className="font-medium text-sm text-foregroundL dark:text-foregroundD">
@@ -58,7 +55,7 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
     },
   },
 
-  // 2. فعالیت (بدون تغییر)
+  // 2. فعالیت
   {
     accessorKey: 'activityType',
     header: 'فعالیت',
@@ -73,7 +70,7 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
     },
   },
 
-  // 3. منبع (بدون تغییر)
+  // 3. منبع
   {
     accessorKey: 'trafficArea',
     header: 'منبع',
@@ -84,7 +81,7 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
     ),
   },
 
-  // 4. تاریخ (بدون تغییر)
+  // 4. تاریخ
   {
     accessorKey: 'date',
     header: 'تاریخ',
@@ -93,7 +90,7 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
     )
   },
 
-  // 5. ساعت (بدون تغییر)
+  // 5. ساعت
   {
     accessorKey: 'time',
     header: 'ساعت',
@@ -104,26 +101,20 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
     )
   },
 
-  // ✅ 6. ستون وضعیت (اصلاح شده طبق درخواست جدید)
+  // 6. وضعیت مغایرت
   {
     id: 'status',
     header: 'وضعیت مغایرت',
     cell: ({ row }) => {
       const { is_allowed, lateness_minutes, early_departure_minutes } = row.original;
-      
-      // شرط اصلی: آیا مغایرتی (تاخیر یا تعجیل) وجود دارد؟
       const hasException = lateness_minutes > 0 || early_departure_minutes > 0;
 
-      // اگر مغایرتی نیست، فقط خط تیره نمایش بده (تمیز نگه داشتن جدول)
       if (!hasException) {
          return <span className="text-muted-foregroundL/30 text-xs">---</span>;
       }
 
-      // اگر مغایرت هست، هم مقدارش رو نشون بده و هم وضعیت تایید رو
       return (
         <div className="flex flex-col gap-1.5 items-start min-w-[100px]">
-          
-          {/* ۱. نمایش خود مغایرت‌ها */}
           {lateness_minutes > 0 && (
             <div className="flex items-center gap-1 text-destructiveL dark:text-destructiveD px-1">
               <Clock className="w-3 h-3" />
@@ -138,7 +129,6 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
             </div>
           )}
 
-          {/* ۲. نمایش وضعیت تایید (چون مغایرت وجود دارد، وضعیت تایید مهم است) */}
           {is_allowed ? (
             <div className="flex items-center gap-1 text-[10px] font-medium text-successL dark:text-successD bg-successL/10 dark:bg-successD/10 px-1.5 py-0.5 rounded">
               <CheckCircle2 className="w-3 h-3" />
@@ -150,7 +140,6 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
               <span>در انتظار تایید</span>
             </div>
           )}
-
         </div>
       );
     },

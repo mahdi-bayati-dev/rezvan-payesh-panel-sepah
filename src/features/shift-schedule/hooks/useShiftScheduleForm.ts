@@ -34,11 +34,11 @@ const createDefaultSlots = (length: number): NewScheduleSlotPayload[] => {
   const slots: NewScheduleSlotPayload[] = [];
   for (let i = 0; i < length; i++) {
     slots.push({
-      day_in_cycle: i + 1, // شماره روز از ۱ شروع می‌شود
-      is_off: true, // پیش‌فرض: روز استراحت
-      name: null,
-      start_time: null,
-      end_time: null,
+      day_in_cycle: i + 1,
+      is_off: false,
+      name: "",
+      start_time: "",
+      end_time: "",
     });
   }
   return slots;
@@ -100,14 +100,14 @@ export const useShiftScheduleForm = ({
       // اگر طول چرخه زیاد شد، اسلات‌های جدید اضافه کن
       const toAdd: NewScheduleSlotPayload[] = [];
       for (let i = currentLength; i < targetLength; i++) {
-        // ✅ مطابقت با مستندات (بخش ۱.۲):
-        // اسلات‌های جدید به صورت پیش‌فرض "استراحت" هستند (is_off: true)
+        // ✅ مطابقت با درخواست جدید:
+        // اسلات‌های جدید هم به صورت پیش‌فرض "کاری" هستند (is_off: false)
         toAdd.push({
           day_in_cycle: i + 1, // شماره روز از ۱ شروع می‌شود
-          is_off: true, // پیش‌فرض: روز استراحت
-          name: null, // برای روز استراحت null است
-          start_time: null, // برای روز استراحت null است
-          end_time: null, // برای روز استراحت null است
+          is_off: false, // ✅ پیش‌فرض: روز کاری (تیک Off ندارد)
+          name: "", // رشته خالی برای ورود اطلاعات
+          start_time: "",
+          end_time: "",
         });
       }
       append(toAdd);
@@ -153,7 +153,8 @@ export const useShiftScheduleForm = ({
       ignore_holidays: data.ignore_holidays, // ✅ ارسال فیلد جدید
       slots: cleanedSlots, // ارسال اسلات‌های پاکسازی شده
     };
-console.log("✅ Payload ارسالی به سرور (Request):", payload);
+    console.log("✅ Payload ارسالی به سرور (Request):", payload);
+
     mutate(payload, {
       onSuccess: () => {
         // در صورت موفقیت، فرم ریست نمی‌شود (چون کاربر ممکن است بخواهد برنامه دیگری بسازد)

@@ -1,44 +1,43 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { 
-    Copy, 
-    CheckCircle, 
-    AlertTriangle, 
-    ShieldCheck, 
+import {
+    Copy,
+    CheckCircle,
+    AlertTriangle,
+    ShieldCheck,
     Loader2,
     ServerCrash
 } from "lucide-react";
-import { licenseApi } from "../api/licenseService";
-import type { LicenseState } from "../types";
+// استفاده از هوک‌های ریداکس
+import { useAppDispatch, useAppSelector } from "@/hook/reduxHooks";
+import {
+    fetchLicenseStatus,
+    activateLicense,
+    selectLicenseData,
+    selectIsLicenseLoading,
+    selectIsActivating,
+    clearLicenseError
+} from "@/store/slices/licenseSlice";
+
 import { cn } from "@/lib/utils/cn";
 
-// [FIX] تغییر تعریف کامپوننت: حذف کلمه export از اینجا
 const LicensePage = () => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [isActivating, setIsActivating] = useState(false);
-    const [licenseData, setLicenseData] = useState<LicenseState | null>(null);
+    const dispatch = useAppDispatch();
+
+    // خواندن داده‌ها از ریداکس
+    const licenseData = useAppSelector(selectLicenseData);
+    const isLoading = useAppSelector(selectIsLicenseLoading);
+    const isActivating = useAppSelector(selectIsActivating);
+
     const [tokenInput, setTokenInput] = useState("");
     const [copied, setCopied] = useState(false);
 
-    const fetchLicenseStatus = async () => {
-        setIsLoading(true);
-        try {
-            const data = await licenseApi.getStatus();
-            setLicenseData(data);
-        } catch (error: any) {
-            console.error("License fetch failed:", error?.message || "Unknown error");
-            
-            if (error?.response?.status !== 403) {
-                 toast.error("در دریافت اطلاعات لایسنس مشکلی پیش آمد.");
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
+    // دریافت وضعیت اولیه (اگر دیتا نداریم)
     useEffect(() => {
-        fetchLicenseStatus();
-    }, []);
+        if (!licenseData) {
+            dispatch(fetchLicenseStatus());
+        }
+    }, [dispatch, licenseData]);
 
     const handleCopyId = () => {
         if (licenseData?.installation_id) {
@@ -55,49 +54,55 @@ const LicensePage = () => {
             return;
         }
 
-        setIsActivating(true);
+        // پاک کردن خطاهای قبلی قبل از شروع عملیات جدید
+        dispatch(clearLicenseError());
+
         try {
-            const response = await licenseApi.activate({ license_token: tokenInput });
-            toast.success(response.message);
-            setLicenseData(response.license);
+            // استفاده از unwrap برای دسترسی به خطاها در catch
+            await dispatch(activateLicense({ license_token: tokenInput })).unwrap();
+
+            toast.success("لایسنس با موفقیت فعال شد.");
+            // نکته: نیازی به رفرش صفحه یا آپدیت دستی نیست.
+            // ریداکس به طور خودکار استیت را آپدیت می‌کند.
+
             setTokenInput("");
-        } catch (error: any) {
-            let msg = "فعال‌سازی انجام نشد.";
-            if (error.response?.data?.message && typeof error.response.data.message === 'string') {
-                msg = error.response.data.message;
-            }
-            toast.error(msg);
-        } finally {
-            setIsActivating(false);
+        } catch (errorMessage: any) {
+            // خطا را از rejectWithValue دریافت می‌کنیم
+            toast.error(errorMessage || "فعال‌سازی انجام نشد.");
         }
     };
 
-    if (isLoading) {
+    if (isLoading && !licenseData) {
         return (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full items-center justify-center animate-pulse">
                 <Loader2 className="animate-spin text-primaryL h-10 w-10" />
-                <span className="mr-3">در حال بررسی وضعیت لایسنس...</span>
+                <span className="mr-3 font-medium text-muted-foregroundL">در حال بررسی اصالت نرم‌افزار...</span>
             </div>
         );
     }
 
-    if (!licenseData) {
+    if (!licenseData && !isLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foregroundL">
-                <ServerCrash className="h-16 w-16 mb-4 opacity-50" />
-                <p>اطلاعات لایسنس در دسترس نیست.</p>
-                <button onClick={fetchLicenseStatus} className="mt-4 text-primaryL underline">
+                <ServerCrash className="h-16 w-16 mb-4 opacity-50 text-destructiveL" />
+                <p className="font-bold">اطلاعات لایسنس در دسترس نیست.</p>
+                <p className="text-sm mt-2 mb-4">لطفاً اتصال به سرور را بررسی کنید.</p>
+                <button
+                    onClick={() => dispatch(fetchLicenseStatus())}
+                    className="px-4 py-2 bg-primaryL text-white rounded-lg shadow hover:bg-primaryL-600 transition-colors"
+                >
                     تلاش مجدد
                 </button>
             </div>
         );
     }
 
-    const isTrial = licenseData.status === 'trial';
-    const isLicensed = licenseData.status === 'licensed';
+    // اگر دیتا داریم، نمایش بده (حتی اگر در حال آپدیت پس‌زمینه باشیم)
+    const isTrial = licenseData?.status === 'trial';
+    const isLicensed = licenseData?.status === 'licensed';
 
-    const displayDate = licenseData.expires_at 
-        ? new Date(licenseData.expires_at).toLocaleDateString('fa-IR') 
+    const displayDate = licenseData?.expires_at
+        ? new Date(licenseData.expires_at).toLocaleDateString('fa-IR')
         : (isTrial ? "محدودیت ۳۰ روزه" : "نامحدود");
 
     return (
@@ -112,9 +117,10 @@ const LicensePage = () => {
             </div>
 
             <div className="grid gap-8 md:grid-cols-2">
-                <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-xl p-6 shadow-sm relative overflow-hidden">
+                {/* بخش نمایش وضعیت */}
+                <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-xl p-6 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
                     <div className={cn(
-                        "absolute top-0 right-0 w-2 h-full",
+                        "absolute top-0 right-0 w-2 h-full transition-colors duration-500",
                         isLicensed ? "bg-green-500" : "bg-yellow-500"
                     )} />
 
@@ -131,7 +137,7 @@ const LicensePage = () => {
                         <div className="flex justify-between py-2 border-b border-borderL/50 dark:border-borderD/50">
                             <span className="text-muted-foregroundL">وضعیت فعلی:</span>
                             <span className={cn(
-                                "font-bold px-2 py-0.5 rounded text-sm",
+                                "font-bold px-2 py-0.5 rounded text-sm transition-colors",
                                 isLicensed ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                             )}>
                                 {isLicensed ? "نسخه فعال (Licensed)" : "نسخه آزمایشی (Trial)"}
@@ -140,7 +146,7 @@ const LicensePage = () => {
 
                         <div className="flex justify-between py-2 border-b border-borderL/50 dark:border-borderD/50">
                             <span className="text-muted-foregroundL">محدودیت کاربر:</span>
-                            <span className="font-mono font-bold">{licenseData.user_limit} کاربر</span>
+                            <span className="font-mono font-bold">{licenseData?.user_limit} کاربر</span>
                         </div>
 
                         <div className="flex justify-between py-2 border-b border-borderL/50 dark:border-borderD/50">
@@ -156,9 +162,9 @@ const LicensePage = () => {
                             </label>
                             <div className="flex items-center gap-2">
                                 <code className="flex-1 bg-backgroundL dark:bg-backgroundD p-2 rounded text-xs font-mono border border-borderL select-all truncate">
-                                    {licenseData.installation_id}
+                                    {licenseData?.installation_id}
                                 </code>
-                                <button 
+                                <button
                                     onClick={handleCopyId}
                                     className="p-2 hover:bg-primaryL hover:text-white rounded-md transition-colors text-muted-foregroundL"
                                     title="کپی شناسه"
@@ -170,14 +176,15 @@ const LicensePage = () => {
                     </div>
                 </div>
 
-                <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-xl p-6 shadow-sm flex flex-col">
+                {/* بخش فعال‌سازی */}
+                <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-xl p-6 shadow-sm flex flex-col transition-all hover:shadow-md">
                     <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-primaryL block"></span>
                         فعال‌سازی / تمدید
                     </h2>
-                    
+
                     <p className="text-sm text-muted-foregroundL mb-4 leading-relaxed">
-                        توکن دریافتی از پشتیبانی را وارد کنید.
+                        برای ارتقا به نسخه تجاری یا تمدید، توکن دریافتی را وارد کنید.
                     </p>
 
                     <div className="flex-1 flex flex-col gap-3">
@@ -185,10 +192,11 @@ const LicensePage = () => {
                             value={tokenInput}
                             onChange={(e) => setTokenInput(e.target.value)}
                             placeholder="توکن لایسنس (eyJ...)"
-                            className="w-full flex-1 min-h-[150px] p-3 rounded-lg bg-backgroundL dark:bg-backgroundD border border-borderL dark:border-borderD focus:ring-2 focus:ring-primaryL focus:border-transparent resize-none font-mono text-xs"
+                            className="w-full flex-1 min-h-[150px] p-3 rounded-lg bg-backgroundL dark:bg-backgroundD border border-borderL dark:border-borderD focus:ring-2 focus:ring-primaryL focus:border-transparent resize-none font-mono text-xs transition-shadow"
                             dir="ltr"
+                            disabled={isActivating}
                         />
-                        
+
                         <button
                             onClick={handleActivate}
                             disabled={isActivating || !tokenInput}
@@ -196,7 +204,7 @@ const LicensePage = () => {
                         >
                             {isActivating ? (
                                 <>
-                                    <Loader2 className="animate-spin" /> بررسی...
+                                    <Loader2 className="animate-spin h-5 w-5" /> در حال فعال‌سازی...
                                 </>
                             ) : (
                                 "ثبت و فعال‌سازی"
@@ -209,5 +217,4 @@ const LicensePage = () => {
     );
 };
 
-// [FIX] اضافه کردن export default در انتها برای سازگاری با React.lazy
 export default LicensePage;

@@ -4,11 +4,7 @@ import Input from '@/components/ui/Input';
 import Checkbox from '@/components/ui/Checkbox';
 import { daysOfWeek } from '@/features/work-pattern/utils/constants';
 import type { NewWeekPatternFormData } from '@/features/work-pattern/schema/NewWeekPatternSchema';
-// ✅ ۱. ایمپورت کامپوننت سفارشی ساعت
 import { CustomTimeInput } from '@/components/ui/CustomTimeInput';
-
-// کامنت: این کامپوننت فقط مسئول رندر کردن یک ردیف از روزهای هفته است.
-// تمام پراپ‌های مورد نیاز خود را از کامپوننت پدر (NewWeekPatternForm) می‌گیرد.
 
 interface WeekDayRowProps {
     field: FieldArrayWithId<NewWeekPatternFormData, "days", "id">;
@@ -34,11 +30,14 @@ export const WeekDayRow = ({
     const dayErrors = formErrors.days?.[index];
 
     return (
-        <div className="grid grid-cols-12 gap-x-4 gap-y-2 items-center border-b  border-borderL  transition-colors duration-300 dark:bg-backgroundD dark:border-borderD pb-3  last:border-b-0 last:pb-0">
+        <div className="grid grid-cols-12 gap-x-4 gap-y-2 items-center border-b border-borderL transition-colors duration-300 dark:bg-backgroundD dark:border-borderD pb-3 last:border-b-0 last:pb-0">
+
+            {/* --- ستون نام روز --- */}
             <span className="col-span-12 sm:col-span-1 font-medium text-sm pt-2 sm:pt-0 dark:text-stone-300">
                 {dayName}
             </span>
 
+            {/* --- ستون چک‌باکس روز کاری --- */}
             <div className="col-span-12 sm:col-span-2">
                 <Controller
                     name={`days.${index}.is_working_day`}
@@ -53,19 +52,18 @@ export const WeekDayRow = ({
                         />
                     )}
                 />
-                {dayErrors?.is_working_day?.message && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                        {dayErrors.is_working_day.message}
-                    </p>
-                )}
+                {/* فضای خطا برای هماهنگی ارتفاع */}
+                <div className="h-5">
+                    {dayErrors?.is_working_day?.message && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            {dayErrors.is_working_day.message}
+                        </p>
+                    )}
+                </div>
             </div>
 
-            {/* ✅ ۲. جایگزینی Input type="time" با CustomTimeInput برای "ساعت شروع" */}
+            {/* --- ستون ساعت شروع --- */}
             <div className="col-span-12 sm:col-span-3">
-                {/* کامنت: چون CustomTimeInput پراپ label و error داخلی ندارد،
-                  ما خودمان لیبل و پیام خطا را در بیرون کامپوننت مدیریت می‌کنیم
-                  تا ظاهر فرم دقیقاً شبیه قبل باقی بماند.
-                */}
                 <label className="mb-1.5 block text-sm font-medium text-foregroundL dark:text-foregroundD">
                     ساعت شروع
                 </label>
@@ -74,25 +72,24 @@ export const WeekDayRow = ({
                     control={control}
                     render={({ field }) => (
                         <CustomTimeInput
-                            value={field.value} // مقدار را از react-hook-form می‌خواند
-                            onChange={field.onChange} // تغییرات را به react-hook-form اطلاع می‌دهد
+                            value={field.value}
+                            onChange={field.onChange}
                             disabled={!isWorking || isPending}
                             className="disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-stone-700"
                             placeholder="08:00"
                         />
                     )}
                 />
-                {/* کامنت: نمایش دستی ارور، مشابه Input قبلی */}
                 <div className="h-5">
-                {dayErrors?.start_time?.message && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                        {dayErrors.start_time.message}
-                    </p>
-                )}
+                    {dayErrors?.start_time?.message && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            {dayErrors.start_time.message}
+                        </p>
+                    )}
                 </div>
             </div>
 
-            {/* ✅ ۳. جایگزینی Input type="time" با CustomTimeInput برای "ساعت پایان" */}
+            {/* --- ستون ساعت پایان --- */}
             <div className="col-span-12 sm:col-span-3">
                 <label className="mb-1.5 block text-sm font-medium text-foregroundL dark:text-foregroundD">
                     ساعت پایان
@@ -111,23 +108,43 @@ export const WeekDayRow = ({
                     )}
                 />
                 <div className="h-5">
-                {dayErrors?.end_time?.message && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                        {dayErrors.end_time.message}
-                    </p>
-                )}
+                    {dayErrors?.end_time?.message && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            {dayErrors.end_time.message}
+                        </p>
+                    )}
                 </div>
             </div>
 
+            {/* --- ستون مدت زمان (اصلاح شده برای هم‌ترازی دقیق) --- */}
             <div className="col-span-12 sm:col-span-3">
+                {/* ✅ ۱. استفاده از لیبل دستی دقیقاً مثل ستون‌های ساعت */}
+                <label
+                    htmlFor={`duration_${index}`}
+                    className="mb-1.5 block text-sm font-medium text-foregroundL dark:text-foregroundD"
+                >
+                    مدت (دقیقه)
+                </label>
+
+                {/* ✅ ۲. استفاده از Input بدون لیبل و ارور داخلی */}
                 <Input
-                    label="مدت (دقیقه)" type="number"
+                    id={`duration_${index}`}
+                    type="number"
                     {...register(`days.${index}.work_duration_minutes`)}
-                    error={dayErrors?.work_duration_minutes?.message}
-                    disabled={true} // این فیلد همیشه غیرفعال است و اتوماتیک محاسبه می‌شود
-                    className="disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-stone-700"
+                    disabled={true}
+                    className="disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-stone-700 text-center"
                     min="0" max="1440"
+                // مهم: لیبل و ارور را اینجا پاس نمی‌دهیم تا ساختار DOM با تایم‌ها یکی شود
                 />
+
+                {/* ✅ ۳. فضای رزرو شده برای خطا (دقیقاً مثل ستون‌های ساعت) */}
+                <div className="h-5">
+                    {dayErrors?.work_duration_minutes?.message && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            {dayErrors.work_duration_minutes.message}
+                        </p>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -1,20 +1,35 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
-// import { Button } from '@/components/ui/Button';
 import { RadioGroup } from '@headlessui/react';
-import { NewWeekPatternForm } from "@/features/work-pattern/components/newWorkPattern/NewWeekPatternForm"; // ✅ فرم الگوی ثابت
-import { NewShiftScheduleForm } from "@/features/shift-schedule/components/NewShiftScheduleForm"; // ✅ فرم برنامه شیفتی
+import { NewWeekPatternForm } from "@/features/work-pattern/components/newWorkPattern/NewWeekPatternForm";
+import { NewShiftScheduleForm } from "@/features/shift-schedule/components/NewShiftScheduleForm";
 import clsx from 'clsx';
-import { Calendar, Repeat2 } from 'lucide-react'; // آیکون‌ها
+import { Calendar, Repeat2, CheckCircle2 } from 'lucide-react'; // آیکون تیک اضافه شد
 
 type PatternType = 'WEEK_PATTERN' | 'SHIFT_SCHEDULE';
+
+// تعریف آپشن‌ها بیرون کامپوننت (چون مقدار ثابتی است و نیاز به رندر مجدد ندارد)
+const PATTERN_OPTIONS: { id: PatternType; name: string; description: string; icon: React.ReactNode }[] = [
+    {
+        id: 'WEEK_PATTERN',
+        name: 'الگوی کاری ثابت (هفتگی)',
+        description: 'مناسب برای پرسنل اداری با ساعات کاری مشخص (مثلاً شنبه تا چهارشنبه).',
+        icon: <Calendar className="h-6 w-6" />
+    },
+    {
+        id: 'SHIFT_SCHEDULE',
+        name: 'برنامه شیفتی چرخشی',
+        description: 'مناسب برای نگهبانی، پرستاری و شیفت‌های چرخشی (مثلاً ۱۲ ساعت کار، ۲۴ ساعت استراحت).',
+        icon: <Repeat2 className="h-6 w-6" />
+    },
+];
 
 function NewWorkPatternPage() {
     const navigate = useNavigate();
     const [selectedType, setSelectedType] = useState<PatternType>('WEEK_PATTERN');
 
     const handleSuccess = () => {
-        // کامنت: پس از ایجاد موفقیت‌آمیز هر نوع الگو، به صفحه اصلی لیست برمی‌گردیم
+        // بازگشت به لیست پس از موفقیت
         navigate('/work-patterns');
     };
 
@@ -22,79 +37,91 @@ function NewWorkPatternPage() {
         navigate('/work-patterns');
     };
 
-    const options: { id: PatternType; name: string; description: string; icon: React.ReactNode }[] = [
-        {
-            id: 'WEEK_PATTERN',
-            name: 'الگوی کاری ثابت (هفتگی)',
-            description: 'برنامه ثابت هفتگی (شنبه تا جمعه) با ساعات مشخص.',
-            icon: <Calendar className="h-6 w-6" />
-        },
-        {
-            id: 'SHIFT_SCHEDULE',
-            name: 'برنامه شیفتی چرخشی',
-            description: 'برنامه چرخشی (مانند ۴ روز کار، ۲ روز استراحت) با طول چرخه دلخواه.',
-            icon: <Repeat2 className="h-6 w-6" />
-        },
-    ];
-
-
     return (
-        <div className=" mx-auto p-4 md:p-8 space-y-8 bg-backgroundL-500 rounded-2xl shadow-xl dark:bg-backgroundD" dir="rtl">
+        <div className=" mx-auto space-y-8" dir="rtl">
 
-            <h1 className="text-2xl font-bold border-b border-borderL dark:border-borderD pb-4">
-                انتخاب نوع الگوی جدید
-            </h1>
-
-            {/* بخش انتخاب نوع الگو (Radio Group) */}
-            <RadioGroup value={selectedType} onChange={setSelectedType} className="space-y-4">
-                <RadioGroup.Label className="sr-only">انتخاب نوع الگو</RadioGroup.Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {options.map((option) => (
-                        <RadioGroup.Option
-                            key={option.id}
-                            value={option.id}
-                            className={({ checked }) =>
-                                clsx(
-                                    'cursor-pointer rounded-xl border-2 p-4 flex focus:outline-none transition-colors',
-                                    checked
-                                        ? 'bg-primaryL/10 border-primaryL dark:bg-primaryD/10 dark:border-primaryD ring-2 ring-primaryL dark:ring-primaryD'
-                                        : 'bg-white dark:bg-gray-800 border-borderL dark:border-borderD hover:bg-secondaryL dark:hover:bg-gray-700'
-                                )
-                            }
-                        >
-                            {({ checked }) => (
-                                <div className="flex items-center w-full">
-                                    <span className={clsx(
-                                        'p-2 rounded-full mr-3',
-                                        checked ? 'bg-primaryL text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                                    )}>
-                                        {option.icon}
-                                    </span>
-                                    <div className="text-right flex-1">
-                                        <RadioGroup.Label as="p" className="font-semibold text-lg">
-                                            {option.name}
-                                        </RadioGroup.Label>
-                                        <RadioGroup.Description as="span" className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
-                                            {option.description}
-                                        </RadioGroup.Description>
-                                    </div>
-                                    <div className={clsx(
-                                        'w-4 h-4 rounded-full border-2 ml-4',
-                                        checked ? 'border-primaryL bg-primaryL' : 'border-gray-300 dark:border-gray-500'
-                                    )}></div>
-                                </div>
-                            )}
-                        </RadioGroup.Option>
-                    ))}
+            {/* --- هدر صفحه --- */}
+            <div className="bg-backgroundL-500 dark:bg-backgroundD rounded-2xl shadow-sm border border-borderL dark:border-borderD p-6 md:p-8">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-foregroundL dark:text-foregroundD">
+                        تعریف الگوی کاری جدید
+                    </h1>
+                    <p className="text-muted-foregroundL dark:text-muted-foregroundD mt-2 text-sm">
+                        لطفاً نوع الگوی کاری مورد نظر خود را برای شروع انتخاب کنید.
+                    </p>
                 </div>
-            </RadioGroup>
 
-            {/* رندر فرم انتخابی */}
-            <div className="mt-8 pt-6 border-t border-borderL dark:border-borderD">
-                {selectedType === 'WEEK_PATTERN' && (
+                {/* --- بخش انتخاب نوع الگو (Cards) --- */}
+                <RadioGroup value={selectedType} onChange={setSelectedType}>
+                    <RadioGroup.Label className="sr-only">انتخاب نوع الگو</RadioGroup.Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {PATTERN_OPTIONS.map((option) => (
+                            <RadioGroup.Option
+                                key={option.id}
+                                value={option.id}
+                                className={({ checked }) =>
+                                    clsx(
+                                        'relative flex cursor-pointer rounded-xl border-2 p-5 shadow-sm transition-all duration-200 focus:outline-none',
+                                        // استایل‌های حالت انتخاب شده و نشده
+                                        checked
+                                            ? 'border-primaryL bg-primaryL/5 dark:border-primaryD dark:bg-primaryD/10 ring-1 ring-primaryL/20'
+                                            : 'border-borderL dark:border-borderD bg-background hover:border-primaryL/50 dark:hover:border-primaryD/50 hover:shadow-md'
+                                    )
+                                }
+                            >
+                                {({ checked }) => (
+                                    <>
+                                        <div className="flex w-full items-start gap-4">
+                                            {/* آیکون */}
+                                            <div className={clsx(
+                                                'flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
+                                                checked
+                                                    ? 'bg-primaryL text-white dark:bg-primaryD'
+                                                    : 'bg-secondaryL dark:bg-gray-700 text-muted-foregroundL dark:text-muted-foregroundD'
+                                            )}>
+                                                {option.icon}
+                                            </div>
+
+                                            {/* متن‌ها */}
+                                            <div className="flex-1 text-right space-y-1">
+                                                <RadioGroup.Label as="p" className={clsx(
+                                                    "font-bold text-lg",
+                                                    checked ? "text-primaryL dark:text-primaryD" : "text-foregroundL dark:text-foregroundD"
+                                                )}>
+                                                    {option.name}
+                                                </RadioGroup.Label>
+                                                <RadioGroup.Description as="span" className="inline-block text-sm leading-6 text-muted-foregroundL dark:text-muted-foregroundD">
+                                                    {option.description}
+                                                </RadioGroup.Description>
+                                            </div>
+                                        </div>
+
+                                        {/* نشانگر تیک (فقط وقتی انتخاب شده نمایش داده شود) */}
+                                        <div className={clsx(
+                                            "absolute top-4 left-4 transition-opacity duration-200",
+                                            checked ? "opacity-100" : "opacity-0"
+                                        )}>
+                                            <CheckCircle2 className="h-6 w-6 text-primaryL dark:text-primaryD fill-current" />
+                                        </div>
+                                    </>
+                                )}
+                            </RadioGroup.Option>
+                        ))}
+                    </div>
+                </RadioGroup>
+            </div>
+
+            {/* --- کانتینر فرم (با انیمیشن ساده) --- */}
+            {/* کلید (key) باعث می‌شود وقتی نوع عوض شد، کامپوننت دوباره ماونت شود و انیمیشن اجرا شود */}
+            <div
+                key={selectedType}
+                className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out"
+            >
+                {selectedType === 'WEEK_PATTERN' ? (
+                    // فرض بر این است که این کامپوننت کارت و استایل خودش را دارد
                     <NewWeekPatternForm onSuccess={handleSuccess} onCancel={handleCancel} />
-                )}
-                {selectedType === 'SHIFT_SCHEDULE' && (
+                ) : (
+                    // فرض بر این است که این کامپوننت کارت و استایل خودش را دارد
                     <NewShiftScheduleForm onSuccess={handleSuccess} onCancel={handleCancel} />
                 )}
             </div>
