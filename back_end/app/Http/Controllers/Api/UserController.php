@@ -364,7 +364,7 @@ class UserController extends Controller
 
             // گزینه اختیاری برای حذف عکس‌های خاص (آرایه‌ای از IDها)
             'employee.delete_images' => ['nullable', 'array'],
-            'employee.delete_images.*' => ['integer', 'exists:EmployeeImages,id'],
+            'employee.delete_images.*' => ['integer', 'exists:employee_images,id'],
 
         ]);
 
@@ -413,9 +413,24 @@ class UserController extends Controller
                                          ->where('employee_id', $user->employee->id)
                                          ->get();
 
-                     foreach($imagesToDelete as $img) {
+                     $deletedPathsAI = $imagesToDelete->pluck('path')->toArray();
+
+                     foreach($imagesToDelete as $img)
+                     {
                          Storage::disk('public')->delete($img->path);
                          $img->delete();
+                     }
+                     if (!empty($deletedPathsAI))
+                     {
+                        try {
+                             Http::delete('https://ai.eitebar.ir/v1/user', [
+                                 'personnel_code' => $user->employee->personnel_code,
+                                 'gender' => $user->employee->gender,
+                                 'images' => json_encode($deletedPathsAI),
+                             ]);
+                        } catch (\Exception $e) {
+                             Log::error("Failed to sync deleted images with AI: " . $e->getMessage());
+                        }
                      }
              }
 
@@ -498,7 +513,7 @@ class UserController extends Controller
 
         return response()->json(null, 204);
     }
-    
+
     /**
      * Check if the admin can manage resources within the target organization.
      */
