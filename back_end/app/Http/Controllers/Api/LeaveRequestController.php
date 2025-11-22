@@ -182,68 +182,44 @@ class LeaveRequestController extends Controller
 
     public function export(Request $request)
     {
-
         $this->authorize('viewAny', LeaveRequest::class);
 
-        $currentUser = $request->user();
-        $currentUserEmployee = $currentUser->employee;
+        $validator = Validator::make($request->all(), [
+            'organization_id' => 'nullable|integer|exists:organizations,id',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date',
+            'status' => 'nullable|string|in:pending,approved,rejected',
+            'search' => 'nullable|string|max:255',
+            'leave_type_id' => 'nullable|integer|exists:leave_types,id',
+        ]);
 
-        $query = LeaveRequest::with(['employee.organization', 'employee.workGroup']);
-
-        $adminOrg = $currentUserEmployee?->organization;
-
-        if (!$adminOrg && ($currentUser->hasRole('org-admin-l2') || $currentUser->hasRole('org-admin-l3')))
-        {
-            $query->whereRaw('1 = 0');
-        }
-        else if ($currentUser->hasRole('org-admin-l2')) {
-            $allowedOrgIds = $adminOrg->descendantsAndSelf()->pluck('id');
-            $query->whereHas('employee', function ($q) use ($allowedOrgIds) {
-                $q->whereIn('organization_id', $allowedOrgIds);
-            });
-        }
-        elseif ($currentUser->hasRole('org-admin-l3')) {
-            $query->whereHas('employee', function ($q) use ($adminOrg) {
-                $q->where('organization_id', $adminOrg->id);
-            });
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $filters = $request->only([
+            'organization_id',
+            'from_date',
+            'to_date',
+            'status',
+            'search',
+            'leave_type_id'
+        ]);
 
-
-        if ($request->has('organization_id')) {
-            $targetOrg = Organization::find($request->input('organization_id'));
-            if ($targetOrg) {
-                $orgIds = $targetOrg->descendantsAndSelf()->pluck('id');
-                $query->whereHas('employee', function ($q) use ($orgIds) {
-                    $q->whereIn('organization_id', $orgIds);
-                });
+        if (isset($filters['organization_id'])) {
+            $currentUser = $request->user();
+            if (!$currentUser->hasRole('super_admin')) {
+                $targetOrg = Organization::find($filters['organization_id']);
+                $this->authorize('see', $targetOrg);
             }
         }
 
-        if ($request->input('search')) {
-            $searchTerm = $request->input('search');
-            $query->whereHas('employee', function ($q) use ($searchTerm) {
-                $q->where('first_name', 'like', "%{$searchTerm}%")
-                    ->orWhere('last_name', 'like', "%{$searchTerm}%")
-                    ->orWhere('personnel_code', 'like', "%{$searchTerm}%");
-            });
-        }
 
-        if ($request->input('from_date')) {
-            $query->whereDate('start_date', '>=', $request->input('from_date'));
-        }
-        if ($request->input('to_date')) {
-            $query->whereDate('end_date', '<=', $request->input('to_date'));
-        }
+        GenerateLeaveReportJob::dispatch($request->user(), $filters);
 
-        if ($request->input('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        $query->latest();
-
-        $fileName = 'exit-requests-' . now()->format('Y-m-d-His') . '.xlsx';
-
-        return Excel::download(new LeaveRequestsExport($query), $fileName);
+        return response()->json([
+            'message' => 'درخواست گزارش ثبت شد. پس از آماده‌سازی فایل، لینک دانلود برای شما ارسال می‌شود.',
+            'status' => 'queued'
+        ], 202);
     }
 }
