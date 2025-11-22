@@ -101,3 +101,49 @@ export interface GenerateShiftsPayload {
   start_date: string; // YYYY-MM-DD
   end_date: string; // YYYY-MM-DD
 }
+// ... (تایپ‌های قبلی حفظ شوند)
+
+// --- تایپ‌های دریافت لیست شیفت‌ها (GET /shifts) ---
+export interface ShiftResource {
+  id: number;
+  date: string; // Y-m-d
+  is_off_day: boolean;
+  expected_start_time: string; // datetime
+  expected_end_time: string; // datetime
+  source: string; // e.g., "scheduled"
+  shift_schedule_id: number;
+  employee: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    personnel_code: string;
+    user?: {
+        id: number;
+        username: string;
+        email: string;
+    }
+  };
+  work_pattern?: {
+    id: number;
+    name: string;
+    start_time: string;
+    end_time: string;
+    type: string;
+  };
+}
+
+// پارامترهای فیلتر (Query Params)
+export interface GetShiftsParams {
+  start_date?: string;
+  end_date?: string;
+  employee_id?: number;
+  is_off_day?: 0 | 1; // boolean passed as number usually in URL params or logic
+  per_page?: number;
+  sort_order?: 'asc' | 'desc';
+}
+
+export interface PaginatedShiftsResponse {
+  data: ShiftResource[];
+  links: any; // مطابق ساختار Pagination استاندارد شما
+  meta: any;
+}

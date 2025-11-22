@@ -11,6 +11,8 @@ import {
 } from "../types/index";
 
 const API_URL = "/shift-schedules";
+import type { GetShiftsParams, PaginatedShiftsResponse } from "../types/index";
+
 
 // --- ۱. مدیریت Shift Schedules ---
 
@@ -121,6 +123,23 @@ export const generateShifts = async (
   const response = await axiosInstance.post<{ message: string }>(
     `${API_URL}/${shiftScheduleId}/generate-shifts`,
     payload
+  );
+  return response.data;
+};
+
+// ... (کدهای قبلی)
+
+/**
+ * GET /api/shift-schedules/{shiftSchedule}/shifts
+ * دریافت لیست شیفت‌های تخصیص داده شده
+ */
+export const getGeneratedShifts = async (
+  shiftScheduleId: number | string,
+  params: GetShiftsParams
+): Promise<PaginatedShiftsResponse> => {
+  const response = await axiosInstance.get<PaginatedShiftsResponse>(
+    `${API_URL}/${shiftScheduleId}/shifts`,
+    { params }
   );
   return response.data;
 };
