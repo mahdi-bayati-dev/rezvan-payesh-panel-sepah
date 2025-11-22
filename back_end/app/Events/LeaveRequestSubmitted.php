@@ -11,6 +11,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class LeaveRequestSubmitted implements ShouldBroadcast
 {
@@ -33,7 +34,9 @@ class LeaveRequestSubmitted implements ShouldBroadcast
     {
         $channels = [];
         $channels[] = new PrivateChannel('super-admin-global');
+
         $organization = $this->leaveRequest->employee->organization;
+        Log::info("leave request event starting.... $organization");
         if (!$this->leaveRequest->employee || !$organization)
         {
             return $channels;
@@ -41,7 +44,7 @@ class LeaveRequestSubmitted implements ShouldBroadcast
 
         $channels[] = new PrivateChannel('l3-channel.' . $organization->id);
 
-
+        Log::info("leave request admin l3 added... $organization->id");
         $allAncestors = $organization->ancestors;
         $allAncestors->push($organization);
         foreach ($allAncestors as $org)
@@ -50,6 +53,7 @@ class LeaveRequestSubmitted implements ShouldBroadcast
                 $channels[] = new PrivateChannel('l2-channel.' . $org->id);
             }
         }
+        Log::info("leave request admin l2 added...");
         return array_unique($channels);
     }
 
