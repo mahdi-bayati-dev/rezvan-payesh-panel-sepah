@@ -71,7 +71,7 @@ export const WorkPatternActions = ({
   }
 
   const getButtonStyle = (variant: 'primary' | 'success' | 'warning' | 'danger', disabled: boolean) => {
-    const base = "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm active:scale-[0.98] border cursor-pointer";
+    const base = "w-full flex items-center justify-center gap-1 px-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm active:scale-[0.98] border cursor-pointer";
 
     if (disabled) {
       return clsx(base, "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-secondaryD/20 dark:border-borderD dark:text-muted-foregroundD/40 shadow-none");
@@ -90,9 +90,9 @@ export const WorkPatternActions = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 h-full">
+    <div className="flex flex-col gap-3">
 
-      <div className="p-5 bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-2xl shadow-sm flex flex-col gap-4 flex-1">
+      <div className="p-2 bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-2xl shadow-sm flex flex-col gap-4 flex-1">
         <div>
           <h3 className="text-lg font-bold text-foregroundL dark:text-foregroundD flex items-center gap-2">
             <Fingerprint className="w-5 h-5 text-primaryL dark:text-primaryD" />
