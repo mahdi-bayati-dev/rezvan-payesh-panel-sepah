@@ -36,7 +36,7 @@ class EmployeeShiftController extends Controller
             $query->where('employee_id', $request->employee_id);
         }
 
-        $query->orderBy('date', 'desc');
+        $query->orderBy('date', 'asc');
 
         $perPage = (int) $request->input('per_page', 20);
         $shifts = $query->paginate($perPage);
