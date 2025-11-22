@@ -30,9 +30,9 @@ class ExportReady implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        Log::info("chanel ".'App.User.' . $this->user->id);
+        Log::info("chanel ".'user.' . $this->user->id);
         return [
-            new PrivateChannel('App.User.' . $this->user->id),
+            new PrivateChannel('user.' . $this->user->id),
         ];
     }
     public function broadcastAs(): string
