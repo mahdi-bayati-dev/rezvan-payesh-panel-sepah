@@ -96,8 +96,8 @@ Route::middleware(['auth:api',
          ->middleware('can:update,shiftSchedule');
 
     //دریافت شیفت های تخصیص داده شده
-    Route::get('/employee-shifts/{id}', [EmployeeShiftController::class, 'index'])
-        ->name('employee-shifts.index');
+    Route::get('shift-schedules/{shiftSchedule}/shifts', [EmployeeShiftController::class, 'index'])
+        ->name('shift-schedules.shifts.index');
 
     //leave-types setting
     Route::apiResource('leave-types', LeaveTypeController::class);
