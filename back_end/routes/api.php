@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminAttendanceLogController;
 use App\Http\Controllers\Api\AttendanceLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EmployeeShiftController;
 use App\Http\Controllers\Api\GenerateScheduleShiftsController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\LeaveRequestController;
@@ -93,6 +94,10 @@ Route::middleware(['auth:api',
     Route::post('shift-schedules/{shiftSchedule}/generate-shifts', GenerateScheduleShiftsController::class)
          ->name('shift-schedules.generate-shifts')
          ->middleware('can:update,shiftSchedule');
+
+    //دریافت شیفت های تخصیص داده شده
+    Route::get('/employee-shifts/{id}', [EmployeeShiftController::class, 'index'])
+        ->name('employee-shifts.index');
 
     //leave-types setting
     Route::apiResource('leave-types', LeaveTypeController::class);

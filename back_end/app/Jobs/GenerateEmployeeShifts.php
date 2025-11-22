@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\ShiftGenerationCompleted;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
 use App\Models\Holiday;
@@ -275,6 +276,11 @@ class GenerateEmployeeShifts implements ShouldQueue
             }
         }
         Log::info("پایان جاب GenerateEmployeeShifts برای برنامه ID: {$this->scheduleId}, دوره: " . $this->startDate->toDateString() . " تا " . $this->endDate->toDateString());
+
+        ShiftGenerationCompleted::dispatch(
+            $this->scheduleId,
+            "فرآیند تولید شیفت‌ها برای برنامه با شناسه {$this->scheduleId} با موفقیت به پایان رسید."
+        );
     }
 
     protected function getEmployeesForSchedule(ShiftSchedule $schedule): Collection
