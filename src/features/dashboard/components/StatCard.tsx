@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 interface StatCardProps {
   title: string;
   value: number | string;
-  linkText: string;
-  onLinkClick: () => void;
   icon: ReactNode;
+  // این دو پراپ را اختیاری کردیم تا بتوانیم لینک را مخفی کنیم
+  linkText?: string;
+  onLinkClick?: () => void;
 }
 
 const StatCard = ({
@@ -27,13 +28,16 @@ const StatCard = ({
             {title}
           </h3>
         </div>
-        
-        <button
-          onClick={onLinkClick}
-          className="text-[10px] sm:text-xs font-medium text-primaryL dark:text-primaryD hover:underline decoration-primaryL/30 underline-offset-4 transition-all"
-        >
-          {linkText}
-        </button>
+
+        {/* رندر شرطی: دکمه فقط زمانی نمایش داده می‌شود که متن لینک و تابع کلیک موجود باشند */}
+        {linkText && onLinkClick && (
+          <button
+            onClick={onLinkClick}
+            className="text-[10px] sm:text-xs font-medium text-primaryL dark:text-primaryD hover:underline decoration-primaryL/30 underline-offset-4 transition-all"
+          >
+            {linkText}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center justify-between mt-2">
