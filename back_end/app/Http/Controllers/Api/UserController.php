@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
+use App\Models\EmployeeImage;
 use App\Models\Status;
 use App\Models\Organization;
 use App\Models\User;
@@ -13,6 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -35,7 +39,7 @@ class UserController extends Controller
         $currentUserEmployee = $currentUser->employee;
 
 
-        $query = User::with(['employee.organization', 'roles', 'employee.workGroup', 'employee.shiftSchedule', 'employee.weekPattern']);
+        $query = User::with(['employee.organization', 'roles','employee.images', 'employee.workGroup', 'employee.shiftSchedule', 'employee.weekPattern']);
 
         if ($request->has('work_group_id'))
         {
@@ -203,6 +207,10 @@ class UserController extends Controller
             'employee.work_group_id' => ['nullable', 'integer', Rule::exists('work_groups', 'id')],
             'employee.shift_schedule_id' => ['nullable', 'integer', Rule::exists('shift_schedules', 'id')],
             'employee.work_pattern_id' => ['nullable', 'integer', Rule::exists('work_patterns', 'id')],
+
+            'employee.images' => ['nullable', 'array'],
+            'employee.images.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+
         ]);
 
         if ($validator->fails())
@@ -219,7 +227,7 @@ class UserController extends Controller
              return response()->json(['message' => 'Unauthorized scope for organization.'], 403);
         }
         // 4. Create User and Employee in Transaction
-        $currentUser = DB::transaction(function () use ($validatedData, $employeeData) {
+        $currentUser = DB::transaction(function () use ($validatedData, $employeeData,$request) {
             $newUser = User::create([
                 'user_name' => $validatedData['user_name'],
                 'email' => $validatedData['email'],
@@ -227,7 +235,7 @@ class UserController extends Controller
                 'status' => $validatedData['status'],
             ]);
 
-            $newUser->employee()->create(
+            $newEmployee = $newUser->employee()->create(
                 [
                 'first_name' => $employeeData['first_name'],
                 'last_name' => $employeeData['last_name'],
@@ -258,12 +266,39 @@ class UserController extends Controller
 
             ]);
 
+            $paths = [];
+            if ($request->hasFile('employee.images'))
+            {
+                foreach ($request->file('employee.images') as $image) {
+                    $path = $image->store('uploads/employees', 'public');
+                    $paths[] = $path;
+                    EmployeeImage::create([
+                        'employee_id' => $newEmployee->id,
+                        'path' => $path,
+                        'original_name' => $image->getClientOriginalName(),
+                        'mime_type' => $image->getClientMimeType(),
+                        'size' => $image->getSize(),
+                    ]);
+                }
+            }
+
             $newUser->assignRole($validatedData['role']);
+
+            $response = Http::post('https://ai.eitebar.ir/v1/user', [
+                'personnel_code' => $newEmployee->personnel_code,
+                'gender' => $newEmployee->gender,
+                'images' => !empty($paths) ? json_encode($paths) : null,
+            ]);
+
+            if ($response->status() != 200)
+            {
+                Log::error("we can't connect to ai. response : \n\t ".$response->body());
+            }
 
             return $newUser;
         });
 
-        return new UserResource($currentUser->load(['employee.organization', 'roles']));
+        return new UserResource($currentUser->load(['employee.organization', 'roles', 'employee.images']));
     }
 
     /**
@@ -323,6 +358,14 @@ class UserController extends Controller
             'employee.shift_schedule_id' => ['nullable', 'integer', Rule::exists('shift_schedules', 'id')],
             'employee.work_pattern_id' => ['nullable', 'integer', Rule::exists('work_patterns', 'id')],
 
+            // اعتبارسنجی تصاویر (جدید)
+            'employee.images' => ['nullable', 'array'],
+            'employee.images.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+
+            // گزینه اختیاری برای حذف عکس‌های خاص (آرایه‌ای از IDها)
+            'employee.delete_images' => ['nullable', 'array'],
+            'employee.delete_images.*' => ['integer', 'exists:EmployeeImages,id'],
+
         ]);
 
         if ($validator->fails())
@@ -350,7 +393,7 @@ class UserController extends Controller
          }
 
          // 4. Update User and Employee in Transaction
-         DB::transaction(function () use ($user, $validatedData, $employeeData) {
+         DB::transaction(function () use ($request,$user, $validatedData, $employeeData) {
              // Update User fields
              $userDataToUpdate = [];
              if (isset($validatedData['user_name'])) $userDataToUpdate['user_name'] = $validatedData['user_name'];
@@ -360,7 +403,49 @@ class UserController extends Controller
 
              // Update Employee fields if provided
              if (!empty($employeeData) && $user->employee) {
-                 $user->employee->update($employeeData);
+                 $employeeFields = collect($employeeData)->except(['images', 'delete_images'])->toArray();
+                 $user->employee->update($employeeFields);
+             }
+
+             if (isset($employeeData['delete_images']))
+             {
+                     $imagesToDelete = EmployeeImage::whereIn('id', $employeeData['delete_images'])
+                                         ->where('employee_id', $user->employee->id)
+                                         ->get();
+
+                     foreach($imagesToDelete as $img) {
+                         Storage::disk('public')->delete($img->path);
+                         $img->delete();
+                     }
+             }
+
+             $paths = [];
+             if ($request->hasFile('employee.images'))
+             {
+                     foreach ($request->file('employee.images') as $image) {
+                         $path = $image->store('uploads/employees', 'public');
+                        $paths[] = $path;
+                         EmployeeImage::create([
+                             'employee_id' => $user->employee->id,
+                             'path' => $path,
+                             'original_name' => $image->getClientOriginalName(),
+                             'mime_type' => $image->getClientMimeType(),
+                             'size' => $image->getSize(),
+                         ]);
+                     }
+             }
+
+             $user->employee->refresh();
+
+             $response = Http::put('https://ai.eitebar.ir/v1/user', [
+                 'personnel_code' => $employeeData->personnel_code,
+                 'gender' => $employeeData->gender,
+                 'images' => !empty($paths) ? json_encode($paths) : null,
+             ]);
+
+             if ($response->status() != 200)
+             {
+                 Log::error("we can't connect to ai. response : \n\t ".$response->body());
              }
 
              // Update Role if changed and authorized
@@ -370,7 +455,7 @@ class UserController extends Controller
              }
          });
 
-        return new UserResource($user->load(['employee.organization', 'roles']));
+        return new UserResource($user->load(['employee.organization', 'roles', 'employee.images']));
 
     }
 
@@ -381,11 +466,32 @@ class UserController extends Controller
     {
         $this->authorize('delete', $user);
 
+        $employee = $user->employee;
 
         // 2. Prevent self-deletion
         if (request()->user()->id === $user->id)
         {
             return response()->json(['message' => 'Users cannot delete themselves.'], 403);
+        }
+
+        if ($employee)
+        {
+            $images = EmployeeImage::where('employee_id', $employee->id)->get();
+            $deletedPaths = $images->pluck('path')->toArray();
+            foreach ($images as $img) {
+                Storage::disk('public')->delete($img->path);
+            }
+
+            $response = Http::delete('https://ai.eitebar.ir/v1/user', [
+                'personnel_code' => $employee->personnel_code,
+                'gender' => $employee->gender,
+                'images' => !empty($deletedPaths) ? json_encode($deletedPaths) : null,
+            ]);
+
+            if ($response->status() != 200)
+            {
+                Log::error("we can't connect to ai. response : \n\t ".$response->body());
+            }
         }
 
         $user->delete();

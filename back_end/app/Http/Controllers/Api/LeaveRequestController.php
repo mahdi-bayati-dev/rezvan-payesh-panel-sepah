@@ -121,7 +121,7 @@ class LeaveRequestController extends Controller
      */
     public function update(Request $request, LeaveRequest $leaveRequest)
     {
-         $this->authorize('update', $leaveRequest);
+        $this->authorize('update', $leaveRequest);
         $validator = Validator::make($request->all(), [
             'leave_type_id' => 'required|integer|exists:leave_types,id',
             'start_time' => 'required|date|after_or_equal:now',

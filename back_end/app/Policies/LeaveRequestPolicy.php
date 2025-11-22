@@ -115,6 +115,11 @@ class LeaveRequestPolicy
         }
         $managerOrgId = $managerEmployee->organization_id;
         $requestEmployeeOrg = $requestEmployee->organization;
+        if($managerEmployee->id === $requestEmployee->id)
+        {
+            Log::warning("LeaveRequest {$leaveRequest->id} cannot be processed because its employee {$leaveRequest->employee_id} is the manager organization itself.");
+            return false;
+        }
         if ($user->hasRole('org-admin-l3'))
         {
             return $requestEmployeeOrg->id === $managerOrgId;

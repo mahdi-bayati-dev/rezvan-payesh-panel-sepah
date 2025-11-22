@@ -79,6 +79,12 @@ class Employee extends Model implements Auditable
         return $this->belongsTo(User::class);
     }
 
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(EmployeeImage::class);
+    }
+
     /**
      * هر کارمند به یک واحد سازمانی (Organization) تعلق دارد.
      * (رابطه چند-به-یک معکوس)
