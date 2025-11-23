@@ -41,7 +41,6 @@ class ProcessDailyAttendance extends Command
 
         foreach ($employees as $employee)
         {
-
             if ($isHoliday)
             {
                 $this->createSummary($employee, $date, 'holiday');
@@ -56,6 +55,21 @@ class ProcessDailyAttendance extends Command
                 continue;
             }
 
+            $floatingStart = 0;
+            $floatingEnd = 0;
+
+            if ($schedule->shiftSchedule)
+            {
+                $floatingStart = (int) $schedule->shiftSchedule->floating_start;
+                $floatingEnd = (int) $schedule->shiftSchedule->floating_end;
+            }
+            elseif ($employee->weekPattern)
+            {
+                $floatingStart = (int) $employee->weekPattern->floating_start;
+                $floatingEnd = (int) $employee->weekPattern->floating_end;
+            }
+
+
             $approvedLeaves = $employee->leaveRequests()
                 ->where('status', LeaveRequest::STATUS_APPROVED)
                 ->where('start_time', '<', $schedule->expected_end)
@@ -69,7 +83,6 @@ class ProcessDailyAttendance extends Command
 
             foreach ($approvedLeaves as $leave)
             {
-
                 if ($leave->start_time <= $schedule->expected_start && $leave->end_time >= $schedule->expected_end)
                 {
                     $isFullDayLeave = true;
@@ -85,7 +98,6 @@ class ProcessDailyAttendance extends Command
                 {
                     $adjustedEnd = $leave->start_time;
                 }
-
             }
 
             if ($isFullDayLeave)
@@ -94,8 +106,11 @@ class ProcessDailyAttendance extends Command
                 continue;
             }
 
+            $searchStart = $schedule->expected_start->copy()->subMinutes($floatingStart + 60);
+            $searchEnd = $schedule->expected_end->copy()->addMinutes($floatingEnd + 60);
+
             $logs = $employee->attendanceLogs()
-                ->whereBetween('timestamp', [$schedule->expected_start, $schedule->expected_end])
+                ->whereBetween('timestamp', [$searchStart, $searchEnd])
                 ->orderBy('timestamp', 'asc')
                 ->get();
 
@@ -104,24 +119,28 @@ class ProcessDailyAttendance extends Command
 
             if ($firstCheckIn)
             {
+                $lateness = 0;
+                $earlyDeparture = 0;
 
-                $lateness = max(0, $firstCheckIn->timestamp->diffInMinutes($adjustedStart));
-                $earlyDeparture = null;
-
-                if ($lastCheckOut)
+                if ($firstCheckIn->timestamp->gt($adjustedStart))
                 {
+                    $diffInMinutes = $firstCheckIn->timestamp->diffInMinutes($adjustedStart);
 
-                    $earlyDeparture = max(0, $adjustedEnd->diffInMinutes($lastCheckOut->timestamp));
+                    $lateness = ($diffInMinutes <= $floatingStart) ? 0 : $diffInMinutes;
+                }
+
+                if ($lastCheckOut && $lastCheckOut->timestamp->lt($adjustedEnd))
+                {
+                    $diffInMinutes = $adjustedEnd->diffInMinutes($lastCheckOut->timestamp);
+                    $earlyDeparture = ($diffInMinutes <= $floatingEnd) ? 0 : $diffInMinutes;
                 }
 
                 $status = $approvedLeaves->isNotEmpty() ? 'present_with_leave' : 'present';
 
                 $this->createSummary($employee, $date, $status, $schedule, $approvedLeaves->first(), $firstCheckIn, $lastCheckOut, $lateness, $earlyDeparture);
-
             }
             else
             {
-
                 $this->createSummary($employee, $date, 'absent', $schedule, $approvedLeaves->first());
             }
         }

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AttendanceLogResource;
 use App\Models\AttendanceLog;
+use App\Models\Employee;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -39,7 +41,6 @@ class AdminAttendanceLogController extends Controller
         }
         $logs = $query->latest('timestamp')->paginate($perPage);
         return AttendanceLogResource::collection($logs);
-
     }
 
     /**
@@ -48,36 +49,38 @@ class AdminAttendanceLogController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', AttendanceLog::class);
-        $validator = Validator::make($request->all(),
-            [
-                'employee_id' => ['required', 'integer', 'exists:employees,id'],
-                'event_type' => ['required', 'string', Rule::in([AttendanceLog::TYPE_CHECK_IN, AttendanceLog::TYPE_CHECK_OUT])],
-                'timestamp' => ['required', 'date_format:Y-m-d H:i:s'],
-                'remarks' => ['nullable', 'string', 'max:500'],
-            ]);
+
+        $validator = Validator::make($request->all(), [
+            'employee_id' => ['required', 'exists:employees,id'],
+            'event_type' => ['required', 'string', Rule::in([AttendanceLog::TYPE_CHECK_IN, AttendanceLog::TYPE_CHECK_OUT])],
+            'timestamp' => ['required', 'date_format:Y-m-d H:i:s'],
+            'remarks' => ['nullable', 'string', 'max:500'],
+        ]);
+
         if ($validator->fails())
         {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-        $log = AttendanceLog::create([
-            'employee_id' => $request->employee_id,
-            'event_type' => $request->event_type,
-            'timestamp' => $request->timestamp,
-            'remarks' => $request->remarks,
-            'source_name' => 'Admin Panel',
-            'source_type' => AttendanceLog::SOURCE_MANUAL_ADMIN,
-            'edited_by_user_id' => $request->user()->id,
-        ]);
-        return new AttendanceLogResource($log->load(['employee', 'editor']));
-    }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(AttendanceLog $attendanceLog)
-    {
-        $this->authorize('view', $attendanceLog);
-        return new AttendanceLogResource($attendanceLog->load(['employee', 'editor']));
+        $data = $validator->validated();
+        $employee = Employee::findOrFail($data['employee_id']);
+
+        $metrics = $this->calculateAttendanceMetrics($employee, $data['timestamp'], $data['event_type']);
+
+        $log = AttendanceLog::create([
+            'employee_id' => $data['employee_id'],
+            'event_type' => $data['event_type'],
+            'timestamp' => $data['timestamp'],
+            'device_id' => null,
+            'source_name' => 'Admin Panel (' . Auth::user()->name . ')',
+            'source_type' => AttendanceLog::SOURCE_MANUAL_ADMIN,
+            'remarks' => $data['remarks'],
+            'edited_by_user_id' => Auth::id(),
+            'lateness_minutes' => $metrics['lateness'],
+            'early_departure_minutes' => $metrics['early_departure'],
+        ]);
+
+        return new AttendanceLogResource($log->load(['employee', 'editor']));
     }
 
     /**
@@ -100,6 +103,18 @@ class AdminAttendanceLogController extends Controller
 
         $dataToUpdate = $validator->validated();
 
+        if (isset($dataToUpdate['timestamp']) || isset($dataToUpdate['event_type']))
+        {
+            $employee = $attendanceLog->employee;
+            $timestamp = $dataToUpdate['timestamp'] ?? $attendanceLog->timestamp;
+            $eventType = $dataToUpdate['event_type'] ?? $attendanceLog->event_type;
+
+            $metrics = $this->calculateAttendanceMetrics($employee, $timestamp, $eventType);
+
+            $dataToUpdate['lateness_minutes'] = $metrics['lateness'];
+            $dataToUpdate['early_departure_minutes'] = $metrics['early_departure'];
+        }
+
         $dataToUpdate['edited_by_user_id'] = $request->user()->id;
         $dataToUpdate['source_type'] = AttendanceLog::SOURCE_MANUAL_ADMIN_EDIT;
 
@@ -107,7 +122,6 @@ class AdminAttendanceLogController extends Controller
 
         return new AttendanceLogResource($attendanceLog->load(['employee', 'editor']));
     }
-
     /**
      * Remove the specified resource from storage.
      */
@@ -119,5 +133,56 @@ class AdminAttendanceLogController extends Controller
             'is_allowed' => true
          ]);
         return new AttendanceLogResource($attendanceLog->load(['employee', 'editor']));
+    }
+
+    /**
+     * تابع کمکی برای محاسبه تاخیر و تعجیل با منطق شناوری (Threshold Logic)
+     */
+    private function calculateAttendanceMetrics(Employee $employee, string $timestampString, string $eventType): array
+    {
+        $logTimestamp = Carbon::parse($timestampString);
+        $schedule = $employee->getWorkScheduleFor($logTimestamp);
+
+        $lateness = 0;
+        $earlyDeparture = 0;
+
+        if ($schedule)
+        {
+            $floatingStart = 0;
+            $floatingEnd = 0;
+
+            if ($schedule->shiftSchedule) {
+                $floatingStart = (int) $schedule->shiftSchedule->floating_start;
+                $floatingEnd = (int) $schedule->shiftSchedule->floating_end;
+            } elseif ($employee->weekPattern) {
+                $floatingStart = (int) $employee->weekPattern->floating_start;
+                $floatingEnd = (int) $employee->weekPattern->floating_end;
+            }
+
+            $expectedStart = $schedule->expected_start_time ? Carbon::parse($schedule->expected_start_time) : null;
+            $expectedEnd = $schedule->expected_end_time ? Carbon::parse($schedule->expected_end_time) : null;
+
+            if ($eventType == AttendanceLog::TYPE_CHECK_IN && $expectedStart)
+            {
+                if ($logTimestamp->gt($expectedStart))
+                {
+                    $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
+                    $lateness = ($diffInMinutes <= $floatingStart) ? 0 : $diffInMinutes;
+                }
+            }
+            elseif ($eventType == AttendanceLog::TYPE_CHECK_OUT && $expectedEnd)
+            {
+                if ($logTimestamp->lt($expectedEnd))
+                {
+                    $diffInMinutes = $expectedEnd->diffInMinutes($logTimestamp);
+                    $earlyDeparture = ($diffInMinutes <= $floatingEnd) ? 0 : $diffInMinutes;
+                }
+            }
+        }
+
+        return [
+            'lateness' => $lateness,
+            'early_departure' => $earlyDeparture
+        ];
     }
 }

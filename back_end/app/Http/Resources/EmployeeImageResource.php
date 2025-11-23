@@ -17,8 +17,7 @@ class EmployeeImageResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            // مسیر کامل و قابل دسترسی (URL) را برمی‌گردانیم
-            'url' => Storage::disk('public')->url($this->path),
+            'url' => $this->path ? Storage::url($this->path) : null,
             'original_name' => $this->original_name,
             'mime_type' => $this->mime_type,
             'size' => $this->size,

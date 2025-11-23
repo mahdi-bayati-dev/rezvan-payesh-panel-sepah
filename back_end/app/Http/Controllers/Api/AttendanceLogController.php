@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Device;
 use App\Models\Employee;
-use App\Models\LeaveRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
@@ -14,25 +13,23 @@ use Illuminate\Validation\Rule;
 
 class AttendanceLogController extends Controller
 {
-    /**
-     * هندل کردن درخواست‌های ارسالی از دستگاه‌های حضور و غیاب یا سرویس AI
-     */
     public function handleAiRequest(Request $request)
     {
-        // ۱. اعتبارسنجی ورودی
         $validator = Validator::make($request->all(), [
             'device_api_key' => ['required', 'string'],
             'personnel_code' => ['required', 'string', 'exists:employees,personnel_code'],
             'event_type' => ['required', 'string', Rule::in([AttendanceLog::TYPE_CHECK_IN, AttendanceLog::TYPE_CHECK_OUT])],
-            'timestamp' => ['required', 'date_format:Y-m-d H:i:s'], // فرمت دقیق‌تر با ثانیه
-            'source_name'=> ['nullable', 'string'], // شاید دستگاه اسم نفرستد
+            'timestamp' => ['required', 'date_format:Y-m-d H:i:s'],
+            'source_name'=> ['nullable', 'string'],
         ]);
 
-        if ($validator->fails()) {
+        if ($validator->fails())
+        {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
         $validated = $validator->validated();
+
 
         $device = Device::where('api_key', $validated['device_api_key'])->first();
         if (!$device)
@@ -45,76 +42,97 @@ class AttendanceLogController extends Controller
         }
 
         $employee = Employee::where('personnel_code', $validated['personnel_code'])->first();
-
         $logTimestamp = Carbon::parse($validated['timestamp']);
 
+        // 5 min check
+            $existsRecently = AttendanceLog::where('employee_id', $employee->id)
+                ->where('event_type', $validated['event_type'])
+                ->whereBetween('timestamp', [
+                    $logTimestamp->copy()->subMinutes(5),
+                    $logTimestamp->copy()->addMinutes(5)
+                ])
+                ->first();
+
+            if ($existsRecently)
+            {
+                return response()->json([
+                    'message' => 'Duplicate attendance log (within 5 minutes restriction).',
+                    'log_id' => $existsRecently->id,
+                ], 409);
+            }
+        // end check
         $schedule = $employee->getWorkScheduleFor($logTimestamp);
+
         $lateness_minutes = 0;
         $early_departure_minutes = 0;
 
-
         if ($schedule)
         {
-            $dateOnly = $logTimestamp->format('Y-m-d');
 
-            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN)
+            $floatingStart = 0;
+            $floatingEnd = 0;
+
+            if ($schedule->shiftSchedule)
             {
-                $startTimeString = $schedule->override_start_time ?? $schedule->start_time ?? null;
+                $floatingStart = (int) $schedule->shiftSchedule->floating_start;
+                $floatingEnd = (int) $schedule->shiftSchedule->floating_end;
+            }
+            elseif ($employee->weekPattern)
+            {
+                $floatingStart = (int) $employee->weekPattern->floating_start;
+                $floatingEnd = (int) $employee->weekPattern->floating_end;
+            }
 
-                if ($startTimeString)
+            $expectedStart = $schedule->expected_start_time ? Carbon::parse($schedule->expected_start_time) : null;
+            $expectedEnd = $schedule->expected_end_time ? Carbon::parse($schedule->expected_end_time) : null;
+
+            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN && $expectedStart) {
+
+                if ($logTimestamp->gt($expectedStart))
                 {
-                    $shiftStartTime = Carbon::parse($dateOnly . ' ' . $startTimeString);
-                    $shiftStartTime = $shiftStartTime + $schedule->floating_start;
-                    if ($logTimestamp->gt($shiftStartTime))
+                    $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
+
+                    if ($diffInMinutes <= $floatingStart)
                     {
-                        $lateness_minutes = $logTimestamp->diffInMinutes($shiftStartTime);
+                        $lateness_minutes = 0;
+                    }
+                    else
+                    {
+                        $lateness_minutes = $diffInMinutes;
                     }
                 }
             }
-            elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT) {
-                $endTimeString = $schedule->override_end_time ?? $schedule->end_time ?? null;
 
-                if ($endTimeString)
+            elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT && $expectedEnd)
+            {
+
+                if ($logTimestamp->lt($expectedEnd))
                 {
-                    $shiftEndTime = Carbon::parse($dateOnly . ' ' . $endTimeString);
-                    $shiftEndTime = $shiftEndTime + $schedule->floating_end;
+                    $diffInMinutes = $expectedEnd->diffInMinutes($logTimestamp);
 
-                    if (Carbon::parse($endTimeString)->lt(Carbon::parse($startTimeString ?? '00:00')))
+                    if ($diffInMinutes <= $floatingEnd)
                     {
-                        $shiftEndTime->addDay();
+                        $early_departure_minutes = 0;
                     }
-
-                    if ($logTimestamp->lt($shiftEndTime))
+                    else
                     {
-                        $early_departure_minutes = $shiftEndTime->diffInMinutes($logTimestamp);
+                        $early_departure_minutes = $diffInMinutes;
                     }
                 }
             }
         }
 
-        $log = AttendanceLog::firstOrCreate(
-            [
-                'employee_id' => $employee->id,
-                'timestamp' => $logTimestamp->toDateTimeString(),
-                'event_type' => $validated['event_type'],
-            ],
-            [
-                'device_id' => $device->id,
-                'source_name' => $validated['source_name'] ?? $device->name,
-                'source_type' => 'auto',
-                'lateness_minutes' => $lateness_minutes,
-                'early_departure_minutes' => $early_departure_minutes,
-                'remarks' => $validated['source_name'],
-            ]
-        );
-
-        if (!$log->wasRecentlyCreated)
-        {
-            return response()->json([
-                'message' => 'Duplicate attendance log. The log already exists.',
-                'log_id' => $log->id,
-            ], 409);
-        }
+        $log = AttendanceLog::create([
+            'employee_id' => $employee->id,
+            'timestamp' => $logTimestamp->toDateTimeString(),
+            'event_type' => $validated['event_type'],
+            'device_id' => $device->id,
+            'source_name' => $validated['source_name'] ?? $device->name,
+            'source_type' => 'auto',
+            'lateness_minutes' => $lateness_minutes,
+            'early_departure_minutes' => $early_departure_minutes,
+            'remarks' => $validated['source_name'],
+        ]);
 
         return response()->json([
             'message' => 'Attendance log created successfully',
