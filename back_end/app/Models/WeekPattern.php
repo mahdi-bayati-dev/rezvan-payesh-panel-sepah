@@ -21,6 +21,8 @@ class WeekPattern extends Model
         'wednesday_pattern_id',
         'thursday_pattern_id',
         'friday_pattern_id',
+        'floating_end',
+        'floating_start',
     ];
 
 

@@ -103,8 +103,10 @@ class WeekPatternController extends Controller
 
         return Validator::make($request->all(), [
             'name' => $nameRule,
+            'floating_end'=>'required|integer|min:0',
+            'floating_start'=>'required|integer|min:0',
             'days' => 'required|array|size:7',
-            'days.*.day_of_week' => 'required|integer|between:0,6|distinct', // (تغییر یافته) قانون distinct اضافه شد
+            'days.*.day_of_week' => 'required|integer|between:0,6|distinct',
             'days.*.is_working_day' => 'required|boolean',
             'days.*.start_time' => 'required_if:days.*.is_working_day,true|nullable|date_format:H:i',
             'days.*.end_time' => 'required_if:days.*.is_working_day,true|nullable|date_format:H:i|after:days.*.start_time',
