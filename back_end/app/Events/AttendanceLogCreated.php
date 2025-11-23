@@ -51,6 +51,8 @@ class AttendanceLogCreated implements ShouldBroadcast
                 $depth_counter++;
             }
         }
+        $user = $this->log->employee->user;
+        $channels[] = new PrivateChannel('App.User.' . $user->id);
         Log::info('[BroadcastOn] Final channels: ' . json_encode($channels));
 
 
