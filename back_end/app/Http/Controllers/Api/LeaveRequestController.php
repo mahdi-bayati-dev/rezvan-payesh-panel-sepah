@@ -186,11 +186,11 @@ class LeaveRequestController extends Controller
 
         $validator = Validator::make($request->all(), [
             'organization_id' => 'nullable|integer|exists:organizations,id',
-            'from_date' => 'nullable|date',
-            'to_date' => 'nullable|date',
-            'status' => 'nullable|string|in:pending,approved,rejected',
-            'search' => 'nullable|string|max:255',
-            'leave_type_id' => 'nullable|integer|exists:leave_types,id',
+            'from_date'       => 'nullable|date',
+            'to_date'         => 'nullable|date',
+            'status'          => 'nullable|string|in:pending,approved,rejected',
+            'search'          => 'nullable|string|max:255',
+            'leave_type_id'   => 'nullable|integer|exists:leave_types,id',
         ]);
 
         if ($validator->fails()) {
@@ -210,16 +210,17 @@ class LeaveRequestController extends Controller
             $currentUser = $request->user();
             if (!$currentUser->hasRole('super_admin')) {
                 $targetOrg = Organization::find($filters['organization_id']);
+                // بررسی اینکه آیا کاربر اجازه دیدن این سازمان را دارد
                 $this->authorize('see', $targetOrg);
             }
         }
 
-
-        GenerateLeaveReportJob::dispatch($request->user(), $filters);
+        $filename = 'reports/leave-requests-' . now()->format('YmdHis') . '-' . $request->user()->id . '.xlsx';
+        GenerateLeaveReportJob::dispatch($request->user(), $filters, $filename);
 
         return response()->json([
             'message' => 'درخواست گزارش ثبت شد. پس از آماده‌سازی فایل، لینک دانلود برای شما ارسال می‌شود.',
-            'status' => 'queued'
+            'status'  => 'queued'
         ], 202);
     }
 }
