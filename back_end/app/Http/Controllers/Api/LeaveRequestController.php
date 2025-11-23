@@ -214,9 +214,9 @@ class LeaveRequestController extends Controller
                 $this->authorize('see', $targetOrg);
             }
         }
-
-        $filename = 'leave-requests-' . now()->format('YmdHis') . '-' . $request->user()->id . '.xlsx';
-        GenerateLeaveReportJob::dispatch($request->user(), $filters, $filename);
+        $user = $request->user();
+        $filename = "leave_requests_user_{$user->id}_" . now()->timestamp . '.xlsx';
+        GenerateLeaveReportJob::dispatch($user, $filters, $filename);
 
         return response()->json([
             'message' => 'درخواست گزارش ثبت شد. پس از آماده‌سازی فایل، لینک دانلود برای شما ارسال می‌شود.',
