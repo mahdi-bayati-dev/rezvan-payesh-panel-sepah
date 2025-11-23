@@ -273,7 +273,7 @@ class UserController extends Controller
             $imagePaths = [];
             if ($request->hasFile('employee.images'))
             {
-                $directory = 'users/' . $validatedData['personnel_code'];
+                $directory = 'users/' . $employeeData['personnel_code'];
                 foreach ($request->file('employee.images') as $image) {
                     $path = $image->store($directory, 'public');
                     $imgRecord = EmployeeImage::create([
