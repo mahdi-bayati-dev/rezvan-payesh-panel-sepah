@@ -1,6 +1,6 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
-import axiosInstance from "./AxiosConfig"; 
+import axiosInstance from "./AxiosConfig";
 
 declare global {
   interface Window {
@@ -15,24 +15,30 @@ if (typeof window !== "undefined") {
 
 const logStyles = {
   info: "background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px;",
-  success: "background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px;",
-  error: "background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;",
-  warning: "background: #f59e0b; color: black; padding: 2px 6px; border-radius: 4px;",
+  success:
+    "background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px;",
+  error:
+    "background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;",
+  warning:
+    "background: #f59e0b; color: black; padding: 2px 6px; border-radius: 4px;",
 };
 
-const logSocket = (level: keyof typeof logStyles, message: string, data?: any) => {
+const logSocket = (
+  level: keyof typeof logStyles,
+  message: string,
+  data?: any
+) => {
   if (import.meta.env.DEV) {
     console.log(`%c[Socket] ${message}`, logStyles[level], data || "");
   }
 };
 
-export const initEcho = (token: string): Echo<any> | null => {
+// ✅ تغییر: توکن را به عنوان ورودی نمی‌گیریم
+export const initEcho = (): Echo<any> | null => {
   if (typeof window === "undefined") return null;
 
-  if (!token) {
-    logSocket("error", "تلاش برای اتصال بدون توکن!");
-    return null;
-  }
+  // ✅ در اینجا منطق چک کردن توکن را حذف می‌کنیم.
+  // اگر کاربر لاگین نباشد، درخواست Auth Pusher با 401 مواجه می‌شود.
 
   if (window.EchoInstance) {
     return window.EchoInstance;
@@ -40,11 +46,9 @@ export const initEcho = (token: string): Echo<any> | null => {
 
   logSocket("info", "در حال ایجاد اتصال جدید...");
 
-  // --- ✅ اصلاحیه مهم آدرس Auth ---
   // آدرس API شما: http://payesh.eitebar.ir/api
-  // آدرس Auth لاراول به صورت پیش‌فرض: http://payesh.eitebar.ir/broadcasting/auth (بدون api)
-  // بنابراین ما /api را از انتهای آدرس حذف می‌کنیم.
-  const apiBase = import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
+  const apiBase =
+    import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
   const rootUrl = apiBase.replace(/\/api\/?$/, ""); // حذف /api از آخر
   const authEndpointUrl = `${rootUrl}/broadcasting/auth`;
 
@@ -59,27 +63,32 @@ export const initEcho = (token: string): Echo<any> | null => {
     encrypted: false,
     disableStats: true,
     enabledTransports: ["ws", "wss"],
-    
-    // استفاده از authorizer برای ارسال توکن صحیح
+
+    // ✅ مهم: نیاز به تنظیم authorizer نیست، اگر Pusher به طور خودکار کوکی‌ها را بفرستد.
+    // اما برای اطمینان از سازگاری و فرستادن کوکی‌ها به Auth Endpoint لاراول،
+    // از authorizer و axiosInstance که با withCredentials تنظیم شده، استفاده می‌کنیم.
     authorizer: (channel: any, _options: any) => {
-        return {
-            authorize: (socketId: string, callback: Function) => {
-                // لاگ برای اطمینان از ارسال به آدرس درست
-                // console.log(`[Socket Auth] Sending to: ${authEndpointUrl}`);
-                
-                axiosInstance.post(authEndpointUrl, {
-                    socket_id: socketId,
-                    channel_name: channel.name
-                })
-                .then(response => {
-                    callback(false, response.data);
-                })
-                .catch(error => {
-                    logSocket("error", `❌ Auth Error for ${channel.name}`, error.response?.status);
-                    callback(true, error);
-                });
-            }
-        };
+      return {
+        authorize: (socketId: string, callback: Function) => {
+          // axiosInstance به دلیل withCredentials: true کوکی‌های HttpOnly را ارسال می‌کند
+          axiosInstance
+            .post(authEndpointUrl, {
+              socket_id: socketId,
+              channel_name: channel.name,
+            })
+            .then((response) => {
+              callback(false, response.data);
+            })
+            .catch((error) => {
+              logSocket(
+                "error",
+                `❌ Auth Error for ${channel.name}`,
+                error.response?.status
+              );
+              callback(true, error);
+            });
+        },
+      };
     },
   };
 
@@ -87,12 +96,19 @@ export const initEcho = (token: string): Echo<any> | null => {
     const echoInstance = new Echo(options);
     window.EchoInstance = echoInstance;
 
-    (echoInstance.connector as any).pusher.connection.bind("state_change", (states: any) => {
-      logSocket("info", `وضعیت اتصال: ${states.current}`);
-    });
+    (echoInstance.connector as any).pusher.connection.bind(
+      "state_change",
+      (states: any) => {
+        logSocket("info", `وضعیت اتصال: ${states.current}`);
+      }
+    );
 
     (echoInstance.connector as any).pusher.connection.bind("connected", () => {
-      logSocket("success", "✅ متصل شد.", `Socket ID: ${echoInstance.socketId()}`);
+      logSocket(
+        "success",
+        "✅ متصل شد.",
+        `Socket ID: ${echoInstance.socketId()}`
+      );
     });
 
     return echoInstance;
