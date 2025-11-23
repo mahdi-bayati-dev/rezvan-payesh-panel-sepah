@@ -1,6 +1,7 @@
 // features/requests/routes/requestsPage.tsx
 import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
+import {  Download } from "lucide-react";
+// ❌ Link حذف شد چون دیگر به روت جداگانه نمی‌رویم
 import {
   useReactTable,
   getCoreRowModel,
@@ -20,6 +21,7 @@ import gregorian from "react-date-object/calendars/gregorian";
 import { DataTable } from "@/components/ui/DataTable";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 import { type SelectOption } from "@/components/ui/SelectBox";
+import { Button } from "@/components/ui/Button";
 
 // --- منطق ماژول Requests ---
 import { requestsColumns } from "../components/mainRequests/RequestsColumnDefs";
@@ -29,12 +31,13 @@ import { type LeaveRequest, type User } from "../types";
 import { useAppSelector } from "@/hook/reduxHooks";
 import { selectUser } from "@/store/slices/authSlice";
 
-// ✅ ایمپورت هوک جدید سوکت
 import { useLeaveRequestSocket } from "../hook/useLeaveRequestSocket";
-// ✅ ایمپورت هوک شمارنده برای نمایش در هدر
 import { usePendingRequestsCount } from "../hook/usePendingRequestsCount";
 
-// --- تابع فیلتر تاریخ (Client-Side) ---
+// ✅ ایمپورت مدال جدید
+import { ExportSettingsModal } from "../components/mainRequests/ExportSettingsModal";
+
+// ... (dateFilterFn بدون تغییر) ...
 const dateFilterFn: FilterFn<LeaveRequest> = (row, _columnId, value: DateObject | null) => {
   if (!value) return true;
   try {
@@ -50,22 +53,23 @@ const dateFilterFn: FilterFn<LeaveRequest> = (row, _columnId, value: DateObject 
 const RequestsPage = () => {
   const currentUser = useAppSelector(selectUser) as User | null;
 
+  // ✅ استیت کنترل مدال خروجی
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  // ... (سایر استیت‌ها بدون تغییر) ...
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-
-  // --- State فیلترها ---
   const [organizationFilter, setOrganizationFilter] = useState<SelectOption | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<SelectOption | null>(null);
   const [leaveTypeFilter, setLeaveTypeFilter] = useState<SelectOption | null>(null);
   const [statusFilter, setStatusFilter] = useState<SelectOption | null>(null);
   const [dateFilter, setDateFilter] = useState<DateObject | null>(null);
-
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
 
-  // --- آماده‌سازی پارامترهای API ---
+  // ... (queryParams و هوک‌ها بدون تغییر) ...
   const queryParams = useMemo(() => {
     return {
       page: pagination.pageIndex + 1,
@@ -76,118 +80,86 @@ const RequestsPage = () => {
     };
   }, [pagination, statusFilter, organizationFilter, leaveTypeFilter]);
 
-  // --- فچ کردن دیتا (React Query) ---
-  const {
-    data: paginatedData,
-    isLoading,
-    isError,
-  } = useLeaveRequests(queryParams);
-
-  // ✅ دریافت تعداد درخواست‌های در انتظار (برای بج هدر)
-  // مقدار پیش‌فرض 0 است تا قبل از لود شدن چیزی نشان ندهد یا ارور ندهد
+  const { data: paginatedData, isLoading, isError } = useLeaveRequests(queryParams);
   const { data: pendingCount = 0 } = usePendingRequestsCount();
-
-  // --- فراخوانی هوک سوکت ---
   useLeaveRequestSocket(queryParams);
 
-  // --- آماده‌سازی داده‌های جدول ---
+  // ... (تنظیمات جدول بدون تغییر) ...
   const data = useMemo(() => paginatedData?.data ?? [], [paginatedData]);
   const pageCount = useMemo(() => paginatedData?.meta.last_page ?? 0, [paginatedData]);
   const totalRows = useMemo(() => paginatedData?.meta.total ?? 0, [paginatedData]);
-
   const columns = useMemo(() => requestsColumns, []);
 
   const table = useReactTable({
-    data: data,
-    columns: columns,
-    initialState: {
-      columnFilters: [
-        { id: 'start_time', value: dateFilter },
-      ],
-    },
-    filterFns: {
-      dateFilter: dateFilterFn,
-    },
-    columnResizeMode: 'onChange',
-    state: {
-      sorting,
-      pagination,
-      rowSelection,
-      columnFilters: [
-        { id: 'start_time', value: dateFilter }
-      ],
-    },
-    onSortingChange: setSorting,
-    onPaginationChange: setPagination,
-    onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    manualPagination: true,
-    manualFiltering: true,
-    pageCount: pageCount,
-    enableRowSelection: true,
+    data, columns, initialState: { columnFilters: [{ id: 'start_time', value: dateFilter }] },
+    filterFns: { dateFilter: dateFilterFn },
+    state: { sorting, pagination, rowSelection, columnFilters: [{ id: 'start_time', value: dateFilter }] },
+    onSortingChange: setSorting, onPaginationChange: setPagination, onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(), getFilteredRowModel: getFilteredRowModel(),
+    manualPagination: true, manualFiltering: true, pageCount, enableRowSelection: true,
   });
+
+  const isManager = currentUser?.roles.some(role =>
+    ['super_admin', 'org-admin-l2', 'org-admin-l3'].includes(role)
+  );
 
   return (
     <div className="flex flex-col md:flex-row-reverse gap-4 p-4 sm:p-6">
-      {/* سایدبار فیلترها */}
+
+      {/* ✅ رندر کردن مدال خروجی */}
+      <ExportSettingsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
+
       <div className="w-full md:w-64 lg:w-72 md:sticky md:top-4 md:self-start">
         <RequestsFilter
           currentUser={currentUser}
-          organization={organizationFilter}
-          onOrganizationChange={setOrganizationFilter}
-          category={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          leaveType={leaveTypeFilter}
-          onLeaveTypeChange={setLeaveTypeFilter}
-          status={statusFilter}
-          onStatusChange={setStatusFilter}
-          date={dateFilter}
-          onDateChange={setDateFilter}
+          organization={organizationFilter} onOrganizationChange={setOrganizationFilter}
+          category={categoryFilter} onCategoryChange={setCategoryFilter}
+          leaveType={leaveTypeFilter} onLeaveTypeChange={setLeaveTypeFilter}
+          status={statusFilter} onStatusChange={setStatusFilter}
+          date={dateFilter} onDateChange={setDateFilter}
         />
       </div>
 
-      {/* محتوای اصلی (جدول) */}
       <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-4 sm:p-6 md:ml-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-          <div>
-            {/* ✅ هدر با نمایش بج تعداد در انتظار */}
-            <div className="flex items-center gap-3">
-                <h2 className="text-lg font-bold text-borderD dark:text-borderL">
-                {isLoading
-                    ? "در حال بارگذاری درخواست‌ها..."
-                    : `نمایش ${totalRows} درخواست`}
-                </h2>
+        <div className="flex flex-col gap-4 mb-4">
 
-                {/* نمایش بج فقط اگر درخواستی در انتظار باشد و در حال لودینگ اولیه نباشیم */}
-                {!isLoading && pendingCount > 0 && (
-                    <span 
-                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-sm"
-                        title={`${pendingCount} درخواست منتظر بررسی شماست`}
-                    >
-                        {/* دایره چشمک زن */}
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                        </span>
-                        {pendingCount} در انتظار
-                    </span>
-                )}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-borderD dark:text-borderL">
+                {isLoading ? "در حال بارگذاری..." : `لیست درخواست‌ها (${totalRows})`}
+              </h2>
+
+              {!isLoading && pendingCount > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                  {pendingCount} در انتظار
+                </span>
+              )}
             </div>
 
-            {isError && (
-              <p className="text-sm text-destructiveL">خطا در دریافت اطلاعات.</p>
-            )}
-            {(organizationFilter || leaveTypeFilter) && (
-              <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                (توجه: فیلتر سازمان/نوع توسط API پشتیبانی نمی‌شود)
-              </p>
+            {/* ✅ دکمه خروجی که مدال را باز می‌کند */}
+            {isManager && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => setIsExportModalOpen(true)}
+              >
+                <Download size={16} />
+                <span>خروجی اکسل</span>
+              </Button>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
-            <div className="relative w-full sm:w-60">
+
+          {/* <div className="w-full">
+            <div className="relative w-full sm:w-60 mr-auto">
               <input
                 placeholder="جستجو (بزودی...)"
                 disabled
@@ -198,16 +170,22 @@ const RequestsPage = () => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foregroundL dark:text-muted-foregroundD pointer-events-none"
               />
             </div>
-          </div>
+          </div> */}
+
         </div>
+
+        {isError && <p className="text-sm text-destructiveL">خطا در دریافت اطلاعات.</p>}
+        {(organizationFilter || leaveTypeFilter) && (
+          <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 mb-2">
+            (توجه: فیلتر سازمان/نوع توسط API پشتیبانی نمی‌شود)
+          </p>
+        )}
 
         <div className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
           <DataTable table={table} isLoading={isLoading} />
         </div>
 
-        {pageCount > 1 && (
-          <DataTablePagination table={table} />
-        )}
+        {pageCount > 1 && <DataTablePagination table={table} />}
       </main>
     </div>
   );

@@ -1,8 +1,4 @@
 // features/requests/hook/useLeaveRequests.ts
-/**
- * این فایل هوک‌های react-query را برای مدیریت
- * server state مربوط به درخواست‌های مرخصی فراهم می‌کند.
- */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
@@ -12,7 +8,9 @@ import {
   updateLeaveRequest,
   deleteLeaveRequest,
   processLeaveRequest,
+  exportLeaveRequests, // ✅ ایمپورت متد جدید
   type GetLeaveRequestsParams,
+  type ExportLeaveRequestsParams, // ✅ ایمپورت تایپ جدید
 } from "../api/api-requests";
 import {
   type LeaveRequest,
@@ -31,7 +29,6 @@ import { selectUser } from "@/store/slices/authSlice";
 
 export const LEAVE_REQUESTS_QUERY_KEY = "leaveRequests";
 
-// ✅ [جدید] اینترفیس استاندارد برای خطاهای اعتبارسنجی API (مثل لاراول)
 interface ApiValidationError {
   message: string;
   errors?: Record<string, string[]>;
@@ -103,14 +100,11 @@ export const useCreateLeaveRequest = () => {
   });
 };
 
-/**
- * هوک برای پردازش (تایید/رد) درخواست
- */
 export const useProcessLeaveRequest = () => {
   const queryClient = useQueryClient();
   return useMutation<
     ApiResponse<LeaveRequest>,
-    AxiosError<ApiValidationError>, // ✅ استفاده از تایپ خطای دقیق
+    AxiosError<ApiValidationError>,
     { id: number; payload: ProcessLeaveRequestPayload }
   >({
     mutationFn: ({ id, payload }) => processLeaveRequest(id, payload),
@@ -133,14 +127,10 @@ export const useProcessLeaveRequest = () => {
       const status = error.response?.status;
       const data = error.response?.data;
 
-      // ✅ [بهبود یافته] مدیریت هوشمند خطای ۴۲۲
-      // اگر به هر دلیلی اعتبارسنجی کلاینت رد شد، اینجا خطای دقیق سرور را نشان می‌دهیم
       if (status === 422 && data?.errors) {
         if (data.errors.rejection_reason) {
-          // پیام خطای خاص فیلد دلیل رد
           toast.error(data.errors.rejection_reason[0]);
         } else {
-          // نمایش اولین خطای موجود در لیست خطاها
           const firstError = Object.values(data.errors)[0]?.[0];
           toast.error(
             firstError || data.message || "اطلاعات ارسالی معتبر نیست."
@@ -204,6 +194,36 @@ export const useDeleteLeaveRequest = () => {
       const message = error.response?.data?.message || "خطا در لغو درخواست.";
       toast.error(message);
       console.error(error);
+    },
+  });
+};
+
+/**
+ * ✅ هوک جدید: درخواست خروجی اکسل
+ * این هوک درخواست را به بکند می‌فرستد تا پروسه ساخت فایل شروع شود.
+ */
+export const useExportLeaveRequests = () => {
+  return useMutation<
+    { message: string }, // پاسخ موفقیت (202 Accepted)
+    AxiosError<{ message?: string }>, // خطا
+    ExportLeaveRequestsParams // پارامترهای ورودی
+  >({
+    mutationFn: exportLeaveRequests,
+    onSuccess: (data) => {
+      // طبق PDF، پاسخ آنی فایل نیست، بلکه پیام "در حال پردازش" است
+      toast.info(
+        data.message ||
+          "درخواست خروجی ثبت شد. پس از آماده‌سازی فایل، به شما اطلاع داده خواهد شد.",
+        {
+          autoClose: 5000,
+        }
+      );
+    },
+    onError: (error) => {
+      const message =
+        error.response?.data?.message || "خطا در ثبت درخواست خروجی.";
+      toast.error(message);
+      console.error("Export Error:", error);
     },
   });
 };
