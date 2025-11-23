@@ -20,11 +20,13 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
 
     const avatarPlaceholder = getAvatarPlaceholder(employee?.first_name, employee?.last_name);
 
-    // ✅ اصلاح: استفاده از تابع کمکی برای ساخت URL کامل
-    const rawPath = employee?.images && employee.images.length > 0 
-        ? employee.images[0].path 
+    // ✅ اصلاح: استفاده از .url به جای .path
+    const rawPath = employee?.images && employee.images.length > 0
+        ? employee.images[0].url
         : undefined;
-        
+
+    // نکته: تابع getFullImageUrl شما هوشمند است و چون آدرس با http شروع می‌شود،
+    // همان را بدون تغییر برمی‌گرداند که صحیح است.
     const profileImageUrl = getFullImageUrl(rawPath);
 
     const infoRows: InfoRowData[] = [
