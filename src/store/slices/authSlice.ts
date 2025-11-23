@@ -6,7 +6,7 @@ import {
 import axiosInstance from "@/lib/AxiosConfig";
 import { AxiosError } from "axios";
 import type { LoginFormData } from "@/features/auth/schema/loginSchema";
-import { type RootState } from "@/store"; // ایمپورت RootState
+import { type RootState } from "@/store";
 
 // --- Type Definitions ---
 interface User {
@@ -17,9 +17,11 @@ interface User {
 }
 
 interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  expires_at: string;
+  // در سیستم HttpOnly، دیگر access_token به صورت مستقیم در پاسخ نیست
+  // یا اگر هست، فقط برای اطلاع است و نباید ذخیره شود.
+  // ما فرض می‌کنیم لاگین موفقیت‌آمیز است و توکن در کوکی HttpOnly تنظیم شده است.
+  token_type?: string;
+  expires_at?: string;
   user: User;
 }
 
@@ -29,25 +31,18 @@ interface MeResponse {
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
+  // توکن در Redux Store ذخیره نمی‌شود.
+  // accessToken: string | null; // حذف شد
   initialAuthCheckStatus: "idle" | "loading" | "succeeded" | "failed";
   loginStatus: "idle" | "loading" | "succeeded" | "failed";
   logoutStatus: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
 }
 
-const getInitialToken = (): string | null => {
-  try {
-    return localStorage.getItem("accessToken");
-  } catch (e) {
-    console.error("Could not read token from localStorage", e);
-    return null;
-  }
-};
-
+// ✅ حذف تابع getInitialToken و عدم نیاز به خواندن از localStorage
 const initialState: AuthState = {
   user: null,
-  accessToken: getInitialToken(),
+  // accessToken: null, // حذف شد
   initialAuthCheckStatus: "idle",
   loginStatus: "idle",
   logoutStatus: "idle",
@@ -55,37 +50,27 @@ const initialState: AuthState = {
 };
 
 // --- Async Thunks ---
-// (checkAuthStatus, loginUser, logoutUser ... بدون تغییر)
+
 export const checkAuthStatus = createAsyncThunk(
   "auth/checkStatus",
-  async (_, { rejectWithValue, getState }) => {
-    // getState را اضافه می‌کنیم
+  async (_, { rejectWithValue }) => {
+    // در سیستم HttpOnly، وجود توکن در کوکی را مرورگر خودکار مدیریت می‌کند.
+    // اگر کوکی نباشد، API با 401 پاسخ می‌دهد.
     console.log("Attempting to check auth status...");
-    // ۵. اگر توکنی از قبل نداشتیم، نیازی به ارسال درخواست نیست
-    const token = (getState() as { auth: AuthState }).auth.accessToken;
-    if (!token) {
-      console.log("No token found, rejecting checkAuthStatus.");
-      return rejectWithValue("No token found.");
-    }
-    // اگر توکن داشتیم، interceptor آن را اضافه می‌کند
     try {
+      // اگر توکن در کوکی باشد، این درخواست موفق است
       const response = await axiosInstance.get<MeResponse>("/me");
       console.log("Auth check successful:", response.data);
       return response.data.data;
     } catch (error) {
       console.error("Auth check failed:", error);
-      let errorMessage = "توکن نامعتبر یا منقضی شده است.";
+      let errorMessage = "احراز هویت ناموفق است یا توکن منقضی شده.";
       if (error instanceof AxiosError && error.response) {
+        // ✅ گرفتن پیام از بک‌اند (مانند "Unauthenticated.")
         errorMessage = error.response.data?.message || errorMessage;
-        // اگر خطا 401 بود، توکن را پاک می‌کنیم
-        if (error.response.status === 401) {
-          try {
-            localStorage.removeItem("accessToken");
-          } catch (error) {
-            console.log(error);
-          }
-        }
       }
+      // در صورت 401، کوکی HttpOnly توسط بک‌اند پاک می‌شود یا مرورگر آن را نمی‌فرستد.
+      // بنابراین نیازی به پاک کردن دستی توکن در اینجا نیست.
       console.log("Rejecting checkAuthStatus with value:", errorMessage);
       return rejectWithValue(errorMessage);
     }
@@ -97,23 +82,21 @@ export const loginUser = createAsyncThunk(
   async (loginData: LoginFormData, { rejectWithValue }) => {
     console.log("Attempting to login user...");
     try {
-      // ۶. حالا پاسخ کامل API (شامل توکن) را انتظار داریم
+      // پس از لاگین موفق، بک‌اند کوکی HttpOnly را تنظیم می‌کند
       const response = await axiosInstance.post<LoginResponse>("/login", {
         user_name: loginData.username,
         password: loginData.password,
       });
-      console.log("Login API Response:", response.data);
-      // ۷. ذخیره توکن در localStorage
-      try {
-        localStorage.setItem("accessToken", response.data.access_token);
-      } catch (e) {
-        console.error("Could not save token to localStorage", e);
-        // می‌توانید خطا را به کاربر نشان دهید یا فقط لاگ کنید
-      }
-      // ۸. برگرداندن پاسخ کامل برای استفاده در reducer
+      console.log(
+        "Login API Response (assuming HttpOnly Cookie set):",
+        response.data
+      );
+
+      // ✅ حذف ذخیره توکن در localStorage
+
+      // برگرداندن پاسخ کامل برای استفاده در reducer
       return response.data;
     } catch (error) {
-      // ... (مدیریت خطا مثل قبل) ...
       console.error("Login failed:", error);
       let errorMessage = "خطایی در هنگام ورود رخ داد.";
       if (error instanceof AxiosError && error.response) {
@@ -128,39 +111,23 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-// ...existing code...
 export const logoutUser = createAsyncThunk(
   "auth/logout",
-  async (_, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue }) => {
     console.log("Attempting to logout user...");
-    const token = (getState() as { auth: AuthState }).auth.accessToken;
-    if (!token) {
-      console.log("No token found, performing local logout.");
-      try {
-        localStorage.removeItem("accessToken");
-      } catch (error) {
-        console.log(error);
-      }
-      return undefined;
-    }
 
     try {
+      // این درخواست باید کوکی HttpOnly را بفرستد و سرور آن را پاک کند.
       await axiosInstance.post("/logout");
-      console.log("Logout successful on server");
-      try {
-        localStorage.removeItem("accessToken");
-      } catch (error) {
-        console.log(error);
-      }
+      console.log("Logout successful on server (HttpOnly Cookie cleared)");
+
+      // ✅ حذف پاک کردن دستی توکن از localStorage
       return undefined;
     } catch (error) {
       console.error("Logout failed:", error);
-      // حتی اگر API خطا داد، توکن را از localStorage پاک می‌کنیم
-      try {
-        localStorage.removeItem("accessToken");
-      } catch (error) {
-        console.log(error);
-      }
+
+      // ✅ حذف پاک کردن دستی توکن از localStorage در صورت خطا
+
       let errorMessage = "خطا در خروج از سیستم.";
       if (error instanceof AxiosError && error.response) {
         errorMessage = error.response.data?.message || errorMessage;
@@ -182,15 +149,7 @@ const authSlice = createSlice({
       state.error = null;
       state.loginStatus = "idle";
     },
-    // ۱۲. اکشن برای پاک کردن دستی توکن (اگر لازم شد)
-    clearToken: (state) => {
-      state.accessToken = null;
-      try {
-        localStorage.removeItem("accessToken");
-      } catch (error) {
-        console.log(error);
-      }
-    },
+    // ✅ حذف اکشن clearToken: توکن توسط بک‌اند و مرورگر مدیریت می‌شود.
   },
   extraReducers: (builder) => {
     builder
@@ -204,12 +163,15 @@ const authSlice = createSlice({
           state.initialAuthCheckStatus = "succeeded";
           state.user = action.payload;
           state.error = null;
+          // ✅ عدم نیاز به تنظیم accessToken
         }
       )
-      .addCase(checkAuthStatus.rejected, (state) => {
+      .addCase(checkAuthStatus.rejected, (state, action) => {
         state.initialAuthCheckStatus = "failed";
         state.user = null;
-        state.accessToken = null;
+        // ✅ تنظیم پیام خطا در هنگام عدم موفقیت احراز هویت
+        state.error = (action.payload as string) || "احراز هویت ناموفق.";
+        // ✅ عدم نیاز به تنظیم accessToken
       })
       // --- loginUser ---
       .addCase(loginUser.pending, (state) => {
@@ -221,7 +183,7 @@ const authSlice = createSlice({
         (state, action: PayloadAction<LoginResponse>) => {
           state.loginStatus = "succeeded";
           state.user = action.payload.user;
-          state.accessToken = action.payload.access_token;
+          // ✅ عدم نیاز به ذخیره access_token در Redux
           state.error = null;
           state.initialAuthCheckStatus = "succeeded";
         }
@@ -229,7 +191,7 @@ const authSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.loginStatus = "failed";
         state.user = null;
-        state.accessToken = null;
+        // ✅ عدم نیاز به تنظیم accessToken
         state.error = action.payload as string;
       })
       // --- logoutUser ---
@@ -237,15 +199,15 @@ const authSlice = createSlice({
         state.logoutStatus = "loading";
       })
       .addCase(logoutUser.fulfilled, (state) => {
+        // بازگشت به حالت اولیه، بدون توکن
         Object.assign(state, initialState, {
-          accessToken: null,
           initialAuthCheckStatus: "failed",
         });
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.logoutStatus = "failed";
+        // بازگشت به حالت اولیه، بدون توکن
         Object.assign(state, initialState, {
-          accessToken: null,
           initialAuthCheckStatus: "failed",
         });
         state.error = action.payload as string;
@@ -263,5 +225,5 @@ export const selectAuthCheckStatus = (state: RootState) =>
 export const selectLoginStatus = (state: RootState) => state.auth.loginStatus;
 export const selectAuthError = (state: RootState) => state.auth.error;
 
-export const { clearAuthError, clearToken } = authSlice.actions;
+export const { clearAuthError } = authSlice.actions; // ✅ حذف clearToken
 export default authSlice.reducer;

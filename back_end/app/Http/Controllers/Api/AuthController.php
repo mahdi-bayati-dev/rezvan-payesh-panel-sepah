@@ -48,7 +48,7 @@ class AuthController extends Controller
             $expiration,         // زمان انقضا (دقیقه)
             '/',                 // مسیر
             null,
-            false,
+            true,
             true,
             false,
             'None'
