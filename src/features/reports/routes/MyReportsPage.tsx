@@ -2,13 +2,14 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/hook/reduxHooks";
 import { selectUser } from "@/store/slices/authSlice";
-import { getEcho, leaveChannel } from "@/lib/echoService";
+// ✅ اصلاح: حذف leaveChannel از ایمپورت‌ها
+import { getEcho } from "@/lib/echoService";
 import {
     useReactTable,
     getCoreRowModel,
     type PaginationState,
     type SortingState,
-    type OnChangeFn, // تایپ مورد نیاز
+    type OnChangeFn,
 } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 import { toast } from "react-toastify";
@@ -28,8 +29,6 @@ export default function MyReportsPage() {
     const user = useAppSelector(selectUser);
     const userId = user?.id;
 
-    // --- ۱. استیت فیلتر (Single Source of Truth) ---
-    // صفحه‌بندی را مستقیماً همینجا مدیریت می‌کنیم
     const [filters, setFilters] = useState<MyLogFilters>({
         page: 1,
         per_page: 10,
@@ -42,17 +41,13 @@ export default function MyReportsPage() {
         { id: "timestamp", desc: true },
     ]);
 
-    // محاسبه Pagination State از روی Filters برای نمایش در جدول
     const paginationState = useMemo(() => ({
-        pageIndex: (filters.page || 1) - 1, // تبدیل ۱-محور به ۰-محور
+        pageIndex: (filters.page || 1) - 1,
         pageSize: filters.per_page || 10,
     }), [filters.page, filters.per_page]);
 
-
-    // --- ۲. هندلر هوشمند Pagination (جایگزین useEffect) ---
     const handlePaginationChange: OnChangeFn<PaginationState> = useCallback((updaterOrValue) => {
         setFilters((old) => {
-            // محاسبه مقدار جدید بر اساس لاجیک TanStack Table
             const newPagination = typeof updaterOrValue === 'function'
                 ? updaterOrValue({
                     pageIndex: (old.page || 1) - 1,
@@ -62,19 +57,15 @@ export default function MyReportsPage() {
 
             return {
                 ...old,
-                page: newPagination.pageIndex + 1, // برگرداندن به ۱-محور برای API
+                page: newPagination.pageIndex + 1,
                 per_page: newPagination.pageSize
             };
         });
     }, []);
 
-
-    // --- ۳. هندلر هوشمند Sorting (جایگزین useEffect) ---
     const handleSortingChange: OnChangeFn<SortingState> = useCallback((updaterOrValue) => {
         setSorting((old) => {
             const newSorting = typeof updaterOrValue === 'function' ? updaterOrValue(old) : updaterOrValue;
-
-            // بلافاصله فیلتر را آپدیت می‌کنیم (بدون useEffect)
             setFilters(prev => {
                 if (!newSorting.length) {
                     return { ...prev, sort_by: "timestamp", sort_dir: "desc" };
@@ -86,24 +77,19 @@ export default function MyReportsPage() {
                     sort_dir: sort.desc ? "desc" : "asc"
                 };
             });
-
             return newSorting;
         });
     }, []);
 
-
-    // Debounce برای جستجو (این یکی چون تایپ کاربر است، useEffect منطقی است)
     useEffect(() => {
         const timer = setTimeout(() => {
             setFilters((prev) => {
-                // اگر چیزی تغییر نکرده، آپدیت نکن (جلوگیری از رندر اضافه)
                 if (prev.search === searchTerm) return prev;
                 return { ...prev, search: searchTerm || undefined, page: 1 };
             });
         }, 500);
         return () => clearTimeout(timer);
     }, [searchTerm]);
-
 
     const {
         data: queryResult,
@@ -113,11 +99,9 @@ export default function MyReportsPage() {
 
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
-    // هندل کردن ساختار متفاوت meta در لاراول
     const pageCount = meta ? (typeof meta.last_page === 'number' ? meta.last_page : 1) : 1;
 
-
-    // --- ۴. سوکت با Optimistic Update (حذف setTimeout) ---
+    // --- سوکت با Optimistic Update ---
     useEffect(() => {
         const echo = getEcho();
         if (!echo || !userId) return;
@@ -126,26 +110,21 @@ export default function MyReportsPage() {
         const eventName = ".attendance.created";
         const privateChannel = echo.private(channelName);
 
-        privateChannel.listen(eventName, (event: { log: ApiAttendanceLog }) => {
+        // تعریف لیسنر
+        const handleNewLog = (event: { log: ApiAttendanceLog }) => {
             if (!event.log) return;
 
             const newActivityLog = mapApiLogToActivityLog(event.log);
             const logText = newActivityLog.activityType === "entry" ? "ورود شما" : "خروج شما";
             toast.success(`✅ ${logText} ثبت شد.`);
 
-            // ✅ آپدیت دستی کش (Optimistic Update)
-            // به جای اینکه صبر کنیم سرور جواب بده، خودمون لیست رو آپدیت می‌کنیم
+            // آپدیت کش
             queryClient.setQueryData(reportKeys.myList(filters), (oldData: any) => {
                 if (!oldData) return oldData;
-
-                // لاگ جدید رو به اول آرایه اضافه می‌کنیم
                 const newData = [newActivityLog, ...oldData.data];
-
-                // اگر طول آرایه بیشتر از pageSize شد، آخری رو حذف می‌کنیم
                 if (newData.length > (filters.per_page || 10)) {
                     newData.pop();
                 }
-
                 return {
                     ...oldData,
                     data: newData,
@@ -155,32 +134,34 @@ export default function MyReportsPage() {
                     }
                 };
             });
-        });
-
-        return () => {
-            privateChannel.stopListening(eventName);
-            leaveChannel(channelName);
         };
-    }, [queryClient, userId, filters]); // filters رو اضافه کردیم تا کش درست رو آپدیت کنه
 
+        // اتصال
+        privateChannel.listen(eventName, handleNewLog);
+
+        // ✅ اصلاح: فقط stopListening می‌کنیم، کانال را leave نمی‌کنیم
+        // چون این کانال ممکن است توسط GlobalNotificationHandler برای دانلود استفاده شود.
+        return () => {
+            privateChannel.stopListening(eventName, handleNewLog);
+            // leaveChannel(channelName); <-- حذف شد
+        };
+    }, [queryClient, userId, filters]);
 
     const table = useReactTable({
         data: logsData,
         columns: myReportsColumns,
         pageCount: pageCount,
         state: {
-            pagination: paginationState, // استفاده از استیت محاسبه شده
+            pagination: paginationState,
             sorting,
         },
         manualPagination: true,
         manualFiltering: true,
         manualSorting: true,
-        // اتصال مستقیم هندلرها
         onPaginationChange: handlePaginationChange,
         onSortingChange: handleSortingChange,
         getCoreRowModel: getCoreRowModel(),
     });
-
 
     const handleFilterChange = (
         newApiFilters: Pick<MyLogFilters, "start_date" | "end_date" | "type">

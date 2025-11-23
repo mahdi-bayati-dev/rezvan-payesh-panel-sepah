@@ -1,43 +1,45 @@
 import { useEffect } from "react";
-// هوک‌های Redux برای خواندن وضعیت احراز هویت
-import { useAppSelector } from "@/hook/reduxHooks"; // مسیر هوک Redux شما
-import { type RootState } from "@/store"; // مسیر RootState شما
-// [اصلاح] توابع سرویس Echo حالا از مسیر سراسری خوانده می‌شوند
-import { initEcho, disconnectEcho } from "@/lib/echoService"; // <-- مسیر اصلاح شد
+import { useAppSelector } from "@/hook/reduxHooks";
+import { type RootState } from "@/store";
+import { initEcho, disconnectEcho } from "@/lib/echoService";
 
+/**
+ * این کامپوننت "فقط" مسئول مدیریت اتصال و قطع اتصال است.
+ * هیچ لاجیک بیزینسی (مثل گوش دادن به ایونت‌ها) نباید اینجا باشد.
+ */
 export const GlobalWebSocketHandler = () => {
-  // ۱. توکن کاربر را از Redux دریافت کنید
-  const userToken = useAppSelector(
-    (state: RootState) => state.auth.accessToken
-  );
-
-  // ۲. [نکته کلیدی] وضعیت بررسی توکن را نیز دریافت کنید
-  const authCheckStatus = useAppSelector(
-    (state: RootState) => state.auth.initialAuthCheckStatus
-  );
+  const userToken = useAppSelector((state: RootState) => state.auth.accessToken);
+  const authCheckStatus = useAppSelector((state: RootState) => state.auth.initialAuthCheckStatus);
 
   useEffect(() => {
-    // ۳. [منطق بهینه شده]
-    // فقط زمانی وصل شو که هم توکن داشته باشیم و هم سرور آن را "succeeded" (موفق) اعلام کرده باشد
-    if (userToken && authCheckStatus === "succeeded") {
-      console.log(
-        "[GlobalWebSocketHandler] توکن معتبر شناسایی شد، در حال راه‌اندازی Echo..."
-      );
-      initEcho(userToken);
+    let isMounted = true;
+
+    // ۱. شرط اتصال: توکن داریم + وضعیت احراز هویت "موفق" است
+    const shouldConnect = userToken && authCheckStatus === "succeeded";
+
+    if (shouldConnect) {
+      // تایم‌اوت کوچک برای اطمینان از اینکه سایر پروسه‌های لاگین تمام شده‌اند
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          initEcho(userToken);
+        }
+      }, 500);
+
+      return () => {
+          clearTimeout(timer);
+      };
+    } 
+    
+    // ۲. اگر شرط برقرار نیست (مثلا کاربر لاگ‌اوت کرد)، قطع کن
+    if (!userToken || authCheckStatus === 'failed') {
+        disconnectEcho();
     }
 
-    // ۴. [منطق بهینه شده]
-    // در هر حالتی که توکن نداریم یا بررسی توکن "failed" (ناموفق) بود، اتصال را قطع کن
-    if (!userToken || authCheckStatus === "failed") {
-      console.log(
-        "[GlobalWebSocketHandler] کاربر احراز هویت نشده یا توکن نامعتبر است، در حال قطع اتصال Echo..."
-      );
-      disconnectEcho();
-    }
-
-    // این افکت به هر دو متغیر حساس است
+    // ۳. Cleanup: وقتی کامپوننت unmount میشه یا توکن عوض میشه،
+    // برای اطمینان اتصال قبلی رو قطع نمی‌کنیم مگر اینکه واقعا لاگ‌اوت شده باشه.
+    // اما disconnectEcho خودش هندل میکنه که الکی قطع نکنه.
+    
   }, [userToken, authCheckStatus]);
 
-  // این کامپوننت هیچ چیزی رندر نمی‌کند
   return null;
 };

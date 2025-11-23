@@ -11,7 +11,7 @@ import { Plus, Download, CheckCircle } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
 // import { type SelectOption } from "@/components/ui/SelectBox";
 import gregorian from "react-date-object/calendars/gregorian";
-import { getEcho, leaveChannel } from "@/lib/echoService";
+import { getEcho } from "@/lib/echoService";
 // [اصلاح] ایمپورت تایپ ApiFilters
 import {
     ActivityFilters,
@@ -147,42 +147,32 @@ export default function ActivityReportPage() {
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
 
     useEffect(() => {
-        // ... (کد کامل وب‌سوکت بدون تغییر) ...
         const echo = getEcho();
         if (!echo) {
-            logSocket(
-                "error",
-                "اتصال Echo هنوز راه‌اندازی نشده است. (GlobalWebSocketHandler باید فعال باشد)"
-            );
+            logSocket("error", "اتصال Echo برقرار نیست.");
             return;
         }
+
         const channelName = "super-admin-global";
         const eventNameFromDocs = ".attendance.created";
-        logSocket(
-            "info",
-            `در حال تلاش برای عضویت در کانال: private-${channelName} ...`
-        );
+
+        // ✅ تغییر ۱: ما اینجا کانال را "ترک" نمی‌کنیم، فقط لیسنر اضافه/حذف می‌کنیم
+        // چون این کانال توسط GlobalRequestSocketHandler (یا هندلر مشابه ادمین) باز نگه داشته می‌شود.
+
+        logSocket("info", `در حال گوش دادن به رویداد: '${eventNameFromDocs}' روی کانال ${channelName}...`);
+
         const privateChannel = echo.private(channelName);
-        privateChannel.subscribed((data: any) => {
-            logSocket(
-                "success",
-                `✅ عضویت در کانال 'private-${channelName}' موفقیت‌آمیز بود.`,
-                data
-            );
-        });
-        privateChannel.error((data: any) => {
-            logSocket(
-                "error",
-                `❌ خطای عضویت در کانال 'private-${channelName}'. (توکن/دسترسی بررسی شود)`,
-                data
-            );
-        });
-        privateChannel.listen(eventNameFromDocs, (event: any) => {
+
+        // تعریف لیسنر
+        const handleEvent = (event: any) => {
             logSocket("success", `✅ رویداد دریافت شد: '${eventNameFromDocs}'`, event);
             const newApiLog = event.log as ApiAttendanceLog;
+
             if (newApiLog) {
                 logSocket("info", `به‌روزرسانی مستقیم کش با لاگ جدید...`, newApiLog);
                 const newActivityLog = mapApiLogToActivityLog(newApiLog);
+
+                // آپدیت Optimistic
                 queryClient.setQueryData(
                     reportKeys.list(filters),
                     (oldData: { data: ActivityLog[]; meta: any } | undefined) => {
@@ -202,22 +192,22 @@ export default function ActivityReportPage() {
                     }
                 );
             } else {
-                logSocket("info", `رویداد فاقد داده بود. در حال invalidation...`);
                 queryClient.invalidateQueries({
                     queryKey: reportKeys.lists(),
                 });
             }
-        });
-        logSocket("info", `در حال گوش دادن به رویداد: '${eventNameFromDocs}' ...`);
-        return () => {
-            logSocket(
-                "info",
-                `در حال خروج از کانال: ${channelName} (اتصال اصلی پابرجا می‌ماند)`
-            );
-            privateChannel.stopListening(eventNameFromDocs);
-            leaveChannel(channelName);
         };
-    }, [queryClient, filters, meta]);
+
+        // اتصال لیسنر
+        privateChannel.listen(eventNameFromDocs, handleEvent);
+
+        // ✅ تغییر ۲: در Cleanup فقط stopListening می‌کنیم
+        return () => {
+            logSocket("info", `توقف گوش دادن به: ${eventNameFromDocs} (کانال باز می‌ماند)`);
+            privateChannel.stopListening(eventNameFromDocs);
+            // ❌ حذف شد: leaveChannel(channelName); <--- این خط باعث باگ بود
+        };
+    }, [queryClient, filters, meta]); // وابستگی‌ها
 
 
     const pageCount = meta?.last_page || 1;
