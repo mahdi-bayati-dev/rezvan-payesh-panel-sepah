@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Cookie;
-
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -18,10 +18,10 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-
+        // ۱. جستجو با user_name، نه email
         $user = User::where('user_name', $request->user_name)->first();
 
-
+        // ۲. بررسی کاربر و صحت پسورد
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'error' => 'Unauthorized',
@@ -29,7 +29,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-
+        // ۳. بررسی فعال بودن کاربر (این بخش عالی بود)
         if ($user->status !== 'active') {
             return response()->json([
                 'error' => 'Unauthorized',
@@ -37,33 +37,24 @@ class AuthController extends Controller
             ], 401);
         }
 
-
+        // ۴. ایجاد توکن و پاسخ (این بخش هم عالی بود)
         $tokenResult = $user->createToken('AuthToken');
         $token = $tokenResult->accessToken;
-        $expiration = $tokenResult->token->expires_at->diffInMinutes(now());
+        $expiresAt = $tokenResult->token->expires_at;
 
-        $cookie = cookie(
-            'access_token',      // نام کوکی
-            $token,              // مقدار توکن
-            $expiration,         // زمان انقضا (دقیقه)
-            '/',                 // مسیر
-            null,
-            true,
-            true,
-            false,
-            'None'
-        );
-
-        return response()->json([
-            'message' => 'Login successful',
-            'user' => [
-                'id' => $user->id,
-                'user_name' => $user->user_name,
-                'email' => $user->email,
-                'roles' => $user->getRoleNames(),
-            ],
-            'expires_at' => $tokenResult->token->expires_at->toDateTimeString(),
-        ])->withCookie($cookie);
+        return response()->json(
+            [
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'expires_at' => $expiresAt->toDateTimeString(),
+                'user' =>
+                    [
+                        'id' => $user->id,
+                        'user_name' => $user->user_name,
+                        'email' => $user->email,
+                        'roles' => $user->getRoleNames(),
+                    ]
+            ]);
     }
 
 
@@ -71,12 +62,7 @@ class AuthController extends Controller
 
    public function logout(Request $request)
    {
-       $request->user()->token()->revoke();
-
-       $cookie = Cookie::forget('access_token');
-
-       return response()->json([
-           'message' => 'Successfully logged out'
-       ])->withCookie($cookie);
+        $request->user()->token()->revoke();
+        return response()->json(['message' => 'خروج با موفقیت انجام شد.']);
    }
 }
