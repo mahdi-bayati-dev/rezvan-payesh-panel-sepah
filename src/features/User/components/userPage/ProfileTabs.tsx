@@ -49,7 +49,7 @@ const ProfileTabs: React.FC<{ user: User }> = ({ user }) => {
         <div className="w-full">
             <Tab.Group>
                 {/* هدر تب‌ها */}
-                <Tab.List className="flex flex-wrap justify-start gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl border border-gray-200 dark:border-gray-700 mb-6">
+                <Tab.List className="flex flex-wrap justify-start gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-lg border border-borderL dark:border-borderD shadow-sm  mb-6">
                     {tabs.map((tab) => (
                         <Tab key={tab.id} as={Fragment}>
                             {({ selected }) => (

@@ -42,7 +42,7 @@ export const fetchUsers = async (
       `/users?${queryParams.toString()}`
     );
     console.log(data);
-    
+
     return data;
   } catch (error) {
     console.error("❌ [API] Error Fetching Users:", error);
@@ -78,127 +78,140 @@ export const updateUserShiftScheduleAssignment = async ({
 export const fetchUserById = async (userId: number): Promise<User> => {
   const { data } = await axiosInstance.get(`/users/${userId}`);
   console.log(data.data);
-  
+
   return data.data;
 };
 
 /**
- * ✅ آپدیت پروفایل کاربر (هوشمند برای فایل و جیسون)
- * اگر عکس داشته باشد، به FormData تبدیل می‌شود.
+ * آپدیت پروفایل کاربر (با پشتیبانی از آپدیت فایل)
+ * برای ویرایش هم از منطق مشابه استفاده می‌کنیم
  */
 export const updateUserProfile = async ({
-  userId,
-  payload,
-}: {
-  userId: number;
-  payload: UserProfileFormData;
-}): Promise<User> => {
+    userId,
+    payload,
+  }: {
+    userId: number;
+    payload: UserProfileFormData;
+  }): Promise<User> => {
+    
+    // بررسی وجود فایل برای تصمیم‌گیری بین JSON و FormData
+    const hasFiles = (payload as any).employee?.images && (payload as any).employee.images.length > 0;
+    const hasDeletedFiles = (payload as any).employee?.deleted_image_ids && (payload as any).employee.deleted_image_ids.length > 0;
+    
+    // اگر فایل نداشتیم و حذفی هم نداشتیم، ارسال معمولی JSON (متد PUT)
+    if (!hasFiles && !hasDeletedFiles) {
+       const { data } = await axiosInstance.put(`/users/${userId}`, payload);
+       return data.data; // معمولا data.data برمی‌گردد
+    }
   
-  // بررسی وجود فایل در پی‌لود (مخصوص تب مشخصات فردی)
-  const hasFiles = (payload as any).employee?.images && (payload as any).employee.images.length > 0;
+    // اگر فایل داشتیم یا حذف عکس داشتیم -> FormData
+    console.group(`🚀 [API Request] Update User (Multipart) - ID: ${userId}`);
+    const formData = new FormData();
+    formData.append("_method", "PUT"); // لاراول برای دریافت فایل در متد PUT نیاز به این دارد (POST واقعی ارسال می‌شود)
   
-  // اگر فایل نداشتیم، ارسال معمولی JSON (متد PUT)
-  if (!hasFiles) {
-     const { data } = await axiosInstance.put(`/users/${userId}`, payload);
-     return data;
-  }
+    // تابع کمکی بازگشتی برای پر کردن FormData
+    const appendToFormData = (data: any, rootKey?: string) => {
+        if (data === null || data === undefined) return;
 
-  // اگر فایل داشتیم، تبدیل به FormData (متد POST + _method: PUT)
-  console.group(`🚀 [API Request] Update User Profile (Multipart) - User: ${userId}`);
-  const formData = new FormData();
-  formData.append("_method", "PUT"); // تکنیک لاراول برای آپدیت فایل‌دار
-
-  // تابع بازگشتی برای تبدیل آبجکت به FormData
-  const appendToFormData = (data: any, rootKey?: string) => {
-      if (data instanceof File) {
-          // اگر کلید اصلی images است، باید به صورت آرایه اضافه شود
-          // اما چون در loop والد کنترل می‌شود، اینجا شاید نرسد. 
-          // این بخش برای امنیت بیشتر است.
-           if (rootKey) formData.append(rootKey, data);
-           return;
-      }
-      
-      if (Array.isArray(data)) {
-           data.forEach((item, index) => {
-               // اگر آرایه فایل بود (مثل images)
-               if (item instanceof File && rootKey === 'employee[images]') {
-                   formData.append(`${rootKey}[${index}]`, item);
-               } 
-               // اگر آرایه اعداد بود (مثل deleted_image_ids)
-               else if (typeof item !== 'object' && rootKey) {
-                   formData.append(`${rootKey}[${index}]`, String(item));
-               }
-               // سایر آرایه‌ها
-               else {
-                   appendToFormData(item, `${rootKey}[${index}]`);
-               }
-           });
-           return;
-      }
-
-      if (data !== null && typeof data === 'object') {
-           Object.keys(data).forEach(key => {
-                const value = data[key];
-                const formKey = rootKey ? `${rootKey}[${key}]` : key;
-                
-                // مدیریت خاص برای تصاویر
-                if (key === 'images' && Array.isArray(value)) {
-                    value.forEach((file, idx) => {
-                        formData.append(`${formKey}[${idx}]`, file);
-                    });
-                } else {
-                    appendToFormData(value, formKey);
-                }
-           });
-           return;
-      }
-
-      if (data !== null && data !== undefined) {
-          if (typeof data === 'boolean') {
-               if (rootKey) formData.append(rootKey, data ? "1" : "0");
-          } else {
-               if (rootKey) formData.append(rootKey, String(data));
-          }
-      }
+        if (data instanceof File) {
+             if (rootKey) formData.append(rootKey, data);
+             return;
+        }
+        
+        if (Array.isArray(data)) {
+             data.forEach((item, index) => {
+                 // تصاویر جدید
+                 if (item instanceof File && rootKey?.includes('images')) {
+                     formData.append(`${rootKey}[${index}]`, item);
+                 } 
+                 // ID های حذف شده
+                 else if (rootKey?.includes('deleted_image_ids')) {
+                     formData.append(`${rootKey}[${index}]`, String(item));
+                 }
+                 else {
+                     appendToFormData(item, `${rootKey}[${index}]`);
+                 }
+             });
+             return;
+        }
+  
+        if (typeof data === 'object') {
+             Object.keys(data).forEach(key => {
+                  const value = data[key];
+                  const formKey = rootKey ? `${rootKey}[${key}]` : key;
+                  // جلوگیری از ارسال تکراری تصاویر که در حلقه بالا هندل می‌شوند
+                  if (key === 'images' && Array.isArray(value)) {
+                      value.forEach((file, idx) => {
+                          formData.append(`${formKey}[${idx}]`, file);
+                      });
+                  } else {
+                      appendToFormData(value, formKey);
+                  }
+             });
+             return;
+        }
+  
+        // مقادیر اولیه (String, Number, Boolean)
+        if (typeof data === 'boolean') {
+             if (rootKey) formData.append(rootKey, data ? "1" : "0");
+        } else {
+             if (rootKey) formData.append(rootKey, String(data));
+        }
+    };
+  
+    appendToFormData(payload);
+  
+    try {
+      const { data } = await axiosInstance.post(`/users/${userId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("✅ [API Success] User Updated:", data);
+      console.groupEnd();
+      return data.data;
+    } catch (error) {
+      console.error("🔥 [API Error] Update Failed:", error);
+      console.groupEnd();
+      throw error;
+    }
   };
 
-  appendToFormData(payload);
-
-  try {
-    const { data } = await axiosInstance.post(`/users/${userId}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    console.log("✅ [API Success] User Updated:", data);
-    console.groupEnd();
-    return data.data; // API معمولا data.data برمی‌گرداند
-  } catch (error) {
-    console.error("🔥 [API Error] Update Failed:", error);
-    console.groupEnd();
-    throw error;
-  }
-};
 
 export const deleteUser = async (userId: number): Promise<void> => {
   await axiosInstance.delete(`/users/${userId}`);
 };
 
+/**
+ * ✅ ایجاد کاربر جدید (دقیقاً طبق داکیومنت PDF + پچ امنیتی برای خطای 500)
+ */
 export const createUser = async (
   payload: CreateUserFormData
 ): Promise<User> => {
-  console.group("🚀 [API Request] Create User (Multipart)");
+  console.group("🚀 [API Request] Create User (Standard FormData)");
 
   const formData = new FormData();
+
+  // 1. افزودن فیلدهای سطح کاربر (User Fields)
   formData.append("user_name", payload.user_name);
   formData.append("email", payload.email);
   formData.append("password", payload.password);
   formData.append("role", payload.role);
   formData.append("status", payload.status);
 
+  // 2. افزودن فیلدهای سطح کارمند (Employee Fields)
   if (payload.employee) {
+    
+    // 🔥 پچ امنیتی (Critical Fix):
+    // خطای 500 نشان داد بکند به دنبال 'personnel_code' در ریشه می‌گردد.
+    // ما آن را هم در ریشه و هم در employee ارسال می‌کنیم تا خطا رفع شود.
+    if (payload.employee.personnel_code) {
+        formData.append("personnel_code", payload.employee.personnel_code);
+    }
+
     Object.entries(payload.employee).forEach(([key, value]) => {
+      // تصاویر جداگانه پردازش می‌شوند
       if (key === "images") return;
 
-      if (value !== null && value !== undefined) {
+      if (value !== null && value !== undefined && value !== "") {
         if (typeof value === "boolean") {
           formData.append(`employee[${key}]`, value ? "1" : "0");
         } else {
@@ -207,9 +220,12 @@ export const createUser = async (
       }
     });
 
+    // 3. افزودن فایل‌های تصاویر (Images)
     if (payload.employee.images && payload.employee.images.length > 0) {
       payload.employee.images.forEach((file, index) => {
-        formData.append(`employee[images][${index}]`, file);
+        if (file instanceof File) {
+          formData.append(`employee[images][${index}]`, file);
+        }
       });
     }
   }
@@ -221,11 +237,18 @@ export const createUser = async (
       },
     });
     console.log("✅ [API Success] User Created:", data);
+    console.groupEnd();
     return data.data;
   } catch (error: any) {
     console.group("🔥 [API Error] Create User Failed");
     console.error("Status:", error.response?.status);
-    console.error("Data:", error.response?.data);
+    console.error("Message:", error.response?.data?.message);
+    
+    // لاگ کردن خطاهای اعتبارسنجی اگر وجود داشته باشد
+    if (error.response?.data?.errors) {
+        console.table(error.response.data.errors);
+    }
+    
     console.groupEnd();
     throw error;
   }

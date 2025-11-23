@@ -62,7 +62,7 @@ function UserProfilePage() {
 
     // --- ۲. چیدمان صفحه (Layout) ---
     return (
-        <div className="flex flex-col md:flex-row m-2  md:p-0  mx-auto" dir="rtl">
+        <div className="flex flex-col md:flex-row m-2  md:p-0  mx-auto  md:gap-2" dir="rtl">
 
             {/* سایدبار پروفایل (سمت راست در RTL) */}
             <aside className="w-full md:w-1/3 lg:w-1/4">
@@ -71,7 +71,7 @@ function UserProfilePage() {
             </aside>
 
             {/* محتوای اصلی (سمت چپ در RTL) */}
-            <main className="flex-1  p-4 rounded-l-lg   bg-backgroundL-500 dark:bg-backgroundD">
+            <main className="flex-1  p-4 rounded-lg   bg-backgroundL-500 dark:bg-backgroundD">
                 {/* ✅ استفاده از کامپوننت ایمپورت‌شده */}
                 <ProfileTabs user={user} />
             </main>

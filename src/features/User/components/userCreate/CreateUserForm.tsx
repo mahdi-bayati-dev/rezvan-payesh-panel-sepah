@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
@@ -57,8 +57,16 @@ const educationLevelOptions: SelectOption[] = [
 
 const toSelectOption = (item: BaseNestedItem): SelectOption => ({
     id: item.id,
-    name: item.name,
+    name: item.name || (item as any).title || '---', // فال‌بک برای حالتی که name وجود ندارد
 });
+
+// Helper برای نرمال‌سازی دیتای ورودی (آرایه یا ابجکت دارای دیتا)
+const normalizeData = (data: any): any[] => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (data.data && Array.isArray(data.data)) return data.data;
+    return [];
+};
 
 // UI Helper Component
 const FormSectionCard = ({ title, icon: Icon, children }: { title: string, icon: any, children: React.ReactNode }) => (
@@ -86,26 +94,51 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
     const { data: rawShiftSchedules, isLoading: isLoadingSS } = useShiftSchedulesList();
     const { data: rawWorkGroups, isLoading: isLoadingWG } = useWorkGroups(1, 9999);
 
-    const workGroupOptions = useMemo(() => rawWorkGroups?.data?.map(toSelectOption) || [], [rawWorkGroups]);
-    const shiftScheduleOptions = useMemo(() => rawShiftSchedules?.map(toSelectOption) || [], [rawShiftSchedules]);
-    const workPatternOptions = useMemo(() => rawWorkPatterns?.map(toSelectOption) || [], [rawWorkPatterns]);
+    // --- Debug Log: بررسی دیتای دریافتی ---
+    useEffect(() => {
+        if(rawShiftSchedules) console.log("📦 Shift Schedules Data:", rawShiftSchedules);
+        if(rawWorkGroups) console.log("📦 Work Groups Data:", rawWorkGroups);
+    }, [rawShiftSchedules, rawWorkGroups]);
 
-    const defaultShiftScheduleId = useMemo(() => {
-        return shiftScheduleOptions.length > 0 ? Number(shiftScheduleOptions[0].id) : 1;
-    }, [shiftScheduleOptions]);
+    // ✅ اصلاح شده: استفاده از تابع normalizeData برای هندل کردن هر دو حالت (آرایه ساده یا صفحه‌بندی شده)
+    const workGroupOptions = useMemo(() => normalizeData(rawWorkGroups).map(toSelectOption), [rawWorkGroups]);
+    const shiftScheduleOptions = useMemo(() => normalizeData(rawShiftSchedules).map(toSelectOption), [rawShiftSchedules]);
+    const workPatternOptions = useMemo(() => normalizeData(rawWorkPatterns).map(toSelectOption), [rawWorkPatterns]);
 
+    // مقادیر پیش‌فرض فرم
     const defaultValues = useMemo((): any => ({
-        user_name: "", email: "", password: "", role: "user", status: "active",
+        user_name: "", 
+        email: "", 
+        password: "", 
+        role: "user", 
+        status: "active",
         employee: {
             organization_id: organizationId,
-            first_name: "", last_name: "", personnel_code: "", phone_number: "",
-            gender: "male", is_married: false, education_level: "diploma",
-            house_number: "", sos_number: "", shift_schedule_id: defaultShiftScheduleId,
-            position: null, starting_job: null, father_name: null, birth_date: null,
-            nationality_code: null, address: null, work_group_id: null, work_pattern_id: null,
-            images: [], // مقدار پیش فرض آرایه خالی
+            first_name: "", 
+            last_name: "", 
+            personnel_code: "", 
+            
+            phone_number: null, 
+            house_number: null, 
+            sos_number: null,
+            birth_date: null,
+            nationality_code: null,
+            address: null,
+            position: null, 
+            starting_job: null, 
+            father_name: null, 
+            
+            gender: "male", 
+            is_married: false, 
+            
+            education_level: "diploma",
+            
+            shift_schedule_id: null,
+            work_group_id: null, 
+            work_pattern_id: null,
+            images: [],
         }
-    }), [organizationId, defaultShiftScheduleId]);
+    }), [organizationId]);
 
     const {
         register,
@@ -121,25 +154,8 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
     });
 
     const onSubmit: SubmitHandler<CreateUserFormData> = async (formData) => {
-        // نرمال‌سازی داده‌ها قبل از ارسال
-        const sanitizedEmployee = {
-            ...formData.employee,
-            father_name: formData.employee?.father_name || null,
-            nationality_code: formData.employee?.nationality_code || null,
-            position: formData.employee?.position || null,
-            address: formData.employee?.address || null,
-            work_group_id: formData.employee?.work_group_id || null,
-            work_pattern_id: formData.employee?.work_pattern_id || null,
-            // تصاویر مستقیماً ارسال می‌شوند (File Array)
-        };
-
-        const finalPayload = {
-            ...formData,
-            employee: sanitizedEmployee
-        };
-
         try {
-            const newUser = await createMutation.mutateAsync(finalPayload as CreateUserFormData);
+            const newUser = await createMutation.mutateAsync(formData);
             toast.success(`کاربر "${newUser.employee?.first_name} ${newUser.employee?.last_name}" با موفقیت ایجاد شد.`);
             navigate(-1);
         } catch (err: any) {
@@ -147,7 +163,6 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             if (validationErrors) {
                 toast.error("لطفاً خطاهای فرم را بررسی کنید.");
                 Object.keys(validationErrors).forEach((key) => {
-                    // هندل کردن خطاهای بکند
                     setError(key as any, { type: 'server', message: validationErrors[key][0] });
                 });
             } else {
@@ -159,19 +174,12 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
     // --- توابع هندل کردن آپلود عکس ---
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            // تبدیل FileList به آرایه
             const newFiles = Array.from(e.target.files);
-
-            // دریافت فایل‌های قبلی (اگر وجود داشته باشد)
             const currentFiles = watch('employee.images') || [];
-
-            // ترکیب فایل‌ها
             const updatedFiles = [...currentFiles, ...newFiles];
-
-            // آپدیت کردن فرم
+            
             setValue('employee.images', updatedFiles, { shouldValidate: true });
 
-            // ساخت URL برای پیش‌نمایش
             const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
             setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
         }
@@ -180,11 +188,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
     const removeImage = (index: number) => {
         const currentFiles = watch('employee.images') || [];
         const updatedFiles = currentFiles.filter((_, i) => i !== index);
-
-        // آپدیت فرم
         setValue('employee.images', updatedFiles, { shouldValidate: true });
-
-        // آپدیت پیش‌نمایش
         setPreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
 
@@ -211,13 +215,13 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
         <form onSubmit={handleSubmit(onSubmit)} className="pb-20">
 
             <FormSectionCard title="اطلاعات حساب کاربری" icon={Lock}>
-                <Input label="نام کاربری" {...register("user_name")} error={errors.user_name?.message} autoFocus />
-                <Input label="ایمیل" type="email" {...register("email")} error={errors.email?.message} />
-                <Input label="رمز عبور" type="password" {...register("password")} error={errors.password?.message} />
+                <Input label="نام کاربری *" {...register("user_name")} error={errors.user_name?.message} autoFocus />
+                <Input label="ایمیل *" type="email" {...register("email")} error={errors.email?.message} />
+                <Input label="رمز عبور *" type="password" {...register("password")} error={errors.password?.message} />
 
                 <Controller name="role" control={control} render={({ field }) => (
                     <SelectBox
-                        placeholder='' label="نقش کاربری" options={roleOptions}
+                        placeholder='' label="نقش کاربری *" options={roleOptions}
                         value={roleOptions.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
                         error={errors.role?.message}
@@ -226,7 +230,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
                 <Controller name="status" control={control} render={({ field }) => (
                     <SelectBox
-                        placeholder='' label="وضعیت" options={statusOptions}
+                        placeholder='' label="وضعیت *" options={statusOptions}
                         value={statusOptions.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
                         error={errors.status?.message}
@@ -235,7 +239,6 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             </FormSectionCard>
 
             <FormSectionCard title="مشخصات فردی و تصاویر" icon={User}>
-                {/* --- بخش جدید: آپلود عکس --- */}
                 <div className="md:col-span-3 mb-4">
                     <label className="block text-sm font-medium mb-2 text-foreground dark:text-foregroundD">
                         تصویر پروفایل (اختیاری)
@@ -248,7 +251,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
                         <input
                             type="file"
-                            accept="image/*"
+                            accept="image/png, image/jpeg, image/jpg, image/webp"
                             multiple
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             onChange={handleFileChange}
@@ -258,7 +261,6 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                         <p className="text-red-500 text-xs mt-1">{errors.employee.images.message}</p>
                     )}
 
-                    {/* نمایش تصاویر انتخاب شده */}
                     {previewUrls.length > 0 && (
                         <div className="flex flex-wrap gap-4 mt-4">
                             {previewUrls.map((url, index) => (
@@ -277,8 +279,8 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                     )}
                 </div>
 
-                <Input label="نام" {...register("employee.first_name")} error={errors.employee?.first_name?.message} />
-                <Input label="نام خانوادگی" {...register("employee.last_name")} error={errors.employee?.last_name?.message} />
+                <Input label="نام *" {...register("employee.first_name")} error={errors.employee?.first_name?.message} />
+                <Input label="نام خانوادگی *" {...register("employee.last_name")} error={errors.employee?.last_name?.message} />
                 <Input label="کد ملی" {...register("employee.nationality_code")} error={errors.employee?.nationality_code?.message} />
                 <Input label="نام پدر" {...register("employee.father_name")} error={errors.employee?.father_name?.message} />
 
@@ -287,7 +289,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                     control={control}
                     render={({ field }) => (
                         <PersianDatePickerInput
-                            label="تاریخ تولد *"
+                            label="تاریخ تولد"
                             value={field.value}
                             onChange={(date) => handleDateChange(date, field.onChange)}
                             error={errors.employee?.birth_date?.message}
@@ -297,7 +299,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
                 <Controller name="employee.gender" control={control} render={({ field }) => (
                     <SelectBox
-                        placeholder='' label="جنسیت" options={genderOptions}
+                        placeholder='' label="جنسیت *" options={genderOptions}
                         value={genderOptions.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
                         error={errors.employee?.gender?.message}
@@ -305,7 +307,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
                 <Controller name="employee.is_married" control={control} render={({ field }) => (
                     <SelectBox
-                        placeholder='' label="وضعیت تاهل" options={maritalStatusOptions}
+                        placeholder='' label="وضعیت تاهل *" options={maritalStatusOptions}
                         value={maritalStatusOptions.find(o => o.id === String(field.value)) || null}
                         onChange={(opt) => field.onChange(opt?.id === 'true')}
                         error={errors.employee?.is_married?.message}
@@ -313,7 +315,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
                 <Controller name="employee.education_level" control={control} render={({ field }) => (
                     <SelectBox
-                        placeholder='' label="تحصیلات" options={educationLevelOptions}
+                        placeholder='' label="تحصیلات *" options={educationLevelOptions}
                         value={educationLevelOptions.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
                         error={errors.employee?.education_level?.message}
@@ -322,7 +324,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             </FormSectionCard>
 
             <FormSectionCard title="اطلاعات سازمانی" icon={Building2}>
-                <Input label="کد پرسنلی" {...register("employee.personnel_code")} error={errors.employee?.personnel_code?.message} />
+                <Input label="کد پرسنلی *" {...register("employee.personnel_code")} error={errors.employee?.personnel_code?.message} />
                 <Input label="سمت" {...register("employee.position")} error={errors.employee?.position?.message} />
 
                 <Controller
@@ -330,7 +332,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                     control={control}
                     render={({ field }) => (
                         <PersianDatePickerInput
-                            label="شروع به کار *"
+                            label="شروع به کار"
                             value={field.value}
                             onChange={(date) => handleDateChange(date, field.onChange)}
                             error={errors.employee?.starting_job?.message}
@@ -350,9 +352,12 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
                 <Controller name="employee.shift_schedule_id" control={control} render={({ field }) => (
                     <SelectBox
-                        placeholder='' label="برنامه شیفتی" options={shiftScheduleOptions}
+                        // ✅ اصلاح شده: افزودن متن نگهدارنده (Placeholder) برای رفع مشکل نمایش باکس خالی
+                        placeholder='انتخاب کنید (اختیاری)' 
+                        label="برنامه شیفتی" 
+                        options={shiftScheduleOptions}
                         value={shiftScheduleOptions.find(o => o.id === field.value) || null}
-                        onChange={(opt) => field.onChange(opt?.id ? Number(opt.id) : 1)}
+                        onChange={(opt) => field.onChange(opt?.id ? Number(opt.id) : null)}
                         error={errors.employee?.shift_schedule_id?.message}
                     />
                 )} />

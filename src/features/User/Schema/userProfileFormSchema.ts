@@ -9,7 +9,17 @@ const ACCEPTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
-// --- اسکیماهای موجود ---
+// ✅ تعریف مقادیر Enum به صورت ثابت (Readonly Tuple) برای رفع خطای TS2769
+const EDUCATION_LEVELS = [
+  "diploma",
+  "advanced_diploma",
+  "bachelor",
+  "master",
+  "doctorate",
+  "post_doctorate",
+] as const;
+
+// --- 1. اسکیمای اطلاعات حساب (Account Info) ---
 export const accountInfoFormSchema = z.object({
   user_name: z.string().min(1, "نام کاربری الزامی است."),
   email: z.string().email("ایمیل نامعتبر است."),
@@ -23,30 +33,23 @@ export const accountInfoFormSchema = z.object({
 });
 export type AccountInfoFormData = z.infer<typeof accountInfoFormSchema>;
 
-// ✅ اصلاح شده: اضافه کردن فیلد تصاویر و تصاویر حذف شده
+// --- 2. اسکیمای مشخصات فردی (Personal Details) ---
 export const personalDetailsFormSchema = z.object({
   employee: z
     .object({
       first_name: z.string().min(1, "نام الزامی است."),
       last_name: z.string().min(1, "نام خانوادگی الزامی است."),
-      father_name: z.string().nullable().optional(),
-      nationality_code: z.string().nullable().optional(),
-      birth_date: z.string().min(1, "تاریخ تولد الزامی است."),
       gender: z.enum(["male", "female"]),
       is_married: z.boolean(),
-      education_level: z
-        .enum([
-          "diploma",
-          "advanced_diploma",
-          "bachelor",
-          "master",
-          "doctorate",
-          "post_doctorate",
-        ])
-        .nullable()
-        .optional(),
+
+      // فیلدهای اختیاری
+      father_name: z.string().nullable().optional(),
+      nationality_code: z.string().nullable().optional(),
+      birth_date: z.string().nullable().optional(),
       
-      // ✅ فیلدهای جدید برای مدیریت عکس
+      // ✅ اصلاح شده: استفاده از ثابت تعریف شده
+      education_level: z.enum(EDUCATION_LEVELS),
+      
       images: z
         .array(z.custom<File>())
         .optional()
@@ -66,12 +69,15 @@ export const personalDetailsFormSchema = z.object({
 });
 export type PersonalDetailsFormData = z.infer<typeof personalDetailsFormSchema>;
 
+// --- 3. اسکیمای سازمانی (Organizational) ---
 export const organizationalFormSchema = z.object({
   employee: z
     .object({
       personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
+      organization_id: z.number().optional(),
+      
       position: z.string().nullable().optional(),
-      starting_job: z.string().min(1, "تاریخ شروع به کار الزامی است."),
+      starting_job: z.string().nullable().optional(),
       work_group_id: z.number().nullable().optional(),
       work_pattern_id: z.number().nullable().optional(),
       shift_schedule_id: z.number().nullable().optional(),
@@ -80,6 +86,7 @@ export const organizationalFormSchema = z.object({
 });
 export type OrganizationalFormData = z.infer<typeof organizationalFormSchema>;
 
+// --- 4. اسکیمای تماس (Contact) ---
 export const contactFormSchema = z.object({
   employee: z
     .object({
@@ -92,6 +99,7 @@ export const contactFormSchema = z.object({
 });
 export type ContactFormData = z.infer<typeof contactFormSchema>;
 
+// --- 5. اسکیمای مدیریت دسترسی ---
 export const accessManagementFormSchema = z.object({
   role: z.string().min(1, "انتخاب نقش الزامی است."),
 });
@@ -106,8 +114,9 @@ export type UserProfileFormData =
   | ContactFormData
   | AccessManagementFormData;
 
-// --- اسکیمای فرم ایجاد کاربر (بدون تغییر) ---
+// --- 6. اسکیمای فرم ایجاد کاربر (Create User) ---
 export const createUserFormSchema = z.object({
+  // سطح User
   user_name: z.string().min(1, "نام کاربری الزامی است."),
   email: z.string().email("ایمیل نامعتبر است.").min(1, "ایمیل الزامی است."),
   password: z
@@ -119,11 +128,12 @@ export const createUserFormSchema = z.object({
     message: "وضعیت باید 'active' یا 'inactive' باشد.",
   }),
 
+  // سطح Employee
   employee: z.object({
+    // اجباری‌ها
     first_name: z.string().min(1, "نام الزامی است."),
     last_name: z.string().min(1, "نام خانوادگی الزامی است."),
     personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
-    phone_number: z.string().min(1, "شماره موبایل الزامی است."),
     organization_id: z
       .number({ message: "ID سازمان باید عدد باشد." })
       .positive("سازمان الزامی است."),
@@ -131,28 +141,25 @@ export const createUserFormSchema = z.object({
       message: "جنسیت باید 'male' یا 'female' باشد.",
     }),
     is_married: z.boolean({ message: "وضعیت تاهل باید مشخص شود." }),
-    birth_date: z.string().min(1, "تاریخ تولد الزامی است."),
-    starting_job: z.string().min(1, "تاریخ شروع به کار الزامی است."),
 
+    // اختیاری‌ها
+    birth_date: z.string().nullable().optional(),
+    starting_job: z.string().nullable().optional(),
+    phone_number: z.string().nullable().optional(),
+    house_number: z.string().nullable().optional(),
+    sos_number: z.string().nullable().optional(),
     position: z.string().nullable().optional(),
     father_name: z.string().nullable().optional(),
     nationality_code: z.string().nullable().optional(),
     address: z.string().nullable().optional(),
     work_group_id: z.number().nullable().optional(),
     work_pattern_id: z.number().nullable().optional(),
+    shift_schedule_id: z.number().nullable().optional(),
 
-    education_level: z.enum([
-      "diploma",
-      "advanced_diploma",
-      "bachelor",
-      "master",
-      "doctorate",
-      "post_doctorate",
-    ]),
-    house_number: z.string().min(1, "تلفن منزل الزامی است."),
-    sos_number: z.string().min(1, "تلفن اضطراری الزامی است."),
-    shift_schedule_id: z.number().positive("برنامه شیفتی الزامی است."),
+    // ✅ اصلاح شده: حذف پارامتر اشتباه required_error و استفاده از آرایه ثابت
+    education_level: z.enum(EDUCATION_LEVELS),
 
+    // تصاویر
     images: z
       .array(z.custom<File>())
       .optional()
