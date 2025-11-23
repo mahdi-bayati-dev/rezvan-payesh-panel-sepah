@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-// --- اسکیماهای تب‌های پروفایل ---
+// --- تنظیمات اعتبار سنجی فایل ---
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+
+// --- اسکیماهای تب‌های پروفایل (موجود) ---
+// (بخش‌های accountInfo, personalDetails و ... بدون تغییر باقی می‌مانند مگر اینکه بخواهید آپدیت عکس را در ویرایش هم اضافه کنید)
+// فعلاً فقط بخش CreateUserFormSchema را تغییر می‌دهیم که طبق داکیومنت جدید است.
 
 export const accountInfoFormSchema = z.object({
   user_name: z.string().min(1, "نام کاربری الزامی است."),
@@ -20,16 +31,11 @@ export const personalDetailsFormSchema = z.object({
     .object({
       first_name: z.string().min(1, "نام الزامی است."),
       last_name: z.string().min(1, "نام خانوادگی الزامی است."),
-
       father_name: z.string().nullable().optional(),
       nationality_code: z.string().nullable().optional(),
-
-      // ✅ اصلاح: حذف آبجکت { required_error } و استفاده از min
       birth_date: z.string().min(1, "تاریخ تولد الزامی است."),
-
       gender: z.enum(["male", "female"]),
       is_married: z.boolean(),
-
       education_level: z
         .enum([
           "diploma",
@@ -50,12 +56,8 @@ export const organizationalFormSchema = z.object({
   employee: z
     .object({
       personnel_code: z.string().min(1, "کد پرسنلی الزامی است."),
-
       position: z.string().nullable().optional(),
-
-      // ✅ اصلاح: حذف آبجکت { required_error } و استفاده از min
       starting_job: z.string().min(1, "تاریخ شروع به کار الزامی است."),
-
       work_group_id: z.number().nullable().optional(),
       work_pattern_id: z.number().nullable().optional(),
       shift_schedule_id: z.number().nullable().optional(),
@@ -90,7 +92,7 @@ export type UserProfileFormData =
   | ContactFormData
   | AccessManagementFormData;
 
-// --- اسکیمای فرم ایجاد کاربر ---
+// --- ✅ اسکیمای فرم ایجاد کاربر (Updated) ---
 export const createUserFormSchema = z.object({
   user_name: z.string().min(1, "نام کاربری الزامی است."),
   email: z.string().email("ایمیل نامعتبر است.").min(1, "ایمیل الزامی است."),
@@ -115,9 +117,6 @@ export const createUserFormSchema = z.object({
       message: "جنسیت باید 'male' یا 'female' باشد.",
     }),
     is_married: z.boolean({ message: "وضعیت تاهل باید مشخص شود." }),
-
-    // ✅ اصلاح مهم: حذف { required_error: ... } که باعث خطای TS2769 می‌شد
-    // متد .min(1) خودش چک می‌کند که رشته خالی نباشد
     birth_date: z.string().min(1, "تاریخ تولد الزامی است."),
     starting_job: z.string().min(1, "تاریخ شروع به کار الزامی است."),
 
@@ -139,6 +138,20 @@ export const createUserFormSchema = z.object({
     house_number: z.string().min(1, "تلفن منزل الزامی است."),
     sos_number: z.string().min(1, "تلفن اضطراری الزامی است."),
     shift_schedule_id: z.number().positive("برنامه شیفتی الزامی است."),
+
+    // ✅ فیلد جدید: تصاویر
+    // ما آرایه ای از فایل‌ها را دریافت می‌کنیم (از نوع File مرورگر)
+    images: z
+      .array(z.custom<File>())
+      .optional()
+      .refine((files) => {
+        if (!files) return true;
+        return files.every((file) => file.size <= MAX_FILE_SIZE);
+      }, "حجم هر تصویر نباید بیشتر از ۵ مگابایت باشد.")
+      .refine((files) => {
+        if (!files) return true;
+        return files.every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type));
+      }, "فرمت فایل باید jpg, png یا webp باشد."),
   }),
 });
 
