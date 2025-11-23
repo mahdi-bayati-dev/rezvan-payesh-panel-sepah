@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
+use App\Jobs\ProcessEmployeeImages;
 use App\Models\EmployeeImage;
 use App\Models\Status;
 use App\Models\Organization;
@@ -275,14 +276,17 @@ class UserController extends Controller
                 $directory = 'users/' . $validatedData['personnel_code'];
                 foreach ($request->file('employee.images') as $image) {
                     $path = $image->store($directory, 'public');
-                    EmployeeImage::create([
+                    $imgRecord = EmployeeImage::create([
                         'employee_id' => $newEmployee->id,
                         'path' => $path,
                         'original_name' => $image->getClientOriginalName(),
                         'mime_type' => $image->getClientMimeType(),
                         'size' => $image->getSize(),
                     ]);
-                    $imagePaths[] = $path;
+                    $imagesToProcess[] = [
+                        'id' => $imgRecord->id,
+                        'original_path' => $path
+                    ];
                 }
             }
 
@@ -292,32 +296,16 @@ class UserController extends Controller
             return [
                 'user' => $newUser,
                 'employee' => $newEmployee,
-                'imagePaths' => $imagePaths
+                'imagesToProcess' => $imagesToProcess
             ];
         });
         $currentUser = $currentUser['user'];
-        $newEmployee = $currentUser['employee'];
-        $imagePaths = $currentUser['imagePaths'];
-        if (!empty($imagePaths))
-            {
-                try
-                {
-                    $response = Http::post('https://ai.eitebar.ir/v1/user', [
-                        'personnel_code' => $newEmployee->personnel_code,
-                        'gender' => $newEmployee->gender,
-                        'images' => $imagePaths,
-                    ]);
+        $imagesToProcess = $currentUser['imagesToProcess'];
 
-                    if ($response->status() != 200)
-                    {
-                        Log::error("Failed to sync user with AI service. Status: " . $response->status() . " Body: " . $response->body());
-                    }
-                }
-                catch (\Exception $e)
-                {
-                    Log::error("Exception calling AI service: " . $e->getMessage());
-                }
-            }
+        if (!empty($imagesToProcess))
+        {
+            ProcessEmployeeImages::dispatch($currentUser->employee, $imagesToProcess, 'create');
+        }
 
         return new UserResource($currentUser->load(['employee.organization', 'roles', 'employee.images','employee.workGroup']));
     }
@@ -431,7 +419,7 @@ class UserController extends Controller
              $pathsToDelete = [];
              $deleteImageIds = $validatedData['employee']['delete_images'] ?? [];
 
-             if (isset($employeeData['delete_images']))
+             if (!empty($deleteImageIds))
              {
                  $imagesToDelete = EmployeeImage::whereIn('id', $deleteImageIds)
                      ->where('employee_id', $user->employee->id)
@@ -443,6 +431,22 @@ class UserController extends Controller
                  if (!empty($pathsToDelete))
                  {
                      Storage::disk('public')->delete($pathsToDelete);
+                     foreach($pathsToDelete as $p)
+                     {
+                         $originalGuess = str_replace('.webp', '', $p);
+                         $dir = pathinfo($p, PATHINFO_DIRNAME);
+                         $name = pathinfo($p, PATHINFO_FILENAME);
+                         $exts = ['jpg', 'jpeg', 'png', 'webp'];
+
+                         foreach($exts as $ext)
+                         {
+                             $guess = $dir . '/' . $name . '.' . $ext;
+                             if ($guess !== $p && Storage::disk('public')->exists($guess))
+                             {
+                                 Storage::disk('public')->delete($guess);
+                             }
+                         }
+                     }
                  }
 
                  EmployeeImage::whereIn('id', $deleteImageIds)
@@ -458,14 +462,17 @@ class UserController extends Controller
                  foreach ($request->file('employee.images') as $image)
                  {
                      $path = $image->store($directory, 'public');
-                     EmployeeImage::create([
+                     $imgRecord = EmployeeImage::create([
                          'employee_id' => $user->employee->id,
                          'path' => $path,
                          'original_name' => $image->getClientOriginalName(),
                          'mime_type' => $image->getClientMimeType(),
                          'size' => $image->getSize(),
                      ]);
-                         $newImagePaths[] = $path;
+                     $newImagesToProcess[] = [
+                         'id' => $imgRecord->id,
+                         'original_path' => $path
+                     ];
                  }
              }
 
@@ -477,13 +484,13 @@ class UserController extends Controller
              }
              return [
                  'pathsToDelete' => $pathsToDelete,
-                 'newImagePaths' => $newImagePaths,
+                 'newImagesToProcess' => $newImagesToProcess,
                  'personnelCode' => $user->employee->personnel_code,
                  'gender' => $user->employee->gender
              ];
          });
          $pathsToDelete = $updateResult['pathsToDelete'];
-         $newImagePaths = $updateResult['newImagePaths'];
+         $newImagesToProcess = $updateResult['newImagesToProcess'];
          $personnelCode = $updateResult['personnelCode'];
          $gender = $updateResult['gender'];
 
@@ -509,25 +516,9 @@ class UserController extends Controller
          }
 
          // 2. Handle Updates/Insertions in AI
-         if (!empty($newImagePaths))
+         if (!empty($newImagesToProcess))
          {
-             try
-             {
-                 $response = Http::put('https://ai.eitebar.ir/v1/user', [
-                     'personnel_code' => $personnelCode,
-                     'gender' => $gender,
-                     'images' => $newImagePaths,
-                 ]);
-
-                 if ($response->failed())
-                 {
-                     Log::error("AI Update Failed. Response: " . $response->body());
-                 }
-             }
-             catch (\Exception $e)
-             {
-                 Log::error("Exception during AI update: " . $e->getMessage());
-             }
+             ProcessEmployeeImages::dispatch($user->employee, $newImagesToProcess, 'update');
          }
 
         return new UserResource($user->load(['employee.organization', 'roles', 'employee.images', 'employee.workGroup']));
