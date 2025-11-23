@@ -41,6 +41,8 @@ export const fetchUsers = async (
     const { data } = await axiosInstance.get(
       `/users?${queryParams.toString()}`
     );
+    console.log(data);
+    
     return data;
   } catch (error) {
     console.error("❌ [API] Error Fetching Users:", error);
@@ -48,9 +50,6 @@ export const fetchUsers = async (
   }
 };
 
-/**
- * سایر متدها (updateUserOrganization, etc.) بدون تغییر...
- */
 export const updateUserOrganization = async ({
   userId,
   organizationId,
@@ -83,6 +82,10 @@ export const fetchUserById = async (userId: number): Promise<User> => {
   return data.data;
 };
 
+/**
+ * ✅ آپدیت پروفایل کاربر (هوشمند برای فایل و جیسون)
+ * اگر عکس داشته باشد، به FormData تبدیل می‌شود.
+ */
 export const updateUserProfile = async ({
   userId,
   payload,
@@ -90,43 +93,112 @@ export const updateUserProfile = async ({
   userId: number;
   payload: UserProfileFormData;
 }): Promise<User> => {
-  const { data } = await axiosInstance.put(`/users/${userId}`, payload);
-  return data;
+  
+  // بررسی وجود فایل در پی‌لود (مخصوص تب مشخصات فردی)
+  const hasFiles = (payload as any).employee?.images && (payload as any).employee.images.length > 0;
+  
+  // اگر فایل نداشتیم، ارسال معمولی JSON (متد PUT)
+  if (!hasFiles) {
+     const { data } = await axiosInstance.put(`/users/${userId}`, payload);
+     return data;
+  }
+
+  // اگر فایل داشتیم، تبدیل به FormData (متد POST + _method: PUT)
+  console.group(`🚀 [API Request] Update User Profile (Multipart) - User: ${userId}`);
+  const formData = new FormData();
+  formData.append("_method", "PUT"); // تکنیک لاراول برای آپدیت فایل‌دار
+
+  // تابع بازگشتی برای تبدیل آبجکت به FormData
+  const appendToFormData = (data: any, rootKey?: string) => {
+      if (data instanceof File) {
+          // اگر کلید اصلی images است، باید به صورت آرایه اضافه شود
+          // اما چون در loop والد کنترل می‌شود، اینجا شاید نرسد. 
+          // این بخش برای امنیت بیشتر است.
+           if (rootKey) formData.append(rootKey, data);
+           return;
+      }
+      
+      if (Array.isArray(data)) {
+           data.forEach((item, index) => {
+               // اگر آرایه فایل بود (مثل images)
+               if (item instanceof File && rootKey === 'employee[images]') {
+                   formData.append(`${rootKey}[${index}]`, item);
+               } 
+               // اگر آرایه اعداد بود (مثل deleted_image_ids)
+               else if (typeof item !== 'object' && rootKey) {
+                   formData.append(`${rootKey}[${index}]`, String(item));
+               }
+               // سایر آرایه‌ها
+               else {
+                   appendToFormData(item, `${rootKey}[${index}]`);
+               }
+           });
+           return;
+      }
+
+      if (data !== null && typeof data === 'object') {
+           Object.keys(data).forEach(key => {
+                const value = data[key];
+                const formKey = rootKey ? `${rootKey}[${key}]` : key;
+                
+                // مدیریت خاص برای تصاویر
+                if (key === 'images' && Array.isArray(value)) {
+                    value.forEach((file, idx) => {
+                        formData.append(`${formKey}[${idx}]`, file);
+                    });
+                } else {
+                    appendToFormData(value, formKey);
+                }
+           });
+           return;
+      }
+
+      if (data !== null && data !== undefined) {
+          if (typeof data === 'boolean') {
+               if (rootKey) formData.append(rootKey, data ? "1" : "0");
+          } else {
+               if (rootKey) formData.append(rootKey, String(data));
+          }
+      }
+  };
+
+  appendToFormData(payload);
+
+  try {
+    const { data } = await axiosInstance.post(`/users/${userId}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    console.log("✅ [API Success] User Updated:", data);
+    console.groupEnd();
+    return data.data; // API معمولا data.data برمی‌گرداند
+  } catch (error) {
+    console.error("🔥 [API Error] Update Failed:", error);
+    console.groupEnd();
+    throw error;
+  }
 };
 
 export const deleteUser = async (userId: number): Promise<void> => {
   await axiosInstance.delete(`/users/${userId}`);
 };
 
-/**
- * ✅ ایجاد کاربر جدید (همراه با آپلود تصویر)
- * POST /api/users
- * Content-Type: multipart/form-data
- */
 export const createUser = async (
   payload: CreateUserFormData
 ): Promise<User> => {
   console.group("🚀 [API Request] Create User (Multipart)");
 
-  // ۱. ساخت FormData
   const formData = new FormData();
-
-  // ۲. اضافه کردن فیلدهای سطح User
   formData.append("user_name", payload.user_name);
   formData.append("email", payload.email);
   formData.append("password", payload.password);
   formData.append("role", payload.role);
   formData.append("status", payload.status);
 
-  // ۳. اضافه کردن فیلدهای سطح Employee (با فرمت آرایه‌ای PHP/Laravel)
-  // مثال: employee[first_name]
   if (payload.employee) {
     Object.entries(payload.employee).forEach(([key, value]) => {
-      // از پردازش فیلد images در این حلقه خودداری می‌کنیم چون باید جداگانه هندل شود
       if (key === "images") return;
 
       if (value !== null && value !== undefined) {
-        // تبدیل boolean به 0 و 1 (استاندارد لاراول)
         if (typeof value === "boolean") {
           formData.append(`employee[${key}]`, value ? "1" : "0");
         } else {
@@ -135,25 +207,14 @@ export const createUser = async (
       }
     });
 
-    // ۴. هندل کردن تصاویر (طبق داکیومنت: employee[images][0], employee[images][1]...)
     if (payload.employee.images && payload.employee.images.length > 0) {
       payload.employee.images.forEach((file, index) => {
-        // نکته مهم: فایل باید بایندری واقعی باشد که از input type=file می‌آید
         formData.append(`employee[images][${index}]`, file);
       });
     }
   }
 
-  // Debug: نمایش محتویات FormData (فقط برای دولوپر)
-  // for (let [key, value] of formData.entries()) {
-  //   console.log(`${key}:`, value);
-  // }
-
-  console.groupEnd();
-
   try {
-    // نکته: وقتی FormData می‌فرستیم، axios معمولاً خودش هدر Content-Type را ست می‌کند
-    // اما برای اطمینان می‌توانیم هدر را دستی هم ست کنیم (اختیاری)
     const { data } = await axiosInstance.post("/users", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
