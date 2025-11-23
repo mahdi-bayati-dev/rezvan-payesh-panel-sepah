@@ -3,8 +3,7 @@
 import type { LeaveRequest } from "@/features/requests/types";
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import Textarea from '@/components/ui/Textarea';
-import { Printer, X, Check, Settings2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { X, Check } from 'lucide-react';
 import { Spinner } from '@/components/ui/Spinner';
 
 const statusOptions: SelectOption[] = [
@@ -36,15 +35,11 @@ export const RequestActionsPanel = ({
     onResponseChange,
     onConfirm,
     onCancel,
-    onExport,
+    // onExport,
     isSubmitting,
     errorMessage, // دریافت خطا
 }: RequestActionsPanelProps) => {
 
-    const navigate = useNavigate();
-    const handleGoToSettings = () => {
-        navigate('/requests/export-settings');
-    };
 
     // وضعیت فعلی درخواست را چک می‌کنیم تا اگر نهایی شده، فرم غیرفعال شود
     const isProcessed = request.status === 'approved' || request.status === 'rejected';
@@ -75,24 +70,7 @@ export const RequestActionsPanel = ({
                     error={errorMessage || undefined}
                 />
 
-                <div className="flex items-center gap-2 transition-all">
-                    <button
-                        onClick={handleGoToSettings}
-                        aria-label="تنظیمات خروجی گزارش"
-                        className=" border border-borderL rounded-2xl p-2 cursor-pointer hover:bg-blue hover:text-backgroundL-500 dark:border-borderD dark:text-backgroundL-500"
-                        disabled={isSubmitting}
-                    >
-                        <Settings2 />
-                    </button>
-                    <button
-                        onClick={onExport}
-                        disabled={isSubmitting}
-                        className="w-full flex items-center cursor-pointer justify-center gap-2 bg-secondaryL hover:bg-blue hover:text-backgroundL-500 dark:bg-secondaryD text-secondary-foregroundL dark:text-secondary-foregroundD px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-                    >
-                        <Printer size={18} />
-                        خروجی
-                    </button>
-                </div>
+   
 
                 <div className="flex gap-4">
                     <button

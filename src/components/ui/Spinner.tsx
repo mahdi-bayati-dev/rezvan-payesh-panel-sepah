@@ -1,9 +1,11 @@
 import { type FC } from "react";
+import { cn } from "@/lib/utils/cn"; // اطمینان از ایمپورت cn
 
 interface SpinnerProps {
   fullscreen?: boolean; // اسپینر تمام‌صفحه باشه یا نه
   size?: "sm" | "md" | "lg" | "xs"; // اندازه اسپینر
   text?: string; // متن زیر اسپینر
+  className?: string; // ✅ اضافه شد: برای دریافت کلاس‌های اضافی مثل رنگ و مارجین
 }
 
 const sizeClasses = {
@@ -17,11 +19,16 @@ export const Spinner: FC<SpinnerProps> = ({
   fullscreen = false,
   size = "md",
   text = '',
+  className,
 }) => {
   const spinner = (
     <div
-      className={`animate-spin rounded-full border-solid border-primary border-t-transparent ${sizeClasses[size]
-        }`}
+      // ✅ اصلاح: ترکیب کلاس‌ها با cn و اضافه کردن className دریافتی
+      className={cn(
+        "animate-spin rounded-full border-solid border-primary border-t-transparent",
+        sizeClasses[size],
+        className
+      )}
     />
   );
 

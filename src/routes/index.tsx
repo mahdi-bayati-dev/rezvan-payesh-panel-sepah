@@ -15,7 +15,7 @@ const LoginPage = lazy(() => import("../features/auth/routes/LoginPage"));
 const RequestsPage = lazy(() => import("../features/requests/routes/requestsPage"));
 const NewRequestPage = lazy(() => import("../features/requests/routes/NewRequestPage"));
 const RequestDetailPage = lazy(() => import("../features/requests/routes/RequestDetailPage"));
-const ExportSettingsPage = lazy(() => import("../features/requests/routes/ExportSettingsPage"));
+// const ExportSettingsPage = lazy(() => import("../features/requests/routes/ExportSettingsPage"));
 const TableSettingsPage = lazy(() => import("../features/requests/routes/TableSettingsPage"));
 const ReportsPageSkeleton = lazy(() => import("../features/reports/Skeleton/SkeletonRepotrs"));
 const ActivityReportPageDetails = lazy(() => import("../features/reports/routes/reportPageDetails"));
@@ -85,10 +85,10 @@ export const router = createBrowserRouter([
                 path: "requests/settings-table",
                 element: <Suspense fallback={<Spinner />}><TableSettingsPage /></Suspense>,
               },
-              {
-                path: "requests/export-settings",
-                element: <Suspense fallback={<Spinner />}><ExportSettingsPage /></Suspense>,
-              },
+              // {
+              //   path: "requests/export-settings",
+              //   element: <Suspense fallback={<Spinner />}><ExportSettingsPage /></Suspense>,
+              // },
               {
                 path: "reports",
                 element: <Suspense fallback={<ReportsPageSkeleton />}><ReportsIndexPage /></Suspense>,
