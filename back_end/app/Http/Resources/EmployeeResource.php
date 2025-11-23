@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\EmployeeImage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -43,6 +44,9 @@ class EmployeeResource extends JsonResource
             'house_number' => $this->house_number,
             'sos_number' => $this->sos_number,
             'address' => $this->address,
+
+            // اصلاح شده: استفاده از collection برای لیست تصاویر و نام صحیح رابطه (images)
+            'images' => EmployeeImageResource::collection($this->whenLoaded('images')),
         ];
     }
 }
