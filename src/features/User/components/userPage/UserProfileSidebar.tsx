@@ -2,7 +2,7 @@ import React from 'react';
 import { type User } from '@/features/User/types/index';
 import { UserInfoCard, type InfoRowData } from '@/components/ui/UserInfoCard';
 import { formatDateToPersian } from '@/features/User/utils/dateHelper';
-import { getFullImageUrl } from '@/features/User/utils/imageHelper'; // ✅ ایمپورت هلپر جدید
+import { getFullImageUrl } from '@/features/User/utils/imageHelper';
 
 // تابع کمکی برای ساخت حروف اختصاری آواتار
 const getAvatarPlaceholder = (firstName?: string, lastName?: string): string => {
@@ -20,13 +20,10 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
 
     const avatarPlaceholder = getAvatarPlaceholder(employee?.first_name, employee?.last_name);
 
-    // ✅ اصلاح: استفاده از .url به جای .path
-    const rawPath = employee?.images && employee.images.length > 0
-        ? employee.images[0].url
-        : undefined;
+    // ✅ اصلاح و ساده‌سازی: استفاده از Optional Chaining برای دسترسی امن
+    // این خط دقیقاً همان منطق PersonalDetailsForm را دارد
+    const rawPath = employee?.images?.[0]?.url;
 
-    // نکته: تابع getFullImageUrl شما هوشمند است و چون آدرس با http شروع می‌شود،
-    // همان را بدون تغییر برمی‌گرداند که صحیح است.
     const profileImageUrl = getFullImageUrl(rawPath);
 
     const infoRows: InfoRowData[] = [

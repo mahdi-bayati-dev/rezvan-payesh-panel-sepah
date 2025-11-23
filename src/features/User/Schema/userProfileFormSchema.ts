@@ -9,10 +9,7 @@ const ACCEPTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
-// --- اسکیماهای تب‌های پروفایل (موجود) ---
-// (بخش‌های accountInfo, personalDetails و ... بدون تغییر باقی می‌مانند مگر اینکه بخواهید آپدیت عکس را در ویرایش هم اضافه کنید)
-// فعلاً فقط بخش CreateUserFormSchema را تغییر می‌دهیم که طبق داکیومنت جدید است.
-
+// --- اسکیماهای موجود ---
 export const accountInfoFormSchema = z.object({
   user_name: z.string().min(1, "نام کاربری الزامی است."),
   email: z.string().email("ایمیل نامعتبر است."),
@@ -26,6 +23,7 @@ export const accountInfoFormSchema = z.object({
 });
 export type AccountInfoFormData = z.infer<typeof accountInfoFormSchema>;
 
+// ✅ اصلاح شده: اضافه کردن فیلد تصاویر و تصاویر حذف شده
 export const personalDetailsFormSchema = z.object({
   employee: z
     .object({
@@ -47,6 +45,22 @@ export const personalDetailsFormSchema = z.object({
         ])
         .nullable()
         .optional(),
+      
+      // ✅ فیلدهای جدید برای مدیریت عکس
+      images: z
+        .array(z.custom<File>())
+        .optional()
+        .nullable()
+        .refine((files) => {
+          if (!files) return true;
+          return files.every((file) => file.size <= MAX_FILE_SIZE);
+        }, "حجم هر تصویر نباید بیشتر از ۵ مگابایت باشد.")
+        .refine((files) => {
+          if (!files) return true;
+          return files.every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type));
+        }, "فرمت فایل باید jpg, png یا webp باشد."),
+
+      deleted_image_ids: z.array(z.number()).optional().nullable(),
     })
     .nullable(),
 });
@@ -92,7 +106,7 @@ export type UserProfileFormData =
   | ContactFormData
   | AccessManagementFormData;
 
-// --- ✅ اسکیمای فرم ایجاد کاربر (Updated) ---
+// --- اسکیمای فرم ایجاد کاربر (بدون تغییر) ---
 export const createUserFormSchema = z.object({
   user_name: z.string().min(1, "نام کاربری الزامی است."),
   email: z.string().email("ایمیل نامعتبر است.").min(1, "ایمیل الزامی است."),
@@ -139,8 +153,6 @@ export const createUserFormSchema = z.object({
     sos_number: z.string().min(1, "تلفن اضطراری الزامی است."),
     shift_schedule_id: z.number().positive("برنامه شیفتی الزامی است."),
 
-    // ✅ فیلد جدید: تصاویر
-    // ما آرایه ای از فایل‌ها را دریافت می‌کنیم (از نوع File مرورگر)
     images: z
       .array(z.custom<File>())
       .optional()
