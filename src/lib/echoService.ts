@@ -39,8 +39,6 @@ export const initEcho = (): Echo<any> | null => {
   if (typeof window === "undefined") return null;
 
   // ✅ در اینجا منطق چک کردن توکن را حذف می‌کنیم.
-  // اگر کاربر لاگین نباشد، درخواست Auth Pusher با 401 مواجه می‌شود.
-
   if (window.EchoInstance) {
     return window.EchoInstance;
   }
@@ -52,22 +50,31 @@ export const initEcho = (): Echo<any> | null => {
     import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
   const rootUrl = apiBase.replace(/\/api\/?$/, ""); // حذف /api از آخر
   const authEndpointUrl = `${rootUrl}/broadcasting/auth`;
+  
+  // ✅ خواندن تنظیمات TLS و پورت از متغیرهای محیطی
+  const forceTlsEnv = import.meta.env.VITE_PUSHER_FORCE_TLS === 'true';
+  const wsPortEnv = Number(import.meta.env.VITE_PUSHER_PORT) || 80;
+
 
   const options: any = {
     broadcaster: "pusher",
     key: import.meta.env.VITE_PUSHER_APP_KEY || "dLqP31MIZy3LQm10QtHe9ciAt",
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || "mt1",
+    
     wsHost: import.meta.env.VITE_PUSHER_HOST || "ws.eitebar.ir",
-    wsPort: Number(import.meta.env.VITE_PUSHER_PORT) || 80,
-    wssPort: Number(import.meta.env.VITE_PUSHER_PORT) || 443,
-    forceTLS: false,
-    encrypted: false,
+    
+    // ✅ داینامیک کردن پورت‌ها
+    wsPort: wsPortEnv,
+    wssPort: forceTlsEnv ? 443 : wsPortEnv, // اگر TLS اجباری بود، پورت 443 باشد، در غیر این صورت از پورت محیطی استفاده کند
+
+    // ✅ داینامیک کردن اجبار TLS
+    forceTLS: forceTlsEnv, 
+    
+    encrypted: forceTlsEnv, // encrypted باید با forceTLS همگام باشد
     disableStats: true,
     enabledTransports: ["ws", "wss"],
 
-    // ✅ مهم: نیاز به تنظیم authorizer نیست، اگر Pusher به طور خودکار کوکی‌ها را بفرستد.
-    // اما برای اطمینان از سازگاری و فرستادن کوکی‌ها به Auth Endpoint لاراول،
-    // از authorizer و axiosInstance که با withCredentials تنظیم شده، استفاده می‌کنیم.
+    // ✅ استفاده از authorizer برای ارسال کوکی HttpOnly در فرآیند احراز هویت سوکت
     authorizer: (channel: any, _options: any) => {
       return {
         authorize: (socketId: string, callback: Function) => {

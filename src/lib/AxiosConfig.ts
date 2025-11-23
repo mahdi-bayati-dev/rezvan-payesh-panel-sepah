@@ -2,6 +2,10 @@ import axios from "axios";
 // import { store } from "@/store";
 import { toast } from "react-toastify";
 
+// ✅ نکته مهم: اگر در Vercel این کد اجرا شود (که HTTPS است)، 
+// و VITE_API_BASE_URL با HTTP شروع شود، Mixed Content رخ می‌دهد.
+// حتماً متغیر محیطی VITE_API_BASE_URL در Vercel باید با HTTPS تنظیم شود.
+// اگر متغیر محیطی تنظیم نشده باشد، مقدار پیش‌فرض "http" لود می‌شود.
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
 
@@ -73,14 +77,8 @@ axiosInstance.interceptors.response.use(
     // ۲. مدیریت خطای احراز هویت (401 Unauthorized)
     if (error.response && error.response.status === 401) {
       if (!error.config.url?.endsWith("/login")) {
-        // ✅ اصلاح: در سیستم HttpOnly، نیازی به دیسپچ clearToken نیست.
-        // فقط باید state احراز هویت Redux را ریست کنیم (مثلاً با dispatch کردن logoutUser.fulfilled).
-        // اما از آنجایی که ما در اینجا به state داخلی Redux دسترسی کامل نداریم،
-        // و checkAuthStatus.rejected همین کار را می‌کند، می‌توانیم فقط هشدار بدهیم.
         // بهترین رویکرد این است که این مدیریت وضعیت را به Redux Thunk (checkAuthStatus) بسپاریم.
-        console.warn(
-          "Unauthorized (401) detected. Relying on Redux/Thunks to reset user state."
-        );
+        console.warn("Unauthorized (401) detected. Relying on Redux/Thunks to reset user state.");
       }
     }
 
