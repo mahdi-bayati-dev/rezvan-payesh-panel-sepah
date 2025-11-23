@@ -274,7 +274,8 @@ class UserController extends Controller
             if ($request->hasFile('employee.images'))
             {
                 $directory = 'users/' . $employeeData['personnel_code'];
-                foreach ($request->file('employee.images') as $image) {
+                foreach ($request->file('employee.images') as $image)
+                {
                     $path = $image->store($directory, 'public');
                     $imgRecord = EmployeeImage::create([
                         'employee_id' => $newEmployee->id,
@@ -307,6 +308,7 @@ class UserController extends Controller
         $currentUser = $currentUser['user'];
         $imagesToProcess = $currentUser['imagesToProcess'];
 
+        Log::info("imagesToProcess array is : ." . json_encode($imagesToProcess));
         if (!empty($imagesToProcess))
         {
             Log::info("image job is dispatch");
