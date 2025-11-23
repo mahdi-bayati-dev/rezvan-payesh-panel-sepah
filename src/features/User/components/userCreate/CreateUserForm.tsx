@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
@@ -25,10 +25,10 @@ import Input from '@/components/ui/Input';
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import Textarea from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
-import { Loader2, Save, X, User, Building2, Phone, Lock } from 'lucide-react';
+import { Loader2, Save, X, User, Building2, Phone, Lock, UploadCloud, Trash } from 'lucide-react';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 
-// --- Options ---
+// --- Options (ثابت‌ها) ---
 const statusOptions: SelectOption[] = [
     { id: 'active', name: 'فعال' },
     { id: 'inactive', name: 'غیرفعال' },
@@ -60,11 +60,9 @@ const toSelectOption = (item: BaseNestedItem): SelectOption => ({
     name: item.name,
 });
 
-// ✅✅✅ اصلاح UI: حذف overflow-hidden برای باز شدن سلکت باکس‌ها
+// UI Helper Component
 const FormSectionCard = ({ title, icon: Icon, children }: { title: string, icon: any, children: React.ReactNode }) => (
-    // ۱. حذف overflow-hidden از اینجا
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm mb-6 relative">
-        {/* ۲. اضافه کردن rounded-t-xl به هدر تا گوشه‌های بالا گرد بمانند */}
         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-t-xl px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
             <div className="p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm text-primaryL dark:text-primaryD">
                 <Icon className="w-5 h-5" />
@@ -80,6 +78,9 @@ const FormSectionCard = ({ title, icon: Icon, children }: { title: string, icon:
 export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizationId }) => {
     const navigate = useNavigate();
     const createMutation = useCreateUser();
+
+    // --- State برای پیش‌نمایش عکس‌ها ---
+    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     const { data: rawWorkPatterns, isLoading: isLoadingWP } = useWorkPatternsList();
     const { data: rawShiftSchedules, isLoading: isLoadingSS } = useShiftSchedulesList();
@@ -100,15 +101,9 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             first_name: "", last_name: "", personnel_code: "", phone_number: "",
             gender: "male", is_married: false, education_level: "diploma",
             house_number: "", sos_number: "", shift_schedule_id: defaultShiftScheduleId,
-
-            position: null,
-            starting_job: null,
-            father_name: null,
-            birth_date: null,
-            nationality_code: null,
-            address: null,
-            work_group_id: null,
-            work_pattern_id: null,
+            position: null, starting_job: null, father_name: null, birth_date: null,
+            nationality_code: null, address: null, work_group_id: null, work_pattern_id: null,
+            images: [], // مقدار پیش فرض آرایه خالی
         }
     }), [organizationId, defaultShiftScheduleId]);
 
@@ -117,6 +112,8 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
         handleSubmit,
         control,
         setError,
+        setValue,
+        watch,
         formState: { errors }
     } = useForm<CreateUserFormData>({
         resolver: zodResolver(createUserFormSchema),
@@ -124,6 +121,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
     });
 
     const onSubmit: SubmitHandler<CreateUserFormData> = async (formData) => {
+        // نرمال‌سازی داده‌ها قبل از ارسال
         const sanitizedEmployee = {
             ...formData.employee,
             father_name: formData.employee?.father_name || null,
@@ -132,6 +130,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             address: formData.employee?.address || null,
             work_group_id: formData.employee?.work_group_id || null,
             work_pattern_id: formData.employee?.work_pattern_id || null,
+            // تصاویر مستقیماً ارسال می‌شوند (File Array)
         };
 
         const finalPayload = {
@@ -148,6 +147,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             if (validationErrors) {
                 toast.error("لطفاً خطاهای فرم را بررسی کنید.");
                 Object.keys(validationErrors).forEach((key) => {
+                    // هندل کردن خطاهای بکند
                     setError(key as any, { type: 'server', message: validationErrors[key][0] });
                 });
             } else {
@@ -156,8 +156,39 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
         }
     };
 
-    const isLoading = isLoadingWP || isLoadingSS || isLoadingWG;
+    // --- توابع هندل کردن آپلود عکس ---
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            // تبدیل FileList به آرایه
+            const newFiles = Array.from(e.target.files);
 
+            // دریافت فایل‌های قبلی (اگر وجود داشته باشد)
+            const currentFiles = watch('employee.images') || [];
+
+            // ترکیب فایل‌ها
+            const updatedFiles = [...currentFiles, ...newFiles];
+
+            // آپدیت کردن فرم
+            setValue('employee.images', updatedFiles, { shouldValidate: true });
+
+            // ساخت URL برای پیش‌نمایش
+            const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
+            setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+        }
+    };
+
+    const removeImage = (index: number) => {
+        const currentFiles = watch('employee.images') || [];
+        const updatedFiles = currentFiles.filter((_, i) => i !== index);
+
+        // آپدیت فرم
+        setValue('employee.images', updatedFiles, { shouldValidate: true });
+
+        // آپدیت پیش‌نمایش
+        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const isLoading = isLoadingWP || isLoadingSS || isLoadingWG;
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-64 space-y-4 text-muted-foregroundL">
@@ -203,7 +234,49 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
             </FormSectionCard>
 
-            <FormSectionCard title="مشخصات فردی" icon={User}>
+            <FormSectionCard title="مشخصات فردی و تصاویر" icon={User}>
+                {/* --- بخش جدید: آپلود عکس --- */}
+                <div className="md:col-span-3 mb-4">
+                    <label className="block text-sm font-medium mb-2 text-foreground dark:text-foregroundD">
+                        تصویر پروفایل (اختیاری)
+                    </label>
+
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <UploadCloud className="w-10 h-10 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500 mb-2">برای آپلود کلیک کنید یا فایل را اینجا بکشید</p>
+                        <p className="text-xs text-gray-400 mb-4">حداکثر 5MB (JPG, PNG, WEBP)</p>
+
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={handleFileChange}
+                        />
+                    </div>
+                    {errors.employee?.images && (
+                        <p className="text-red-500 text-xs mt-1">{errors.employee.images.message}</p>
+                    )}
+
+                    {/* نمایش تصاویر انتخاب شده */}
+                    {previewUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {previewUrls.map((url, index) => (
+                                <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 shadow-sm group">
+                                    <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(index)}
+                                        className="absolute top-1 left-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <Trash className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 <Input label="نام" {...register("employee.first_name")} error={errors.employee?.first_name?.message} />
                 <Input label="نام خانوادگی" {...register("employee.last_name")} error={errors.employee?.last_name?.message} />
                 <Input label="کد ملی" {...register("employee.nationality_code")} error={errors.employee?.nationality_code?.message} />

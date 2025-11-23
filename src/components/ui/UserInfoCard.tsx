@@ -1,4 +1,5 @@
-import { DetailAvatar } from './DetailAvatar'; // ایمپورت کامپوننت عمومی جدید
+import { DetailAvatar } from './DetailAvatar'; // ✅ ایمپورت کامپوننت عمومی جدید
+
 
 // تعریف تایپ برای هر ردیف اطلاعاتی
 export type InfoRowData = {
@@ -28,8 +29,8 @@ interface UserInfoCardProps {
     /** متن placeholder آواتار (اختیاری) */
     avatarPlaceholder?: string;
     /** آرایه‌ای از ردیف‌های اطلاعاتی که باید نمایش داده شوند
-     * این الگو کامپوننت را کاملاً data-driven و قابل استفاده مجدد می‌کند
-     */
+      * این الگو کامپوننت را کاملاً data-driven و قابل استفاده مجدد می‌کند
+      */
     infoRows: InfoRowData[];
 }
 
@@ -57,9 +58,11 @@ export const UserInfoCard = ({
                 />
 
 
-                {infoRows.map((row) => (
-                    <InfoRow key={row.label} label={row.label} value={row.value} />
-                ))}
+                <div className='grid grid-cols-2 gap-4 pt-4 border-t border-borderL dark:border-borderD'>
+                    {infoRows.map((row) => (
+                        <InfoRow key={row.label} label={row.label} value={row.value} />
+                    ))}
+                </div>
             </div>
         </div>
     );

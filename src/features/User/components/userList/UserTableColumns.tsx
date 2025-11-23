@@ -4,16 +4,14 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Link } from 'react-router-dom';
 import { User as UserIcon, CalendarDays } from "lucide-react";
 
-// مسیرهای مستعار
 import Badge from "@/components/ui/Badge";
 import { type BadgeVariant } from "@/components/ui/Badge";
 import { type User } from "@/features/User/types";
 
-// ایمپورت کامپوننت‌ها و توابع کمکی
 import ActionsCell from '@/features/User/components/userList/ActionsCell';
 import { formatDateToPersian } from '@/features/User/utils/dateHelper';
+import { getFullImageUrl } from '@/features/User/utils/imageHelper'; // ✅ ایمپورت هلپر جدید
 
-// مپ کردن نقش‌ها
 const roleVariantMap: Record<string, BadgeVariant> = {
     "super_admin": "danger",
     "org-admin-l2": "warning",
@@ -32,6 +30,10 @@ export const columns: ColumnDef<User>[] = [
             const displayName = (firstName || lastName)
                 ? `${firstName || ''} ${lastName || ''}`.trim()
                 : user.user_name;
+            
+            // ✅ اصلاح: دریافت آدرس کامل تصویر
+            const rawPath = user.employee?.images?.[0]?.path;
+            const profileImage = getFullImageUrl(rawPath);
 
             return (
                 <Link
@@ -39,8 +41,23 @@ export const columns: ColumnDef<User>[] = [
                     className="flex items-center gap-2 group hover:underline"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondaryL dark:bg-secondaryD group-hover:bg-primaryL/10 transition-colors">
-                        <UserIcon className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD group-hover:text-primaryL" />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondaryL dark:bg-secondaryD group-hover:bg-primaryL/10 transition-colors overflow-hidden border border-gray-200 dark:border-gray-700">
+                        {profileImage ? (
+                            // ✅ ساده‌سازی منطق: اگر آدرس موجود است، نمایش بده
+                             <img 
+                                src={profileImage} 
+                                alt={displayName} 
+                                className="w-full h-full object-cover"
+                                // اگر عکس در جدول لود نشد، مرورگر آیکون فال‌بک را نمایش می‌دهد (بدون حلقه‌ی بی‌نهایت)
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.parentElement?.classList.remove('bg-transparent');
+                                }}
+                             />
+                        ) : (
+                            // ✅ حالت فال‌بک نهایی
+                            <UserIcon className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD group-hover:text-primaryL" />
+                        )}
                     </span>
                     <span className="font-medium group-hover:text-infoD-foreground transition-colors">
                         {displayName}
@@ -49,6 +66,7 @@ export const columns: ColumnDef<User>[] = [
             );
         },
     },
+    // ... (بقیه ستون‌ها بدون تغییر هستند)
     {
         accessorKey: "email",
         header: "اطلاعات تماس",
@@ -71,7 +89,6 @@ export const columns: ColumnDef<User>[] = [
         cell: info => info.getValue() || <span className="text-muted-foregroundL/50">---</span>,
     },
     {
-        // ستون جدید: تاریخ عضویت
         accessorKey: "created_at",
         header: "تاریخ عضویت",
         cell: ({ row }) => {
@@ -93,7 +110,6 @@ export const columns: ColumnDef<User>[] = [
             return (
                 <div className="flex flex-wrap gap-1">
                     {row.original.roles.map(role => {
-                        // ترجمه نقش‌ها برای نمایش بهتر
                         const displayLabel = role === "user" ? "کارمند" 
                             : role === "super_admin" ? "ادمین کل"
                             : role === "org-admin-l2" ? "ادمین سازمان"
