@@ -206,7 +206,8 @@ class Employee extends Model implements Auditable
         $startTime = Carbon::parse($date . ' ' . $workPatternForDay->start_time);
         $endTime = Carbon::parse($date . ' ' . $workPatternForDay->end_time);
 
-        if ($endTime->lessThanOrEqualTo($startTime)) {
+        if ($endTime->lessThanOrEqualTo($startTime))
+        {
             $endTime->addDay();
         }
 
