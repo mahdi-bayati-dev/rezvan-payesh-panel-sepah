@@ -25,13 +25,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
 
-    $middleware->trustProxies(at: '*'); // به تمام پروکسی‌های ورسل اعتماد کن
-    $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR |
-        Request::HEADER_X_FORWARDED_HOST |
-        Request::HEADER_X_FORWARDED_PORT |
-        Request::HEADER_X_FORWARDED_PROTO |
-        Request::HEADER_X_FORWARDED_AWS_ELB
-    );
+        $middleware->appendToGroup('api', \App\Http\Middleware\AttachAccessTokenFromCookie::class);
+        $middleware->trustProxies(at: '*'); // به تمام پروکسی‌های ورسل اعتماد کن
+        $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR |
+            Request::HEADER_X_FORWARDED_HOST |
+            Request::HEADER_X_FORWARDED_PORT |
+            Request::HEADER_X_FORWARDED_PROTO |
+            Request::HEADER_X_FORWARDED_AWS_ELB
+        );
 
 
     })
