@@ -10,57 +10,37 @@ import type {
 } from "@/features/User/Schema/userProfileFormSchema";
 
 /**
- * دریافت لیست کاربران (فیلتر شده و صفحه‌بندی شده)
- * GET /api/users
+ * دریافت لیست کاربران
  */
 export const fetchUsers = async (
   params: FetchUsersParams
 ): Promise<UserListResponse> => {
-  // 🟢 DEBUG: لاگ کردن پارامترهای فیلتر
   console.log("🔍 [API] Fetching Users with Params:", params);
 
-  // --- ۱. ساخت Query Parameters ---
   const queryParams = new URLSearchParams({
     page: String(params.page),
     per_page: String(params.per_page),
   });
 
-  if (params.search) {
-    queryParams.append("search", params.search);
-  }
-  if (params.organization_id) {
+  if (params.search) queryParams.append("search", params.search);
+  if (params.organization_id)
     queryParams.append("organization_id", String(params.organization_id));
-  }
-  if (params.role) {
-    queryParams.append("role", params.role);
-  }
-  if (params.work_pattern_id) {
+  if (params.role) queryParams.append("role", params.role);
+  if (params.work_pattern_id)
     queryParams.append("work_pattern_id", String(params.work_pattern_id));
-  }
-  if (params.shift_schedule_id) {
+  if (params.shift_schedule_id)
     queryParams.append("shift_schedule_id", String(params.shift_schedule_id));
-  }
 
-  // ✅✅✅ منطق فیلتر Work Group (نهایی و استاندارد) ✅✅✅
-
-  // حالت ۱: کارمندان آزاد (برای AvailableEmployeesTable)
   if (params.is_not_assigned_to_group) {
-    // برای کارمندانی که work_group_id آنها NULL است.
     queryParams.append("work_group_id", "null");
-  }
-  // حالت ۲: کارمندان عضو گروه خاص (برای AssignedEmployeesTable)
-  else if (params.work_group_id) {
-    // برای فیلتر کردن بر اساس ID گروه (کارمندان عضو)
+  } else if (params.work_group_id) {
     queryParams.append("work_group_id", String(params.work_group_id));
   }
 
-  // --- ۲. ارسال درخواست ---
   try {
     const { data } = await axiosInstance.get(
       `/users?${queryParams.toString()}`
     );
-    // 🟢 DEBUG: موفقیت آمیز بودن دریافت لیست
-    // console.log("✅ [API] Users Fetched:", data);
     return data;
   } catch (error) {
     console.error("❌ [API] Error Fetching Users:", error);
@@ -68,11 +48,8 @@ export const fetchUsers = async (
   }
 };
 
-// --- بقیه توابع ---
-
 /**
- * به‌روزرسانی سازمان یک کاربر (فقط Super Admin)
- * PUT /api/users/{userId}
+ * سایر متدها (updateUserOrganization, etc.) بدون تغییر...
  */
 export const updateUserOrganization = async ({
   userId,
@@ -81,19 +58,11 @@ export const updateUserOrganization = async ({
   userId: number;
   organizationId: number;
 }): Promise<User> => {
-  const payload = {
-    employee: {
-      organization_id: organizationId,
-    },
-  };
+  const payload = { employee: { organization_id: organizationId } };
   const { data } = await axiosInstance.put(`/users/${userId}`, payload);
-
   return data;
 };
 
-/**
- * ✅✅✅ تابع API جدید: تخصیص برنامه شیفتی به کاربر
- */
 export const updateUserShiftScheduleAssignment = async ({
   userId,
   shiftScheduleId,
@@ -102,18 +71,11 @@ export const updateUserShiftScheduleAssignment = async ({
   shiftScheduleId: number | null;
 }): Promise<User> => {
   const payload: UserProfileFormData = {
-    employee: {
-      shift_schedule_id: shiftScheduleId,
-    } as any,
+    employee: { shift_schedule_id: shiftScheduleId } as any,
   };
-
   return updateUserProfile({ userId, payload });
 };
 
-/**
- * دریافت اطلاعات تکی کاربر (برای صفحه پروفایل)
- * GET /api/users/{userId}
- */
 export const fetchUserById = async (userId: number): Promise<User> => {
   const { data } = await axiosInstance.get(`/users/${userId}`);
   console.log(data.data);
@@ -121,10 +83,6 @@ export const fetchUserById = async (userId: number): Promise<User> => {
   return data.data;
 };
 
-/**
- * به‌روزرسانی اطلاعات پروفایل کاربر
- * PUT /api/users/{userId}
- */
 export const updateUserProfile = async ({
   userId,
   payload,
@@ -136,53 +94,78 @@ export const updateUserProfile = async ({
   return data;
 };
 
-/**
- * حذف کاربر
- * DELETE /api/users/{userId}
- */
 export const deleteUser = async (userId: number): Promise<void> => {
   await axiosInstance.delete(`/users/${userId}`);
 };
 
 /**
- * ایجاد کاربر جدید (Store)
+ * ✅ ایجاد کاربر جدید (همراه با آپلود تصویر)
  * POST /api/users
+ * Content-Type: multipart/form-data
  */
 export const createUser = async (
   payload: CreateUserFormData
 ): Promise<User> => {
-  // 🟢🟢🟢 DEBUG START: شروع لاگ‌گذاری دقیق 🟢🟢🟢
-  console.group("🚀 [API Request] Create User");
-  console.log("Endpoint: POST /users");
-  console.log(
-    "📦 Payload (JSON):",
-    JSON.stringify(payload, null, 2)
-  ); // نمایش جیسون مرتب
+  console.group("🚀 [API Request] Create User (Multipart)");
 
-  // بررسی‌های اولیه سمت کلاینت برای کمک به دیباگ
-  if (payload.employee?.birth_date === "")
-    console.warn("⚠️ Warning: birth_date is Empty String (should be null)");
-  if (payload.employee?.starting_job === "")
-    console.warn("⚠️ Warning: starting_job is Empty String (should be null)");
-  if (payload.employee?.organization_id === undefined)
-    console.error("⛔ Error: organization_id is missing!");
+  // ۱. ساخت FormData
+  const formData = new FormData();
+
+  // ۲. اضافه کردن فیلدهای سطح User
+  formData.append("user_name", payload.user_name);
+  formData.append("email", payload.email);
+  formData.append("password", payload.password);
+  formData.append("role", payload.role);
+  formData.append("status", payload.status);
+
+  // ۳. اضافه کردن فیلدهای سطح Employee (با فرمت آرایه‌ای PHP/Laravel)
+  // مثال: employee[first_name]
+  if (payload.employee) {
+    Object.entries(payload.employee).forEach(([key, value]) => {
+      // از پردازش فیلد images در این حلقه خودداری می‌کنیم چون باید جداگانه هندل شود
+      if (key === "images") return;
+
+      if (value !== null && value !== undefined) {
+        // تبدیل boolean به 0 و 1 (استاندارد لاراول)
+        if (typeof value === "boolean") {
+          formData.append(`employee[${key}]`, value ? "1" : "0");
+        } else {
+          formData.append(`employee[${key}]`, String(value));
+        }
+      }
+    });
+
+    // ۴. هندل کردن تصاویر (طبق داکیومنت: employee[images][0], employee[images][1]...)
+    if (payload.employee.images && payload.employee.images.length > 0) {
+      payload.employee.images.forEach((file, index) => {
+        // نکته مهم: فایل باید بایندری واقعی باشد که از input type=file می‌آید
+        formData.append(`employee[images][${index}]`, file);
+      });
+    }
+  }
+
+  // Debug: نمایش محتویات FormData (فقط برای دولوپر)
+  // for (let [key, value] of formData.entries()) {
+  //   console.log(`${key}:`, value);
+  // }
 
   console.groupEnd();
-  // 🟢🟢🟢 DEBUG END 🟢🟢🟢
 
   try {
-    const { data } = await axiosInstance.post("/users", payload);
+    // نکته: وقتی FormData می‌فرستیم، axios معمولاً خودش هدر Content-Type را ست می‌کند
+    // اما برای اطمینان می‌توانیم هدر را دستی هم ست کنیم (اختیاری)
+    const { data } = await axiosInstance.post("/users", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     console.log("✅ [API Success] User Created:", data);
     return data.data;
   } catch (error: any) {
-    // 🔴🔴🔴 ERROR LOGGING 🔴🔴🔴
     console.group("🔥 [API Error] Create User Failed");
-    console.error("Status Code:", error.response?.status);
-    console.error("Error Message:", error.message);
-    console.error("Server Response Data:", error.response?.data); // اینجا معمولاً متن خطای 500 یا لاراول دیده می‌شود
+    console.error("Status:", error.response?.status);
+    console.error("Data:", error.response?.data);
     console.groupEnd();
-    // 🔴🔴🔴 ERROR LOGGING END 🔴🔴🔴
-
     throw error;
   }
 };

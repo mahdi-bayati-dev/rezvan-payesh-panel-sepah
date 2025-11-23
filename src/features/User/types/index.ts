@@ -1,17 +1,25 @@
 // --- تایپ‌های پایه بر اساس API ---
 
-// [جدید] ایمپورت تایپ پایه از ماژول دیگر
 import type { BaseNestedItem } from "@/features/work-group/types/index";
 
-// تایپ خلاصه‌شده سازمان (که در آبجکت کارمند می‌آید)
+// تایپ خلاصه‌شده سازمان
 export interface OrganizationSmall {
   id: number;
   name: string;
   parent_id: number | null;
-  // (سایر فیلدهای سازمان در صورت نیاز)
 }
 
-// تایپ آبجکت کارمند (employee)
+// ✅ تایپ جدید برای تصاویر کارمند (طبق داکیومنت جدید)
+export interface EmployeeImage {
+  id: number;
+  employee_id: number;
+  path: string; // آدرس فایل در سرور
+  original_name: string;
+  mime_type: string;
+  size: number;
+  created_at?: string;
+}
+
 // تایپ آبجکت کارمند (employee)
 export interface Employee {
   id: number;
@@ -42,10 +50,12 @@ export interface Employee {
   work_group: BaseNestedItem | null;
   week_pattern: BaseNestedItem | null;
   shift_schedule: BaseNestedItem | null;
+
+  // ✅ اضافه شدن آرایه تصاویر به کارمند
+  images?: EmployeeImage[];
 }
 
 // تایپ آبجکت کاربر (User)
-// این تایپ اصلی ما برای هر ردیف جدول و صفحه پروفایل است
 export interface User {
   id: number;
   user_name: string;
@@ -55,11 +65,10 @@ export interface User {
   created_at: string;
   updated_at: string;
   roles: string[];
-  employee: Employee | null; // ممکن است کاربری پروفایل کارمندی نداشته باشد
+  employee: Employee | null;
 }
 
-// --- تایپ‌های صفحه‌بندی (برای Index) ---
-// (این بخش بدون تغییر است)
+// --- تایپ‌های صفحه‌بندی ---
 export interface PaginationLinks {
   first: string | null;
   last: string | null;
@@ -77,28 +86,20 @@ export interface PaginationMeta {
   total: number;
 }
 
-// تایپ پاسخ کامل API (Index)
 export interface UserListResponse {
   data: User[];
   links: PaginationLinks;
   meta: PaginationMeta;
 }
 
-/**
- * تایپ پارامترهایی که به تابع fetchUsers پاس می‌دهیم
- */
 export interface FetchUsersParams {
-  page: number; // شماره صفحه (شروع از ۱)
-  per_page: number; // تعداد آیتم در هر صفحه
+  page: number;
+  per_page: number;
   search?: string;
   organization_id?: number;
   role?: string;
   work_pattern_id?: number;
-  shift_schedule_id?: number; 
-  // work_group_id?: number | 'null' | 'not_null'; 
-    // ✅ فیلد فیلتر اصلی (برای کارمندان عضو)
-  work_group_id?: number; 
-  
-  // ✅ فیلد جدید: فیلتر برای کارمندان خارج از گروه (برای ستون Available)
+  shift_schedule_id?: number;
+  work_group_id?: number;
   is_not_assigned_to_group?: boolean;
 }
