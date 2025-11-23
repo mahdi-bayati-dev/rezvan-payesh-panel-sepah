@@ -157,7 +157,8 @@ class Employee extends Model implements Auditable
 
         $specificShift = $this->employeeShifts()->where('date', $date)->first();
 
-        if ($specificShift && $specificShift->scheduleSlot) {
+        if ($specificShift && $specificShift->scheduleSlot)
+        {
             $slot = $specificShift->scheduleSlot;
 
             $startTime = Carbon::parse($date . ' ' . $slot->start_time);

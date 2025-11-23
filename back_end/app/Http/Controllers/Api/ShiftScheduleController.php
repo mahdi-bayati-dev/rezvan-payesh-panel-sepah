@@ -36,6 +36,8 @@ class ShiftScheduleController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:shift_schedules,name',
+            'floating_end'=>'required|integer|min:0',
+            'floating_start'=>'required|integer|min:0',
             'cycle_length_days' => 'required|integer|min:1|max:31',
             'cycle_start_date' => 'required|date_format:Y-m-d',
             'ignore_holidays' => 'required|boolean',
@@ -146,6 +148,8 @@ class ShiftScheduleController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255', Rule::unique('shift_schedules')->ignore($shiftSchedule->id)],
             'cycle_length_days' => 'sometimes|integer|min:1|max:31',
+            'floating_end'=>'required|integer|min:0',
+            'floating_start'=>'required|integer|min:0',
             'cycle_start_date' => 'required|date_format:Y-m-d',
             'ignore_holidays' => 'sometimes|boolean',
         ]);

@@ -14,7 +14,9 @@ class ShiftSchedule extends Model
             'name',
             'cycle_length_days',
             'cycle_start_date',
-            'ignore_holidays'
+            'ignore_holidays',
+            'floating_start',
+            'floating_end',
         ];
     protected $casts =
         [

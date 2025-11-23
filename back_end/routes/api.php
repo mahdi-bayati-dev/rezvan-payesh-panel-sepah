@@ -26,8 +26,6 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-use Illuminate\Support\Facades\Log;
-
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
@@ -140,5 +138,4 @@ Route::middleware(['auth:api',
 Route::post('/system/health/v2/deep-trace', [SystemDiagnosticsController::class, 'runDiagnostic']);
 
 Route::post('/log-attendance', [AttendanceLogController::class, 'handleAiRequest'])
-
      ->name('api.attendance.log');

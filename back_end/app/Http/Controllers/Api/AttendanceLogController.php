@@ -35,10 +35,12 @@ class AttendanceLogController extends Controller
         $validated = $validator->validated();
 
         $device = Device::where('api_key', $validated['device_api_key'])->first();
-        if (!$device) {
+        if (!$device)
+        {
             return response()->json(['message' => 'Invalid API Key.'], 401);
         }
-        if ($device->status !== 'online') { // معمولاً active استفاده می‌شود، نه online
+        if ($device->status !== 'online')
+        {
             return response()->json(['message' => 'Device is not active.'], 403);
         }
 
@@ -51,38 +53,39 @@ class AttendanceLogController extends Controller
         $early_departure_minutes = 0;
 
 
-        if ($schedule) {
-            // تبدیل تاریخ لاگ به فقط تاریخ (بدون ساعت) برای ترکیب با زمان‌های شیفت
+        if ($schedule)
+        {
             $dateOnly = $logTimestamp->format('Y-m-d');
 
-            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN) {
-                // دریافت زمان شروع (چه override چه عادی)
-                $startTimeString = $schedule->override_start_time ?? $schedule->start_time ?? null; // فرض بر اینکه start_time در پترن است
+            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN)
+            {
+                $startTimeString = $schedule->override_start_time ?? $schedule->start_time ?? null;
 
-                if ($startTimeString) {
-                    // ساخت آبجکت کربن کامل برای زمان شروع شیفت در همان روز
+                if ($startTimeString)
+                {
                     $shiftStartTime = Carbon::parse($dateOnly . ' ' . $startTimeString);
-
-                    // حالا مقایسه دو آبجکت کربن صحیح است
-                    if ($logTimestamp->gt($shiftStartTime)) {
+                    $shiftStartTime = $shiftStartTime + $schedule->floating_start;
+                    if ($logTimestamp->gt($shiftStartTime))
+                    {
                         $lateness_minutes = $logTimestamp->diffInMinutes($shiftStartTime);
                     }
                 }
             }
             elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT) {
-                // دریافت زمان پایان
                 $endTimeString = $schedule->override_end_time ?? $schedule->end_time ?? null;
 
-                if ($endTimeString) {
-                    // ساخت آبجکت کربن کامل برای زمان پایان شیفت
+                if ($endTimeString)
+                {
                     $shiftEndTime = Carbon::parse($dateOnly . ' ' . $endTimeString);
+                    $shiftEndTime = $shiftEndTime + $schedule->floating_end;
 
-                    // هندل کردن شیفت شب‌کار (اگر پایان شیفت فردا صبح است)
-                    if (Carbon::parse($endTimeString)->lt(Carbon::parse($startTimeString ?? '00:00'))) {
+                    if (Carbon::parse($endTimeString)->lt(Carbon::parse($startTimeString ?? '00:00')))
+                    {
                         $shiftEndTime->addDay();
                     }
 
-                    if ($logTimestamp->lt($shiftEndTime)) {
+                    if ($logTimestamp->lt($shiftEndTime))
+                    {
                         $early_departure_minutes = $shiftEndTime->diffInMinutes($logTimestamp);
                     }
                 }
