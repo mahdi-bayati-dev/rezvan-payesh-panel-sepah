@@ -35,6 +35,7 @@ const logSocket = (
 
 // ✅ تغییر: توکن را به عنوان ورودی نمی‌گیریم
 export const initEcho = (): Echo<any> | null => {
+  // <--- آرگومان حذف شده است
   if (typeof window === "undefined") return null;
 
   // ✅ در اینجا منطق چک کردن توکن را حذف می‌کنیم.

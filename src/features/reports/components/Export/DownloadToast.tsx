@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"; // [جدید]: useState برای م
 import { toast } from "react-toastify";
 import { Download, FileText, Loader2 } from "lucide-react"; // آیکون‌ها
 import { getEcho } from "@/lib/echoService";
-import { useAppSelector, type RootState } from "@/hook/reduxHooks";
+import { useAppSelector } from "@/hook/reduxHooks";
 import axiosInstance from "@/lib/AxiosConfig"; // [جدید]: استفاده از axios instance برای دانلود
 
 // ====================================================================
@@ -12,32 +12,31 @@ import axiosInstance from "@/lib/AxiosConfig"; // [جدید]: استفاده ا�
 interface DownloadToastContentProps {
     url: string;
     name: string;
-    token?: string; // توکن Bearer
+    // ✅ حذف توکن از Props: دیگر نباید به کامپوننت پاس داده شود
 }
 
-const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) => {
+const DownloadToastContent = ({ url, name }: DownloadToastContentProps) => {
     // [جدید]: استیت برای مدیریت وضعیت دانلود
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadError, setDownloadError] = useState<string | null>(null);
 
+    // ✅ حذف: توکن دیگر لازم نیست
+
     // [جدید]: تابع اصلی دانلود با استفاده از Fetch/Axios
     const handleDownload = async () => {
-        if (!token) {
-            setDownloadError("خطا: توکن احراز هویت یافت نشد.");
-            toast.error("خطا: برای دانلود توکن احراز هویت لازم است.");
-            return;
-        }
+        // ✅ حذف چک کردن توکن، چون مرورگر آن را در کوکی می‌فرستد
+        // if (!token) { ...
+        //     return;
+        // }
 
         setIsDownloading(true);
         setDownloadError(null);
 
         try {
-            // ۱. استفاده از axiosInstance که به صورت پیش‌فرض توکن را در هدر می‌گذارد
-            // 'download_url' یک Signed URL است، اما بک‌اند نیاز به تأیید توکن هم دارد
+            // ۱. استفاده از axiosInstance که به دلیل withCredentials: true کوکی HttpOnly را ارسال می‌کند
             const response = await axiosInstance.get(url, {
                 // مهم: responseType را باینری قرار می‌دهیم
                 responseType: 'blob',
-                // [نکته مهم]: ما توکن را در هدر می‌فرستیم (چون axiosInstance آن را می‌فرستد)
             });
 
             // ۲. ساخت یک Blob URL
@@ -49,6 +48,7 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
             // ۳. اجرای دانلود (ایجاد تگ <a> مخفی و کلیک بر روی آن)
             const link = document.createElement('a');
             link.href = blobUrl;
+            // [بهینه‌سازی]: اگر نام فایل در هدر Content-Disposition آمده باشد، اینجا بهتر است
             link.setAttribute('download', name); // نام فایل
             document.body.appendChild(link);
             link.click();
@@ -58,14 +58,12 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
             toast.success(`✅ دانلود فایل ${name} آغاز شد.`, { autoClose: 3000 });
 
         } catch (error: any) {
-            // [نکته مهم]: اگر خطا به صورت JSON/متن از سرور برگردد
+            // [نکته مهم]: مدیریت خطاهای احراز هویت 401/403 که می‌تواند ناشی از کوکی منقضی باشد
             let message = "خطا در دانلود. (لینک منقضی یا نامعتبر)";
 
             if (error.response && error.response.data instanceof Blob) {
-                // اگر پاسخ خطا یک Blob است (که اغلب در خطاهای API لاراول رخ می‌دهد)
                 const errorText = await error.response.data.text();
                 try {
-                    // تلاش برای پارس کردن به JSON برای خواندن پیام
                     const errorJson = JSON.parse(errorText);
                     message = errorJson.message || errorText;
                 } catch (e) {
@@ -73,7 +71,7 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
                     message = errorText.substring(0, 100) + '...';
                 }
             } else if (error.response?.status === 403 || error.response?.status === 401) {
-                message = "لینک دانلود منقضی شده یا دسترسی ندارید.";
+                message = "لینک دانلود منقضی شده یا دسترسی ندارید (کوکی احراز هویت مشکل دارد).";
             }
 
             console.error("Download Error:", error);
@@ -83,7 +81,9 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
         } finally {
             setIsDownloading(false);
             // پس از دانلود، توست را می‌بندیم
-            setTimeout(() => toast.dismiss(DownloadToastContent.name), 3000);
+            // [اصلاح]: برای جلوگیری از بستن توست در زمان خطا، بهتر است فقط در حالت موفقیت‌آمیز ببندیم
+            // یا آن را به صورت دستی توسط کاربر ببندیم.
+            // به خاطر تجربه کاربری، آن را خودکار نمی‌بندیم.
         }
     };
 
@@ -107,9 +107,9 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
                     onClick={handleDownload}
                     disabled={isDownloading || !!downloadError}
                     className="mt-2 flex items-center justify-center gap-2 px-4 py-2
-                           text-sm font-medium rounded-lg border 
-                           text-blue-700 bg-blue-50
-                           hover:bg-blue-100 disabled:opacity-60 transition-colors duration-200"
+                           text-sm font-medium rounded-lg border 
+                           text-blue-700 bg-blue-50
+                           hover:bg-blue-100 disabled:opacity-60 transition-colors duration-200"
                 >
                     {isDownloading ? (
                         <>
@@ -141,8 +141,8 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
 export const GlobalNotificationHandler = () => {
     const userId = useAppSelector((state) => state.auth.user?.id);
 
-    // [اصلاح ۳]: استفاده از مسیر صحیح و تایپ‌شده برای accessToken
-    const authToken = useAppSelector((state: RootState) => state.auth.accessToken);
+    // ✅ اصلاح نهایی: حذف کامل accessToken از Redux
+    // const authToken = useAppSelector((state: RootState) => state.auth.accessToken);
 
     useEffect(() => {
         const echo = getEcho();
@@ -151,7 +151,8 @@ export const GlobalNotificationHandler = () => {
         const channelName = `App.User.${userId}`;
         const channel = echo.private(channelName);
 
-        console.log(`[GlobalHandler] Listening on: ${channelName}. Current Token Check: ${authToken ? '✅ Found' : '❌ Not Found'}`);
+        // ✅ لاگ را ساده می‌کنیم
+        console.log(`[GlobalHandler] Listening on: ${channelName}.`);
 
         const listener = (e: any) => {
             console.log("[GlobalHandler] RAW EVENT RECEIVED:", e);
@@ -166,8 +167,8 @@ export const GlobalNotificationHandler = () => {
 
             // --- نمایش Toast سفارشی ---
             toast.success(
-                // [اصلاح ۴]: پاس دادن توکن Bearer به کامپوننت Toast
-                <DownloadToastContent url={url} name={name} token={authToken || undefined} />,
+                // ✅ پاس دادن فقط url و name به کامپوننت Toast
+                <DownloadToastContent url={url} name={name} />,
                 {
                     autoClose: false, // چون خودمان بعد از دانلود می‌بندیم
                     closeOnClick: false,
@@ -184,7 +185,7 @@ export const GlobalNotificationHandler = () => {
         return () => {
             channel.stopListening(".export.ready", listener);
         };
-    }, [userId, authToken]);
+    }, [userId]); // ✅ به‌روزرسانی وابستگی‌ها
 
     return null;
 };
