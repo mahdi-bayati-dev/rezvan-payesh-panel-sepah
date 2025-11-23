@@ -289,6 +289,10 @@ class UserController extends Controller
                         'original_path' => $path
                     ];
                 }
+                if (!empty($imagesToProcess))
+                {
+                    Log::info("imagesToProcess array is : ." . json_encode($imagesToProcess));
+                }
             }
 
             $newUser->assignRole($validatedData['role']);
@@ -305,6 +309,7 @@ class UserController extends Controller
 
         if (!empty($imagesToProcess))
         {
+            Log::info("image job is dispatch");
             ProcessEmployeeImages::dispatch($currentUser->employee, $imagesToProcess, 'create');
         }
 
