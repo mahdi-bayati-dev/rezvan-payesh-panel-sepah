@@ -5,13 +5,11 @@ import { mainNavItems, type NavItem } from '@/constants/navigation';
 import { ThemeToggleBtn } from '@/components/ui/ThemeToggleBtn';
 import { UserProfile } from './UserProfile';
 import { usePermission } from '@/hook/usePermission';
-
-// هوک‌های ریداکس
 import { useAppSelector, useAppDispatch } from '@/hook/reduxHooks';
 import { fetchLicenseStatus, selectLicenseStatus } from '@/store/slices/licenseSlice';
-
 import { usePendingRequestsCount } from '@/features/requests/hook/usePendingRequestsCount';
-import { useLeaveRequestSocket } from '@/features/requests/hook/useLeaveRequestSocket';
+
+// ✅ خط مربوط به useLeaveRequestSocket حذف شد (چون به MainLayout منتقل شد)
 
 interface SidebarNavItemProps {
   item: NavItem;
@@ -19,20 +17,12 @@ interface SidebarNavItemProps {
 }
 
 const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
-  // ۱. بررسی دسترسی بر اساس نقش (Role)
   const hasRoleAccess = usePermission(item.allowedRoles);
-
-  // ۲. دریافت وضعیت لایسنس از ریداکس
   const licenseStatus = useAppSelector(selectLicenseStatus);
 
-  // اگر دسترسی نقش ندارد، کلاً رندر نشود
   if (!hasRoleAccess) return null;
 
-  // ۳. [منطق مهم]: مخفی کردن منوی لایسنس در حالت تریال
-  // اگر آیتم جاری مربوط به لایسنس است (با href چک می‌کنیم)
   if (item.href === '/license') {
-    // فقط در صورتی نمایش بده که وضعیت 'licensed' باشد
-    // نکته: اگر وضعیت هنوز لود نشده (undefined) یا trial است، نشان نده.
     if (licenseStatus !== 'licensed') {
       return null;
     }
@@ -65,13 +55,9 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
 export const SidebarContent = () => {
   const dispatch = useAppDispatch();
 
-  // فعال‌سازی سوکت
-  useLeaveRequestSocket();
+  // ✅ فقط هوک دریافت تعداد صدا زده می‌شود (آپدیت این مقدار توسط GlobalHandler انجام می‌شود)
   const { data: pendingCount = 0 } = usePendingRequestsCount();
 
-  // ۴. [مهم] فچ کردن وضعیت لایسنس در هنگام لود شدن سایدبار
-  // این تضمین می‌کند که به محض ورود به برنامه، سیستم متوجه وضعیت لایسنس بشود
-  // حتی اگر کاربر هنوز وارد صفحه لایسنس نشده باشد.
   useEffect(() => {
     dispatch(fetchLicenseStatus());
   }, [dispatch]);

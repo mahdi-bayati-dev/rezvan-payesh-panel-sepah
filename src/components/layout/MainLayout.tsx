@@ -1,35 +1,46 @@
 import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom"; // اضافه کردن useLocation
+import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent } from "./Sidebar";
 import { Header } from "./Header";
-// ۱. کامپوننت نگهبان (اتصال عمومی)
-import { GlobalWebSocketHandler } from './GlobalWebSocketHandler';
 
-// [جدید] ۲. ایمپورت کامپوننت‌های Toast
+// ۱. نگهبان اتصال (عمومی - اتصال سوکت)
+import { GlobalWebSocketHandler } from './GlobalWebSocketHandler';
+// ۲. نگهبان درخواست‌ها (مدیریت بج و نوتیفیکیشن)
+import { GlobalRequestSocketHandler } from './GlobalRequestSocketHandler';
+
+// ۳. ایمپورت کامپوننت‌های Toast
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// [جدید] ۳. ایمپورت هندلر مخصوص دانلود
+// ۴. ایمپورت هندلر مخصوص دانلود (طبق فایل‌های قبلی شما)
 import { GlobalNotificationHandler } from '@/features/reports/components/Export/DownloadToast';
 
 
 export const MainLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-
-  // دریافت مسیر فعلی برای تشخیص صفحه لایسنس
   const location = useLocation();
-
-  // بررسی اینکه آیا در صفحه لایسنس هستیم یا خیر
-  // نکته: اگر در صفحه لایسنس باشیم، سایدبار و منو باید مخفی شوند تا کاربر نتواند خارج شود
   const isLicensePage = location.pathname === '/license';
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
 
-      {/* [جدید] ۴. نگهدارنده نوتیفیکیشن‌ها */}
-      {/* این کامپوننت باید در بالاترین سطح باشد تا Toastها به درستی نمایش داده شوند */}
+      {/* --- کامپوننت‌های لاجیک (بدون UI) --- */}
+
+      {/* اتصال اولیه سوکت */}
+      <GlobalWebSocketHandler />
+
+      {/* مدیریت بج و نوتیفیکیشن درخواست‌ها */}
+      <GlobalRequestSocketHandler />
+
+      {/* مدیریت دانلود فایل اکسل */}
+      <GlobalNotificationHandler />
+
+
+      {/* --- کامپوننت‌های UI --- */}
+
+      {/* نگهدارنده نوتیفیکیشن‌ها */}
       <ToastContainer
-        position="bottom-right" // (یا هر موقعیتی که ترجیح می‌دهید)
+        position="bottom-right"
         autoClose={5000}
         hideProgressBar={false}
         newestOnTop={false}
@@ -41,26 +52,13 @@ export const MainLayout = () => {
         theme="colored"
       />
 
-      {/* ۵. نگهبان اتصال (عمومی) */}
-      <GlobalWebSocketHandler />
-
-      {/* [جدید] ۶. نگهبان اتصال (مخصوص دانلود اکسل) */}
-      {/* این کامپوننت هیچ خروجی بصری ندارد و فقط به ایونت دانلود گوش می‌دهد */}
-      <GlobalNotificationHandler />
-
-      {/* اگر در صفحه لایسنس هستیم، کلیک روی دکمه منو نباید سایدبار را باز کند.
-          هدر همچنان نمایش داده می‌شود تا کاربر بتواند تم را عوض کند یا لاگ‌اوت کند.
-      */}
       <Header onMenuClick={() => !isLicensePage && setSidebarOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
-
-        {/* --- سایدبار دسکتاپ --- */}
-        {/* اگر در صفحه لایسنس هستیم، سایدبار را کاملاً از DOM حذف می‌کنیم */}
+        {/* سایدبار دسکتاپ */}
         {!isLicensePage && <Sidebar />}
 
-        {/* --- سایدبار موبایل (Overlay & Content) --- */}
-        {/* فقط اگر در صفحه لایسنس نباشیم رندر می‌شوند */}
+        {/* سایدبار موبایل */}
         {!isLicensePage && (
           <>
             <div
@@ -78,7 +76,7 @@ export const MainLayout = () => {
           </>
         )}
 
-        {/* --- محتوای اصلی صفحه --- */}
+        {/* محتوای اصلی */}
         <main className="flex-1 overflow-y-auto p-2 md:p-4">
           <Outlet />
         </main>
