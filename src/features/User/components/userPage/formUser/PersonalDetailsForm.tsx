@@ -59,7 +59,12 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                 birth_date: user.employee.birth_date || "",
                 gender: user.employee.gender,
                 is_married: user.employee.is_married,
-                education_level: user.employee.education_level || null,
+
+                // ✅ اصلاح شده: رفع خطای TS2322
+                // چون education_level در اسکیما اجباری شده، نباید null باشد.
+                // اگر کاربر مقدار نداشت، پیش‌فرض 'diploma' می‌گذاریم.
+                education_level: user.employee.education_level || "diploma",
+
                 images: [],
                 deleted_image_ids: [],
             }

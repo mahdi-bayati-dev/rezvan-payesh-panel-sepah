@@ -32,7 +32,7 @@ export const UserInfoCard = ({
     infoRows,
 }: UserInfoCardProps) => {
     return (
-        <div className="dark:bg-backgroundD border-l-2 border-primaryL dark:border-primaryD pl-4 py-2">
+        <div className="dark:bg-backgroundD border-l-1 border-primaryL dark:border-primaryD pl-4 py-2">
             {/* اصلاح رنگ متن در دارک مود: قبلا dark:text-backgroundL-500 بود که اشتباه است */}
             <h3 className="text-lg font-bold text-right mb-6 text-foregroundL dark:text-foregroundD flex items-center gap-2">
                 {title}
