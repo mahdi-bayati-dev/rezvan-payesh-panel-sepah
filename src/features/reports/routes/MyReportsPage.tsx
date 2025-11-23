@@ -1,9 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAppSelector } from "@/hook/reduxHooks";
-import { selectUser } from "@/store/slices/authSlice";
-// ✅ اصلاح: حذف leaveChannel از ایمپورت‌ها
-import { getEcho } from "@/lib/echoService";
+// import { useAppSelector } from "@/hook/reduxHooks"; // حذف شد چون استفاده نمی‌شود
+// import { selectUser } from "@/store/slices/authSlice"; // حذف شد
 import {
     useReactTable,
     getCoreRowModel,
@@ -12,22 +9,21 @@ import {
     type OnChangeFn,
 } from "@tanstack/react-table";
 import { Search } from "lucide-react";
-import { toast } from "react-toastify";
 
-import { useMyLogs, reportKeys } from "../hooks/hook";
+import { useMyLogs } from "../hooks/hook";
 import { myReportsColumns } from "@/features/reports/components/myReportsPage/MyReportsTableColumns";
 import { type MyLogFilters } from "@/features/reports/api/api";
-import { type ApiAttendanceLog } from "../types";
-import { mapApiLogToActivityLog } from "../utils/dataMapper";
 import { DataTable } from "@/components/ui/DataTable";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 import { MyActivityFilters } from "@/features/reports/components/myReportsPage/MyActivityFilters";
 import Input from "@/components/ui/Input";
 
+// ✅ ایمپورت هوک جدید سوکت
+import { useReportSocket } from "../hooks/useReportSocket";
+
 export default function MyReportsPage() {
-    const queryClient = useQueryClient();
-    const user = useAppSelector(selectUser);
-    const userId = user?.id;
+    // ✅ حذف خط مربوط به user که باعث خطا بود
+    // const user = useAppSelector(selectUser);
 
     const [filters, setFilters] = useState<MyLogFilters>({
         page: 1,
@@ -101,51 +97,8 @@ export default function MyReportsPage() {
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
     const pageCount = meta ? (typeof meta.last_page === 'number' ? meta.last_page : 1) : 1;
 
-    // --- سوکت با Optimistic Update ---
-    useEffect(() => {
-        const echo = getEcho();
-        if (!echo || !userId) return;
-
-        const channelName = `App.User.${userId}`;
-        const eventName = ".attendance.created";
-        const privateChannel = echo.private(channelName);
-
-        // تعریف لیسنر
-        const handleNewLog = (event: { log: ApiAttendanceLog }) => {
-            if (!event.log) return;
-
-            const newActivityLog = mapApiLogToActivityLog(event.log);
-            const logText = newActivityLog.activityType === "entry" ? "ورود شما" : "خروج شما";
-            toast.success(`✅ ${logText} ثبت شد.`);
-
-            // آپدیت کش
-            queryClient.setQueryData(reportKeys.myList(filters), (oldData: any) => {
-                if (!oldData) return oldData;
-                const newData = [newActivityLog, ...oldData.data];
-                if (newData.length > (filters.per_page || 10)) {
-                    newData.pop();
-                }
-                return {
-                    ...oldData,
-                    data: newData,
-                    meta: {
-                        ...oldData.meta,
-                        total: (oldData.meta?.total || 0) + 1
-                    }
-                };
-            });
-        };
-
-        // اتصال
-        privateChannel.listen(eventName, handleNewLog);
-
-        // ✅ اصلاح: فقط stopListening می‌کنیم، کانال را leave نمی‌کنیم
-        // چون این کانال ممکن است توسط GlobalNotificationHandler برای دانلود استفاده شود.
-        return () => {
-            privateChannel.stopListening(eventName, handleNewLog);
-            // leaveChannel(channelName); <-- حذف شد
-        };
-    }, [queryClient, userId, filters]);
+    // ✅ استفاده از هوک مرکزی سوکت
+    useReportSocket(filters);
 
     const table = useReactTable({
         data: logsData,
