@@ -1,15 +1,16 @@
 /**
  * آدرس پایه برای دریافت فایل‌های آپلود شده.
- * مثال: http://localhost:8000/storage
- * * ✅ توجه: اگر پروژه شما در محیط Production اجرا می‌شود، باید این مقدار
- * با دامنه‌ی واقعی بکند جایگزین شود (مثلاً https://api.yourdomain.com/storage)
+ * مثال: http://payesh.eitebar.ir/storage
+ * * ✅ بهترین روش: استفاده مستقیم از متغیر محیطی اختصاصی برای Storage Base URL
  */
-// ما از یک متغیر سراسری یا هاردکد برای جلوگیری از خطای "process is not defined" در مرورگر استفاده می‌کنیم.
-// لطفاً این آدرس را با آدرس واقعی بکند خود (لاراول) جایگزین کنید.
-const API_BASE_URL = "http://localhost:8000"; // آدرس پایه API شما
-const DEFAULT_STORAGE_PATH = "/storage"; // پیشوند لازم برای دسترسی به فایل‌های لاراول
 
-export const STORAGE_BASE_URL = API_BASE_URL + DEFAULT_STORAGE_PATH; 
+// ✅ خواندن مستقیم از متغیر محیطی جدید
+const STORAGE_BASE_URL_RAW = import.meta.env.VITE_STORAGE_BASE_URL || "http://payesh.eitebar.ir/storage"; 
+
+// اطمینان از حذف / اضافی در انتهای آدرس پایه
+export const STORAGE_BASE_URL = STORAGE_BASE_URL_RAW.endsWith('/')
+    ? STORAGE_BASE_URL_RAW.slice(0, -1) 
+    : STORAGE_BASE_URL_RAW;
 
 
 /**
@@ -27,10 +28,10 @@ export const getFullImageUrl = (path?: string | null): string | undefined => {
     }
 
     // ۳. تمیزکاری مسیر
+    // حذف اسلش اضافی اول مسیر اگر وجود داشته باشد
     const cleanPath = path.startsWith("/") ? path.substring(1) : path;
 
     // ۴. ساخت URL کامل
-    // *نکته مهم: برای لاراول، اگر storage:link زده باشید، مسیر نهایی شما شبیه این خواهد بود:*
-    // *http://localhost:8000/storage/uploads/employees/photo.jpg*
+    // مثال: http://payesh.eitebar.ir/storage/uploads/employees/photo.jpg
     return `${STORAGE_BASE_URL}/${cleanPath}`;
 };
