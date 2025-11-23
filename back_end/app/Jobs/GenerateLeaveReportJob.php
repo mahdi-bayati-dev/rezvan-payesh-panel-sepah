@@ -2,11 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Events\ExportReady;
 use App\Exports\LeaveRequestsExport;
-use App\Events\ExportReady; // ایونت جدید
-use App\Models\LeaveRequest;
 use App\Models\User;
-use App\Models\Organization;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,7 +25,8 @@ class GenerateLeaveReportJob implements ShouldQueue
      */
     public function __construct(
         protected User $user,
-        protected array $filters
+        protected array $filters,
+        protected string $filename
     ) {}
 
     /**
@@ -37,70 +36,22 @@ class GenerateLeaveReportJob implements ShouldQueue
     {
         try
         {
-            $query = LeaveRequest::with(['employee.organization', 'leaveType', 'processor']);
-            $currentUserEmployee = $this->user->employee;
-            $adminOrg = $currentUserEmployee?->organization;
 
+            Excel::store(
+                new LeaveRequestsExport($this->user, $this->filters),
+                $this->filename,
+                'local_reports'
+            );
 
-            if (!$adminOrg && ($this->user->hasRole('org-admin-l2') || $this->user->hasRole('org-admin-l3')))
-            {
-                $query->whereRaw('1 = 0');
-            } elseif ($this->user->hasRole('org-admin-l2'))
-            {
-                $allowedOrgIds = $adminOrg->descendantsAndSelf()->pluck('id');
-                $query->whereHas('employee', function ($q) use ($allowedOrgIds)
-                {
-                    $q->whereIn('organization_id', $allowedOrgIds);
-                });
-            }
-            elseif ($this->user->hasRole('org-admin-l3'))
-            {
-                $query->whereHas('employee', function ($q) use ($adminOrg)
-                {
-                    $q->where('organization_id', $adminOrg->id);
-                });
-            }
-
-
-            if (isset($this->filters['organization_id']))
-            {
-                $targetOrg = Organization::find($this->filters['organization_id']);
-                if ($targetOrg)
-                {
-                    $orgIds = $targetOrg->descendantsAndSelf()->pluck('id');
-                    $query->whereHas('employee', fn($q) => $q->whereIn('organization_id', $orgIds));
-                }
-            }
-
-            if (isset($this->filters['search'])) {
-                $searchTerm = $this->filters['search'];
-                $query->whereHas('employee', function ($q) use ($searchTerm) {
-                    $q->where('first_name', 'like', "%{$searchTerm}%")
-                      ->orWhere('last_name', 'like', "%{$searchTerm}%")
-                      ->orWhere('personnel_code', 'like', "%{$searchTerm}%");
-                });
-            }
-            if (isset($this->filters['from_date'])) $query->whereDate('start_time', '>=', $this->filters['from_date']);
-            if (isset($this->filters['to_date'])) $query->whereDate('end_time', '<=', $this->filters['to_date']);
-            if (isset($this->filters['status'])) $query->where('status', $this->filters['status']);
-            if (isset($this->filters['leave_type_id'])) $query->where('leave_type_id', $this->filters['leave_type_id']);
-
-            $query->latest();
-
-
-            $filename = 'reports/leave-requests-' . now()->format('YmdHis') . '-' . $this->user->id . '.xlsx';
-
-
-            Excel::store(new LeaveRequestsExport($query), $filename, 'local_reports');
-
-            Log::info("Leave report generated: $filename");
-
+            Log::info("Leave report ( {$this->filename} ) export finished.");
 
             $downloadUrl = URL::temporarySignedRoute(
                 'reports.download',
                 now()->addMinutes(120),
-                ['filename' => $filename]
+                ['filename' => $this->filename]
             );
+
+            Log::info("downloading $downloadUrl");
 
             ExportReady::dispatch($this->user, $downloadUrl, 'گزارش مرخصی‌ها');
 
