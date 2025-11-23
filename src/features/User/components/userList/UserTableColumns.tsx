@@ -30,9 +30,8 @@ export const columns: ColumnDef<User>[] = [
             const displayName = (firstName || lastName)
                 ? `${firstName || ''} ${lastName || ''}`.trim()
                 : user.user_name;
-            
-            // ✅ اصلاح: دریافت آدرس کامل تصویر
-            const rawPath = user.employee?.images?.[0]?.path;
+
+            const rawPath = user.employee?.images?.[0]?.url;
             const profileImage = getFullImageUrl(rawPath);
 
             return (
@@ -44,16 +43,16 @@ export const columns: ColumnDef<User>[] = [
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondaryL dark:bg-secondaryD group-hover:bg-primaryL/10 transition-colors overflow-hidden border border-gray-200 dark:border-gray-700">
                         {profileImage ? (
                             // ✅ ساده‌سازی منطق: اگر آدرس موجود است، نمایش بده
-                             <img 
-                                src={profileImage} 
-                                alt={displayName} 
+                            <img
+                                src={profileImage}
+                                alt={displayName}
                                 className="w-full h-full object-cover"
                                 // اگر عکس در جدول لود نشد، مرورگر آیکون فال‌بک را نمایش می‌دهد (بدون حلقه‌ی بی‌نهایت)
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                     e.currentTarget.parentElement?.classList.remove('bg-transparent');
                                 }}
-                             />
+                            />
                         ) : (
                             // ✅ حالت فال‌بک نهایی
                             <UserIcon className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD group-hover:text-primaryL" />
@@ -110,11 +109,11 @@ export const columns: ColumnDef<User>[] = [
             return (
                 <div className="flex flex-wrap gap-1">
                     {row.original.roles.map(role => {
-                        const displayLabel = role === "user" ? "کارمند" 
+                        const displayLabel = role === "user" ? "کارمند"
                             : role === "super_admin" ? "ادمین کل"
-                            : role === "org-admin-l2" ? "ادمین سازمان"
-                            : role;
-                            
+                                : role === "org-admin-l2" ? "ادمین سازمان"
+                                    : role;
+
                         return (
                             <Badge
                                 key={role}

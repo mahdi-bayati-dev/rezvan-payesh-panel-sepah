@@ -10,16 +10,17 @@ export interface OrganizationSmall {
 }
 
 // ✅ تایپ جدید برای تصاویر کارمند (طبق داکیومنت جدید)
+// فایل: User/types/index.ts
+
 export interface EmployeeImage {
   id: number;
   employee_id: number;
-  path: string; // آدرس فایل در سرور
+  url: string; // ✅ تغییر از path به url
   original_name: string;
   mime_type: string;
   size: number;
   created_at?: string;
 }
-
 // تایپ آبجکت کارمند (employee)
 export interface Employee {
   id: number;
