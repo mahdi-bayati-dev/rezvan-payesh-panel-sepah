@@ -100,15 +100,6 @@ Route::middleware(['auth:api',
     //leave-types setting
     Route::apiResource('leave-types', LeaveTypeController::class);
 
-    //Leave Request
-    Route::apiResource('leave-requests', LeaveRequestController::class);
-
-    //Leave Request process by admin
-    Route::post(
-        'leave-requests/{leave_request}/process',
-        [LeaveRequestController::class, 'process']
-    )->name('leave-requests.process');
-
     //Holiday
     Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');
     Route::post('/holidays', [HolidayController::class, 'store'])->name('holidays.store');
@@ -132,6 +123,14 @@ Route::middleware(['auth:api',
     //download export leave request
 
 
+    //Leave Request
+    Route::apiResource('leave-requests', LeaveRequestController::class);
+
+    //Leave Request process by admin
+    Route::post(
+        'leave-requests/{leave_request}/process',
+        [LeaveRequestController::class, 'process']
+    )->name('leave-requests.process');
 
 });
 
