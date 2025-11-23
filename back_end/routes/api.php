@@ -121,8 +121,6 @@ Route::middleware(['auth:api',
          ->name('reports.download');
 
     //download export leave request
-
-
     //Leave Request
     Route::apiResource('leave-requests', LeaveRequestController::class);
 

@@ -215,7 +215,7 @@ class LeaveRequestController extends Controller
             }
         }
 
-        $filename = 'reports/leave-requests-' . now()->format('YmdHis') . '-' . $request->user()->id . '.xlsx';
+        $filename = 'leave-requests-' . now()->format('YmdHis') . '-' . $request->user()->id . '.xlsx';
         GenerateLeaveReportJob::dispatch($request->user(), $filters, $filename);
 
         return response()->json([
