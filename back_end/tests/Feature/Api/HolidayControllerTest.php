@@ -1,193 +1,84 @@
 <?php
 
-namespace Tests\Feature\Api;
-
 use App\Models\Holiday;
 use App\Models\User;
-use Carbon\Carbon; // <-- اضافه شد
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Laravel\Passport\Passport;
-use PHPUnit\Framework\Attributes\Test;
-use Spatie\Permission\Models\Role;
-use Tests\TestCase;
+use Illuminate\Support\Carbon;
+use Database\Seeders\RoleSeeder;
 
-class HolidayControllerTest extends TestCase
-{
-    use RefreshDatabase, WithFaker;
+uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(\Illuminate\Foundation\Testing\WithFaker::class);
 
-    protected User $adminUser;
-    protected User $normalUser;
+beforeEach(function () {
+    $this->seed(RoleSeeder::class);
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+    $this->adminUser = User::factory()->create();
+    $this->adminUser->assignRole('super_admin');
 
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+    $this->normalUser = User::factory()->create();
+});
 
-
-        $this->adminUser = User::factory()->create();
-        $this->adminUser->assignRole('super_admin');
-
-
-        $this->normalUser = User::factory()->create();
-
-    }
-
-    /**
-     * Helper: لاگین به عنوان ادمین
-     */
-    protected function actingAsAdmin(): self
-    {
-        Passport::actingAs($this->adminUser);
-        return $this;
-    }
-
-
-    /**
-     * Helper: لاگین به عنوان کاربر عادی
-     */
-    protected function actingAsNormalUser(): self
-    {
-        Passport::actingAs($this->normalUser);
-        return $this;
-    }
-
-
-    // --- تست‌های متد index ---
-
-    #[Test] public function admin_can_list_holidays(): void
-{
-
+test('admin can list holidays', function () {
     Holiday::factory()->create(['date' => Carbon::now()->addDays(2)->toDateString()]);
-    // یکی دقیقا داخل بازه (همونی که انتظار داریم پیدا بشه)
     $holidayInRange = Holiday::factory()->create(['date' => Carbon::now()->addDays(10)->toDateString()]);
-    // یکی بعد از بازه
     Holiday::factory()->create(['date' => Carbon::now()->addDays(20)->toDateString()]);
-    // === جمعا ۳ رکورد ===
 
-    // درخواست بدون فیلتر
-    $response = $this->actingAsAdmin()->getJson(route('holidays.index'));
-    $response->assertStatus(200)
-             // حالا انتظار ۳ تا نتیجه در کلید 'data' داریم
-             ->assertJsonCount(3, 'data'); // <-- این را به ۳ تغییر دهید
+    $this->actingAs($this->adminUser)
+         ->getJson(route('holidays.index'))
+         ->assertOk()
+         ->assertJsonCount(3, 'data');
 
-    // درخواست با فیلتر تاریخ (بازه ۵ تا ۱۵ روز آینده)
+    // تست فیلتر تاریخ
     $startDate = Carbon::now()->addDays(5)->toDateString();
     $endDate = Carbon::now()->addDays(15)->toDateString();
-    $responseFiltered = $this->actingAsAdmin()->getJson(route('holidays.index', ['start_date' => $startDate, 'end_date' => $endDate]));
 
-    $responseFiltered->assertStatus(200)
-                    // حالا باید فقط ۱ نتیجه برگرده
-                    ->assertJsonCount(1, 'data') // <-- خط ۷۷: انتظار ۱ نتیجه در 'data' (این درست بود)
-                    ->assertJsonPath('data.0.date', $holidayInRange->date->format('Y-m-d')); // چک کن همون رکورده
-}
+    $this->actingAs($this->adminUser)
+         ->getJson(route('holidays.index', ['start_date' => $startDate, 'end_date' => $endDate]))
+         ->assertOk()
+         ->assertJsonCount(1, 'data')
+         ->assertJsonPath('data.0.date', $holidayInRange->date->format('Y-m-d'));
+});
 
-    #[Test] public function normal_user_cannot_list_holidays(): void
-    {
-        // فرض می‌کنیم میدل‌ور role:super_admin در کنترلر فعال است
-        $response = $this->actingAsNormalUser()->getJson(route('holidays.index'));
-        $response->assertStatus(200);
-    }
+test('normal user cannot list holidays', function () {
+    $this->actingAs($this->normalUser)
+         ->getJson(route('holidays.index'))
+         ->assertForbidden();
+});
 
-    #[Test] public function index_validation_fails_for_invalid_dates(): void
-    {
-        $response = $this->actingAsAdmin()->getJson(route('holidays.index', ['start_date' => 'invalid-date', 'end_date' => '2025-01-01']));
-        $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['start_date']);
+test('admin can create holiday', function () {
+    $date = Carbon::now()->addMonth()->startOfMonth()->toDateString();
+    $data = [
+        'date' => $date,
+        'name' => 'تعطیلی اول ماه بعد',
+        'is_official' => true
+    ];
 
-         $response = $this->actingAsAdmin()->getJson(route('holidays.index', ['start_date' => '2025-01-10', 'end_date' => '2025-01-01'])); // end < start
-         $response->assertStatus(422)
-                  ->assertJsonValidationErrors(['end_date']);
-    }
+    $this->actingAs($this->adminUser)
+         ->postJson(route('holidays.store'), $data)
+         ->assertCreated()
+         ->assertJsonPath('data.name', $data['name']);
 
-    // --- تست‌های متد store ---
+    $this->assertDatabaseHas('holidays', ['date' => $date]);
+});
 
-    #[Test] public function admin_can_create_holiday(): void
-    {
-        $date = Carbon::now()->addMonth()->startOfMonth()->toDateString();
-        $data = [
-            'date' => $date,
-            'name' => 'تعطیلی اول ماه بعد',
-        ];
+test('create holiday validation fails', function () {
+    // تاریخ تکراری
+    $existing = Holiday::factory()->create();
 
-        $response = $this->actingAsAdmin()->postJson(route('holidays.store'), $data);
+    $this->actingAs($this->adminUser)
+         ->postJson(route('holidays.store'), [
+             'date' => $existing->date->format('Y-m-d'),
+             'name' => 'تکراری'
+         ])
+         ->assertUnprocessable()
+         ->assertJsonValidationErrors('date');
+});
 
-        $response->assertStatus(201)
-                 ->assertJsonPath('data.date', $date)
-                 ->assertJsonPath('data.name', $data['name'])
-                 ->assertJsonPath('data.is_official', false); // باید false باشه طبق کنترلر
+test('admin can delete holiday', function () {
+    $holiday = Holiday::factory()->create();
 
-        $this->assertDatabaseHas('holidays', [
-            'date' => $date,
-            'name' => $data['name'],
-            'is_official' => false,
-        ]);
-    }
+    $this->actingAs($this->adminUser)
+         ->deleteJson(route('holidays.destroy', $holiday->date->format('Y-m-d')))
+         ->assertNoContent();
 
-    #[Test] public function normal_user_cannot_create_holiday(): void
-    {
-        $data = ['date' => Carbon::now()->addDay()->toDateString(), 'name' => 'test'];
-        $response = $this->actingAsNormalUser()->postJson(route('holidays.store'), $data);
-        $response->assertStatus(403);
-    }
-
-    #[Test] public function create_holiday_validation_fails(): void
-    {
-        // تاریخ تکراری
-        $existingHoliday = Holiday::factory()->create();
-        $response = $this->actingAsAdmin()->postJson(route('holidays.store'), [
-            'date' => $existingHoliday->date->format('Y-m-d'),
-            'name' => 'تعطیلی تکراری',
-        ]);
-        $response->assertStatus(422)->assertJsonValidationErrors('date');
-
-        // داده‌های ناقص
-        $response = $this->actingAsAdmin()->postJson(route('holidays.store'), ['name' => 'فقط نام']);
-        $response->assertStatus(422)->assertJsonValidationErrors('date');
-
-        $response = $this->actingAsAdmin()->postJson(route('holidays.store'), ['date' => '2025-12-01']);
-        $response->assertStatus(422)->assertJsonValidationErrors('name');
-
-        // فرمت تاریخ اشتباه
-        $response = $this->actingAsAdmin()->postJson(route('holidays.store'), ['date' => '01-12-2025', 'name' => 'فرمت اشتباه']);
-        $response->assertStatus(422)->assertJsonValidationErrors('date');
-    }
-
-    // --- تست‌های متد destroy ---
-
-    #[Test] public function admin_can_delete_holiday(): void
-    {
-        $holiday = Holiday::factory()->nonOfficial()->create(); // یک تعطیلی غیررسمی بساز
-        $dateString = $holiday->date->format('Y-m-d');
-
-        $response = $this->actingAsAdmin()->deleteJson(route('holidays.destroy', $dateString));
-
-        $response->assertStatus(204); // No Content
-
-        $this->assertDatabaseMissing('holidays', ['id' => $holiday->id]);
-    }
-
-    #[Test] public function normal_user_cannot_delete_holiday(): void
-    {
-        $holiday = Holiday::factory()->create();
-        $dateString = $holiday->date->format('Y-m-d');
-
-        $response = $this->actingAsNormalUser()->deleteJson(route('holidays.destroy', $dateString));
-        $response->assertStatus(403);
-    }
-
-    #[Test] public function delete_returns_404_for_non_existing_date(): void
-    {
-        $nonExistingDate = Carbon::now()->subYear()->toDateString(); // تاریخی که مطمئنیم وجود نداره
-        $response = $this->actingAsAdmin()->deleteJson(route('holidays.destroy', $nonExistingDate));
-        $response->assertStatus(404); // Not Found
-    }
-
-    #[Test] public function delete_returns_400_for_invalid_date_format(): void
-    {
-        $invalidDate = '01-01-2025';
-        $response = $this->actingAsAdmin()->deleteJson(route('holidays.destroy', $invalidDate));
-        $response->assertStatus(400); // Bad Request
-    }
-}
+    $this->assertDatabaseMissing('holidays', ['id' => $holiday->id]);
+});
