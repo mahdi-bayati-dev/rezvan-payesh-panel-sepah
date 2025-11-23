@@ -76,7 +76,7 @@ class ProcessEmployeeImages implements ShouldQueue
                 Storage::disk('public')->put($webpPath, (string) $encoded);
 
                 EmployeeImage::where('id', $id)->update([
-                    'path' => $webpPath,
+                    'webp_path' => $webpPath,
                     'mime_type' => 'image/webp',
                     'size' => strlen((string) $encoded),
                 ]);

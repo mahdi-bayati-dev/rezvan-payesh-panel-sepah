@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('employees_images', function (Blueprint $table) {
+        Schema::create('employee_images', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
 
-                $table->string('path');
+                $table->string('webp_path')->nullable();
+                $table->string('original_path');
                 $table->string('original_name')->nullable();
                 $table->string('mime_type')->nullable();
                 $table->unsignedBigInteger('size')->nullable();

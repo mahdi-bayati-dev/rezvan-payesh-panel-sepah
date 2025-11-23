@@ -278,7 +278,8 @@ class UserController extends Controller
                     $path = $image->store($directory, 'public');
                     $imgRecord = EmployeeImage::create([
                         'employee_id' => $newEmployee->id,
-                        'path' => $path,
+                        'original_path' => $path,
+                        'webp_path' => null,
                         'original_name' => $image->getClientOriginalName(),
                         'mime_type' => $image->getClientMimeType(),
                         'size' => $image->getSize(),
@@ -416,7 +417,7 @@ class UserController extends Controller
                  $employeeFields = collect($employeeData)->except(['images', 'delete_images'])->toArray();
                  $user->employee->update($employeeFields);
              }
-             $pathsToDelete = [];
+             $aiDeletePaths = [];
              $deleteImageIds = $validatedData['employee']['delete_images'] ?? [];
 
              if (!empty($deleteImageIds))
@@ -425,33 +426,26 @@ class UserController extends Controller
                      ->where('employee_id', $user->employee->id)
                      ->get();
 
-                 $pathsToDelete = $imagesToDelete->pluck('path')->toArray();
 
-
-                 if (!empty($pathsToDelete))
+                 foreach ($imagesToDelete as $img)
                  {
-                     Storage::disk('public')->delete($pathsToDelete);
-                     foreach($pathsToDelete as $p)
-                     {
-                         $originalGuess = str_replace('.webp', '', $p);
-                         $dir = pathinfo($p, PATHINFO_DIRNAME);
-                         $name = pathinfo($p, PATHINFO_FILENAME);
-                         $exts = ['jpg', 'jpeg', 'png', 'webp'];
+                    if ($img->original_path && Storage::disk('public')->exists($img->original_path))
+                    {
+                        Storage::disk('public')->delete($img->original_path);
+                    }
 
-                         foreach($exts as $ext)
-                         {
-                             $guess = $dir . '/' . $name . '.' . $ext;
-                             if ($guess !== $p && Storage::disk('public')->exists($guess))
-                             {
-                                 Storage::disk('public')->delete($guess);
-                             }
-                         }
-                     }
-                 }
+                    if ($img->webp_path && Storage::disk('public')->exists($img->webp_path))
+                    {
+                        Storage::disk('public')->delete($img->webp_path);
+                    }
 
-                 EmployeeImage::whereIn('id', $deleteImageIds)
-                     ->where('employee_id', $user->employee->id)
-                     ->delete();
+                    if ($img->original_path)
+                    {
+                        $aiDeletePaths[] = $img->original_path;
+                    }
+                }
+
+                 EmployeeImage::destroy($deleteImageIds);
              }
              $newImagePaths = [];
              if ($request->hasFile('employee.images'))
@@ -464,7 +458,8 @@ class UserController extends Controller
                      $path = $image->store($directory, 'public');
                      $imgRecord = EmployeeImage::create([
                          'employee_id' => $user->employee->id,
-                         'path' => $path,
+                         'original_path' => $path,
+                         'webp_path' => null,
                          'original_name' => $image->getClientOriginalName(),
                          'mime_type' => $image->getClientMimeType(),
                          'size' => $image->getSize(),
@@ -483,37 +478,37 @@ class UserController extends Controller
                  $user->syncRoles([$validatedData['role']]);
              }
              return [
-                 'pathsToDelete' => $pathsToDelete,
+                 'aiDeletePaths' => $aiDeletePaths,
                  'newImagesToProcess' => $newImagesToProcess,
                  'personnelCode' => $user->employee->personnel_code,
                  'gender' => $user->employee->gender
              ];
          });
-         $pathsToDelete = $updateResult['pathsToDelete'];
-         $newImagesToProcess = $updateResult['newImagesToProcess'];
-         $personnelCode = $updateResult['personnelCode'];
-         $gender = $updateResult['gender'];
+        $aiDeletePaths = $updateResult['aiDeletePaths'];
+        $newImagesToProcess = $updateResult['newImagesToProcess'];
+        $personnelCode = $updateResult['personnelCode'];
+        $gender = $updateResult['gender'];
 
          // 1. Handle Deletions in AI
-         if (!empty($pathsToDelete))
-         {
-             try
-             {
-                 $response = Http::delete('https://ai.eitebar.ir/v1/user', [
-                     'personnel_code' => $personnelCode,
-                     'gender' => $gender,
-                     'images' => $pathsToDelete,
-                 ]);
+        if (!empty($aiDeletePaths))
+        {
+            try {
+                $response = Http::delete('https://ai.eitebar.ir/v1/user', [
+                    'personnel_code' => $personnelCode,
+                    'gender' => $gender,
+                    'images' => $aiDeletePaths,
+                ]);
 
-                 if ($response->failed()) {
-                     Log::error("AI Delete Failed: " . $response->body());
-                 }
-             }
-             catch (\Exception $e)
-             {
-                 Log::error("Failed to sync deleted images with AI: " . $e->getMessage());
-             }
-         }
+                if ($response->failed())
+                {
+                    Log::error("AI Delete Failed: " . $response->body());
+                }
+            }
+            catch (\Exception $e)
+            {
+                Log::error("Failed to sync deleted images with AI: " . $e->getMessage());
+            }
+        }
 
          // 2. Handle Updates/Insertions in AI
          if (!empty($newImagesToProcess))

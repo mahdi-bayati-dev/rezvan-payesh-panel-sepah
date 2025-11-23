@@ -17,7 +17,7 @@ class EmployeeImageResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'url' => $this->path ? Storage::url($this->path) : null,
+            'url' => Storage::disk('public')->url($this->webp_path ?? $this->original_path),
             'original_name' => $this->original_name,
             'mime_type' => $this->mime_type,
             'size' => $this->size,

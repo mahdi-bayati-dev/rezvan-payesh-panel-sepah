@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmployeeImage extends Model
 {
-    protected $table = 'employees_images';
+    protected $table = 'employee_images';
     protected $fillable = [
         'employee_id',
         'original_name',
-        'path',
+        'webp_path',
+        'original_path',
         'mime_type',
         'size',
 
