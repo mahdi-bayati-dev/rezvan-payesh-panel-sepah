@@ -43,7 +43,7 @@ class AuthController extends Controller
         $cookie = cookie(
             'access_token',
             $token,
-            60,
+            360,
             '/',
             $domain,
             true,
