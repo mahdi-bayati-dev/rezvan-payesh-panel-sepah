@@ -9,21 +9,21 @@ import gregorian from "react-date-object/calendars/gregorian";
 import gregorian_en from "react-date-object/locales/gregorian_en";
 
 // --- Imports: Components & Hooks ---
-import Input from '@/components/ui/Input'; 
+import Input from '@/components/ui/Input';
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
-import { Button } from '@/components/ui/Button'; 
-import Textarea from '@/components/ui/Textarea'; 
+import { Button } from '@/components/ui/Button';
+import Textarea from '@/components/ui/Textarea';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 
 import { useCreateUser } from '@/features/User/hooks/hook';
-import { 
-    useWorkPatternsList, 
-    useShiftSchedulesList, 
-    useWorkGroups 
-} from '@/features/work-group/hooks/hook'; 
-import { 
-    createUserFormSchema, 
-    type CreateUserFormData 
+import {
+    useWorkPatternsList,
+    useShiftSchedulesList,
+    useWorkGroups
+} from '@/features/work-group/hooks/hook';
+import {
+    createUserFormSchema,
+    type CreateUserFormData
 } from '@/features/User/Schema/userProfileFormSchema';
 
 // --- Types & Constants ---
@@ -66,28 +66,26 @@ const normalizeData = (data: any): any[] => {
     return [];
 };
 
-// --- Reusable Layout Component (FIXED Z-INDEX) ---
-// ✅ افزودن prop به نام className برای دریافت z-index
-const FormSectionCard = ({ 
-    title, 
-    icon: Icon, 
-    children, 
-    className 
-}: { 
-    title: string, 
-    icon: any, 
-    children: React.ReactNode, 
-    className?: string 
+// --- Reusable Layout Component ---
+const FormSectionCard = ({
+    title,
+    icon: Icon,
+    children,
+    className
+}: {
+    title: string,
+    icon: any,
+    children: React.ReactNode,
+    className?: string
 }) => (
-    <div className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm mb-6 relative ${className || ''}`}> 
+    <div className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm mb-6 relative ${className || ''}`}>
         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-t-xl px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
             <div className="p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm text-primaryL dark:text-primaryD">
                 <Icon className="w-5 h-5" />
             </div>
             <h3 className="font-semibold text-gray-800 dark:text-gray-200">{title}</h3>
         </div>
-        
-        {/* کانتنت هم باید relative باشد تا z-index کانتینر اصلی اثر کند */}
+
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
             {children}
         </div>
@@ -97,7 +95,7 @@ const FormSectionCard = ({
 export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizationId }) => {
     const navigate = useNavigate();
     const createMutation = useCreateUser();
-    
+
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     const { data: rawWorkPatterns, isLoading: isLoadingWP } = useWorkPatternsList();
@@ -165,7 +163,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             setValue('employee.images', updatedFiles, { shouldValidate: true });
             const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
             setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
-            e.target.value = ''; 
+            e.target.value = '';
         }
     }, [setValue, watch]);
 
@@ -227,17 +225,26 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="pb-24">
-            {/* ✅ بخش ۱: بالاترین z-index (مثلاً 40)
-               این باعث می‌شود هر منویی در این بخش باز شود، روی بخش‌های پایینی بیفتد.
-            */}
+            {/* --- بخش ۱: اطلاعات حساب کاربری --- */}
             <FormSectionCard title="اطلاعات حساب کاربری" icon={Lock} className="z-40">
                 <Input label="نام کاربری *" {...register("user_name")} error={errors.user_name?.message} autoFocus dir="ltr" />
                 <Input label="ایمیل *" type="email" {...register("email")} error={errors.email?.message} dir="ltr" />
-                <Input label="رمز عبور *" type="password" {...register("password")} error={errors.password?.message} dir="ltr" />
+
+                {/* ✅ نکته مهم:
+                   تنها با تغییر فایل Input.tsx، این خط به صورت خودکار قابلیت نمایش رمز عبور را خواهد داشت.
+                   نیازی به تغییر کد در اینجا نیست.
+                */}
+                <Input
+                    label="رمز عبور *"
+                    type="password"
+                    {...register("password")}
+                    error={errors.password?.message}
+                    dir="ltr"
+                />
 
                 <Controller name="role" control={control} render={({ field }) => (
                     <SelectBox
-                        label="نقش کاربری *" 
+                        label="نقش کاربری *"
                         options={ROLE_OPTIONS}
                         value={ROLE_OPTIONS.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
@@ -248,7 +255,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
                 <Controller name="status" control={control} render={({ field }) => (
                     <SelectBox
-                        label="وضعیت *" 
+                        label="وضعیت *"
                         options={STATUS_OPTIONS}
                         value={STATUS_OPTIONS.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
@@ -258,10 +265,9 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
             </FormSectionCard>
 
-            {/* ✅ بخش ۲: z-index کمتر از قبلی (30) */}
+            {/* --- بخش ۲: مشخصات فردی و تصاویر --- */}
             <FormSectionCard title="مشخصات فردی و تصاویر" icon={User} className="z-30">
                 <div className="md:col-span-3 mb-4">
-                    {/* اضافه کردن ستاره برای اجباری بودن */}
                     <label className="block text-sm font-medium mb-2 text-foreground dark:text-foregroundD">
                         تصویر پروفایل *
                     </label>
@@ -318,7 +324,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
                 <Controller name="employee.gender" control={control} render={({ field }) => (
                     <SelectBox
-                        label="جنسیت *" 
+                        label="جنسیت *"
                         options={GENDER_OPTIONS}
                         value={GENDER_OPTIONS.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
@@ -328,7 +334,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
                 <Controller name="employee.is_married" control={control} render={({ field }) => (
                     <SelectBox
-                        label="وضعیت تاهل *" 
+                        label="وضعیت تاهل *"
                         options={MARITAL_STATUS_OPTIONS}
                         value={MARITAL_STATUS_OPTIONS.find(o => o.id === String(field.value)) || null}
                         onChange={(opt) => field.onChange(opt?.id === 'true')}
@@ -338,7 +344,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
                 <Controller name="employee.education_level" control={control} render={({ field }) => (
                     <SelectBox
-                        label="تحصیلات *" 
+                        label="تحصیلات *"
                         options={EDUCATION_LEVEL_OPTIONS}
                         value={EDUCATION_LEVEL_OPTIONS.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id)}
@@ -348,7 +354,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
             </FormSectionCard>
 
-            {/* ✅ بخش ۳: z-index کمتر (20) */}
+            {/* --- بخش ۳: اطلاعات سازمانی --- */}
             <FormSectionCard title="اطلاعات سازمانی" icon={Building2} className="z-20">
                 <Input label="کد پرسنلی *" {...register("employee.personnel_code")} error={errors.employee?.personnel_code?.message} className="text-left dir-ltr" />
                 <Input label="سمت *" {...register("employee.position")} error={errors.employee?.position?.message} />
@@ -370,7 +376,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
 
                 <Controller name="employee.work_group_id" control={control} render={({ field }) => (
                     <SelectBox
-                        label="گروه کاری" 
+                        label="گروه کاری"
                         options={workGroupOptions}
                         value={workGroupOptions.find((o: SelectOption) => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id ?? null)}
@@ -390,7 +396,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
                 <Controller name="employee.work_pattern_id" control={control} render={({ field }) => (
                     <SelectBox
-                        label="الگوی کاری" 
+                        label="الگوی کاری"
                         options={workPatternOptions}
                         value={workPatternOptions.find(o => o.id === field.value) || null}
                         onChange={(opt) => field.onChange(opt?.id ?? null)}
@@ -400,7 +406,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                 )} />
             </FormSectionCard>
 
-            {/* ✅ بخش ۴: کمترین z-index (10) */}
+            {/* --- بخش ۴: اطلاعات تماس --- */}
             <FormSectionCard title="اطلاعات تماس" icon={Phone} className="z-10">
                 <Input label="شماره موبایل *" {...register("employee.phone_number")} error={errors.employee?.phone_number?.message} className="dir-ltr text-left" placeholder="09xxxxxxxxx" />
                 <Input label="تلفن منزل *" {...register("employee.house_number")} error={errors.employee?.house_number?.message} className="dir-ltr text-left" />
