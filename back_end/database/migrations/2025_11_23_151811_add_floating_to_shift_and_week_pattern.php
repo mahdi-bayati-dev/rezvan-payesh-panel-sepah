@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('week_patterns', function (Blueprint $table) {
-            $table->string('floating_start', 50)->after('event_type')->default(20);
+            $table->string('floating_start', 50)->after('name')->default(20);
             $table->string('floating_end', 50)->after('floating_start')->default(15);
         });
 
