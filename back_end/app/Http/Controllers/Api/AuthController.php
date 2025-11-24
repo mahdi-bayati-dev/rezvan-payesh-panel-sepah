@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -18,51 +16,78 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // ۱. جستجو با user_name، نه email
         $user = User::where('user_name', $request->user_name)->first();
 
-        // ۲. بررسی کاربر و صحت پسورد
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password))
+        {
             return response()->json([
                 'error' => 'Unauthorized',
                 'message' => 'نام کاربری یا رمز عبور نامعتبر است.'
             ], 401);
         }
 
-        // ۳. بررسی فعال بودن کاربر (این بخش عالی بود)
-        if ($user->status !== 'active') {
+        if ($user->status !== 'active')
+        {
             return response()->json([
                 'error' => 'Unauthorized',
                 'message' => 'حساب کاربری شما غیرفعال است.'
             ], 401);
         }
 
-        // ۴. ایجاد توکن و پاسخ (این بخش هم عالی بود)
         $tokenResult = $user->createToken('AuthToken');
         $token = $tokenResult->accessToken;
-        $expiresAt = $tokenResult->token->expires_at;
 
-        return response()->json(
-            [
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'expires_at' => $expiresAt->toDateTimeString(),
-                'user' =>
-                    [
-                        'id' => $user->id,
-                        'user_name' => $user->user_name,
-                        'email' => $user->email,
-                        'roles' => $user->getRoleNames(),
-                    ]
-            ]);
+        $expiration = $tokenResult->token->expires_at->diffInMinutes(now());
+
+
+        $domain = env('SESSION_DOMAIN', '.example.com');
+
+        $cookie = cookie(
+            'access_token',
+            $token,
+            $expiration,
+            '/',
+            $domain,
+            true,
+            true,
+            false,
+            'Lax'
+        );
+
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => [
+                'id' => $user->id,
+                'user_name' => $user->user_name,
+                'email' => $user->email,
+                'roles' => $user->getRoleNames(),
+            ],
+            'expires_at' => $tokenResult->token->expires_at->toDateTimeString(),
+        ])->withCookie($cookie);
     }
 
+    public function logout(Request $request)
+    {
+        if ($request->user()) {
+            $request->user()->token()->revoke();
+        }
 
+        $domain = env('SESSION_DOMAIN', '.example.com');
 
+        $cookie = cookie(
+            'access_token',
+            '',
+            -1,
+            '/',
+            $domain,
+            true,
+            true,
+            false,
+            'Lax'
+        );
 
-   public function logout(Request $request)
-   {
-        $request->user()->token()->revoke();
-        return response()->json(['message' => 'خروج با موفقیت انجام شد.']);
-   }
+        return response()->json([
+            'message' => 'خروج با موفقیت انجام شد.'
+        ])->withCookie($cookie);
+    }
 }
