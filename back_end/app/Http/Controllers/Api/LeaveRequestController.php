@@ -30,7 +30,7 @@ class LeaveRequestController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = LeaveRequest::with(['employee', 'leaveType', 'processor']);
+        $query = LeaveRequest::with(['employee', 'leaveType', 'processor','employee.images']);
         if ($user->cannot('viewAny', LeaveRequest::class))
         {
             $query->where('employee_id', $user->employee?->id);

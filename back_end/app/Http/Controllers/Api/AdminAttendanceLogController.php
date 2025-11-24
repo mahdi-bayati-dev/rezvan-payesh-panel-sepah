@@ -90,7 +90,7 @@ class AdminAttendanceLogController extends Controller
     public function show(AttendanceLog $attendanceLog)
     {
         $this->authorize('view', $attendanceLog);
-        return new AttendanceLogResource($attendanceLog->load(['employee', 'editor']));
+        return new AttendanceLogResource($attendanceLog->load(['employee', 'editor','employee.images']));
     }
 
     /**
