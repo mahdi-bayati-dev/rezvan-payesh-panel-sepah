@@ -30,13 +30,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-Route::middleware([AttachAccessTokenFromCookie::class,'auth:api'])->prefix('license')->group(function () {
+Route::middleware(['auth:api'])->prefix('license')->group(function () {
     Route::get('/', [PackController::class, 'show'])->name('license.show');
     Route::post('/', [PackController::class, 'update'])->name('license.update');
 });
 
 Route::middleware([
-    AttachAccessTokenFromCookie::class,
     'auth:api',
     CheckStatus::class,
 ])->group(function () {
