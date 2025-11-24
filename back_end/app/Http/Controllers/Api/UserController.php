@@ -486,7 +486,7 @@ class UserController extends Controller
              }
              return [
                  'aiDeletePaths' => $aiDeletePaths,
-                 'newImagesToProcess' => $newImagesToProcess,
+                 'newImagesToProcess' => $newImagesToProcess ?? null,
                  'personnelCode' => $user->employee->personnel_code,
                  'gender' => $user->employee->gender
              ];
