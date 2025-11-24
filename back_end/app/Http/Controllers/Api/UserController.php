@@ -231,7 +231,8 @@ class UserController extends Controller
              return response()->json(['message' => 'Unauthorized scope for organization.'], 403);
         }
         // 4. Create User and Employee in Transaction
-        $currentUser = DB::transaction(function () use ($validatedData, $employeeData,$request) {
+        $currentUser = DB::transaction(function () use ($validatedData, $employeeData,$request)
+        {
             $newUser = User::create([
                 'user_name' => $validatedData['user_name'],
                 'email' => $validatedData['email'],
@@ -270,7 +271,6 @@ class UserController extends Controller
 
             ]);
 
-            $imagePaths = [];
             if ($request->hasFile('employee.images'))
             {
                 $directory = 'users/' . $employeeData['personnel_code'];
@@ -302,20 +302,20 @@ class UserController extends Controller
             return [
                 'user' => $newUser,
                 'employee' => $newEmployee,
-                'imagesToProcess' => $imagesToProcess
+                'imagesToProcess' => $imagesToProcess ?? null,
             ];
         });
-        $currentUser = $currentUser['user'];
+        $User = $currentUser['user'];
         $imagesToProcess = $currentUser['imagesToProcess'];
 
         Log::info("imagesToProcess array is : ." . json_encode($imagesToProcess));
         if (!empty($imagesToProcess))
         {
             Log::info("image job is dispatch");
-            ProcessEmployeeImages::dispatch($currentUser->employee, $imagesToProcess, 'create');
+            ProcessEmployeeImages::dispatch($User->employee, $imagesToProcess, 'create');
         }
 
-        return new UserResource($currentUser->load(['employee.organization', 'roles', 'employee.images','employee.workGroup']));
+        return new UserResource($User->load(['employee.organization', 'roles', 'employee.images','employee.workGroup']));
     }
 
     /**
