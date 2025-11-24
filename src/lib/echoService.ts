@@ -13,6 +13,7 @@ if (typeof window !== "undefined") {
   window.Pusher = Pusher;
 }
 
+// استایل‌های لاگ برای خوانایی بهتر در کنسول
 const logStyles = {
   info: "background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px;",
   success: "background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px;",
@@ -21,7 +22,8 @@ const logStyles = {
 };
 
 const logSocket = (level: keyof typeof logStyles, message: string, data?: any) => {
-  if (import.meta.env.DEV) {
+  // فقط در محیط توسعه لاگ بزن، مگر اینکه خطا باشد
+  if (import.meta.env.DEV || level === 'error') {
     console.log(`%c[Socket] ${message}`, logStyles[level], data || "");
   }
 };
@@ -40,33 +42,42 @@ export const initEcho = (token: string): Echo<any> | null => {
 
   logSocket("info", "در حال ایجاد اتصال جدید...");
 
-  // --- ✅ اصلاحیه مهم آدرس Auth ---
-  // آدرس API شما: http://payesh.eitebar.ir/api
-  // آدرس Auth لاراول به صورت پیش‌فرض: http://payesh.eitebar.ir/broadcasting/auth (بدون api)
-  // بنابراین ما /api را از انتهای آدرس حذف می‌کنیم.
+  // دریافت متغیرهای محیطی با مقادیر پیش‌فرض ایمن
+  const PUSHER_KEY = import.meta.env.VITE_PUSHER_APP_KEY;
+  const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_APP_CLUSTER || "mt1";
+  const PUSHER_HOST = import.meta.env.VITE_PUSHER_HOST || window.location.hostname;
+  
+  // تبدیل رشته 'true'/'false' به boolean واقعی
+  const FORCE_TLS = import.meta.env.VITE_PUSHER_FORCE_TLS === 'true';
+  
+  // تعیین پورت بر اساس TLS
+  // اگر TLS روشن باشد، معمولا پورت ۴۴۳ است، مگر اینکه در ENV چیز دیگری باشد
+  const PUSHER_PORT = Number(import.meta.env.VITE_PUSHER_PORT) || (FORCE_TLS ? 443 : 80);
+
+  // تنظیم آدرس Auth
   const apiBase = import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
-  const rootUrl = apiBase.replace(/\/api\/?$/, ""); // حذف /api از آخر
+  // حذف اسلش‌های اضافی و کلمه api از انتهای آدرس
+  const rootUrl = apiBase.replace(/\/api\/?$/, ""); 
   const authEndpointUrl = `${rootUrl}/broadcasting/auth`;
 
   const options: any = {
     broadcaster: "pusher",
-    key: import.meta.env.VITE_PUSHER_APP_KEY || "dLqP31MIZy3LQm10QtHe9ciAt",
-    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || "mt1",
-    wsHost: import.meta.env.VITE_PUSHER_HOST || "ws.eitebar.ir",
-    wsPort: Number(import.meta.env.VITE_PUSHER_PORT) || 80,
-    wssPort: Number(import.meta.env.VITE_PUSHER_PORT) || 443,
-    forceTLS: false,
-    encrypted: false,
-    disableStats: true,
-    enabledTransports: ["ws", "wss"],
+    key: PUSHER_KEY,
+    cluster: PUSHER_CLUSTER,
+    wsHost: PUSHER_HOST,
     
-    // استفاده از authorizer برای ارسال توکن صحیح
+    // تنظیمات پورت برای حالت‌های مختلف (Reverb نیاز به تفکیک دقیق دارد)
+    wsPort: PUSHER_PORT,
+    wssPort: PUSHER_PORT,
+    
+    forceTLS: FORCE_TLS,
+    disableStats: true,
+    enabledTransports: ["ws", "wss"], // همیشه هر دو را ساپورت کند تا اگر یکی بسته بود سویچ کند
+    
+    // استفاده از authorizer سفارشی برای ارسال هدر Authorization
     authorizer: (channel: any, _options: any) => {
         return {
             authorize: (socketId: string, callback: Function) => {
-                // لاگ برای اطمینان از ارسال به آدرس درست
-                // console.log(`[Socket Auth] Sending to: ${authEndpointUrl}`);
-                
                 axiosInstance.post(authEndpointUrl, {
                     socket_id: socketId,
                     channel_name: channel.name
@@ -87,12 +98,20 @@ export const initEcho = (token: string): Echo<any> | null => {
     const echoInstance = new Echo(options);
     window.EchoInstance = echoInstance;
 
+    // لیسنرهای وضعیت اتصال
     (echoInstance.connector as any).pusher.connection.bind("state_change", (states: any) => {
-      logSocket("info", `وضعیت اتصال: ${states.current}`);
+      // فقط تغییرات مهم را لاگ کن
+      if (states.current === 'connected' || states.current === 'failed' || states.current === 'unavailable') {
+         logSocket("info", `وضعیت اتصال: ${states.current}`);
+      }
     });
 
     (echoInstance.connector as any).pusher.connection.bind("connected", () => {
       logSocket("success", "✅ متصل شد.", `Socket ID: ${echoInstance.socketId()}`);
+    });
+    
+    (echoInstance.connector as any).pusher.connection.bind("error", (err: any) => {
+        logSocket("error", "خطای اتصال سوکت:", err);
     });
 
     return echoInstance;
