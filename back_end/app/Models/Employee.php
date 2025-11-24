@@ -147,7 +147,7 @@ class Employee extends Model implements Auditable
     public function getWorkScheduleFor(Carbon $datetime): ?object
     {
         $date = $datetime->toDateString();
-        $dateCarbon = $datetime->copy()->startOfDay();
+
 
         $isHoliday = Holiday::where('date', $date)->exists();
         if ($isHoliday)
@@ -169,27 +169,29 @@ class Employee extends Model implements Auditable
                 $endTime->addDay();
             }
 
+
             return (object) [
                 'expected_start' => $startTime,
-                'expected_end'   => $endTime
+                'expected_end'   => $endTime,
+                'floating_start' => 0, // مقدار پیش‌فرض
+                'floating_end'   => 0, // مقدار پیش‌فرض
             ];
         }
 
         $this->loadMissing(['weekPattern', 'workGroup.weekPattern']);
         $weekPattern = $this->weekPattern;
 
-        if (!$weekPattern && $this->workGroup)
-        {
+        if (!$weekPattern && $this->workGroup) {
             $weekPattern = $this->workGroup->weekPattern;
         }
 
-        if (!$weekPattern)
-        {
+        if (!$weekPattern) {
             return null;
         }
 
         $dayOfWeekName = $datetime->format('l');
         $relationName = strtolower($dayOfWeekName) . 'Pattern';
+
         $weekPattern->loadMissing([$relationName]);
 
         $workPatternForDay = $weekPattern->{$relationName};
@@ -198,22 +200,23 @@ class Employee extends Model implements Auditable
         {
             return null;
         }
-        if ($workPatternForDay->type === 'off' || !$workPatternForDay->start_time || !$workPatternForDay->end_time)
-        {
+
+        if ($workPatternForDay->type === 'off' || !$workPatternForDay->start_time || !$workPatternForDay->end_time) {
             return null;
         }
 
         $startTime = Carbon::parse($date . ' ' . $workPatternForDay->start_time);
         $endTime = Carbon::parse($date . ' ' . $workPatternForDay->end_time);
 
-        if ($endTime->lessThanOrEqualTo($startTime))
-        {
+        if ($endTime->lessThanOrEqualTo($startTime)) {
             $endTime->addDay();
         }
 
         return (object) [
             'expected_start' => $startTime,
-            'expected_end'   => $endTime
+            'expected_end'   => $endTime,
+            'floating_start' => (int) $weekPattern->floating_start,
+            'floating_end'   => (int) $weekPattern->floating_end,
         ];
     }
 
