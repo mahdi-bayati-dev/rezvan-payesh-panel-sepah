@@ -83,6 +83,7 @@ class AdminAttendanceLogController extends Controller
         return new AttendanceLogResource($log->load(['employee', 'editor']));
     }
 
+
      /**
      * Display the specified resource.
      */
