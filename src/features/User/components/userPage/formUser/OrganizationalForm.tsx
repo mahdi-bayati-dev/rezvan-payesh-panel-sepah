@@ -51,7 +51,8 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
         return {
             employee: {
                 personnel_code: user.employee.personnel_code,
-                position: user.employee.position || null,
+                // ✅ اصلاح: تبدیل null به رشته خالی ""
+                position: user.employee.position || "",
                 // تاریخ شروع اجباری است، اگر نال باشد رشته خالی می‌گذاریم
                 starting_job: user.employee.starting_job || "",
                 
