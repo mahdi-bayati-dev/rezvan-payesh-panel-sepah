@@ -22,10 +22,11 @@ const ContactForm: React.FC<{ user: User }> = ({ user }) => {
         if (!user.employee) return { employee: null };
         return {
             employee: {
-                phone_number: user.employee.phone_number || null,
-                house_number: user.employee.house_number || null,
-                sos_number: user.employee.sos_number || null,
-                address: user.employee.address || null,
+                // ✅ اصلاح: تبدیل null به رشته خالی ""
+                phone_number: user.employee.phone_number || "",
+                house_number: user.employee.house_number || "",
+                sos_number: user.employee.sos_number || "",
+                address: user.employee.address || "",
             }
         };
     }, [user]);
