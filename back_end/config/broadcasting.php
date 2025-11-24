@@ -54,10 +54,10 @@ return [
             'options' => [
                 'cluster' => env('PUSHER_APP_CLUSTER','mt1'),
                 'host' => env('PUSHER_HOST','ws.eitebar.ir')  ,
-                'port' => env('PUSHER_PORT', 80),
-                'scheme' => env('PUSHER_SCHEME', 'http'),
+                'port' => env('PUSHER_PORT', 443),
+                'scheme' => env('PUSHER_SCHEME', 'https'),
                 'encrypted' => env('PUSHER_FORCE_TLS', false),
-                'useTLS' => env('PUSHER_SCHEME', 'http') === 'https',
+                'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
             ],
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
