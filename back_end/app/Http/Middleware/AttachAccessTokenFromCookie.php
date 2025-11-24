@@ -22,7 +22,7 @@ class AttachAccessTokenFromCookie
             $request->server->set('HTTP_AUTHORIZATION', $bearerToken);
             $_SERVER['HTTP_AUTHORIZATION'] = $bearerToken;
         }
-        dd($request->cookie('access_token'), $request->cookies->all());
+//        dd($request->cookie('access_token'), $request->cookies->all());
         return $next($request);
     }
 }
