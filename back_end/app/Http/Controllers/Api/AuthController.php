@@ -37,15 +37,13 @@ class AuthController extends Controller
         $tokenResult = $user->createToken('AuthToken');
         $token = $tokenResult->accessToken;
 
-        $expiration = $tokenResult->token->expires_at->diffInMinutes(now());
-
 
         $domain = config('SESSION_DOMAIN');
 
         $cookie = cookie(
             'access_token',
             $token,
-            $expiration,
+            60,
             '/',
             $domain,
             true,
