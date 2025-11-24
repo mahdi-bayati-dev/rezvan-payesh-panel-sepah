@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Download, FileText, Loader2 } from "lucide-react";
 import Echo from "laravel-echo";
-import axios from "axios";
+// ✅ استفاده از اینستنس خودمان به جای axios خام
+import axiosInstance from "@/lib/AxiosConfig"; 
 
-// --- اصلاح مسیرهای ایمپورت: ارجاع به داخل پوشه src ---
 import { getEcho } from "@/lib/echoService";
 import { useAppSelector } from "@/hook/reduxHooks";
-// نکته: اگر AxiosConfig لود نشد، مشکلی نیست چون در اینجا از axios خام استفاده می‌کنیم
 
 // ====================================================================
 // 🎨 کامپوننت محتوای نوتیفیکیشن (UI جدید)
@@ -16,10 +15,10 @@ import { useAppSelector } from "@/hook/reduxHooks";
 interface DownloadToastContentProps {
     url: string;
     name: string;
-    token?: string;
+    // ❌ توکن حذف شد چون نیازی نیست
 }
 
-const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) => {
+const DownloadToastContent = ({ url, name }: DownloadToastContentProps) => {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -28,13 +27,13 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
         setDownloadError(null);
 
         try {
-            // ✅ راه حل خطای 405 و 401:
-            const response = await axios.get(url, {
-                responseType: 'blob',
+            // ✅ استفاده از axiosInstance برای ارسال خودکار کوکی‌ها
+            const response = await axiosInstance.get(url, {
+                responseType: 'blob', // مهم برای دریافت فایل
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest', // درخواست JSON به جای ریدایرکت
+                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    // ❌ هدر Authorization حذف شد (کوکی جایگزین شد)
                 }
             });
 
@@ -66,15 +65,17 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
                 else if (error.response.status === 405) msg = "خطای متد (405).";
                 else if (error.response.status === 419) msg = "نشست کاربری منقضی شده (419).";
 
+                // اگر خطا به صورت Blob برگشت (چون responseType: blob است)، باید آن را بخوانیم
                 if (error.response.data instanceof Blob) {
                     try {
                         const text = await error.response.data.text();
                         const json = JSON.parse(text);
                         if (json.message) msg = json.message;
                     } catch (e) { 
-                    console.log(e);
-                    
-                     }
+                        console.log("Error parsing blob error:", e);
+                    }
+                } else if (error.response.data?.message) {
+                     msg = error.response.data.message;
                 }
             }
 
@@ -145,10 +146,11 @@ const DownloadToastContent = ({ url, name, token }: DownloadToastContentProps) =
 
 export const GlobalNotificationHandler = () => {
     const userId = useAppSelector((state) => state.auth.user?.id);
-    const token = useAppSelector((state) => state.auth.accessToken);
+    // ❌ دریافت توکن از state حذف شد
+    
     const [echoInstance, setEchoInstance] = useState<Echo<any> | null>(null);
 
-    // ۱. اطمینان از اتصال سوکت (Polling)
+    // ۱. اطمینان از اتصال سوکت (Polling برای دریافت اینستنس Echo)
     useEffect(() => {
         if (echoInstance) return;
 
@@ -171,9 +173,11 @@ export const GlobalNotificationHandler = () => {
 
     // ۲. گوش دادن به ایونت
     useEffect(() => {
+        // وابستگی به token حذف شد
         if (!echoInstance || !userId) return;
 
         const channelName = `App.User.${userId}`;
+        // چون سوکت الان با کوکی احراز هویت شده، دسترسی به کانال خصوصی مجاز است
         const channel = echoInstance.private(channelName);
 
         const handleEvent = (e: any) => {
@@ -192,23 +196,17 @@ export const GlobalNotificationHandler = () => {
                 <DownloadToastContent
                     url={url}
                     name={name}
-                    token={token || undefined}
+                    // پراپ token حذف شد
                 />,
                 {
-                    // تنظیمات زمان‌بندی و موقعیت
-                    autoClose: 15000, // ۱۵ ثانیه
-                    position: "bottom-right", // پایین راست (باعث می‌شود از راست باز شود)
-                    
-                    // سایر تنظیمات
+                    autoClose: 15000,
+                    position: "bottom-right",
                     closeOnClick: false,
                     draggable: true,
                     closeButton: true,
                     pauseOnHover: true,
                     toastId: `export-${Date.now()}`,
-                    
-                    // حذف استایل‌های پیش‌فرض برای کاستومایز کامل
                     className: "!p-0 !bg-transparent !shadow-none !border-0 !min-w-[300px]",
-                    // bodyClassName: "!p-0 !m-0",
                     style: { boxShadow: 'none' }
                 }
             );
@@ -221,7 +219,7 @@ export const GlobalNotificationHandler = () => {
             channel.stopListening(".export.ready", handleEvent);
             channel.stopListening("export.ready", handleEvent);
         };
-    }, [userId, echoInstance, token]);
+    }, [userId, echoInstance]); // token از وابستگی‌ها حذف شد
 
     return null;
 };
