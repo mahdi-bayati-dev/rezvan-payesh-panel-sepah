@@ -147,7 +147,7 @@ const RequestsPage = () => {
             {/* ✅ دکمه خروجی که مدال را باز می‌کند */}
             {isManager && (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 className="flex items-center gap-2"
                 onClick={() => setIsExportModalOpen(true)}
