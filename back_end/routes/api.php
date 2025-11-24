@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
 use App\Http\Controllers\Api\WorkGroupEmployeeController;
 use App\Http\Controllers\DevicesController;
+use App\Http\Middleware\AttachAccessTokenFromCookie;
 use App\Http\Middleware\CheckStatus;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
@@ -34,8 +35,10 @@ Route::middleware('auth:api')->prefix('license')->group(function () {
     Route::post('/', [PackController::class, 'update'])->name('license.update');
 });
 
-Route::middleware(['auth:api',
-    CheckStatus::class
+Route::middleware([
+    AttachAccessTokenFromCookie::class,
+    'auth:api',
+    CheckStatus::class,
 ])->group(function () {
 
     Route::prefix('my')->name('my.')->group(function () {
