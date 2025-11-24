@@ -21,7 +21,7 @@ class AdminAttendanceLogController extends Controller
     {
         $this->authorize('viewAny', AttendanceLog::class);
 
-        $query = AttendanceLog::with(['employee.user', 'editor']);
+        $query = AttendanceLog::with(['employee.user', 'editor','employee.images']);
         if ($request->has('employee_id'))
         {
             $query->where('employee_id', $request->employee_id);
