@@ -1,12 +1,12 @@
 import { type ColumnDef } from '@tanstack/react-table';
-import { type ActivityLog } from '@/features/reports/types/index';
-import { ActionsMenuCell } from '@/features/reports/components/reportsPage/ActionsMenuCell';
-import Badge, { type BadgeVariant } from '@/components/ui/Badge';
-import { toPersianNumbers } from '@/features/reports/utils/toPersianNumbers';
-import { Clock, AlertCircle, CheckCircle2, Hourglass } from 'lucide-react';
-
-// ✅ ایمپورت کامپوننت آواتار جدید
-import { Avatar } from '@/components/ui/Avatar';
+// اصلاح مسیر نسبی
+import { type ActivityLog } from "@/features/reports/types/index"
+import { ActionsMenuCell } from './ActionsMenuCell';
+import Badge, { type BadgeVariant } from '../../../../components/ui/Badge';
+import { toPersianNumbers } from '../../utils/toPersianNumbers';
+import { Clock, AlertCircle, CheckCircle2, Hourglass, User } from 'lucide-react';
+// ✅ مسیر نسبی دقیق به helper تصویر
+import { getFullImageUrl } from '../../../User/utils/imageHelper';
 
 const activityVariantMap: Record<ActivityLog['activityType'], BadgeVariant> = {
   entry: 'success',
@@ -28,34 +28,52 @@ interface CreateColumnsProps {
 }
 
 export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): ColumnDef<ActivityLog>[] => [
-  // 1. مشخصات (بهینه‌سازی شده با Avatar Component)
+  // 1. مشخصات (همراه با عکس)
   {
     accessorKey: 'employee',
     header: 'مشخصات',
     cell: ({ row }) => {
       const { name, employeeId, avatarUrl } = row.original.employee;
+
+      // ✅ تبدیل آدرس ناقص به آدرس کامل سرور
+      const fullAvatarUrl = getFullImageUrl(avatarUrl);
+
       return (
         <div className="flex items-center gap-3">
-          {/* استفاده از کامپوننت جدید برای هندل کردن مسیرهای نسبی و ارورها */}
-          <Avatar 
-            src={avatarUrl} 
-            alt={name}
-            className="h-10 w-10 rounded-full border border-borderL dark:border-borderD"
-          />
-          <div className="flex flex-col">
-            <span className="font-medium text-sm text-foregroundL dark:text-foregroundD">
+          <div className="relative w-10 h-10 flex-shrink-0">
+            {fullAvatarUrl ? (
+              <img
+                src={fullAvatarUrl}
+                alt={name}
+                className="w-full h-full rounded-full object-cover border border-borderL dark:border-borderD"
+                onError={(e) => {
+                  // هندل کردن خطای لود عکس
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement?.classList.add('bg-secondaryL', 'dark:bg-secondaryD', 'flex', 'items-center', 'justify-center');
+                  const icon = document.createElement('div');
+                  icon.innerHTML = '<svg class="w-5 h-5 text-muted-foregroundL dark:text-muted-foregroundD" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+                  e.currentTarget.parentElement?.appendChild(icon.firstChild!);
+                }}
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-secondaryL dark:bg-secondaryD flex items-center justify-center border border-borderL dark:border-borderD">
+                <User className="w-5 h-5 text-muted-foregroundL dark:text-muted-foregroundD" />
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-medium text-sm text-foregroundL dark:text-foregroundD truncate">
               {name}
             </span>
-            <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD">
-              {employeeId}
+            <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD truncate font-mono">
+              {toPersianNumbers(employeeId)}
             </span>
           </div>
         </div>
       );
     },
   },
-
-  // 2. فعالیت
+  // ... (بقیه ستون‌ها بدون تغییر) ...
   {
     accessorKey: 'activityType',
     header: 'فعالیت',
@@ -69,39 +87,31 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
       );
     },
   },
-
-  // 3. منبع
   {
     accessorKey: 'trafficArea',
     header: 'منبع',
     cell: ({ row }) => (
-      <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
+      <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD truncate max-w-[150px]">
         {row.original.trafficArea}
       </span>
     ),
   },
-
-  // 4. تاریخ
   {
     accessorKey: 'date',
     header: 'تاریخ',
     cell: ({ row }) => (
-      <span className="text-sm font-medium">{row.original.date}</span>
+      <span className="text-sm font-medium text-foregroundL dark:text-foregroundD">{row.original.date}</span>
     )
   },
-
-  // 5. ساعت
   {
     accessorKey: 'time',
     header: 'ساعت',
     cell: ({ row }) => (
-      <span className="text-sm font-medium dir-ltr block text-right">
+      <span className="text-sm font-medium dir-ltr block text-right text-foregroundL dark:text-foregroundD">
         {row.original.time}
       </span>
     )
   },
-
-  // 6. وضعیت مغایرت
   {
     id: 'status',
     header: 'وضعیت مغایرت',
@@ -110,7 +120,7 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
       const hasException = lateness_minutes > 0 || early_departure_minutes > 0;
 
       if (!hasException) {
-         return <span className="text-muted-foregroundL/30 text-xs">---</span>;
+        return <span className="text-muted-foregroundL/30 text-xs">---</span>;
       }
 
       return (
@@ -144,8 +154,6 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
       );
     },
   },
-
-  // 7. عملیات
   {
     id: 'actions',
     header: '',

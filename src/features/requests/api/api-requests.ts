@@ -58,6 +58,8 @@ export const getLeaveRequests = async (
   const response = await axiosInstance.get<ApiPaginatedResponse<LeaveRequest>>(
     `${API_URL}?${queryParams.toString()}`
   );
+  console.log(response.data);
+  
   return response.data;
 };
 

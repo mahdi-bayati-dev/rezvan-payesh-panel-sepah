@@ -1,10 +1,9 @@
 import {
     type ActivityLog,
     type ApiAttendanceLog,
-} from "@/features/reports/types";
-
-// اصلاح: حذف date-fns چون برای تبدیل به شمسی از Intl استفاده می‌کنیم
-import { toPersianNumbers } from "@/features/reports/utils/toPersianNumbers";
+} from "../types";
+// استفاده از مسیر نسبی برای اطمینان
+import { toPersianNumbers } from "./toPersianNumbers";
 
 const mapEventType = (
     eventType: "check_in" | "check_out"
@@ -29,22 +28,19 @@ export const mapApiLogToActivityLog = (
     // 2. ساخت آبجکت تاریخ
     const timestamp = new Date(rawTimestamp);
 
-    // 3. تبدیل به تاریخ شمسی با استفاده از API استاندارد Intl
-    // این متد به صورت خودکار تقویم را به شمسی (Persian) تبدیل می‌کند
+    // 3. تبدیل به تاریخ شمسی
     const jalaliDate = new Intl.DateTimeFormat("fa-IR", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        calendar: "persian" // تضمین استفاده از تقویم شمسی
+        calendar: "persian" 
     }).format(timestamp); 
-    // خروجی مثال: "۱۴۰۳/۱۱/۰۵"
 
     // 4. استخراج ساعت به فرمت ۲۴ ساعته
     const timeString = new Intl.DateTimeFormat("fa-IR", {
         hour: "2-digit",
         minute: "2-digit",
-        hour12: false, // فرمت ۲۴ ساعته
-        // calendar: "persian" // برای ساعت فرقی نمی‌کند اما محض اطمینان
+        hour12: false, 
     }).format(timestamp);
 
 
@@ -59,9 +55,13 @@ export const mapApiLogToActivityLog = (
         ? apiLog.employee.personnel_code || `ID: ${employeeIdNum}`
         : `ID: ${apiLog.employee_id}`;
 
-    const employeeAvatar = apiLog.employee
-        ? (apiLog.employee as any).avatarUrl
-        : undefined;
+    // ✅✅✅ اصلاح اصلی: استخراج هوشمند آواتار
+    let employeeAvatar = apiLog.employee?.avatarUrl;
+    
+    // اگر avatarUrl خالی بود، سراغ آرایه images می‌رویم (مشابه فیچر User)
+    if (!employeeAvatar && apiLog.employee?.images && apiLog.employee.images.length > 0) {
+        employeeAvatar = apiLog.employee.images[0].url;
+    }
 
     const isManual = apiLog.source_type !== "auto";
     const isAllowed = apiLog.is_allowed === undefined ? true : apiLog.is_allowed;
@@ -71,7 +71,7 @@ export const mapApiLogToActivityLog = (
         userId: employeeUserId,
         name: employeeName,
         employeeId: toPersianNumbers(employeeCode),
-        avatarUrl: employeeAvatar,
+        avatarUrl: employeeAvatar, // این مقدار حالا درست پر می‌شود
     };
 
     return {
@@ -79,12 +79,8 @@ export const mapApiLogToActivityLog = (
         employee: mappedEmployee,
         activityType: mapEventType(apiLog.event_type),
         trafficArea: apiLog.source_name,
-        
-        // استفاده از تاریخ شمسی تولید شده
-        // تابع toPersianNumbers را هم صدا می‌زنیم تا اگر مرورگر اعداد انگلیسی داد، فارسی شوند
         date: toPersianNumbers(jalaliDate),
         time: toPersianNumbers(timeString),
-        
         lateness_minutes: apiLog.lateness_minutes || 0,
         early_departure_minutes: apiLog.early_departure_minutes || 0,
         is_allowed: isAllowed,
