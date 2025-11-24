@@ -44,22 +44,7 @@ class AttendanceLogController extends Controller
         $employee = Employee::where('personnel_code', $validated['personnel_code'])->first();
         $logTimestamp = Carbon::parse($validated['timestamp']);
 
-        // 5 min check
-            $existsRecently = AttendanceLog::where('employee_id', $employee->id)
-                ->where('event_type', $validated['event_type'])
-                ->whereBetween('timestamp', [
-                    $logTimestamp->copy()->subMinutes(5),
-                    $logTimestamp->copy()->addMinutes(5)
-                ])
-                ->first();
 
-            if ($existsRecently)
-            {
-                return response()->json([
-                    'message' => 'Duplicate attendance log (within 5 minutes restriction).',
-                    'log_id' => $existsRecently->id,
-                ], 409);
-            }
         // end check
         $schedule = $employee->getWorkScheduleFor($logTimestamp);
 
