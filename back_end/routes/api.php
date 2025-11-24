@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-Route::middleware('auth:api')->prefix('license')->group(function () {
+Route::middleware([AttachAccessTokenFromCookie::class,'auth:api'])->prefix('license')->group(function () {
     Route::get('/', [PackController::class, 'show'])->name('license.show');
     Route::post('/', [PackController::class, 'update'])->name('license.update');
 });
