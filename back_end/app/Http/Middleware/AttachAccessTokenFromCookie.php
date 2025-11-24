@@ -9,16 +9,20 @@ class AttachAccessTokenFromCookie
 {
     public function handle(Request $request, Closure $next)
     {
-        if ($request->hasCookie('access_token') && !$request->header('Authorization'))
+        $token = $request->cookie('access_token');
+
+
+
+        if ($token && !$request->header('Authorization'))
         {
-            $token = $request->cookie('access_token');
-            $headerValue = 'Bearer ' . $token;
+            $bearerToken = 'Bearer ' . $token;
 
-            $request->headers->set('Authorization', $headerValue);
+            $request->headers->set('Authorization', $bearerToken);
 
-            $request->server->set('HTTP_AUTHORIZATION', $headerValue);
+            $request->server->set('HTTP_AUTHORIZATION', $bearerToken);
+            $_SERVER['HTTP_AUTHORIZATION'] = $bearerToken;
         }
-
+        dd($request->cookie('access_token'), $request->cookies->all());
         return $next($request);
     }
 }
