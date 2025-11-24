@@ -13,6 +13,7 @@ export interface ApiEmployee {
   // [اصلاح] فیلد employee_code به personnel_code تغییر کرد
   // تا با لاگ‌های واقعی API شما مطابقت داشته باشد
   personnel_code?: string;
+  images?: { url: string }[]; 
 }
 
 /**

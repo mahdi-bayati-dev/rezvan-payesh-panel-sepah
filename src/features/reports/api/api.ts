@@ -84,6 +84,8 @@ export const fetchLogs = async (
       params: apiParams, // فقط پارامترهای استاندارد ارسال می‌شوند
     }
   );
+  console.log(response.data);
+  
   return response.data;
 };
 
@@ -93,6 +95,8 @@ export const fetchLogById = async (
   const response = await axiosInstance.get<{ data: ApiAttendanceLog }>(
     `${ADMIN_REPORTS_API_PATH}/${logId}`
   );
+  console.log(response.data.data);
+  
   return response.data.data;
 };
 
