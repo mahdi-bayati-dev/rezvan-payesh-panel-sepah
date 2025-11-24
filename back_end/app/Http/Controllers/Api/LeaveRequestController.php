@@ -116,7 +116,7 @@ class LeaveRequestController extends Controller
     public function show(LeaveRequest $leaveRequest)
     {
          $this->authorize('view', $leaveRequest);
-        $leaveRequest->load(['employee', 'leaveType', 'processor']);
+        $leaveRequest->load(['employee', 'leaveType', 'processor','employee.images']);
         return new LeaveRequestResource($leaveRequest);
     }
 
