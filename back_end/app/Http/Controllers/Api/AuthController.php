@@ -40,7 +40,7 @@ class AuthController extends Controller
         $expiration = $tokenResult->token->expires_at->diffInMinutes(now());
 
 
-        $domain = env('SESSION_DOMAIN', '.example.com');
+        $domain = config('SESSION_DOMAIN');
 
         $cookie = cookie(
             'access_token',
@@ -72,7 +72,7 @@ class AuthController extends Controller
             $request->user()->token()->revoke();
         }
 
-        $domain = env('SESSION_DOMAIN', '.example.com');
+        $domain = config('SESSION_DOMAIN');
 
         $cookie = cookie(
             'access_token',
