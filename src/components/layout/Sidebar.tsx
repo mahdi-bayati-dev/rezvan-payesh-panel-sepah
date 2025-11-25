@@ -8,8 +8,8 @@ import { usePermission } from '@/hook/usePermission';
 import { useAppSelector, useAppDispatch } from '@/hook/reduxHooks';
 import { fetchLicenseStatus, selectLicenseStatus } from '@/store/slices/licenseSlice';
 import { usePendingRequestsCount } from '@/features/requests/hook/usePendingRequestsCount';
-
-// ✅ خط مربوط به useLeaveRequestSocket حذف شد (چون به MainLayout منتقل شد)
+// ۱. اضافه کردن سلکتور کاربر
+import { selectUser } from '@/store/slices/authSlice';
 
 interface SidebarNavItemProps {
   item: NavItem;
@@ -19,8 +19,15 @@ interface SidebarNavItemProps {
 const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
   const hasRoleAccess = usePermission(item.allowedRoles);
   const licenseStatus = useAppSelector(selectLicenseStatus);
+  // ۲. دریافت اطلاعات کاربر
+  const user = useAppSelector(selectUser);
 
   if (!hasRoleAccess) return null;
+
+  // ۳. شرط جدید: اگر آیتم نیاز به کارمند بودن دارد ولی کاربر اطلاعات کارمندی ندارد، نمایش نده
+  if (item.requiresEmployee && !user?.employee) {
+    return null;
+  }
 
   if (item.href === '/license') {
     if (licenseStatus !== 'licensed') {
@@ -54,8 +61,6 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
 
 export const SidebarContent = () => {
   const dispatch = useAppDispatch();
-
-  // ✅ فقط هوک دریافت تعداد صدا زده می‌شود (آپدیت این مقدار توسط GlobalHandler انجام می‌شود)
   const { data: pendingCount = 0 } = usePendingRequestsCount();
 
   useEffect(() => {

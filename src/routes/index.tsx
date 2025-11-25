@@ -38,6 +38,12 @@ const OrganizationDetailPage = lazy(() => import('../features/Organization/compo
 const CreateUser = lazy(() => import('../features/User/components/userCreate/CreateUserPage'))
 const AssignUserPage = lazy(() => import('../features/User/components/AssignUser/AssignUserPage'))
 const UserProfilePage = lazy(() => import('../features/User/components/userPage/UserProfilePage'))
+
+// ✅ ۱. ایمپورت صفحه پروفایل من (مسیر را بر اساس جایی که فایل را ساختی تنظیم کن)
+// فرض بر این است که فایل MyProfilePage را در مسیر User/components/myProfile ساخته‌ایم.
+// چون فایل routes/index.tsx در پوشه routes است و User در features است (طبق ایمپورت‌های بالا):
+const MyProfilePage = lazy(() => import('../features/User/components/myProfile/myProfilePage'))
+
 const WorkCalendarPage = lazy(() => import('../features/work-calendar/routes/WorkCalendarPage'))
 const AdminManagement = lazy(() => import('../features/User/components/userPage/AdminManagementPage'))
 const DevicePage = lazy(() => import('../features/devices/routes/DevicePage'));
@@ -60,10 +66,14 @@ export const router = createBrowserRouter([
           {
             element: <RoleBasedGuard allowedRoles={ALL_ACCESS} />,
             children: [
-              // [تغییر مهم]: داشبورد به اینجا منتقل شد تا همه دسترسی داشته باشند
               {
                 path: "/",
                 element: <Suspense fallback={<Spinner />}><DashboardPage /></Suspense>,
+              },
+              
+              {
+                path: "my-profile",
+                element: <Suspense fallback={<Spinner />}><MyProfilePage /></Suspense>,
               },
               {
                 path: "license",
@@ -85,10 +95,6 @@ export const router = createBrowserRouter([
                 path: "requests/settings-table",
                 element: <Suspense fallback={<Spinner />}><TableSettingsPage /></Suspense>,
               },
-              // {
-              //   path: "requests/export-settings",
-              //   element: <Suspense fallback={<Spinner />}><ExportSettingsPage /></Suspense>,
-              // },
               {
                 path: "reports",
                 element: <Suspense fallback={<ReportsPageSkeleton />}><ReportsIndexPage /></Suspense>,
@@ -126,7 +132,6 @@ export const router = createBrowserRouter([
           {
             element: <RoleBasedGuard allowedRoles={ADMIN_ACCESS} />,
             children: [
-              // [حذف شد]: داشبورد از اینجا برداشته شد
               {
                 path: "organizations",
                 element: <Suspense fallback={<Spinner />}><OrganizationPage /></Suspense>,
