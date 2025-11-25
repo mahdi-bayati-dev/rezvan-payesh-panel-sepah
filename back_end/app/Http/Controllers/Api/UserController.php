@@ -628,14 +628,21 @@ class UserController extends Controller
 
         try
         {
-            Excel::import(new UsersImport($globalSettings), $request->file('file'));
+            Excel::queue(new UsersImport($globalSettings), $request->file('file'));
 
-            return response()->json(['message' => 'ایمپورت با موفقیت انجام شد.'], 200);
+            return response()->json([
+                'message' => 'فایل دریافت شد و پردازش در پس‌زمینه شروع شده است. بسته به تعداد رکوردها ممکن است چند دقیقه زمان ببرد.'
+            ], 200);
 
         }
         catch (\Maatwebsite\Excel\Validators\ValidationException $e)
         {
             return response()->json(['errors' => $e->failures()], 422);
+        }
+        catch (\Exception $e)
+        {
+            Log::error("Import Queue Failed: " . $e->getMessage());
+            return response()->json(['message' => 'خطا در ارسال فایل به صف پردازش.'], 500);
         }
     }
 }

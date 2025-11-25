@@ -13,14 +13,20 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Row;
 use Morilog\Jalali\Jalalian;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class UsersImport implements OnEachRow, WithHeadingRow, WithValidation
+class UsersImport  implements OnEachRow, WithHeadingRow, WithValidation, ShouldQueue, WithChunkReading
 {
 
 
     // متد سازنده برای دریافت تنظیمات از کنترلر
     public function __construct(protected array $settings){}
 
+    public function chunkSize(): int
+    {
+        return 100; // هر بار ۱۰۰ یوزر را پردازش کن
+    }
     public function onRow(Row $row)
     {
         $row = $row->toArray();
