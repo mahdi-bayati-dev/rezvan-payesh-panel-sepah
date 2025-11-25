@@ -45,6 +45,7 @@ export const fetchShiftScheduleById = async (
     `${API_URL}/${id}`
   );
   console.log(" دریافت جزیات برنامه‌ شیفتی", response.data);
+// console.log(response.data.data);
 
   return response.data.data;
 };

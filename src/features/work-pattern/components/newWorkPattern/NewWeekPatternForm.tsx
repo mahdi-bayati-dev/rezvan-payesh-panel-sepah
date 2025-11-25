@@ -1,63 +1,56 @@
-import { useWeekPatternForm } from '@/features/work-pattern/hooks/useWeekPatternForm';
-import { useEditWeekPatternForm } from '@/features/work-pattern/hooks/useEditWeekPatternForm';
-import type { FieldArrayWithId } from 'react-hook-form';
+import { type Control, type UseFormRegister, type FieldErrors, type UseFormHandleSubmit, type SubmitHandler, type FieldArrayWithId } from 'react-hook-form';
 import type { NewWeekPatternFormData } from '@/features/work-pattern/schema/NewWeekPatternSchema';
 
 import Input from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, TimerReset } from 'lucide-react';
 import { WeekDayRow } from '@/features/work-pattern/components/newWorkPattern/WeekDayRow';
+import { useWeekPatternForm } from '@/features/work-pattern/hooks/useWeekPatternForm';
 
+// ✅ اصلاح: استفاده از Control ساده بدون وابستگی به Context پیچیده
+type FormContextType = {
+    control: Control<NewWeekPatternFormData>; // فقط Control<T>
+    register: UseFormRegister<NewWeekPatternFormData>;
+    handleSubmit: UseFormHandleSubmit<NewWeekPatternFormData>;
+    formErrors: FieldErrors<NewWeekPatternFormData>;
+    isPending: boolean;
+    generalApiError: string | null;
+    fields: FieldArrayWithId<NewWeekPatternFormData, "days", "id">[];
+    watchedDays: NewWeekPatternFormData['days'];
+    onSubmit: SubmitHandler<NewWeekPatternFormData>;
+};
 
-// کامنت: تعریف یک تایپ مشترک برای هوک‌های فرم (برای استفاده در پراپ‌ها)
-type FormHook = ReturnType<typeof useWeekPatternForm> | ReturnType<typeof useEditWeekPatternForm>;
-
-interface NewWeekPatternFormProps {
+interface NewWeekPatternFormProps extends Partial<FormContextType> {
     onSuccess?: () => void;
     onCancel: () => void;
-    isEditMode?: boolean; // پراپ برای تعیین حالت (Create یا Edit)
-    // پراپ‌های مورد نیاز در حالت Edit (که از useEditWeekPatternForm می‌آیند)
-    control?: FormHook['control'];
-    register?: FormHook['register'];
-    handleSubmit?: FormHook['handleSubmit'];
-    formErrors?: FormHook['formErrors'];
-    isPending?: FormHook['isPending'];
-    generalApiError?: FormHook['generalApiError'];
-    fields?: FieldArrayWithId<NewWeekPatternFormData, "days", "id">[];
-    watchedDays?: NewWeekPatternFormData['days'];
-    onSubmit?: FormHook['onSubmit'];
+    isEditMode?: boolean;
 }
 
-
 export const NewWeekPatternForm = ({ onSuccess, onCancel, isEditMode = false, ...props }: NewWeekPatternFormProps) => {
-
-    // کامنت: فقط اگر در حالت Create نبودیم، هوک Create را فراخوانی می‌کنیم
     const createHook = useWeekPatternForm({ onSuccess });
 
-    // کامنت: انتخاب بین هوک Create (در حالت New) و پراپ‌های Edit (در حالت Edit)
-    const formContext = isEditMode ? (props as FormHook) : createHook;
+    // اینجا cast کردن به any ضروری است چون هوک‌ها و پراپ‌ها ممکن است ریزتفاوت‌هایی در نسخه Resolver داشته باشند
+    const formContext: FormContextType = isEditMode
+        ? (props as any)
+        : createHook;
 
     const {
         control, register, handleSubmit, formErrors,
         isPending, generalApiError, fields, watchedDays, onSubmit,
     } = formContext;
 
-    // کامنت: بررسی ورودی‌های اجباری برای جلوگیری از خطای رندر
-    if (!fields || !watchedDays || !control || !register || !handleSubmit || !onSubmit) {
-        // کامنت: این خطا فقط باید در حالت Edit رخ دهد اگر پراپ‌ها پاس داده نشوند
+    if (!control || !fields) {
         if (isEditMode) {
             return (
                 <Alert variant="destructive">
                     <AlertTitle>خطای داخلی فرم</AlertTitle>
-                    <AlertDescription>فرم ویرایش به درستی مقداردهی نشده است. لطفاً مسیردهی به این صفحه را بررسی کنید.</AlertDescription>
+                    <AlertDescription>داده‌های فرم ویرایش به درستی بارگذاری نشدند.</AlertDescription>
                 </Alert>
             )
         }
-        // کامنت: در حالت Create این وضعیت نباید رخ دهد مگر خطای کد نویسی باشد.
-        return <div className="p-4">در حال بارگذاری فرم...</div>;
+        return <div className="p-4 flex items-center gap-2"><Loader2 className="animate-spin" /> در حال آماده‌سازی فرم...</div>;
     }
-
 
     const title = isEditMode ? 'ویرایش الگوی کاری' : 'ایجاد الگوی کاری جدید';
 
@@ -97,18 +90,13 @@ export const NewWeekPatternForm = ({ onSuccess, onCancel, isEditMode = false, ..
                             />
                         );
                     })}
-
-                    {formErrors.days?.root?.message && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                            {formErrors.days.root.message}
-                        </p>
-                    )}
                 </div>
 
-                {/* ستون کناری) */}
-                <div className="space-y-6 md:col-span-1 bg-backgroundL-500 border rounded-2xl p-4 border-b border-borderL transition-colors duration-300 dark:bg-backgroundD dark:border-borderD max-h-[220px] ">
+                {/* ستون کناری - تنظیمات */}
+                <div className="space-y-6 md:col-span-1">
 
-                    <div className="">
+                    {/* کارت ۱: اطلاعات پایه */}
+                    <div className="bg-backgroundL-500 border rounded-2xl p-4 border-b border-borderL transition-colors duration-300 dark:bg-backgroundD dark:border-borderD">
                         <h3 className="text-md font-medium mb-4 text-stone-700 dark:text-stone-300">
                             اطلاعات الگو
                         </h3>
@@ -116,21 +104,54 @@ export const NewWeekPatternForm = ({ onSuccess, onCancel, isEditMode = false, ..
                             label="نام الگو"
                             {...register('name')}
                             error={formErrors.name?.message}
-                            placeholder="مثلاً: برنامه اداری استاندارد"
+                            placeholder="مثلاً: اداری استاندارد"
                             disabled={isPending}
                         />
                     </div>
 
-                    <div className="">
-                        <div className="flex justify-start gap-4">
-                            <Button type="submit" disabled={isPending}>
-                                {isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                                {isPending ? 'در حال ذخیره...' : (isEditMode ? 'ذخیره تغییرات' : 'ایجاد الگو')}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
-                                لغو
-                            </Button>
+                    {/* ✅ کارت ۲: تنظیمات ساعات شناور */}
+                    <div className="bg-backgroundL-500 border rounded-2xl p-4 border-b border-borderL transition-colors duration-300 dark:bg-backgroundD dark:border-borderD">
+                        <div className="flex items-center gap-2 mb-4 text-stone-700 dark:text-stone-300">
+                            <TimerReset className="w-5 h-5 text-indigo-500" />
+                            <h3 className="text-md font-medium">ساعات شناور</h3>
                         </div>
+
+                        <div className="space-y-4">
+                            <Input
+                                type="number"
+                                label="شناوری ورود (دقیقه)"
+                                {...register('floating_start')}
+                                error={formErrors.floating_start?.message}
+                                placeholder="مثلاً 15"
+                                disabled={isPending}
+                                className="text-center"
+                                min={0}
+                            />
+                            <Input
+                                type="number"
+                                label="شناوری خروج (دقیقه)"
+                                {...register('floating_end')}
+                                error={formErrors.floating_end?.message}
+                                placeholder="مثلاً 15"
+                                disabled={isPending}
+                                className="text-center"
+                                min={0}
+                            />
+                            <p className="text-[11px] text-muted-foregroundL leading-4 bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 dark:text-infoD-foreground">
+                                <strong>نکته:</strong> تردد خارج از این بازه مشمول جریمه کسر کار از ابتدای شیفت خواهد شد (منطق آستانه).
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* دکمه‌ها */}
+                    <div className="flex justify-start gap-3 pt-2">
+                        <Button type="submit" disabled={isPending} className="flex-1">
+                            {isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                            {isPending ? 'در حال ذخیره...' : (isEditMode ? 'ذخیره تغییرات' : 'ایجاد الگو')}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+                            لغو
+                        </Button>
                     </div>
                 </div>
             </div>

@@ -1,12 +1,10 @@
 import { useForm, useFieldArray, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-// import { useEffect } from "react";
-// کامنت: مسیرها به نسبی (relative) تغییر کردند تا خطای alias@ برطرف شود
 import {
   newWeekPatternSchema,
   type NewWeekPatternFormData,
 } from "../schema/NewWeekPatternSchema";
-import { useCreateWeekPattern } from "@/features/work-pattern/hooks/useCreateWeekPatternPost"; // این ایمپورت چون از خارج است، با @ باقی می‌ماند
+import { useCreateWeekPattern } from "@/features/work-pattern/hooks/useCreateWeekPatternPost";
 import { AxiosError } from "axios";
 import type {
   ApiValidationError,
@@ -14,16 +12,12 @@ import type {
   DayPayload,
 } from "../types/index";
 import { daysOfWeek } from "../utils/constants";
-
-// ✅ ۱. ایمپورت هوک محاسباتی جدید
 import { useWeekPatternDayCalculations } from "./useWeekPatternDayCalculations";
 
 interface UseWeekPatternFormProps {
   onSuccess?: () => void;
 }
 
-// کامنت: تمام منطق فرم به این هوک منتقل شده است.
-// کامپوننت اصلی فقط این هوک را فراخوانی می‌کند.
 export const useWeekPatternForm = ({ onSuccess }: UseWeekPatternFormProps) => {
   const { mutate, isPending, error: mutationError } = useCreateWeekPattern();
 
@@ -36,9 +30,12 @@ export const useWeekPatternForm = ({ onSuccess }: UseWeekPatternFormProps) => {
     formState: { errors: formErrors },
     setError: setFormError,
   } = useForm<NewWeekPatternFormData>({
-    resolver: zodResolver(newWeekPatternSchema),
+    // ✅ استفاده از as any
+    resolver: zodResolver(newWeekPatternSchema) as any,
     defaultValues: {
       name: "",
+      floating_start: 0,
+      floating_end: 0,
       days: daysOfWeek.map((_, index) => ({
         day_of_week: index,
         is_working_day: index < 5,
@@ -47,59 +44,17 @@ export const useWeekPatternForm = ({ onSuccess }: UseWeekPatternFormProps) => {
         work_duration_minutes: index < 5 ? 480 : 0,
       })),
     },
+    mode: "onTouched",
   });
 
   const { fields } = useFieldArray({ control, name: "days" });
-  // const watchedDays = watch('days');
   useWeekPatternDayCalculations(watch, setValue);
 
-  // کامنت: این useEffect مسئول مدیریت تیک "روز کاری" است
-  // useEffect(() => {
-  //     watchedDays.forEach((day, index) => {
-  //         const isWorking = day.is_working_day;
-
-  //         if (!isWorking) {
-  //             setValue(`days.${index}.start_time`, null, { shouldDirty: true });
-  //             setValue(`days.${index}.end_time`, null, { shouldDirty: true });
-  //             setValue(`days.${index}.work_duration_minutes`, 0, { shouldValidate: true, shouldDirty: true });
-  //         } else {
-  //             const start = day.start_time ?? "08:00";
-  //             const end = day.end_time ?? "16:00";
-  //             const duration = calculateDurationInMinutes(start, end);
-  //             setValue(`days.${index}.start_time`, start);
-  //             setValue(`days.${index}.end_time`, end);
-  //             setValue(`days.${index}.work_duration_minutes`, duration ?? 480, { shouldValidate: true });
-  //         }
-  //     });
-  //     // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [watchedDays.map((d) => d.is_working_day).join(","), setValue]);
-
-  // // کامنت: این useEffect مسئول محاسبه خودکار مدت زمان است
-  // useEffect(() => {
-  //     watchedDays.forEach((day, index) => {
-  //         if (!day.is_working_day) return;
-
-  //         const start = day.start_time;
-  //         const end = day.end_time;
-
-  //         if (start && end) {
-  //             const duration = calculateDurationInMinutes(start, end);
-  //             if (duration !== null && duration !== day.work_duration_minutes) {
-  //                 setValue(`days.${index}.work_duration_minutes`, duration, { shouldValidate: true, shouldDirty: true });
-  //             }
-  //         } else {
-  //             if (day.work_duration_minutes !== 0) {
-  //                 setValue(`days.${index}.work_duration_minutes`, 0, { shouldValidate: true, shouldDirty: true });
-  //             }
-  //         }
-  //     });
-  //     // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [watchedDays.map((d) => `${d.start_time}-${d.end_time}-${d.is_working_day}`).join(","), setValue]);
-
-  // کامنت: تابع onSubmit هم در هوک قرار می‌گیرد
   const onSubmit: SubmitHandler<NewWeekPatternFormData> = (data) => {
     const payload: WeekPatternPayload = {
       name: data.name,
+      floating_start: data.floating_start,
+      floating_end: data.floating_end,
       days: data.days.map(
         (day): DayPayload => ({
           day_of_week: day.day_of_week,
@@ -143,7 +98,6 @@ export const useWeekPatternForm = ({ onSuccess }: UseWeekPatternFormProps) => {
           ?.message || "خطای ناشناخته ای رخ داد."
       : null;
 
-  // کامنت: هوک تمام مقادیر و توابع مورد نیاز کامپوننت UI را بازمی‌گرداند
   return {
     control,
     register,
@@ -152,7 +106,6 @@ export const useWeekPatternForm = ({ onSuccess }: UseWeekPatternFormProps) => {
     isPending,
     generalApiError,
     fields,
-    // watchedDays,
     watchedDays: watch("days"),
     onSubmit,
   };
