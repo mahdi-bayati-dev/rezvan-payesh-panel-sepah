@@ -33,3 +33,4 @@ auth.md
 /public/vendor/scribe/css/theme-default.style.css
 /public/vendor/scribe/js/theme-default-5.6.0.js
 /public/vendor/scribe/js/tryitout-5.6.0.js
+/resources/views/scribe/index.blade.php
