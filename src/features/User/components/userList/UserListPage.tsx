@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,7 +23,9 @@ import { columns } from './UserTableColumns';
 import { useOrganization } from '@/features/Organization/hooks/useOrganizations';
 
 // --- ۴. آیکون‌ها ---
-import { Search, ArrowRight, Loader2, UserPlus } from 'lucide-react';
+import { Search, ArrowRight, Loader2, UserPlus, FileUp } from 'lucide-react';
+
+import { UserImportModal } from '@/features/User/components/userImport/UserImportModal'; // ایمپورت مودال جدید
 
 // (هوک Debounce)
 const useDebounce = (value: string, delay: number) => {
@@ -51,6 +51,8 @@ interface UserListPageProps {
  * جدول، جستجو و صفحه‌بندی را مدیریت می‌کند.
  */
 export function UserListPage({ organizationId }: UserListPageProps) {
+
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     // --- ✅ خطای شما اینجاست ---
     // ۱. این خط *باید* قبل از استفاده از متغیر `user` تعریف شده باشد.
@@ -168,6 +170,18 @@ export function UserListPage({ organizationId }: UserListPageProps) {
 
                 {/* بخش دکمه‌ها (اصلاح شده در پاسخ قبلی) */}
                 <div className="flex items-center gap-2">
+                    {/* --- دکمه جدید ایمپورت (فقط برای Super Admin طبق داکیومنت) --- */}
+                    {isSuperAdmin && (
+                        <Button
+                            variant="outline" // استایل متفاوت برای تمایز
+                            size="md"
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="gap-2 border-dashed border-primaryL text-primaryL hover:bg-primaryL/5"
+                        >
+                            <FileUp className="h-4 w-4" />
+                            بارگذاری اکسل
+                        </Button>
+                    )}
                     {/* دکمه جدید: ایجاد کاربر */}
                     {canCreateUser && (
                         <Button
@@ -200,6 +214,15 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                 isLoading={isLoadingUsers}
                 notFoundMessage="کارمندی یافت نشد."
             />
+            {/* --- رندر کردن مودال ایمپورت --- */}
+            {isSuperAdmin && (
+                <UserImportModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    organizationId={organizationId}
+                    organizationName={organization?.name}
+                />
+            )}
 
             {/* کامپوننت صفحه‌بندی شما */}
             {pageCount > 0 && (
