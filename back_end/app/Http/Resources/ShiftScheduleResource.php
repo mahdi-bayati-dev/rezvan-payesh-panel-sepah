@@ -14,12 +14,14 @@ class ShiftScheduleResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-       return [
+        return [
             'id' => $this->id,
             'name' => $this->name,
             'cycle_length_days' => $this->cycle_length_days,
             'cycle_start_date' => $this->cycle_start_date?->format('Y-m-d'),
-           'ignore_holidays'=> $this->ignore_holidays,
+            'ignore_holidays'=> $this->ignore_holidays,
+            'floating_start' => $this->floating_start,
+            "floating_end" => $this->floating_end,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'slots' => ScheduleSlotResource::collection($this->whenLoaded('slots')),
