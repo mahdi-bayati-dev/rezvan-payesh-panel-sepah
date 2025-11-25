@@ -1,10 +1,11 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
-import axiosInstance from "./AxiosConfig";
+import axiosInstance, { AUTH_MODE } from "@/lib/AxiosConfig";
 
 declare global {
   interface Window {
     Pusher: typeof Pusher;
+    // ✅ اصلاح ۱: اضافه کردن <any> به Echo
     EchoInstance: Echo<any> | null;
   }
 }
@@ -15,53 +16,56 @@ if (typeof window !== "undefined") {
 
 const logStyles = {
   info: "background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px;",
-  success:
-    "background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px;",
-  error:
-    "background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;",
-  warning:
-    "background: #f59e0b; color: black; padding: 2px 6px; border-radius: 4px;",
+  success: "background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px;",
+  error: "background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;",
+  warning: "background: #f59e0b; color: black; padding: 2px 6px; border-radius: 4px;",
 };
 
-const logSocket = (
-  level: keyof typeof logStyles,
-  message: string,
-  data?: any
-) => {
+type LogLevel = keyof typeof logStyles;
+
+const logSocket = (level: LogLevel, message: string, data?: any) => {
   if (import.meta.env.DEV || level === "error") {
     console.log(`%c[Socket] ${message}`, logStyles[level], data || "");
   }
 };
 
 /**
- * مقداردهی اولیه Echo.
- * تغییر مهم: آرگومان `token` حذف شد.
- * احراز هویت کانال‌های خصوصی از طریق کوکی HttpOnly و توسط axiosInstance انجام می‌شود.
+ * تابع اتصال به سوکت
+ * @param token اختیاری: فقط در حالت AUTH_MODE='token' استفاده می‌شود
  */
-export const initEcho = (): Echo<any> | null => {
+// ✅ اصلاح ۲: خروجی تابع باید Echo<any> باشد
+export const initEcho = (token?: string | null): Echo<any> | null => {
   if (typeof window === "undefined") return null;
 
+  if (AUTH_MODE === "token" && !token) {
+    logSocket("error", "تلاش برای اتصال سوکت بدون توکن (در مود token)!");
+    return null;
+  }
+
   if (window.EchoInstance) {
+    const connector = window.EchoInstance.connector as any;
+    if (connector.pusher && connector.pusher.connection.state === 'disconnected') {
+        connector.pusher.connect();
+    }
     return window.EchoInstance;
   }
 
-  logSocket("info", "در حال ایجاد اتصال جدید (با احراز هویت کوکی)...");
+  logSocket("info", `🚀 در حال اتصال به سوکت (حالت: ${AUTH_MODE})...`);
 
   const PUSHER_KEY = import.meta.env.VITE_PUSHER_APP_KEY;
   const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_APP_CLUSTER || "mt1";
-  const PUSHER_HOST =
-    import.meta.env.VITE_PUSHER_HOST || window.location.hostname;
+  const PUSHER_HOST = import.meta.env.VITE_PUSHER_HOST || window.location.hostname;
   const FORCE_TLS = import.meta.env.VITE_PUSHER_FORCE_TLS === "true";
-  const PUSHER_PORT =
-    Number(import.meta.env.VITE_PUSHER_PORT) || (FORCE_TLS ? 443 : 80);
-
-  const apiBase =
-    import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
-  const rootUrl = apiBase.replace(/\/api\/?$/, "");
+  const defaultPort = FORCE_TLS ? 443 : 80;
+  const PUSHER_PORT = Number(import.meta.env.VITE_PUSHER_PORT) || defaultPort;
+  
+  const apiBaseEnv = import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
+  const rootUrl = apiBaseEnv.replace(/\/api\/?$/, ""); 
   const authEndpointUrl = `${rootUrl}/broadcasting/auth`;
 
-  const options: any = {
-    broadcaster: "pusher",
+  // ✅ اصلاح ۴: استفاده از as const برای broadcaster و کست کردن enabledTransports
+  const options = {
+    broadcaster: "pusher" as const, 
     key: PUSHER_KEY,
     cluster: PUSHER_CLUSTER,
     wsHost: PUSHER_HOST,
@@ -69,29 +73,29 @@ export const initEcho = (): Echo<any> | null => {
     wssPort: PUSHER_PORT,
     forceTLS: FORCE_TLS,
     disableStats: true,
-    enabledTransports: ["ws", "wss"],
+    // ✅ رفع خطای string[] vs Transport[] با استفاده از any
+    enabledTransports: ["ws", "wss"] as any,
 
-    // تنظیمات Authorizer برای استفاده از کوکی
     authorizer: (channel: any, _options: any) => {
       return {
         authorize: (socketId: string, callback: Function) => {
-          // چون axiosInstance دارای withCredentials: true است،
-          // کوکی‌های نشست به طور خودکار به broadcasting/auth ارسال می‌شوند.
+          const headers: Record<string, string> = {};
+          if (AUTH_MODE === "token" && token) {
+             headers["Authorization"] = `Bearer ${token}`;
+          }
+
           axiosInstance
             .post(authEndpointUrl, {
               socket_id: socketId,
               channel_name: channel.name,
+            }, {
+                headers: headers 
             })
             .then((response) => {
               callback(false, response.data);
             })
             .catch((error) => {
-              logSocket(
-                "error",
-                `❌ Auth Error for ${channel.name}`,
-                error.response?.status
-              );
-              // اگر 401 یا 419 (CSRF) داد یعنی نشست معتبر نیست
+              logSocket("error", `❌ Auth Error: ${channel.name}`, error.response?.status);
               callback(true, error);
             });
         },
@@ -100,36 +104,23 @@ export const initEcho = (): Echo<any> | null => {
   };
 
   try {
+    // ایجاد اینستنس با تایپ any برای جلوگیری از خطای ناسازگاری آپشن‌ها
     const echoInstance = new Echo(options);
     window.EchoInstance = echoInstance;
 
-    (echoInstance.connector as any).pusher.connection.bind(
-      "state_change",
-      (states: any) => {
-        if (
-          states.current === "connected" ||
-          states.current === "failed" ||
-          states.current === "unavailable"
-        ) {
-          logSocket("info", `وضعیت اتصال: ${states.current}`);
+    const pusher = (echoInstance.connector as any).pusher;
+
+    if (pusher) {
+        pusher.connection.bind("state_change", (states: any) => {
+        if (["connected", "failed", "unavailable"].includes(states.current)) {
+            logSocket("info", `وضعیت اتصال: ${states.current}`);
         }
-      }
-    );
+        });
 
-    (echoInstance.connector as any).pusher.connection.bind("connected", () => {
-      logSocket(
-        "success",
-        "✅ متصل شد.",
-        `Socket ID: ${echoInstance.socketId()}`
-      );
-    });
-
-    (echoInstance.connector as any).pusher.connection.bind(
-      "error",
-      (err: any) => {
-        logSocket("error", "خطای اتصال سوکت:", err);
-      }
-    );
+        pusher.connection.bind("connected", () => {
+        logSocket("success", "✅ سوکت متصل شد.", `ID: ${echoInstance.socketId()}`);
+        });
+    }
 
     return echoInstance;
   } catch (error) {

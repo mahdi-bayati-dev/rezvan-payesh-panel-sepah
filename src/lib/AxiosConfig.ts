@@ -1,38 +1,61 @@
-import axios from "axios";
+import axios, {
+  AxiosError,
+  type InternalAxiosRequestConfig,
+  type AxiosResponse,
+} from "axios";
 import { store } from "@/store";
 import { toast } from "react-toastify";
 
-// --- تنظیمات پایه ---
+// ====================================================================
+// ⚙️ تنظیمات پایه و هوشمند
+// ====================================================================
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
-  
+
+// دریافت حالت احراز هویت از متغیر محیطی (پیش‌فرض: token)
+// این متغیر در کل برنامه ایمپورت می‌شود تا همه رفتار یکسان داشته باشند
+export const AUTH_MODE = (import.meta.env.VITE_AUTH_MODE as "token" | "cookie") || "token";
+
+const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
 
 /**
- * ایجاد اینستنس Axios با تنظیمات امنیتی جدید.
- * طبق مستندات: withCredentials: true حیاتی است.
+ * تنظیمات Axios
+ * اگر مود 'cookie' باشد، withCredentials باید true باشد تا کوکی HttpOnly ارسال شود.
  */
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // ✅ ارسال خودکار کوکی‌های HttpOnly
+  withCredentials: AUTH_MODE === "cookie", 
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
   },
+  timeout: 15000,
 });
 
-// --- لاگ دیباگ برای توسعه ---
+// لاگ وضعیت برای اطمینان در محیط توسعه
 if (import.meta.env.DEV) {
-    console.log("%c[Axios Config] Initialized with credentials: true", "color: #0ea5e9; font-weight: bold;");
+    console.log(`%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode`, "background: #333; color: #bada55; padding: 4px; border-radius: 4px;");
 }
 
-// --- Request Interceptor ---
+// ====================================================================
+// 🔓 Request Interceptor (تزریق توکن - فقط در حالت توکن)
+// ====================================================================
+
 axiosInstance.interceptors.request.use(
-  (config) => {
-    // ❌ حذف شد: دیگر نیازی به ست کردن دستی هدر Authorization نیست.
-    // مرورگر خودکار کوکی access_token را ارسال می‌کند.
-    if (import.meta.env.DEV) {
-        console.log(`%c[Request] ${config.method?.toUpperCase()} ${config.url}`, "color: #fbbf24");
+  (config: InternalAxiosRequestConfig) => {
+    // فقط اگر در حالت توکن هستیم، توکن را از ریداکس می‌خوانیم و در هدر می‌گذاریم
+    if (AUTH_MODE === "token") {
+        const state = store.getState();
+        const token = state.auth.accessToken;
+
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
     }
+    
+    // در حالت cookie، مرورگر خودش کوکی httpOnly را ارسال می‌کند و ما کاری نمی‌کنیم.
+
     return config;
   },
   (error) => {
@@ -40,26 +63,38 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// --- Response Interceptor ---
+// ====================================================================
+// 🔒 Response Interceptor (مدیریت خطاها - مشترک)
+// ====================================================================
+
 axiosInstance.interceptors.response.use(
-  (response) => {
-    // لاگ موفقیت در حالت توسعه
-    if (import.meta.env.DEV && response.config.url?.includes('/login')) {
-         console.log("%c[Login Success] Cookie should be set by server.", "color: #22c55e; font-weight: bold;");
-    }
+  (response: AxiosResponse) => {
     return response;
   },
-  (error) => {
-    // ۱. مدیریت خطای لایسنس (403 Forbidden)
-    if (error.response && error.response.status === 403) {
-      const data = error.response.data;
-      const licenseErrorCodes = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
+  async (error: AxiosError<any>) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+    const data = error.response?.data;
 
-      if (data && typeof data === "object" && licenseErrorCodes.includes(data.error_code)) {
-        console.warn(`⛔ License Error: ${data.error_code}`);
-        const errorMsg = typeof data.message === "string" ? data.message : "لایسنس شما منقضی شده است.";
-        
-        toast.error(errorMsg, { toastId: "license-error" });
+    // 1. مدیریت خطای لایسنس (مشترک)
+    if (status === 403 && data) {
+      const isLicenseError =
+        typeof data === "object" &&
+        LICENSE_ERROR_CODES.includes(data.error_code);
+
+      if (isLicenseError) {
+        console.warn(`⛔️ License Error: ${data.error_code}`);
+        const errorMsg =
+          typeof data.message === "string"
+            ? data.message
+            : "لایسنس شما منقضی شده است.";
+
+        if (!toast.isActive("license-error")) {
+          toast.error(errorMsg, {
+            toastId: "license-error",
+            autoClose: 10000,
+          });
+        }
 
         if (!window.location.pathname.includes("/license")) {
           window.location.href = "/license";
@@ -68,21 +103,16 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // ۲. مدیریت خطای احراز هویت (401 Unauthorized)
-    if (error.response && error.response.status === 401) {
-        // اگر در حال تلاش برای لاگین هستیم و 401 گرفتیم، یعنی رمز اشتباه است (نیاز به اکشن خاصی نیست)
-        // اما اگر در روت‌های دیگر 401 گرفتیم، یعنی کوکی منقضی شده یا وجود ندارد.
-      if (!error.config.url?.endsWith("/login")) {
-        console.warn("[Auth] 401 Detected. Session expired or invalid cookie.");
-        // فقط وضعیت ریداکس را پاک می‌کنیم (نیازی به پاک کردن لوکال استوریج برای توکن نیست چون توکنی نداریم)
-        store.dispatch({ type: "auth/logoutClientSide" }); 
+    // 2. مدیریت خطای احراز هویت (401)
+    if (status === 401) {
+      if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
+        console.warn("🔒 Unauthorized (401) detected.");
+        // پاک کردن استیت ریداکس (مشترک برای هر دو حالت)
+        store.dispatch({ type: "auth/clearSession" });
       }
     }
 
-    const status = error.response?.status;
-    const url = error.config?.url;
-    console.error(`API Error [${status}] at ${url}:`, error.message);
-
+    console.error(`❌ API Error [${status}] at ${originalRequest?.url}:`, error.message);
     return Promise.reject(error);
   }
 );
