@@ -24,3 +24,5 @@ phpstan.neon
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.filehashes
+00.yaml
