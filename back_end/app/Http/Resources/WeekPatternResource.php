@@ -24,6 +24,8 @@ class WeekPatternResource extends JsonResource
             'wednesday_pattern' => new WorkPatternResource($this->whenLoaded('wednesdayPattern')),
             'thursday_pattern' => new WorkPatternResource($this->whenLoaded('thursdayPattern')),
             'friday_pattern' => new WorkPatternResource($this->whenLoaded('fridayPattern')),
+            'floating_start' => $this->floating_start,
+            "floating_end" => $this->floating_end,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
