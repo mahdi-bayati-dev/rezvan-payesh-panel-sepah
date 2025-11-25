@@ -59,14 +59,12 @@ class WeekPatternController extends Controller
                     'start_time' => $dayRule['start_time'],
                     'end_time' => $dayRule['end_time'],
                     'work_duration_minutes' => $dayRule['work_duration_minutes'],
-                    'floating_start' =>$dayRule['floating_start'],
-                    'floating_end' => $dayRule['floating_end'],
                 ];
             $name = "شیفت ثابت {$dayRule['start_time']}-{$dayRule['end_time']} ({$dayRule['work_duration_minutes']} دقیقه)";
         }
         $workPattern = WorkPattern::firstOrCreate($attributes,
             [
-                'name' => $name
+                'name' => $name,
             ]);
         return $workPattern->id;
     }
@@ -143,7 +141,11 @@ class WeekPatternController extends Controller
             }
 
             $weekPatternData = array_merge(
-                ['name' => $validatedData['name']],
+                [
+                    'name' => $validatedData['name'],
+                    'floating_start' =>$validatedData['floating_start'],
+                    'floating_end' => $validatedData['floating_end'],
+                ],
                 $dayPatternIds
             );
             $weekPattern = WeekPattern::create($weekPatternData);
@@ -204,7 +206,11 @@ class WeekPatternController extends Controller
             }
 
             $weekPatternData = array_merge(
-                ['name' => $validatedData['name']],
+                [
+                    'name' => $validatedData['name'],
+                    'floating_start' =>$validatedData['floating_start'],
+                    'floating_end' => $validatedData['floating_end'],
+                ],
                 $dayPatternIds
             );
 
