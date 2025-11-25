@@ -24,3 +24,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+/back_end/.scribe/endpoints/custom.0.yaml
