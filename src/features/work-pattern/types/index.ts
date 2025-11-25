@@ -1,7 +1,7 @@
 // work-pattern/types/index.ts
 
 // کامنت: این فایل نهایی تایپ‌ها است که با داک API (ورود دستی زمان)
-// و با اصلاح جزئی Payload هماهنگ شده است.
+// و قابلیت ساعات شناور (Floating Time) هماهنگ شده است.
 
 // --- تایپ‌های پایه ---
 
@@ -26,10 +26,13 @@ export interface DayPayload {
   work_duration_minutes: number | null;
 }
 
-// کامنت: تایپ Payload اصلی برای POST (بر اساس داک)
+// کامنت: تایپ Payload اصلی برای POST (بر اساس داک + ساعات شناور)
 export interface WeekPatternPayload {
   name: string;
   days: DayPayload[]; // آرایه ۷ تایی
+  // ✅ اضافه شدن فیلدهای شناوری (طبق داکیومنت ساعات شناور)
+  floating_start?: number; // شناوری مجاز ورود (دقیقه)
+  floating_end?: number; // شناوری مجاز خروج (دقیقه)
 }
 
 // --- تایپ‌های Response (دریافتی از API) ---
@@ -39,6 +42,10 @@ export interface WeekPatternDetail {
   id: number;
   name: string;
   organization_name?: string;
+  // ✅ فیلدهای شناوری دریافتی از سرور
+  floating_start: number;
+  floating_end: number;
+
   saturday_pattern: AtomicPattern | null;
   sunday_pattern: AtomicPattern | null;
   monday_pattern: AtomicPattern | null;
@@ -107,7 +114,6 @@ export interface DailyScheduleUI {
 }
 
 // ✅✅✅ اصلاح کلیدی: تایپ مشترک UI ✅✅✅
-// این تایپ حالا می‌تواند هم "الگوی ثابت" و هم "برنامه شیفتی" را توصیف کند.
 export interface WorkPatternUI {
   // فیلدهای مشترک
   id: number;
@@ -116,9 +122,11 @@ export interface WorkPatternUI {
   // ✅ فیلد کلیدی برای تفکیک نوع الگو
   pattern_type: "WEEK_PATTERN" | "SHIFT_SCHEDULE";
 
-  // ✅✅✅ اصلاح خطا (TS2339): افزودن فیلد type
-  // کامنت: این فیلد در useWeekPatternDetails محاسبه می‌شود
-  // و نوع کلی الگو (ثابت، شناور، خاموش یا ترکیبی) را مشخص می‌کند.
+  // ✅✅✅ افزودن شناوری به تایپ مشترک UI (برای نمایش در لیست یا جزئیات)
+  floating_start?: number;
+  floating_end?: number;
+
+  // فیلد type محاسبه شده
   type?: "fixed" | "floating" | "mixed" | "off";
 
   // فیلدهای مختص الگوی ثابت (WEEK_PATTERN)

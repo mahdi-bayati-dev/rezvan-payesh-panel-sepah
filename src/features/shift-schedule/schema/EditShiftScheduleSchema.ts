@@ -1,11 +1,9 @@
 import { z } from "zod";
 
-// Regex برای فرمت YYYY-MM-DD
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * اسکیمای اعتبارسنجی *فقط* برای فرم ویرایش اطلاعات عمومی برنامه شیفتی.
- * این اسکیما فقط فیلدهایی را اعتبارسنجی می‌کند که در بخش ۱.۴ مستندات قابل ویرایش هستند.
+ * اسکیمای اعتبارسنجی فرم ویرایش اطلاعات عمومی برنامه شیفتی.
  */
 export const editShiftScheduleSchema = z.object({
   name: z
@@ -17,7 +15,19 @@ export const editShiftScheduleSchema = z.object({
     .string()
     .min(1, "تاریخ شروع چرخه الزامی است.")
     .refine((val) => dateRegex.test(val), "فرمت تاریخ باید YYYY-MM-DD باشد."),
+
+  // ✅ فیلدهای جدید قابل ویرایش
+  floating_start: z.coerce
+    .number()
+    .min(0, "حداقل ۰ دقیقه")
+    .max(240, "حداکثر ۲۴۰ دقیقه")
+    .default(0),
+
+  floating_end: z.coerce
+    .number()
+    .min(0, "حداقل ۰ دقیقه")
+    .max(240, "حداکثر ۲۴۰ دقیقه")
+    .default(0),
 });
 
-// تایپ داده‌های این فرم
 export type EditShiftScheduleFormData = z.infer<typeof editShiftScheduleSchema>;

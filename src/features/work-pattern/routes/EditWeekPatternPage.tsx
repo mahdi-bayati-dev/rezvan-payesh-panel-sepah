@@ -8,20 +8,14 @@ export default function EditWeekPatternPage() {
     const navigate = useNavigate();
     const { patternId } = useParams<{ patternId: string }>();
 
-    // ✅ اصلاحیه: هوک‌ها همیشه باید در بالاترین سطح فراخوانی شوند.
     const editFormHook = useEditWeekPatternForm({
-        // کامنت: اگر patternId وجود نداشت، 0 یا null را پاس می‌دهیم تا هوک enabled نشود
         patternId: patternId ?? 0,
         onSuccess: () => {
-            // ✅ اصلاح: بازگشت به صفحه قبلی پس از موفقیت
-            // (توجه: هوک useUpdateWeekPattern موجود، کش لیست را باطل می‌کند، پس داده‌ها در صفحه اصلی به‌روز می‌شوند.)
             navigate(-1);
         }
     });
 
-    // کامنت: مدیریت عدم وجود ID در اینجا انجام می‌شود (بعد از فراخوانی هوک)
     if (!patternId) {
-        // کامنت: این شرط باید در نهایت به یک کامپوننت ارور هدایت شود
         return (
             <div className="p-8" dir="rtl">
                 <Alert variant="destructive">
@@ -32,7 +26,6 @@ export default function EditWeekPatternPage() {
         );
     }
 
-    // کامنت: وضعیت لودینگ اولیه را مدیریت می‌کنیم
     if (editFormHook.isInitialLoading) {
         return (
             <div className="flex justify-center items-center h-screen" dir="rtl">
@@ -42,8 +35,6 @@ export default function EditWeekPatternPage() {
         );
     }
 
-    // کامنت: مدیریت خطای لودینگ
-    // از آنجایی که generalApiError شامل خطای بارگذاری اولیه نیز هست، این شرط کار می‌کند.
     if (editFormHook.generalApiError && editFormHook.generalApiError.includes("خطا در بارگذاری")) {
         return (
             <div className="p-8" dir="rtl">
@@ -55,15 +46,14 @@ export default function EditWeekPatternPage() {
         );
     }
 
-
     return (
         <NewWeekPatternForm
-            // کامنت: ارسال تمام متدها و وضعیت‌ها از هوک Edit به فرم
-            {...editFormHook}
+            // استفاده از as any برای رفع خطای Types of 'control._options.resolver'
+            {...(editFormHook as any)}
             onCancel={() => {
-                navigate(-1); // ✅ اصلاح: بازگشت به عقب هنگام لغو
+                navigate(-1);
             }}
-            isEditMode={true} // کامنت: پراپ جدید برای نمایش عنوان "ویرایش"
+            isEditMode={true}
         />
     );
 }

@@ -2,17 +2,7 @@ import { z } from "zod";
 
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
-const timeToMinutes = (time: string | null | undefined): number | null => {
-  if (!time || !timeRegex.test(time)) return null;
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-};
-
-// ✅✅✅ راه‌حل نهایی و قطعی با z.any().transform().pipe() ✅✅✅
-// کامنت: این راه‌حل حرفه‌ای، ۳ مرحله دارد:
-// ۱. z.any(): هر نوع ورودی (unknown) را می‌پذیرد تا خطای Resolver حل شود.
-// ۲. .transform(): بلافاصله ورودی (any) را به فرمت number | null پاکسازی می‌کند.
-// ۳. .pipe(): اطمینان حاصل می‌کند که نتیجه‌ی transform حتماً number | null است.
+// ترنسفورمیشن برای تبدیل ورودی به عدد یا نال
 const numberOrNullPreprocess = z
   .any()
   .transform((val) => {
@@ -24,18 +14,17 @@ const numberOrNullPreprocess = z
   })
   .pipe(z.number().nullable());
 
-// کامنت: این تعریف خواناتر برای فیلدهای زمان است
 const optionalStringTimeSchema = z
   .string()
-  .transform((val) => (val === "" ? null : val)) // رشته خالی را به null تبدیل می‌کند
-  .nullable(); // اجازه ورود null را هم می‌دهد
+  .transform((val) => (val === "" ? null : val))
+  .nullable();
 
 const daySchema = z.object({
   day_of_week: z.number().min(0).max(6),
   is_working_day: z.boolean(),
   start_time: optionalStringTimeSchema,
   end_time: optionalStringTimeSchema,
-  work_duration_minutes: numberOrNullPreprocess, // ✅ استفاده از تعریف صحیح و سه‌مرحله‌ای
+  work_duration_minutes: numberOrNullPreprocess,
 });
 
 export const newWeekPatternSchema = z
@@ -44,6 +33,20 @@ export const newWeekPatternSchema = z
       .string()
       .min(1, "نام الگو الزامی است")
       .max(255, "نام الگو طولانی است"),
+
+    // ✅ فیلدهای جدید ساعات شناور
+    floating_start: z.coerce
+      .number({ message: "مقدار باید عدد باشد" })
+      .min(0, "نمی‌تواند منفی باشد")
+      .max(240, "حداکثر 240 دقیقه مجاز است") // محدودیت منطقی
+      .default(0),
+
+    floating_end: z.coerce
+      .number({ message: "مقدار باید عدد باشد" })
+      .min(0, "نمی‌تواند منفی باشد")
+      .max(240, "حداکثر 240 دقیقه مجاز است")
+      .default(0),
+
     days: z
       .array(daySchema)
       .length(7, "باید دقیقاً ۷ روز تعریف شود")
@@ -52,9 +55,12 @@ export const newWeekPatternSchema = z
       }),
   })
   .superRefine((data, ctx) => {
+    // منطق اعتبارسنجی روزها (بدون تغییر)
     data.days.forEach((day, index) => {
-      const startTimeMinutes = timeToMinutes(day.start_time);
-      const endTimeMinutes = timeToMinutes(day.end_time);
+      const startTimeMinutes = day.start_time
+        ? parseTime(day.start_time)
+        : null;
+      const endTimeMinutes = day.end_time ? parseTime(day.end_time) : null;
 
       if (day.is_working_day) {
         if (startTimeMinutes === null) {
@@ -64,15 +70,13 @@ export const newWeekPatternSchema = z
             path: [`days.${index}.start_time`],
           });
         }
-
         if (endTimeMinutes === null) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "ساعت پایان الزامی است",
             path: [`days.${index}.end_time`],
           });
-        } // کامنت: این منطق حالا با transform جدید کاملاً هماهنگ است
-
+        }
         if (
           day.work_duration_minutes === null ||
           day.work_duration_minutes <= 0 ||
@@ -84,7 +88,6 @@ export const newWeekPatternSchema = z
             path: [`days.${index}.work_duration_minutes`],
           });
         }
-
         if (startTimeMinutes !== null && endTimeMinutes !== null) {
           if (endTimeMinutes <= startTimeMinutes) {
             ctx.addIssue({
@@ -95,6 +98,7 @@ export const newWeekPatternSchema = z
           }
         }
       } else {
+        // منطق روزهای تعطیل (بدون تغییر)
         if (day.start_time) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -109,19 +113,14 @@ export const newWeekPatternSchema = z
             path: [`days.${index}.end_time`],
           });
         }
-        // کامنت: این منطق حالا با transform جدید کاملاً هماهنگ است
-        if (
-          day.work_duration_minutes !== null &&
-          day.work_duration_minutes !== 0
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "باید ۰ یا null باشد",
-            path: [`days.${index}.work_duration_minutes`],
-          });
-        }
       }
     });
   });
+
+function parseTime(time: string): number | null {
+  if (!time || !timeRegex.test(time)) return null;
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
 
 export type NewWeekPatternFormData = z.infer<typeof newWeekPatternSchema>;

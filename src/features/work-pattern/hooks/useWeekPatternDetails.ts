@@ -1,17 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-// کامنت: مطمئن شوید مسیر ایمپورت تابع API صحیح است
 import { getWeekPatternById } from "@/features/work-pattern/api/workPatternAPI";
 import {
   type SingleWeekPatternApiResponse,
-  // ✅ ۱. ایمپورت تایپ صحیح UI
   type WorkPatternUI,
   type DailyScheduleUI,
   type AtomicPattern,
-  // ✅ ۲. ایمپورت تایپ صحیح داده API
   type WeekPatternDetail,
 } from "@/features/work-pattern/types/index";
 
-// نقشه نام پراپرتی API به نام فارسی و اندیس روز (بدون تغییر)
 const dayMapping: {
   [key: string]: { name: DailyScheduleUI["dayOfWeekName"]; index: number };
 } = {
@@ -24,18 +20,11 @@ const dayMapping: {
   friday_pattern: { name: "جمعه", index: 6 },
 };
 
-/**
- * تابع برای تبدیل داده جزئیات الگو از فرمت API (با پراپرتی‌های روز مجزا) به فرمت UI
- */
-// ✅ ۳. استفاده از تایپ صحیح برای پارامتر ورودی و خروجی
 const transformDetailsApiToUi = (apiData: WeekPatternDetail): WorkPatternUI => {
-  // ۱. ساخت آرایه daily_schedules با تکرار روی dayMapping
   const daily_schedules: DailyScheduleUI[] = Object.entries(dayMapping)
     .map(([apiKey, { name, index }]) => {
       const atomicPattern = (apiData as any)[apiKey] as AtomicPattern | null;
-
-      // ✅✅✅ اصلاح شده: استفاده از نام صحیح work_duration_minutes ✅✅✅
-      const duration = atomicPattern?.work_duration_minutes; // دسترسی امن
+      const duration = atomicPattern?.work_duration_minutes;
       const isWorking =
         !!atomicPattern && typeof duration === "number" && duration > 0;
 
@@ -43,19 +32,16 @@ const transformDetailsApiToUi = (apiData: WeekPatternDetail): WorkPatternUI => {
         dayOfWeekName: name,
         dayIndex: index,
         atomicPattern: atomicPattern,
-        is_working_day: isWorking, // <-- حالا باید درست محاسبه شود
+        is_working_day: isWorking,
         start_time: atomicPattern?.start_time || null,
         end_time: atomicPattern?.end_time || null,
-        // ✅ استفاده از مقدار duration که از work_duration_minutes خوانده شده
         work_duration_minutes:
           isWorking && typeof duration === "number" ? duration : 0,
       };
     })
-    // مرتب‌سازی (بدون تغییر)
     .sort((a, b) => a.dayIndex - b.dayIndex);
 
-  // تعیین نوع کلی الگو (بدون تغییر)
-  let overallType: WorkPatternUI["type"] = "off"; // ✅ استفاده از تایپ UI
+  let overallType: WorkPatternUI["type"] = "off";
   const patternTypes = new Set(
     daily_schedules.map((d) => d.atomicPattern?.type).filter(Boolean)
   );
@@ -79,55 +65,28 @@ const transformDetailsApiToUi = (apiData: WeekPatternDetail): WorkPatternUI => {
     organizationName: apiData.organization_name,
     type: overallType,
     daily_schedules: daily_schedules,
-    // ✅✅✅ اصلاح خطای (TS2741) ✅✅✅
-    // کامنت: فیلد اجباری pattern_type را به خروجی اضافه می‌کنیم.
     pattern_type: "WEEK_PATTERN",
+    // ✅ مپ کردن مقادیر شناوری از API به UI
+    floating_start: apiData.floating_start,
+    floating_end: apiData.floating_end,
   };
 };
 
-/**
- * هوک برای فچ کردن جزئیات یک الگوی کاری هفتگی و تبدیل آن به فرمت UI.
- */
 export const useWeekPatternDetails = (patternId: number | string | null) => {
-  // 🟢🟢🟢 راه‌حل کلیدی مشکل ۱ (عدم تطابق کلید) 🟢🟢🟢
-  // ما ID را به رشته تبدیل می‌کنیم تا کلید کوئری *همیشه* یکسان باشد.
-  // چه 13 (عددی) بیاید و چه "13" (رشته‌ای)، کلید همیشه ["weekPatternDetails", "13"] خواهد بود.
   const queryKey = ["weekPatternDetails", String(patternId)];
 
   return useQuery({
-    queryKey: queryKey, // استفاده از کلید نرمال‌شده
-    queryFn: () => getWeekPatternById(patternId!), // تابع فچ بدون تغییر
-    enabled: !!patternId && patternId !== "0", // اطمینان از معتبر بودن ID
+    queryKey: queryKey,
+    queryFn: () => getWeekPatternById(patternId!),
+    enabled: !!patternId && patternId !== "0",
 
-    // ✅ ۴. استفاده از تایپ صحیح UI در خروجی select
     select: (
       apiResponse: SingleWeekPatternApiResponse
     ): WorkPatternUI | null => {
-      // 🐞 لاگ دیباگ: نمایش پاسخ خام API
-      console.log(
-        `useWeekPatternDetails (QueryKey: ${JSON.stringify(
-          queryKey
-        )}) - Raw API Response:`,
-        apiResponse
-      );
-
       if (apiResponse && apiResponse.data) {
-        const transformedData = transformDetailsApiToUi(apiResponse.data);
-        // 🐞 لاگ دیباگ: نمایش داده تبدیل شده
-        console.log(
-          `useWeekPatternDetails (QueryKey: ${JSON.stringify(
-            queryKey
-          )}) - Transformed UI Data:`,
-          transformedData
-        );
-        return transformedData;
+        return transformDetailsApiToUi(apiResponse.data);
       }
-      console.warn(
-        "Invalid API response structure received for details:",
-        apiResponse
-      );
       return null;
     },
-    // staleTime: 1000 * 60 * 10,
   });
 };

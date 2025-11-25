@@ -6,7 +6,6 @@ import type {
 } from "@/features/work-pattern/types/index";
 
 // --- ۱. الگوی کاری (WorkPattern) ---
-// بر اساس بخش ۳ مستندات (Data Structures)
 export interface WorkPattern {
   id: number;
   name: string;
@@ -16,12 +15,9 @@ export interface WorkPattern {
   work_duration_minutes: number;
 }
 
-// تایپ خلاصه‌تر که در فایل‌های دیگر استفاده شده بود
 export type WorkPatternBase = Pick<WorkPattern, "id" | "name">;
 
 // --- ۲. اسلات برنامه شیفتی (Schedule Slot) ---
-// این تایپ ریسورس دریافتی از API است (بخش ۳ مستندات)
-// ✅✅✅ اصلاح کلیدی: این ساختار باید دقیقاً با مستندات مطابقت داشته باشد
 export interface ScheduleSlotResource {
   id: number;
   shift_schedule_id: number;
@@ -29,27 +25,22 @@ export interface ScheduleSlotResource {
   work_pattern_id: number | null; // null یعنی روز استراحت
   override_start_time: string | null; // H:i
   override_end_time: string | null; // H:i
-  // created_at و updated_at معمولاً وجود دارند، اما در مثال مستندات نبودند
-  // created_at: string;
-  // updated_at: string;
-  
-  // ✅✅✅ اصلاح کلیدی: بر اساس مستندات، آبجکت کامل work_pattern باید اینجا باشد
-  work_pattern: WorkPattern | null; // آبجکت کامل WorkPattern
+  work_pattern: WorkPattern | null;
 }
 
 // --- ۳. برنامه شیفتی (Shift Schedule) ---
-// این تایپ ریسورس دریافتی از API است (بخش ۳ مستندات)
 export interface ShiftScheduleResource {
   id: number;
   name: string;
   cycle_length_days: number;
   cycle_start_date: string; // YYYY-MM-DD
-  ignore_holidays: boolean; // ✅ فیلد جدید (دریافتی از API)
-  // created_at: string;
-  // updated_at: string;
-  
-  // ✅✅✅ اصلاح کلیدی: باید آرایه‌ای از ScheduleSlotResource کامل باشد
-  slots: ScheduleSlotResource[]; 
+  ignore_holidays: boolean;
+
+  // ✅ اضافه شدن فیلدهای شناوری دریافتی
+  floating_start: number;
+  floating_end: number;
+
+  slots: ScheduleSlotResource[];
 }
 
 // --- ۴. تایپ‌های پاسخ API ---
@@ -65,45 +56,47 @@ export interface SingleShiftScheduleResponse {
 
 // --- ۵. تایپ‌های Payload (ارسالی به API) ---
 
-// ✅✅✅ اصلاح کلیدی: این تایپ برای POST /shift-schedules است (بخش ۱.۲ مستندات)
 export interface NewScheduleSlotPayload {
   day_in_cycle: number;
   is_off: boolean;
-  name: string | null; // required_if:is_off,false
-  start_time: string | null; // H:i, required_if:is_off,false
-  end_time: string | null; // H:i, required_if:is_off,false
+  name: string | null;
+  start_time: string | null;
+  end_time: string | null;
 }
 
-// ✅✅✅ اصلاح کلیدی: Payload ایجاد برنامه شیفتی (بخش ۱.۲ مستندات)
+// ✅✅✅ اصلاح کلیدی: Payload ایجاد برنامه شیفتی (همراه با شناوری)
 export interface ShiftSchedulePayload {
   name: string;
   cycle_length_days: number;
   cycle_start_date: string;
-  ignore_holidays: boolean; // ✅ فیلد جدید (ارسالی به API)
-  slots: NewScheduleSlotPayload[]; // آرایه‌ای از اسلات‌های جدید
+  ignore_holidays: boolean;
+  // ✅ فیلدهای جدید
+  floating_start: number;
+  floating_end: number;
+  slots: NewScheduleSlotPayload[];
 }
 
-// Payload برای آپدیت یک اسلات خاص (بخش ۲.۱ مستندات) - این تایپ در کد شما صحیح بود
 export interface SlotUpdatePayload {
   work_pattern_id?: number | null;
   override_start_time?: string | null;
   override_end_time?: string | null;
 }
 
-// Payload برای آپدیت نام و تاریخ (بخش ۱.۴ مستندات) - این تایپ در کد شما صحیح بود
+// ✅ Payload برای آپدیت اطلاعات عمومی (شامل شناوری)
 export interface ShiftScheduleUpdatePayload {
   name: string;
   cycle_start_date: string;
+  // ✅ فیلدهای جدید قابل ویرایش
+  floating_start?: number;
+  floating_end?: number;
 }
 
-// ✅✅✅ جدید: Payload برای تولید شیفت‌ها
 export interface GenerateShiftsPayload {
   start_date: string; // YYYY-MM-DD
   end_date: string; // YYYY-MM-DD
 }
-// ... (تایپ‌های قبلی حفظ شوند)
 
-// --- تایپ‌های دریافت لیست شیفت‌ها (GET /shifts) ---
+// ... (تایپ‌های دریافت لیست شیفت‌ها - بدون تغییر)
 export interface ShiftResource {
   id: number;
   date: string; // Y-m-d
@@ -118,10 +111,10 @@ export interface ShiftResource {
     last_name: string;
     personnel_code: string;
     user?: {
-        id: number;
-        username: string;
-        email: string;
-    }
+      id: number;
+      username: string;
+      email: string;
+    };
   };
   work_pattern?: {
     id: number;
@@ -132,18 +125,17 @@ export interface ShiftResource {
   };
 }
 
-// پارامترهای فیلتر (Query Params)
 export interface GetShiftsParams {
   start_date?: string;
   end_date?: string;
   employee_id?: number;
-  is_off_day?: 0 | 1; // boolean passed as number usually in URL params or logic
+  is_off_day?: 0 | 1;
   per_page?: number;
-  sort_order?: 'asc' | 'desc';
+  sort_order?: "asc" | "desc";
 }
 
 export interface PaginatedShiftsResponse {
   data: ShiftResource[];
-  links: any; // مطابق ساختار Pagination استاندارد شما
+  links: any;
   meta: any;
 }

@@ -6,7 +6,7 @@ import type {
 } from "@/features/shift-schedule/types";
 
 import { WorkPatternScheduleViewSkeleton } from "@/features/work-pattern/Skeleton/WorkPatternScheduleViewSkeleton";
-import { Moon, ArrowLeft, CalendarRange } from "lucide-react";
+import { Moon, ArrowLeft, CalendarRange, TimerReset } from "lucide-react";
 
 interface VisualBlock {
     id: string;
@@ -90,15 +90,27 @@ export const ShiftScheduleScheduleView = ({
 
     return (
         <div className="p-4 rounded-xl shadow bg-backgroundL-500/60 backdrop-blur-sm dark:bg-backgroundD/60 border border-borderL/70 dark:border-borderD/60 flex flex-col md:min-h-[450px]">
-            <h3 className="text-lg font-semibold mb-4 text-foregroundL dark:text-foregroundD flex items-center gap-2">
-                شماتیک چرخشی
-                {schedule && (
-                    // ✅ بج با تم بنفش برای هماهنگی با بلوک‌ها
-                    <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-200 dark:border-violet-800">
-                        {schedule.name} ({schedule.cycle_length_days} روزه)
-                    </span>
-                )}
-            </h3>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-foregroundL dark:text-foregroundD flex items-center gap-2">
+                    شماتیک چرخشی
+                    {schedule && (
+                        <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-200 dark:border-violet-800">
+                            {schedule.name} ({schedule.cycle_length_days} روزه)
+                        </span>
+                    )}
+                </h3>
+
+                {/* ✅ اضافه شده: نمایش اطلاعات شناوری برای هماهنگی با داکیومنت و سایر ویوها */}
+                {schedule && (schedule.floating_start || schedule.floating_end) ? (
+                    <div className="flex items-center gap-2 text-xs font-medium px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full border border-indigo-100 dark:border-indigo-800" title="منطق آستانه فعال است">
+                        <TimerReset className="w-3.5 h-3.5" />
+                        <span>شناوری:</span>
+                        {schedule.floating_start ? <span>ورود {schedule.floating_start} دقیقه</span> : null}
+                        {schedule.floating_start && schedule.floating_end ? <span className="mx-0.5">|</span> : null}
+                        {schedule.floating_end ? <span>خروج {schedule.floating_end} دقیقه</span> : null}
+                    </div>
+                ) : null}
+            </div>
 
             {isLoadingDetails ? (
                 <div className="flex-1 flex items-center justify-center">
@@ -159,11 +171,9 @@ export const ShiftScheduleScheduleView = ({
                                                 className={clsx(
                                                     "absolute top-2 bottom-2 rounded-md shadow-sm flex items-center justify-center overflow-hidden whitespace-nowrap transition-all hover:shadow-md hover:scale-[1.01] cursor-help z-10",
                                                     "border text-white",
-                                                    // ✅✅✅ رنگ بنفش زیبا برای شیفت‌های چرخشی
                                                     isFloating
                                                         ? "bg-gradient-to-r from-sky-500/90 to-sky-400/90 border-sky-600"
                                                         : "bg-gradient-to-r from-violet-500/90 to-violet-400/90 border-violet-600",
-                                                    // استایل برای ادامه شیفت (Overflow)
                                                     isOverflow && "opacity-80 border-dashed border-2 brightness-110 from-violet-400/80 to-violet-300/80"
                                                 )}
                                                 style={{
@@ -179,7 +189,6 @@ export const ShiftScheduleScheduleView = ({
                                                     {block.end === "24:00" && <Moon className="w-3 h-3 shrink-0 ml-1" />}
                                                 </div>
 
-                                                {/* تولتیپ */}
                                                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max px-3 py-1.5 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-lg pointer-events-none z-30 flex flex-col items-center gap-0.5">
                                                     <span>روز {day.dayNumber}</span>
                                                     <span className="font-mono dir-ltr text-violet-200">

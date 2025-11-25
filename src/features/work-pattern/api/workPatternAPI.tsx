@@ -22,6 +22,8 @@ export const getWeekPatternsList = async (page: number = 1, per_page: number = 1
  */
 export const getWeekPatternById = async (id: number | string): Promise<SingleWeekPatternApiResponse> => {
   const response = await axiosInstance.get<SingleWeekPatternApiResponse>(`${API_URL}/${id}`);
+  console.log(response.data);
+  
   return response.data;
 };
 
@@ -31,6 +33,8 @@ export const getWeekPatternById = async (id: number | string): Promise<SingleWee
  */
 export const createWeekPattern = async (payload: WeekPatternPayload): Promise<SingleWeekPatternApiResponse> => {
   const response = await axiosInstance.post<SingleWeekPatternApiResponse>(API_URL, payload);
+  // console.log(response.data);
+  
   return response.data;
 };
 
