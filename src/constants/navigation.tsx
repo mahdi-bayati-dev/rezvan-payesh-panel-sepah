@@ -10,7 +10,8 @@ import {
   Mails,
   Puzzle,
   ListCheck,
-  ShieldCheck // آیکون مناسب برای لایسنس
+  ShieldCheck,
+  UserCheck // ✅ آیکون جدید برای پروفایل من
 } from "lucide-react";
 import { ALL_ACCESS, ADMIN_ACCESS, SUPER_ADMIN_ONLY } from "./roles";
 
@@ -19,6 +20,7 @@ export interface NavItem {
   href: string;
   icon: React.ReactNode;
   allowedRoles: string[];
+  requiresEmployee?: boolean; // ✅ پراپرتی جدید برای شرط داشتن کارمند
 }
 
 export const mainNavItems: NavItem[] = [
@@ -27,6 +29,13 @@ export const mainNavItems: NavItem[] = [
     href: "/",
     icon: <LayoutDashboard size={20} />,
     allowedRoles: ALL_ACCESS,
+  },
+  {
+    label: "پروفایل من", // ✅ آیتم جدید
+    href: "/my-profile",
+    icon: <UserCheck size={20} />,
+    allowedRoles: ALL_ACCESS,
+    requiresEmployee: true, // این فلگ به ما کمک می‌کند در سایدبار فیلتر کنیم
   },
   {
     label: "درخواست‌ها",
@@ -76,12 +85,10 @@ export const mainNavItems: NavItem[] = [
     icon: <Puzzle size={20} />,
     allowedRoles: SUPER_ADMIN_ONLY,
   },
-  // [افزوده شده]: آیتم لایسنس
-  // نکته: این آیتم در فایل Sidebar.tsx بر اساس وضعیت لایسنس فیلتر می‌شود
   {
     label: "لایسنس نرم‌افزار",
     href: "/license",
     icon: <ShieldCheck size={20} />,
-    allowedRoles: SUPER_ADMIN_ONLY, // معمولاً فقط ادمین اصلی باید ببیند
+    allowedRoles: SUPER_ADMIN_ONLY,
   },
 ];

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react'; // ✅ اضافه شدن آیکون قفل
 import { DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 import gregorian_en from "react-date-object/locales/gregorian_en";
@@ -25,6 +25,10 @@ import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import FormSection from '@/features/User/components/userPage/FormSection';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 
+// ✅ اضافه شدن هوک‌های Redux برای چک کردن نقش کاربر جاری
+import { useAppSelector } from '@/hook/reduxHooks';
+import { selectUser } from '@/store/slices/authSlice';
+
 const toSelectOption = (item: BaseNestedItem): SelectOption => ({
     id: item.id,
     name: item.name,
@@ -33,6 +37,18 @@ const toSelectOption = (item: BaseNestedItem): SelectOption => ({
 const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
     const [isEditing, setIsEditing] = useState(false);
     const updateMutation = useUpdateUserProfile();
+
+    // ✅ ۱. دریافت کاربر لاگین شده برای بررسی سطح دسترسی
+    const currentUser = useAppSelector(selectUser);
+
+    // ✅ ۲. محاسبه اینکه آیا کاربر جاری اجازه ویرایش فیلدهای حساس را دارد؟
+    // اگر کاربر یکی از نقش‌های ادمین را داشته باشد، اجازه دارد.
+    const canEditRestrictedFields = useMemo(() => {
+        if (!currentUser?.roles) return false;
+        return currentUser.roles.some(role => 
+            ['super_admin', 'org-admin-l2', 'org-admin-l3'].includes(role)
+        );
+    }, [currentUser]);
 
     // دریافت لیست‌ها برای SelectBox ها
     const { data: rawWorkPatterns, isLoading: isLoadingWorkPatterns } = useWorkPatternsList();
@@ -142,6 +158,14 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                 </div>
             )}
 
+            {/* ✅ ۳. نمایش پیام اطلاع‌رسانی اگر کاربر دسترسی ندارد */}
+            {isEditing && !canEditRestrictedFields && (
+                <div className="mb-4 p-2 bg-amber-50 text-amber-700 text-xs rounded flex items-center border border-amber-200">
+                    <Lock className="h-3 w-3 ml-2" />
+                    ویرایش گروه کاری، برنامه شیفتی و الگوی کاری فقط توسط مدیران امکان‌پذیر است.
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Input
                     label="کد پرسنلی"
@@ -179,7 +203,8 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                             // استفاده از فال‌بک
                             value={resolveSelectedOption(workGroupOptions, field.value, user.employee?.work_group)}
                             onChange={(option) => field.onChange(option ? Number(option.id) : null)}
-                            disabled={!isEditing || updateMutation.isPending}
+                            // ✅ ۴. غیرفعال کردن اگر دسترسی ندارد
+                            disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields}
                             error={errors.employee?.work_group_id?.message}
                         />
                     )}
@@ -195,7 +220,8 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                             options={shiftScheduleOptions}
                             value={resolveSelectedOption(shiftScheduleOptions, field.value, user.employee?.shift_schedule)}
                             onChange={(option) => field.onChange(option ? Number(option.id) : null)}
-                            disabled={!isEditing || updateMutation.isPending}
+                            // ✅ ۴. غیرفعال کردن اگر دسترسی ندارد
+                            disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields}
                             error={errors.employee?.shift_schedule_id?.message}
                         />
                     )}
@@ -212,7 +238,8 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                             // نام فیلد در یوزر: week_pattern
                             value={resolveSelectedOption(workPatternOptions, field.value, user.employee?.week_pattern)}
                             onChange={(option) => field.onChange(option ? Number(option.id) : null)}
-                            disabled={!isEditing || updateMutation.isPending}
+                            // ✅ ۴. غیرفعال کردن اگر دسترسی ندارد
+                            disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields}
                             error={errors.employee?.work_pattern_id?.message}
                         />
                     )}
