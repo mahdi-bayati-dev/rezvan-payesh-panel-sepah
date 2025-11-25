@@ -124,7 +124,7 @@ const RequestsPage = () => {
         />
       </div>
 
-      <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-4 sm:p-6 md:ml-6">
+      <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-4 sm:p-4 space-y-4 min-w-0">
         <div className="flex flex-col gap-4 mb-4">
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
