@@ -59,6 +59,8 @@ class WeekPatternController extends Controller
                     'start_time' => $dayRule['start_time'],
                     'end_time' => $dayRule['end_time'],
                     'work_duration_minutes' => $dayRule['work_duration_minutes'],
+                    'floating_start' =>$dayRule['floating_start'],
+                    'floating_end' => $dayRule['floating_end'],
                 ];
             $name = "شیفت ثابت {$dayRule['start_time']}-{$dayRule['end_time']} ({$dayRule['work_duration_minutes']} دقیقه)";
         }
