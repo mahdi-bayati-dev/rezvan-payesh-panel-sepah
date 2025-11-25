@@ -66,6 +66,9 @@ Route::middleware([
     //users
     Route::apiResource('users', UserController::class);
 
+    //import users
+    Route::post("users/import",[UserController::class,"importUsers"])->name("users.import");
+
     //manage work group users
     Route::patch('/work-groups/{workGroup}/employees', [WorkGroupEmployeeController::class, 'updateEmployees']);
 

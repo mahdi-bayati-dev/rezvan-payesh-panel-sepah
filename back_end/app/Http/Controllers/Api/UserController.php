@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
+use App\Imports\UsersImport;
 use App\Jobs\ProcessEmployeeImages;
 use App\Models\EmployeeImage;
 use App\Models\Status;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -599,5 +601,41 @@ class UserController extends Controller
             return $adminOrg->id === $targetOrg->id;
         }
         return false;
+    }
+
+    public function importUsers(Request $request)
+    {
+        $user = $request->user();
+        if(!$user->hasRole('super_admin'))
+        {
+            return response()->json(["message" => "You don't have permission to access this page."], 403);
+        }
+
+        $validatedData = $request->validate([
+            'file'              => 'required|mimes:xlsx,xls,csv|max:2048',
+            'organization_id'   => 'required|integer|exists:organizations,id',
+            'work_group_id'     => 'nullable|integer|exists:work_groups,id',
+            'shift_schedule_id' => 'nullable|integer|exists:shift_schedules,id',
+            'default_password'  => 'required|boolean',
+        ]);
+
+        $globalSettings = [
+            'organization_id'   => $validatedData['organization_id'],
+            'work_group_id'     => $validatedData['work_group_id'] ?? null,
+            'shift_schedule_id' => $validatedData['shift_schedule_id'] ?? null,
+            'default_password'  => $validatedData['default_password'] ,
+        ];
+
+        try
+        {
+            Excel::import(new UsersImport($globalSettings), $request->file('file'));
+
+            return response()->json(['message' => 'ایمپورت با موفقیت انجام شد.'], 200);
+
+        }
+        catch (\Maatwebsite\Excel\Validators\ValidationException $e)
+        {
+            return response()->json(['errors' => $e->failures()], 422);
+        }
     }
 }
