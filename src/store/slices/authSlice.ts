@@ -1,24 +1,28 @@
 import {
   createSlice,
   createAsyncThunk,
-  type PayloadAction,
 } from "@reduxjs/toolkit";
-import axiosInstance from "@/lib/AxiosConfig";
+import axiosInstance, { AUTH_MODE } from "@/lib/AxiosConfig"; // استفاده از متغیر سراسری
 import { AxiosError } from "axios";
 import type { LoginFormData } from "@/features/auth/schema/loginSchema";
-import { type RootState } from "@/store";
+import type { RootState } from "@/store";
 
-// --- Type Definitions ---
+// ====================================================================
+// 📝 تعاریف تایپ‌ها
+// ====================================================================
+
 interface User {
   id: number;
   user_name: string;
   email: string;
   roles: string[];
+  employee?: any;
 }
 
 interface LoginResponse {
+  access_token?: string; // اختیاری چون در حالت کوکی ممکن است نیاید
+  token_type?: string;
   user: User;
-  message?: string;
 }
 
 interface MeResponse {
@@ -27,6 +31,7 @@ interface MeResponse {
 
 interface AuthState {
   user: User | null;
+  accessToken: string | null;
   isAuthenticated: boolean;
   initialAuthCheckStatus: "idle" | "loading" | "succeeded" | "failed";
   loginStatus: "idle" | "loading" | "succeeded" | "failed";
@@ -34,8 +39,27 @@ interface AuthState {
   error: string | null;
 }
 
+interface ThunkConfig {
+  state: RootState;
+  rejectValue: string;
+}
+
+// ====================================================================
+// 🛠️ ابزارهای کمکی
+// ====================================================================
+
+const getInitialToken = (): string | null => {
+  if (typeof window === "undefined") return null;
+  // فقط اگر در حالت توکن هستیم از لوکال استوریج می‌خوانیم
+  if (AUTH_MODE === "token") {
+      return localStorage.getItem("accessToken");
+  }
+  return null;
+};
+
 const initialState: AuthState = {
   user: null,
+  accessToken: getInitialToken(),
   isAuthenticated: false,
   initialAuthCheckStatus: "idle",
   loginStatus: "idle",
@@ -43,69 +67,95 @@ const initialState: AuthState = {
   error: null,
 };
 
-// --- Async Thunks ---
+// ====================================================================
+// ⚡ Async Thunks
+// ====================================================================
 
-export const checkAuthStatus = createAsyncThunk(
+/**
+ * 🔍 بررسی وضعیت احراز هویت
+ */
+export const checkAuthStatus = createAsyncThunk<User, void, ThunkConfig>(
   "auth/checkStatus",
-  async (_, { rejectWithValue }) => {
-    // console.log فقط در محیط توسعه برای جلوگیری از شلوغی کنسول پروداکشن
-    if (import.meta.env.DEV) console.log("%c[Auth Check] Requesting /me...", "color: #8b5cf6");
+  async (_, { rejectWithValue, getState }) => {
     
+    // در حالت توکن، اگر توکن نداریم اصلا ریکوئست نزن (چون بی فایده است)
+    if (AUTH_MODE === "token") {
+        const token = (getState() as RootState).auth.accessToken;
+        if (!token) return rejectWithValue("No token found.");
+    }
+    // در حالت کوکی، همیشه ریکوئست میزنیم چون شاید کوکی معتبر باشد
+
     try {
       const response = await axiosInstance.get<MeResponse>("/me");
       return response.data.data;
-    } catch (error) {
+    } catch (error: any) {
       let errorMessage = "عدم احراز هویت";
-      if (error instanceof AxiosError) {
-         // اگر 401 بود یعنی کاربر لاگین نیست، نیازی به لاگ خطا نیست
-         if (error.response?.status !== 401 && import.meta.env.DEV) {
-             console.error("[Auth Check] Error:", error);
-         }
-         errorMessage = error.response?.data?.message || errorMessage;
+      
+      // اگر 401 گرفتیم و مود توکن بود، توکن را از مرورگر پاک کن
+      if (error instanceof AxiosError && error.response?.status === 401) {
+          if (AUTH_MODE === "token") localStorage.removeItem("accessToken");
+      }
+      
+      if (error instanceof AxiosError && error.response) {
+        errorMessage = error.response.data?.message || errorMessage;
       }
       return rejectWithValue(errorMessage);
     }
   }
 );
 
-export const loginUser = createAsyncThunk(
+/**
+ * 🔐 ورود کاربر
+ */
+export const loginUser = createAsyncThunk<LoginResponse, LoginFormData, ThunkConfig>(
   "auth/login",
-  async (loginData: LoginFormData, { rejectWithValue }) => {
+  async (loginData, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post<LoginResponse>("/login", {
         user_name: loginData.username,
         password: loginData.password,
       });
-      return response.data;
-    } catch (error) {
-      console.error("[Login] Failed:", error);
-      let errorMessage = "خطایی در هنگام ورود رخ داد.";
-      if (error instanceof AxiosError && error.response) {
-        errorMessage = error.response.data?.message || "نام کاربری یا رمز عبور نامعتبر است.";
+
+      // فقط اگر در حالت توکن هستیم، توکن دریافتی را ذخیره می‌کنیم
+      if (AUTH_MODE === "token" && response.data.access_token) {
+        localStorage.setItem("accessToken", response.data.access_token);
       }
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      let errorMessage = "خطایی در هنگام ورود رخ داد.";
+
+      if (error instanceof AxiosError && error.response) {
+        errorMessage = error.response.data?.message || "نام کاربری یا رمز عبور اشتباه است.";
+      }
+      
       return rejectWithValue(errorMessage);
     }
   }
 );
 
-// ✅ اصلاح خطا: حذف rejectWithValue چون استفاده نمی‌شد
-export const logoutUser = createAsyncThunk(
+/**
+ * 🚪 خروج کاربر
+ */
+export const logoutUser = createAsyncThunk<void, void, ThunkConfig>(
   "auth/logout",
-  async () => {
-    if (import.meta.env.DEV) console.log("%c[Logout] Clearing session...", "color: #ef4444");
+  async (_, { dispatch }) => {
     try {
       await axiosInstance.post("/logout");
-      return undefined;
     } catch (error) {
-      // در خروج، حتی اگر سرور خطا داد، ما در کلاینت عملیات را موفق فرض می‌کنیم
-      // تا کاربر گیر نکند. بنابراین نیازی به rejectWithValue نیست.
-      if (import.meta.env.DEV) console.warn("[Logout] Server side logout failed, forcing client logout.", error);
-      return undefined;
+      console.error("Logout API warning:", error);
+    } finally {
+      // عملیات پاکسازی سمت کلاینت در هر صورت انجام شود
+      dispatch(authSlice.actions.clearSession());
     }
   }
 );
 
-// --- Slice Definition ---
+// ====================================================================
+// 🍰 Slice Definition
+// ====================================================================
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -114,19 +164,25 @@ const authSlice = createSlice({
       state.error = null;
       state.loginStatus = "idle";
     },
-    logoutClientSide: (state) => {
-        state.user = null;
-        state.isAuthenticated = false;
-        state.initialAuthCheckStatus = "failed";
-    }
+    // اکشن همگانی برای پاکسازی نشست
+    clearSession: (state) => {
+      state.accessToken = null;
+      state.user = null;
+      state.isAuthenticated = false;
+      state.initialAuthCheckStatus = "failed";
+      state.loginStatus = "idle";
+      if (AUTH_MODE === "token") {
+          localStorage.removeItem("accessToken");
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
-      // --- checkAuthStatus ---
+      // --- Check Auth ---
       .addCase(checkAuthStatus.pending, (state) => {
         state.initialAuthCheckStatus = "loading";
       })
-      .addCase(checkAuthStatus.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.initialAuthCheckStatus = "succeeded";
         state.user = action.payload;
         state.isAuthenticated = true;
@@ -136,36 +192,30 @@ const authSlice = createSlice({
         state.initialAuthCheckStatus = "failed";
         state.user = null;
         state.isAuthenticated = false;
+        state.accessToken = null;
       })
-      // --- loginUser ---
+
+      // --- Login ---
       .addCase(loginUser.pending, (state) => {
         state.loginStatus = "loading";
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginResponse>) => {
+      .addCase(loginUser.fulfilled, (state, action) => {
         state.loginStatus = "succeeded";
-        state.user = action.payload.user; 
+        state.accessToken = action.payload.access_token || null;
+        state.user = action.payload.user;
         state.isAuthenticated = true;
-        state.error = null;
         state.initialAuthCheckStatus = "succeeded";
+        state.error = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loginStatus = "failed";
-        state.user = null;
-        state.isAuthenticated = false;
         state.error = action.payload as string;
       })
-      // --- logoutUser ---
+
+      // --- Logout ---
       .addCase(logoutUser.fulfilled, (state) => {
-        state.user = null;
-        state.isAuthenticated = false;
-        state.initialAuthCheckStatus = "failed";
-        state.loginStatus = "idle";
-      })
-      .addCase(logoutUser.rejected, (state) => {
-        state.user = null;
-        state.isAuthenticated = false;
-        state.initialAuthCheckStatus = "failed";
+        state.logoutStatus = "succeeded";
       });
   },
 });
@@ -173,9 +223,10 @@ const authSlice = createSlice({
 export const selectUser = (state: RootState) => state.auth.user;
 export const selectUserRoles = (state: RootState) => state.auth.user?.roles || [];
 export const selectIsLoggedIn = (state: RootState) => state.auth.isAuthenticated;
+export const selectAccessToken = (state: RootState) => state.auth.accessToken;
 export const selectAuthCheckStatus = (state: RootState) => state.auth.initialAuthCheckStatus;
 export const selectLoginStatus = (state: RootState) => state.auth.loginStatus;
 export const selectAuthError = (state: RootState) => state.auth.error;
 
-export const { clearAuthError, logoutClientSide } = authSlice.actions;
+export const { clearAuthError, clearSession } = authSlice.actions;
 export default authSlice.reducer;

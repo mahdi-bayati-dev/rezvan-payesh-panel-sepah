@@ -1,108 +1,106 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { Download, FileText, Loader2, XCircle } from "lucide-react";
 import Echo from "laravel-echo";
-// ✅ استفاده از اینستنس خودمان به جای axios خام
-import axiosInstance from "@/lib/AxiosConfig"; 
 
+// ✅ ایمپورت هوشمند: خودش می‌فهمد کوکی بفرستد یا هدر توکن
+import axiosInstance from "@/lib/AxiosConfig";
 import { getEcho } from "@/lib/echoService";
 import { useAppSelector } from "@/hook/reduxHooks";
 
 // ====================================================================
-// 🎨 کامپوننت محتوای نوتیفیکیشن (UI جدید)
+// 🎨 کامپوننت محتوای نوتیفیکیشن (UI دانلود)
 // ====================================================================
 
 interface DownloadToastContentProps {
     url: string;
     name: string;
-    // ❌ توکن حذف شد چون نیازی نیست
+    closeToast?: () => void;
+    // ✅ اصلاح: استفاده از any برای جلوگیری از خطای تایپ ناسازگار react-toastify
+    toastProps?: any;
 }
 
-const DownloadToastContent = ({ url, name }: DownloadToastContentProps) => {
+const DownloadToastContent = ({ url, name, closeToast }: DownloadToastContentProps) => {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadError, setDownloadError] = useState<string | null>(null);
 
     const handleDownload = async () => {
+        if (isDownloading) return;
         setIsDownloading(true);
         setDownloadError(null);
 
         try {
-            // ✅ استفاده از axiosInstance برای ارسال خودکار کوکی‌ها
+            // ✅ نکته کلیدی: ما از axiosInstance استفاده می‌کنیم.
             const response = await axiosInstance.get(url, {
-                responseType: 'blob', // مهم برای دریافت فایل
+                responseType: "blob", // برای دریافت فایل حیاتی است
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    // ❌ هدر Authorization حذف شد (کوکی جایگزین شد)
-                }
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                },
             });
 
-            // ساخت فایل برای دانلود
-            const contentType = response.headers['content-type'] || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            // ۱. تشخیص نوع فایل
+            const contentType = response.headers["content-type"] || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+            // ۲. ساخت Blob و لینک موقت
             const blob = new Blob([response.data], { type: contentType });
             const blobUrl = window.URL.createObjectURL(blob);
-
-            const link = document.createElement('a');
+            const link = document.createElement("a");
             link.href = blobUrl;
-            link.setAttribute('download', name);
+            link.setAttribute("download", name);
             document.body.appendChild(link);
+
+            // ۳. دانلود و پاکسازی
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
 
-            // بستن تست بعد از دانلود موفق
-            toast.dismiss(DownloadToastContent.name);
-            toast.success(`✅ فایل ${name} دانلود شد.`, { position: "bottom-right" });
+            // ۴. موفقیت
+            toast.success(`✅ فایل ${name} با موفقیت دریافت شد.`, { position: "bottom-left" });
+
+            // بستن تست دانلود بعد از موفقیت
+            if (closeToast) closeToast();
 
         } catch (error: any) {
             console.error("Download Error:", error);
-
             let msg = "خطا در دانلود فایل.";
 
             if (error.response) {
-                if (error.response.status === 401) msg = "لطفاً مجدداً وارد شوید (401).";
-                else if (error.response.status === 403) msg = "لینک دانلود منقضی شده یا دسترسی ندارید (403).";
-                else if (error.response.status === 405) msg = "خطای متد (405).";
-                else if (error.response.status === 419) msg = "نشست کاربری منقضی شده (419).";
+                const status = error.response.status;
+                if (status === 401) msg = "لطفاً مجدداً وارد شوید (401).";
+                else if (status === 403) msg = "دسترسی دانلود ندارید یا لینک منقضی شده.";
+                else if (status === 404) msg = "فایل روی سرور پیدا نشد.";
+                else if (status === 419) msg = "نشست کاربری منقضی شده است.";
 
-                // اگر خطا به صورت Blob برگشت (چون responseType: blob است)، باید آن را بخوانیم
+                // تلاش برای خواندن متن ارور از داخل Blob
                 if (error.response.data instanceof Blob) {
                     try {
                         const text = await error.response.data.text();
                         const json = JSON.parse(text);
                         if (json.message) msg = json.message;
-                    } catch (e) { 
-                        console.log("Error parsing blob error:", e);
-                    }
-                } else if (error.response.data?.message) {
-                     msg = error.response.data.message;
+                    } catch (e) { /* خطا در پارس جیسون نادیده گرفته شود */ }
                 }
             }
-
             setDownloadError(msg);
-            toast.error(msg, { position: "bottom-right" });
         } finally {
             setIsDownloading(false);
         }
     };
 
     return (
-        <div className="flex items-start gap-3 p-3 min-w-[280px] rounded-xl bg-white dark:bg-gray-900">
+        <div className="flex items-start gap-3 p-1 min-w-[280px] font-sans dir-rtl bg-backgroundL-500 p-2 rounded-2xl">
             {/* آیکون */}
-            <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="p-2.5 bg-blue-100 dark:bg-borderD rounded-lg flex items-center justify-center flex-shrink-0">
                 <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
 
             {/* محتوا */}
             <div className="flex flex-col flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">
-                    گزارش آماده شد
+                <h4 className="text-sm font-bold text-gray-900 dark:text-infoD-background leading-tight mb-1">
+                    گزارش آماده دریافت
                 </h4>
 
-                <p
-                    className="text-xs text-gray-500 dark:text-gray-400 truncate dir-ltr text-right mb-3"
-                    title={name}
-                >
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate dir-ltr text-right mb-3" title={name}>
                     {name}
                 </p>
 
@@ -111,10 +109,10 @@ const DownloadToastContent = ({ url, name }: DownloadToastContentProps) => {
                     onClick={handleDownload}
                     disabled={isDownloading}
                     className="flex items-center justify-center gap-2 w-full px-3 py-2
-                           text-xs font-medium rounded-lg transition-all duration-200
-                           bg-blue-600 text-white hover:bg-blue-700
-                           dark:bg-blue-700 dark:hover:bg-blue-600
-                           disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:shadow"
+                    text-xs font-medium rounded-lg transition-all duration-200
+                    bg-blue-600 text-white hover:bg-blue-700
+                    dark:bg-blue-700 dark:hover:bg-blue-600
+                    disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
                 >
                     {isDownloading ? (
                         <>
@@ -129,11 +127,12 @@ const DownloadToastContent = ({ url, name }: DownloadToastContentProps) => {
                     )}
                 </button>
 
-                {/* خطا */}
+                {/* نمایش خطا */}
                 {downloadError && (
-                    <span className="text-[10px] text-red-500 mt-2 block font-medium bg-red-50 dark:bg-red-900/10 p-1 rounded">
-                        {downloadError}
-                    </span>
+                    <div className="flex items-center gap-1 mt-2 text-[11px] text-red-600 bg-red-50 dark:bg-red-900/20 p-1.5 rounded border border-red-100 dark:border-red-900/30">
+                        <XCircle className="w-3 h-3 flex-shrink-0" />
+                        <span>{downloadError}</span>
+                    </div>
                 )}
             </div>
         </div>
@@ -141,20 +140,23 @@ const DownloadToastContent = ({ url, name }: DownloadToastContentProps) => {
 };
 
 // ====================================================================
-// 🎧 هندلر سراسری سوکت
+// 🎧 هندلر سراسری سوکت (Global Notification Handler)
 // ====================================================================
 
 export const GlobalNotificationHandler = () => {
     const userId = useAppSelector((state) => state.auth.user?.id);
-    // ❌ دریافت توکن از state حذف شد
-    
+
+    // استفاده از <any> برای رفع خطای تایپ اسکریپت
     const [echoInstance, setEchoInstance] = useState<Echo<any> | null>(null);
 
-    // ۱. اطمینان از اتصال سوکت (Polling برای دریافت اینستنس Echo)
+    // رفع خطای NodeJS.Timeout با استفاده از ReturnType
+    const checkIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // ۱. اطمینان از اتصال سوکت (Polling)
     useEffect(() => {
         if (echoInstance) return;
 
-        const checkEcho = () => {
+        const tryGetEcho = () => {
             const echo = getEcho();
             if (echo) {
                 setEchoInstance(echo);
@@ -163,63 +165,68 @@ export const GlobalNotificationHandler = () => {
             return false;
         };
 
-        if (!checkEcho()) {
-            const interval = setInterval(() => {
-                if (checkEcho()) clearInterval(interval);
-            }, 1000);
-            return () => clearInterval(interval);
-        }
+        if (tryGetEcho()) return;
+
+        checkIntervalRef.current = setInterval(() => {
+            if (tryGetEcho()) {
+                if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+            }
+        }, 1000);
+
+        return () => {
+            if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+        };
     }, [echoInstance]);
 
-    // ۲. گوش دادن به ایونت
+    // ۲. گوش دادن به ایونت‌ها
     useEffect(() => {
-        // وابستگی به token حذف شد
         if (!echoInstance || !userId) return;
 
         const channelName = `App.User.${userId}`;
-        // چون سوکت الان با کوکی احراز هویت شده، دسترسی به کانال خصوصی مجاز است
         const channel = echoInstance.private(channelName);
 
-        const handleEvent = (e: any) => {
-            console.log("📥 [GlobalHandler] Event Received:", e);
+        const handleExportReady = (e: any) => {
+            console.log("📥 [GlobalHandler] Export Ready:", e);
 
             const url = e.download_url;
             const name = e.report_name || `Report-${Date.now()}.xlsx`;
 
             if (!url) {
-                console.error("❌ Download URL is missing!");
+                console.error("❌ Download URL is missing.");
                 return;
             }
 
-            // نمایش نوتیفیکیشن
-            toast.success(
-                <DownloadToastContent
-                    url={url}
-                    name={name}
-                    // پراپ token حذف شد
-                />,
+            // نمایش تست دانلود
+            toast(
+                ({ closeToast, toastProps }) => (
+                    <DownloadToastContent
+                        url={url}
+                        name={name}
+                        closeToast={closeToast}
+                        toastProps={toastProps}
+                    />
+                ),
                 {
-                    autoClose: 15000,
                     position: "bottom-right",
+                    autoClose: false,
                     closeOnClick: false,
                     draggable: true,
                     closeButton: true,
-                    pauseOnHover: true,
-                    toastId: `export-${Date.now()}`,
+                    toastId: e.request_id ? `export-${e.request_id}` : `export-${Date.now()}`,
                     className: "!p-0 !bg-transparent !shadow-none !border-0 !min-w-[300px]",
-                    style: { boxShadow: 'none' }
+                    style: { boxShadow: "none", background: "transparent" },
                 }
             );
         };
 
-        channel.listen(".export.ready", handleEvent);
-        channel.listen("export.ready", handleEvent);
+        channel.listen(".export.ready", handleExportReady);
+        channel.listen("export.ready", handleExportReady);
 
         return () => {
-            channel.stopListening(".export.ready", handleEvent);
-            channel.stopListening("export.ready", handleEvent);
+            channel.stopListening(".export.ready");
+            channel.stopListening("export.ready");
         };
-    }, [userId, echoInstance]); // token از وابستگی‌ها حذف شد
+    }, [userId, echoInstance]);
 
     return null;
 };
