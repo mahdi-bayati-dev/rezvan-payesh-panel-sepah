@@ -377,7 +377,7 @@ class UserController extends Controller
             // اطلاعات برنامه کاری
             'employee.work_group_id' => ['nullable', 'integer', Rule::exists('work_groups', 'id')],
             'employee.shift_schedule_id' => ['nullable', 'integer', Rule::exists('shift_schedules', 'id')],
-            'employee.week_pattern_id' => ['nullable', 'integer', Rule::exists('week_pattern_id', 'id')],
+            'employee.week_pattern_id' => ['nullable', 'integer', Rule::exists('week_patterns', 'id')],
 
             // اعتبارسنجی تصاویر (جدید)
             'employee.images' => ['nullable', 'array'],
