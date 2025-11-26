@@ -23,7 +23,8 @@ return [
         'http://localhost:5173',
         'http://127.0.0.1:5173',
         'https://rezvan-payesh.vercel.app',
-        'https://spot.eitebar.ir'
+        'http://front.payesh.eitebar.irr',
+        'https://front.payesh.eitebar.ir'
     ],
 
     'allowed_origins_patterns' => [],
