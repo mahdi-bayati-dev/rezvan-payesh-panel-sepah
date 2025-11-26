@@ -25,6 +25,7 @@ use Illuminate\Validation\Rules\Password;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Spatie\Permission\Models\Role;
+use Maatwebsite\Excel\Excel as ExcelType;
 
 class UserController extends Controller
 {
@@ -619,7 +620,7 @@ class UserController extends Controller
         }
 
         $validatedData = $request->validate([
-            'file'              => 'required|mimes:xlsx,xls,csv|max:2048',
+            'file'              => 'required|mimes:xlsx,xls,csv|max:5120',
             'organization_id'   => 'required|integer|exists:organizations,id',
             'work_group_id'     => 'nullable|integer|exists:work_groups,id',
             'shift_schedule_id' => 'nullable|integer|exists:shift_schedules,id',
@@ -635,7 +636,18 @@ class UserController extends Controller
 
         try
         {
-            Excel::queue(new UsersImport($globalSettings), $request->file('file'));
+            $file = $request->file('file');
+
+            // 1. تشخیص نوع فایل از روی پسوند فایل اصلی
+            $extension = strtolower($file->getClientOriginalExtension());
+
+            $readerType = match ($extension) {
+                'csv' => ExcelType::CSV,
+                'xls' => ExcelType::XLS,
+                default => ExcelType::XLSX,
+            };
+
+            Excel::queue(new UsersImport($globalSettings), $file, null, $readerType);
 
             return response()->json([
                 'message' => 'فایل دریافت شد و پردازش در پس‌زمینه شروع شده است. بسته به تعداد رکوردها ممکن است چند دقیقه زمان ببرد.'
