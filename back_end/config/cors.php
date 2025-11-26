@@ -23,7 +23,7 @@ return [
         'http://localhost:5173',
         'http://127.0.0.1:5173',
         'https://rezvan-payesh.vercel.app',
-        'http://front.payesh.eitebar.irr',
+        'http://front.payesh.eitebar.ir',
         'https://front.payesh.eitebar.ir'
     ],
 
