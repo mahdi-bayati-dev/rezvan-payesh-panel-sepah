@@ -315,7 +315,7 @@ export const ExportModal = ({
                               onChange={(option) => field.onChange(option?.id ?? "")}
                               error={fieldState.error?.message}
                               disabled={isLoadingOrganizations}
-                              className="bg-white dark:bg-zinc-800"
+                              className=""
                             />
                           )}
                         />
@@ -331,7 +331,7 @@ export const ExportModal = ({
                               value={eventTypeOptions.find((opt) => opt.id === field.value) || null}
                               onChange={(option) => field.onChange(option?.id)}
                               error={fieldState.error?.message}
-                              className="bg-white dark:bg-zinc-800"
+                              className=""
                             />
                           )}
                         />
@@ -346,7 +346,7 @@ export const ExportModal = ({
                               options={sortOptions}
                               value={sortOptions.find((opt) => opt.id === field.value) || null}
                               onChange={(option) => field.onChange(option?.id)}
-                              className="bg-white dark:bg-zinc-800"
+                              className=""
                             />
                           )}
                         />

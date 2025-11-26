@@ -2,7 +2,6 @@ import type { ActivityLog } from "@/features/reports/types";
 import { UserInfoCard, type InfoRowData } from "@/components/ui/UserInfoCard";
 import type { Employee as UserEmployeeProfile } from "@/features/User/types/index";
 import { toPersianNumbers } from "@/features/reports/utils/toPersianNumbers";
-// ✅ ۱. ایمپورت هلپر تصاویر
 import { getFullImageUrl } from "@/features/User/utils/imageHelper";
 
 interface EmployeeInfoCardProps {
@@ -16,10 +15,9 @@ export const EmployeeInfoCard = ({
 }: EmployeeInfoCardProps) => {
 
   const name = logEmployee.name;
+  // کد پرسنلی در مپر فارسی شده است
   const personnelCode = logEmployee.employeeId;
 
-  // ✅ ۲. اصلاح کلیدی: تبدیل آدرس نسبی به آدرس کامل سرور
-  // قبلاً: const avatarUrl = logEmployee.avatarUrl; (که باعث شکستن لینک می‌شد)
   const rawAvatarUrl = logEmployee.avatarUrl;
   const fullAvatarUrl = getFullImageUrl(rawAvatarUrl);
 
@@ -40,6 +38,7 @@ export const EmployeeInfoCard = ({
     },
     {
       label: "شماره تماس",
+      // ✅ تبدیل شماره تماس به فارسی
       value: toPersianNumbers(userEmployee?.phone_number),
     },
     {
@@ -53,10 +52,10 @@ export const EmployeeInfoCard = ({
       <UserInfoCard
         title="مشخصات کارمند"
         name={name}
-        // ✅ ارسال آدرس کامل به کامپوننت UI
         avatarUrl={fullAvatarUrl || undefined}
         avatarPlaceholder={avatarPlaceholder}
         infoRows={infoRows}
+        // className="border border-borderL dark:border-borderD shadow-sm"
       />
     </div>
   );
