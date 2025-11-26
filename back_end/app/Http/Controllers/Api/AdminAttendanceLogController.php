@@ -151,6 +151,7 @@ class AdminAttendanceLogController extends Controller
     private function calculateAttendanceMetrics(Employee $employee, string $timestampString, string $eventType): array
     {
         $logTimestamp = Carbon::parse($timestampString);
+
         $schedule = $employee->getWorkScheduleFor($logTimestamp);
 
         $lateness = 0;
@@ -158,26 +159,22 @@ class AdminAttendanceLogController extends Controller
 
         if ($schedule)
         {
-            $floatingStart = 0;
-            $floatingEnd = 0;
+            $floatingStart = $schedule->floating_start ?? 0;
+            $floatingEnd = $schedule->floating_end ?? 0;
 
-            if ($schedule->shiftSchedule) {
-                $floatingStart = (int) $schedule->shiftSchedule->floating_start;
-                $floatingEnd = (int) $schedule->shiftSchedule->floating_end;
-            } elseif ($employee->weekPattern) {
-                $floatingStart = (int) $employee->weekPattern->floating_start;
-                $floatingEnd = (int) $employee->weekPattern->floating_end;
-            }
-
-            $expectedStart = $schedule->expected_start_time ? Carbon::parse($schedule->expected_start_time) : null;
-            $expectedEnd = $schedule->expected_end_time ? Carbon::parse($schedule->expected_end_time) : null;
+            $expectedStart = isset($schedule->expected_start) ? Carbon::parse($schedule->expected_start) : null;
+            $expectedEnd = isset($schedule->expected_end) ? Carbon::parse($schedule->expected_end) : null;
 
             if ($eventType == AttendanceLog::TYPE_CHECK_IN && $expectedStart)
             {
                 if ($logTimestamp->gt($expectedStart))
                 {
                     $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
-                    $lateness = ($diffInMinutes <= $floatingStart) ? 0 : $diffInMinutes;
+
+
+                    if ($diffInMinutes > $floatingStart) {
+                        $lateness = $diffInMinutes;
+                    }
                 }
             }
             elseif ($eventType == AttendanceLog::TYPE_CHECK_OUT && $expectedEnd)
@@ -185,7 +182,10 @@ class AdminAttendanceLogController extends Controller
                 if ($logTimestamp->lt($expectedEnd))
                 {
                     $diffInMinutes = $expectedEnd->diffInMinutes($logTimestamp);
-                    $earlyDeparture = ($diffInMinutes <= $floatingEnd) ? 0 : $diffInMinutes;
+
+                    if ($diffInMinutes > $floatingEnd) {
+                        $earlyDeparture = $diffInMinutes;
+                    }
                 }
             }
         }
