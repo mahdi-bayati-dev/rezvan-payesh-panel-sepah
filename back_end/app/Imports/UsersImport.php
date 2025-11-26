@@ -15,8 +15,18 @@ use Maatwebsite\Excel\Row;
 use Morilog\Jalali\Jalalian;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Throwable;
+use Maatwebsite\Excel\Validators\Failure;
+use Maatwebsite\Excel\Concerns\SkipsOnError;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 
-class UsersImport  implements OnEachRow, WithHeadingRow, WithValidation, ShouldQueue, WithChunkReading
+class UsersImport  implements OnEachRow,
+    WithHeadingRow,
+    WithValidation,
+    ShouldQueue,
+    WithChunkReading,
+    SkipsOnFailure,
+    SkipsOnError
 {
 
 
@@ -27,70 +37,82 @@ class UsersImport  implements OnEachRow, WithHeadingRow, WithValidation, ShouldQ
     {
         return 100; // هر بار ۱۰۰ یوزر را پردازش کن
     }
-    public function onRow(Row $row)
+    public function onRow(Row $row): void
     {
-        $row = $row->toArray();
+        $rowRaw = $row->toArray();
+        try {
+            DB::transaction(function () use ($rowRaw) {
+                $password = null;
+                if ($this->settings["default_password"]) {
+                    $password = Hash::make($rowRaw["nationality_code"]);
+                } elseif (isset($rowRaw["password"])) {
+                    $password = Hash::make($rowRaw["password"]);
+                } else {
+                    Log::warning("Import Skipped: Password could not be generated for row.", ['row' => $rowRaw]);
+                    return false;
+                }
+                $user = User::create([
+                    'user_name' => $rowRaw['user_name'] ?? $rowRaw["personnel_code"],
+                    'email' => $rowRaw['email'],
+                    'status' => 'active',
+                    'password' => $password,
+                ]);
 
-        $status = DB::transaction(function () use ($row)
-        {
+                $orgId = !empty($rowRaw['organization_id']) ? $rowRaw['organization_id'] : $this->settings['organization_id'];
+                $workGroupId = !empty($rowRaw['work_group_id']) ? $rowRaw['work_group_id'] : $this->settings['work_group_id'];
+                $shiftScheduleId = !empty($rowRaw['shift_schedule_id']) ? $rowRaw['shift_schedule_id'] : ($this->settings['shift_schedule_id'] ?? null);
 
-            if($this->settings["default_password"])
-            {
-                $password = Hash::make($row["nationality_code"]);
-            }
-            elseif(isset($row["password"]))
-            {
-                $password = Hash::make($row["password"]);
-            }
-            else
-            {
-                Log::warning("Import Skipped: Password could not be generated for row.", ['row' => $row]);
-                return false;
-            }
+                Employee::create([
+                    'user_id' => $user->id,
+                    'first_name' => $rowRaw['first_name'],
+                    'last_name' => $rowRaw['last_name'],
+                    'personnel_code' => $rowRaw['personnel_code'],
+                    'organization_id' => $orgId,
+                    'work_group_id' => $workGroupId,
+                    'shift_schedule_id' => $shiftScheduleId,
+                    'nationality_code' => $rowRaw['nationality_code'] ?? null,
+                    'phone_number' => $rowRaw['phone_number'] ?? null,
+                    'gender' => $this->normalizeGender($rowRaw['gender'] ?? 'male'),
+                    'is_married' => $this->transformBoolean($rowRaw['is_married'] ?? 0),
+                    'birth_date' => $this->transformDate($rowRaw['birth_date']),
+                    'starting_job' => $this->transformDate($rowRaw['starting_job'] ?? now()),
+                    'position' => $rowRaw['position'] ?? 'کارمند',
+                    'address' => $rowRaw['address'] ?? '-',
+                    'house_number' => $rowRaw['house_number'] ?? '-',
+                    'sos_number' => $rowRaw['sos_number'] ?? '-',
+                ]);
+                $user->assignRole("user");
+            });
 
-            $user = User::create([
-                'user_name' => $row['user_name']?? $row["personnel_code"],
-                'email'     => $row['email'],
-                'status'    => 'active',
-                'password'  => $password,
+
+        } catch (\Exception $e) {
+            Log::error("Import Row Transaction Failed", [
+                'error' => $e->getMessage(),
+                'row_data' => $rowRaw
             ]);
-
-            // تعیین سازمان: اولویت با اکسل، اگر نبود تنظیمات کلی
-            $orgId = !empty($row['organization_id']) ? $row['organization_id'] : $this->settings['organization_id'];
-
-            // تعیین گروه کاری
-            $workGroupId = !empty($row['work_group_id']) ? $row['work_group_id'] : $this->settings['work_group_id'];
-
-            Employee::create([
-                'user_id'           => $user->id,
-                'first_name'        => $row['first_name'],
-                'last_name'         => $row['last_name'],
-                'personnel_code'    => $row['personnel_code'],
-
-                // استفاده از مقادیر ترکیبی (Excel || Global Setting)
-                'organization_id'   => $orgId,
-                'work_group_id'     => $workGroupId,
-                'shift_schedule_id' => $this->settings['shift_schedule_id'] ?? null,
-
-                // سایر فیلدها
-                'nationality_code'  => $row['nationality_code'] ?? null,
-                'phone_number'      => $row['phone_number'] ?? null,
-                'gender'            => $this->normalizeGender($row['gender']),
-                'is_married'        => $this->transformBoolean($row['is_married'] ?? 0),
-                'birth_date'        => $this->transformDate($row['birth_date']),
-                'starting_job'      => $this->transformDate($row['starting_job'] ?? now()),
-                'position'          => $row['position'] ?? 'کارمند',
-                'address'           => $row['address'] ?? '-',
-                'house_number'      => $row['house_number'] ?? '-',
-                'sos_number'        => $row['sos_number'] ?? '-',
+        } catch (Throwable $e) {
+            Log::error("Import Row Transaction Failed", [
+                'error' => $e->getMessage(),
+                'row_data' => $rowRaw
             ]);
-            $user->assignRole("user");
-            return true;
-        });
-        if(!$status)
-        {
-            Log::error("Failed to import users on row : \n\t ".json_encode($row));
         }
+    }
+
+    public function onFailure(Failure ...$failures)
+    {
+        foreach ($failures as $failure) {
+            Log::warning("Import Validation Failed", [
+                'row_number' => $failure->row(),
+                'attribute' => $failure->attribute(),
+                'errors' => $failure->errors(),
+                'values' => $failure->values(),
+            ]);
+        }
+    }
+
+    public function onError(Throwable $e)
+    {
+        Log::error("Import General Error: " . $e->getMessage());
     }
 
    public function rules(): array
@@ -103,17 +125,17 @@ class UsersImport  implements OnEachRow, WithHeadingRow, WithValidation, ShouldQ
             'password'  => ['nullable', 'min:8'],
 
             // --- Employee Validation ---
-            'first_name'     => ['required', 'string', 'max:255'],
-            'last_name'      => ['required', 'string', 'max:255'],
-            'personnel_code' => ['required', 'string', 'max:50', 'unique:employees,personnel_code'],
+            'first_name'     => ['required'],
+            'last_name'      => ['required'],
+            'personnel_code' => ['required'],
 
-            'organization_id'   => ['nullable', 'integer', 'exists:organizations,id'],
-            'work_group_id'     => ['nullable', 'integer', 'exists:work_groups,id'],
-            'shift_schedule_id' => ['nullable', 'integer', 'exists:shift_schedules,id'],
+            'organization_id'   => ['nullable'],
+            'work_group_id'     => ['nullable'],
+            'shift_schedule_id' => ['nullable'],
 
-            'phone_number'     => ['nullable', 'string', 'max:20', 'unique:employees,phone_number'],
-            'nationality_code' => ['required', 'string', 'max:20', 'unique:employees,nationality_code'],
-            'gender'           => ['nullable', 'string'],
+            'phone_number'     => ['nullable'],
+            'nationality_code' => ['required'],
+            'gender'           => ['nullable'],
             'birth_date'       => ['nullable'],
         ];
     }
