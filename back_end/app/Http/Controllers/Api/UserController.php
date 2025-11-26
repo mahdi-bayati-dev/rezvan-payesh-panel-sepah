@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -641,7 +642,7 @@ class UserController extends Controller
             ], 200);
 
         }
-        catch (\Maatwebsite\Excel\Validators\ValidationException $e)
+        catch (ValidationException $e)
         {
             return response()->json(['errors' => $e->failures()], 422);
         }
