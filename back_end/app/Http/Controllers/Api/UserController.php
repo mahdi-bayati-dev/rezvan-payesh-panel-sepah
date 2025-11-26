@@ -624,7 +624,6 @@ class UserController extends Controller
             'work_group_id'     => 'nullable|integer|exists:work_groups,id',
             'shift_schedule_id' => 'nullable|integer|exists:shift_schedules,id',
             'default_password'  => 'required|boolean',
-            'admin_id'          => $user->id,
         ]);
 
         $globalSettings = [
@@ -632,6 +631,7 @@ class UserController extends Controller
             'work_group_id'     => $validatedData['work_group_id'] ?? null,
             'shift_schedule_id' => $validatedData['shift_schedule_id'] ?? null,
             'default_password'  => $validatedData['default_password'] ,
+            'admin_id'          => $user->id,
         ];
 
         try
