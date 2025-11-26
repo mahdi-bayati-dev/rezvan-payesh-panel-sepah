@@ -511,7 +511,7 @@ class UserController extends Controller
         if (!empty($aiDeletePaths))
         {
             try {
-                $response = Http::delete('https://ai.eitebar.ir/v1/user', [
+                $response = Http::delete('http://192.168.1.50/v1/user', [
                     'personnel_code' => $personnelCode,
                     'gender' => $gender,
                     'images' => $aiDeletePaths,
@@ -557,7 +557,7 @@ class UserController extends Controller
             $personnelCode = $employee->personnel_code;
             try
             {
-                $response = Http::delete('https://ai.eitebar.ir/v1/user', [
+                $response = Http::delete('http://192.168.1.50/v1/user', [
                     'personnel_code' => $personnelCode,
                     'gender' => $employee->gender,
                     'images' => null,
