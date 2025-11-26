@@ -317,7 +317,7 @@ class UserController extends Controller
             ProcessEmployeeImages::dispatch($User->employee, $imagesToProcess, 'create');
         }
 
-        return new UserResource($User->load(['employee.organization', 'roles', 'employee.images','employee.workGroup']));
+        return new UserResource($User->load(['employee.organization', 'roles', 'employee.images', 'employee.workGroup','employee.shiftSchedule','employee.weekPattern']));
     }
 
     /**
@@ -327,7 +327,7 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
-        return new UserResource($user->loadMissing(['employee.organization', 'roles', 'employee.images', 'employee.workGroup']));
+        return new UserResource($user->loadMissing(['employee.organization', 'roles', 'employee.images', 'employee.workGroup','employee.shiftSchedule','employee.weekPattern']));
     }
 
     /**
@@ -525,7 +525,7 @@ class UserController extends Controller
              ProcessEmployeeImages::dispatch($user->employee, $newImagesToProcess, 'update');
          }
 
-        return new UserResource($user->load(['employee.organization', 'roles', 'employee.images', 'employee.workGroup']));
+        return new UserResource($user->load(['employee.organization', 'roles', 'employee.images', 'employee.workGroup','employee.shiftSchedule','employee.weekPattern']));
 
     }
 
