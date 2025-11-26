@@ -31,9 +31,6 @@ class UsersImport implements
 {
     public function __construct(protected array $settings){}
 
-    /**
-     * تعداد سطرهایی که در هر جاب پردازش می‌شوند
-     */
     public function chunkSize(): int
     {
         return 100;
@@ -43,30 +40,34 @@ class UsersImport implements
     {
         $rowRaw = $row->toArray();
 
-        // استفاده از try-catch برای مدیریت خطاهای منطقی
         try {
             DB::transaction(function () use ($rowRaw) {
 
-                // 1. منطق تعیین پسورد
+                // --- پیش‌پردازش داده‌های حیاتی ---
+
+                // 1. نرمال‌سازی کد ملی و کد پرسنلی (تبدیل اعداد فارسی به انگلیسی)
+                $nationalCode = isset($rowRaw['nationality_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['nationality_code']) : null;
+                $personnelCode = isset($rowRaw['personnel_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['personnel_code']) : null;
+
+                // 2. منطق ساخت پسورد
                 $password = null;
                 if($this->settings["default_password"]) {
-                    // تلاش برای استفاده از کد ملی یا کد پرسنلی به عنوان پسورد
-                    $passSource = $rowRaw["nationality_code"] ?? $rowRaw["personnel_code"];
+                    // اولویت با کد ملی، بعد پرسنلی
+                    $passSource = $nationalCode ?: $personnelCode;
                     if($passSource) {
                         $password = Hash::make($passSource);
                     }
-                } elseif(isset($rowRaw["password"]) && !empty($rowRaw["password"])) {
+                } elseif(!empty($rowRaw["password"])) {
                     $password = Hash::make($rowRaw["password"]);
                 }
 
-                // اگر پسورد ساخته نشد، خطا پرتاب کن تا در catch گرفته شود
                 if(!$password) {
-                    throw new \Exception("پسورد تعیین نشده است (کد ملی یا ستون پسورد خالی است).");
+                    throw new \Exception("پسورد ساخته نشد (کد ملی/پرسنلی یا ستون پسورد خالی است).");
                 }
 
-                // 2. ایجاد کاربر
-                // نام کاربری: اگر خالی بود -> کد پرسنلی -> اگر خالی بود -> کد ملی
-                $userName = $rowRaw['user_name'] ?? ($rowRaw["personnel_code"] ?? $rowRaw["nationality_code"]);
+                // 3. ایجاد کاربر
+                // اگر یوزرنیم خالی بود، از کد پرسنلی یا کد ملی استفاده کن
+                $userName = !empty($rowRaw['user_name']) ? $rowRaw['user_name'] : ($personnelCode ?: $nationalCode);
 
                 $user = User::create([
                     'user_name' => $userName,
@@ -75,38 +76,46 @@ class UsersImport implements
                     'password'  => $password,
                 ]);
 
-                // تعیین تنظیمات (با اولویت مقادیر اکسل)
+                // 4. تنظیمات سازمانی
                 $orgId = !empty($rowRaw['organization_id']) ? $rowRaw['organization_id'] : $this->settings['organization_id'];
                 $workGroupId = !empty($rowRaw['work_group_id']) ? $rowRaw['work_group_id'] : $this->settings['work_group_id'];
                 $shiftScheduleId = !empty($rowRaw['shift_schedule_id']) ? $rowRaw['shift_schedule_id'] : ($this->settings['shift_schedule_id'] ?? null);
 
-                // 3. ایجاد کارمند
+                // 5. ایجاد کارمند (با تضمین پر بودن فیلدهای اجباری)
                 Employee::create([
                     'user_id'           => $user->id,
                     'first_name'        => $rowRaw['first_name'],
                     'last_name'         => $rowRaw['last_name'],
-                    'personnel_code'    => $rowRaw['personnel_code'],
+                    'personnel_code'    => $personnelCode,
                     'organization_id'   => $orgId,
                     'work_group_id'     => $workGroupId,
                     'shift_schedule_id' => $shiftScheduleId,
 
-                    'nationality_code'  => $rowRaw['nationality_code'] ?? null,
-                    'phone_number'      => $rowRaw['phone_number'] ?? null,
+                    // فیلدهای اختیاری در فرم، ولی اجباری در دیتابیس (جایگزینی با خط تیره)
+                    'father_name'       => !empty($rowRaw['father_name']) ? $rowRaw['father_name'] : '-',
+                    'address'           => !empty($rowRaw['address']) ? $rowRaw['address'] : '-',
+                    'house_number'      => !empty($rowRaw['house_number']) ? $rowRaw['house_number'] : '-',
+                    'sos_number'        => !empty($rowRaw['sos_number']) ? $rowRaw['sos_number'] : '-',
+                    'position'          => !empty($rowRaw['position']) ? $rowRaw['position'] : 'کارمند',
+
+                    // فیلدهای خاص
+                    'nationality_code'  => $nationalCode, // می‌تواند نال باشد (اگر دیتابیس اجازه دهد)
+                    'phone_number'      => !empty($rowRaw['phone_number']) ? $this->convertPersianToEnglishNumbers($rowRaw['phone_number']) : null,
+
                     'gender'            => $this->normalizeGender($rowRaw['gender'] ?? 'male'),
                     'is_married'        => $this->transformBoolean($rowRaw['is_married'] ?? 0),
-                    'birth_date'        => $this->transformDate($rowRaw['birth_date']),
-                    'starting_job'      => $this->transformDate($rowRaw['starting_job'] ?? now()),
-                    'position'          => $rowRaw['position'] ?? 'کارمند',
-                    'address'           => $rowRaw['address'] ?? '-',
-                    'house_number'      => $rowRaw['house_number'] ?? '-',
-                    'sos_number'        => $rowRaw['sos_number'] ?? '-',
+                    'education_level'   => !empty($rowRaw['education_level']) ? $rowRaw['education_level'] : 'diploma',
+
+                    // تاریخ‌ها (اگر خالی بودند، تاریخ امروز یا null)
+                    // نکته: اگر دیتابیس نال نمی‌پذیرد، باید now() بگذارید
+                    'birth_date'        => $this->transformDate($rowRaw['birth_date']) ?: '1990-01-01', // تاریخ تولد پیش‌فرض
+                    'starting_job'      => $this->transformDate($rowRaw['starting_job']) ?: now()->format('Y-m-d'), // شروع کار پیش‌فرض
                 ]);
 
                 $user->assignRole("user");
             });
 
         } catch (\Exception $e) {
-            // ثبت خطای دقیق در لاگ
             Log::error("Import Row Failed", [
                 'row_index' => $row->getIndex(),
                 'error' => $e->getMessage(),
@@ -115,7 +124,7 @@ class UsersImport implements
         }
     }
 
-    // --- هندل کردن خطاهای ولیدیشن اکسل ---
+    // --- هندل کردن خطاهای ولیدیشن ---
     public function onFailure(Failure ...$failures)
     {
         foreach ($failures as $failure) {
@@ -128,7 +137,6 @@ class UsersImport implements
         }
     }
 
-    // --- هندل کردن خطاهای کلی (مثل دیتابیس) ---
     public function onError(Throwable $e)
     {
         Log::error("Import General Error: " . $e->getMessage());
@@ -138,12 +146,10 @@ class UsersImport implements
     {
         return [
             'email' => ['required', 'email', 'unique:users,email'],
-            // سایر ولیدیشن‌ها را اینجا اضافه کنید
-            // برای راحتی تست، فعلاً فقط ایمیل را اجباری گذاشتم تا ببینیم کار می‌کند یا نه
+            // اینجا سخت‌گیری نمی‌کنیم تا لاجیک داخل onRow مدیریت کند
         ];
     }
 
-    // متدهای کمکی (تاریخ و ...) بدون تغییر
     private function transformDate($value) {
         if (!$value) return null;
         $value = $this->convertPersianToEnglishNumbers($value);
@@ -167,7 +173,7 @@ class UsersImport implements
     }
 
     private function transformBoolean($value) {
-        return in_array($value, [1, '1', 'true', 'yes', 'بله'], true);
+        return in_array($value, [1, '1', 'true', 'yes', 'بله', 'متاهل'], true);
     }
 
     private function normalizeGender($value) {
