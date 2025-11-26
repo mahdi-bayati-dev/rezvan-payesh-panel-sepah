@@ -637,17 +637,23 @@ class UserController extends Controller
 
         try
         {
-            // 1. ذخیره فایل روی دیسک (Local) برای دسترسی Worker به آن
-            // فایل با پسوند اصلی ذخیره می‌شود تا نوع آن مشخص باشد
+            // 1. ذخیره فایل روی دیسک (Local)
             $file = $request->file('file');
             $filename = 'import_' . time() . '.' . $file->getClientOriginalExtension();
+            // ذخیره با دیسک local
+            $path = $file->storeAs('temp_imports', $filename, 'local');
 
-            // فایل را در پوشه storage/app/temp_imports ذخیره کن
-            $path = $file->storeAs('temp_imports', $filename);
+            // تشخیص نوع فایل
+            $extension = strtolower($file->getClientOriginalExtension());
+            $readerType = match ($extension) {
+                'csv' => ExcelType::CSV,
+                'xls' => ExcelType::XLS,
+                default => ExcelType::XLSX,
+            };
 
-            // 2. ارسال "مسیر فایل" به صف
-            // وقتی مسیر رشته‌ای می‌دهیم، کتابخانه می‌داند باید فایل را از دیسک بخواند
-            Excel::queue(new UsersImport($globalSettings), $path);
+            // 2. استفاده از Excel::import به جای Excel::queue
+            // چون کلاس UsersImport اینترفیس ShouldQueue دارد، خودکار صف‌بندی می‌شود.
+            Excel::import(new UsersImport($globalSettings), $path, 'local', $readerType);
 
             return response()->json([
                 'message' => 'فایل دریافت شد و پردازش در پس‌زمینه شروع شده است. بسته به تعداد رکوردها ممکن است چند دقیقه زمان ببرد.'
@@ -656,7 +662,7 @@ class UserController extends Controller
         } catch (ValidationException $e)
         {
             return response()->json(['errors' => $e->failures()], 422);
-        } catch (Exception $e)
+        } catch (\Exception $e)
         {
             Log::error("Import Queue Failed: " . $e->getMessage());
             return response()->json(['message' => 'خطا در ارسال فایل به صف پردازش.'], 500);
