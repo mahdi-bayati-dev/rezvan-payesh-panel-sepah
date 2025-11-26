@@ -14,6 +14,7 @@ use Maatwebsite\Excel\Concerns\OnEachRow;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Events\AfterImport;
@@ -29,7 +30,8 @@ class UsersImport implements
     ShouldQueue,
     WithChunkReading,
     SkipsOnFailure,
-    SkipsOnError
+    SkipsOnError,
+    WithEvents
 {
     public function __construct(protected array $settings){}
 
@@ -38,38 +40,39 @@ class UsersImport implements
         return 100;
     }
 
-    public function onRow(Row $row)
+    /**
+     * @throws Throwable
+     */
+    public function onRow(Row $row): void
     {
         $rowRaw = $row->toArray();
 
         try
         {
-            DB::transaction(function () use ($rowRaw) {
+            DB::transaction(function () use ($rowRaw)
+            {
 
-                // --- پیش‌پردازش داده‌های حیاتی ---
-
-                // 1. نرمال‌سازی کد ملی و کد پرسنلی (تبدیل اعداد فارسی به انگلیسی)
                 $nationalCode = isset($rowRaw['nationality_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['nationality_code']) : null;
                 $personnelCode = isset($rowRaw['personnel_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['personnel_code']) : null;
 
-                // 2. منطق ساخت پسورد
                 $password = null;
-                if($this->settings["default_password"]) {
-                    // اولویت با کد ملی، بعد پرسنلی
+                if($this->settings["default_password"])
+                {
                     $passSource = $nationalCode ?: $personnelCode;
                     if($passSource) {
                         $password = Hash::make($passSource);
                     }
-                } elseif(!empty($rowRaw["password"])) {
+                } elseif(!empty($rowRaw["password"]))
+                {
                     $password = Hash::make($rowRaw["password"]);
                 }
 
-                if(!$password) {
-                    throw new \Exception("پسورد ساخته نشد (کد ملی/پرسنلی یا ستون پسورد خالی است).");
+                if(!$password)
+                {
+                    throw new \Exception("Password generation failed (No National Code or Password provided).");
                 }
 
-                // 3. ایجاد کاربر
-                // اگر یوزرنیم خالی بود، از کد پرسنلی یا کد ملی استفاده کن
+
                 $userName = !empty($rowRaw['user_name']) ? $rowRaw['user_name'] : ($personnelCode ?: $nationalCode);
 
                 $user = User::create([
@@ -79,47 +82,43 @@ class UsersImport implements
                     'password'  => $password,
                 ]);
 
-                // 4. تنظیمات سازمانی
                 $orgId = !empty($rowRaw['organization_id']) ? $rowRaw['organization_id'] : $this->settings['organization_id'];
                 $workGroupId = !empty($rowRaw['work_group_id']) ? $rowRaw['work_group_id'] : $this->settings['work_group_id'];
                 $shiftScheduleId = !empty($rowRaw['shift_schedule_id']) ? $rowRaw['shift_schedule_id'] : ($this->settings['shift_schedule_id'] ?? null);
 
-                // 5. ایجاد کارمند (با تضمین پر بودن فیلدهای اجباری)
+                $weekPatternId = !empty($rowRaw['week_pattern_id']) ? $rowRaw['week_pattern_id'] : null;
+
                 Employee::create([
                     'user_id'           => $user->id,
                     'first_name'        => $rowRaw['first_name'],
                     'last_name'         => $rowRaw['last_name'],
                     'personnel_code'    => $personnelCode,
+
                     'organization_id'   => $orgId,
                     'work_group_id'     => $workGroupId,
                     'shift_schedule_id' => $shiftScheduleId,
+                    'week_pattern_id'   => $weekPatternId,
 
-                    // فیلدهای اختیاری در فرم، ولی اجباری در دیتابیس (جایگزینی با خط تیره)
+                    'nationality_code'  => $nationalCode,
+                    'phone_number'      => !empty($rowRaw['phone_number']) ? $this->convertPersianToEnglishNumbers($rowRaw['phone_number']) : null,
+                    'gender'            => $this->normalizeGender($rowRaw['gender'] ?? 'male'),
+                    'is_married'        => $this->transformBoolean($rowRaw['is_married'] ?? 0),
+
+                    'birth_date'        => $this->transformDate($rowRaw['birth_date']) ?: '1990-01-01',
+                    'starting_job'      => $this->transformDate($rowRaw['starting_job']) ?: now()->format('Y-m-d'),
+
+                    'position'          => !empty($rowRaw['position']) ? $rowRaw['position'] : 'کارمند',
                     'father_name'       => !empty($rowRaw['father_name']) ? $rowRaw['father_name'] : '-',
                     'address'           => !empty($rowRaw['address']) ? $rowRaw['address'] : '-',
                     'house_number'      => !empty($rowRaw['house_number']) ? $rowRaw['house_number'] : '-',
                     'sos_number'        => !empty($rowRaw['sos_number']) ? $rowRaw['sos_number'] : '-',
-                    'position'          => !empty($rowRaw['position']) ? $rowRaw['position'] : 'کارمند',
-
-                    // فیلدهای خاص
-                    'nationality_code'  => $nationalCode, // می‌تواند نال باشد (اگر دیتابیس اجازه دهد)
-                    'phone_number'      => !empty($rowRaw['phone_number']) ? $this->convertPersianToEnglishNumbers($rowRaw['phone_number']) : null,
-
-                    'gender'            => $this->normalizeGender($rowRaw['gender'] ?? 'male'),
-                    'is_married'        => $this->transformBoolean($rowRaw['is_married'] ?? 0),
                     'education_level'   => !empty($rowRaw['education_level']) ? $rowRaw['education_level'] : 'diploma',
-
-                    // تاریخ‌ها (اگر خالی بودند، تاریخ امروز یا null)
-                    // نکته: اگر دیتابیس نال نمی‌پذیرد، باید now() بگذارید
-                    'birth_date'        => $this->transformDate($rowRaw['birth_date']) ?: '1990-01-01', // تاریخ تولد پیش‌فرض
-                    'starting_job'      => $this->transformDate($rowRaw['starting_job']) ?: now()->format('Y-m-d'), // شروع کار پیش‌فرض
                 ]);
 
                 $user->assignRole("user");
             });
 
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error("Import Row Failed", [
                 'row_index' => $row->getIndex(),
                 'error' => $e->getMessage(),
@@ -128,33 +127,65 @@ class UsersImport implements
         }
     }
 
-    // --- هندل کردن خطاهای ولیدیشن ---
-    public function onFailure(Failure ...$failures)
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function(AfterImport $event) {
+                if (!empty($this->settings['admin_id'])) {
+                    UserImportCompleted::dispatch($this->settings['admin_id']);
+                }
+            },
+        ];
+    }
+
+    /**
+     * @param Failure ...$failures
+     * @return void
+     */
+    public function onFailure(Failure ...$failures): void
     {
         foreach ($failures as $failure) {
-            Log::warning("Import Validation Error", [
+            Log::warning("Import Validation Failed", [
                 'row' => $failure->row(),
                 'attribute' => $failure->attribute(),
-                'errors' => $failure->errors(),
-                'values' => $failure->values(),
+                'errors' => $failure->errors()
             ]);
         }
     }
 
-    public function onError(Throwable $e)
+    /**
+     * @param Throwable $e
+     * @return void
+     */
+    public function onError(Throwable $e): void
     {
         Log::error("Import General Error: " . $e->getMessage());
     }
 
+    /**
+     * قوانین اعتبارسنجی سخت‌گیرانه
+     * سطرهایی که این قوانین را پاس نکنند، کلاً وارد onRow نمی‌شوند و در onFailure لاگ می‌شوند.
+     */
     public function rules(): array
     {
         return [
             'email' => ['required', 'email', 'unique:users,email'],
-            // اینجا سخت‌گیری نمی‌کنیم تا لاجیک داخل onRow مدیریت کند
+            'user_name' => ['nullable', 'string', 'unique:users,user_name'],
+
+            'personnel_code' => ['required', 'unique:employees,personnel_code'],
+            'nationality_code' => ['required', 'unique:employees,nationality_code'],
+            'phone_number' => ['nullable', 'unique:employees,phone_number'],
+
+
+            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
+            'work_group_id' => ['nullable', 'integer', 'exists:work_groups,id'],
+            'shift_schedule_id' => ['nullable', 'integer', 'exists:shift_schedules,id'],
+            'week_pattern_id' => ['nullable', 'integer', 'exists:week_patterns,id'], // اضافه شد
         ];
     }
 
-    private function transformDate($value) {
+    private function transformDate($value): ?string
+    {
         if (!$value) return null;
         $value = $this->convertPersianToEnglishNumbers($value);
         try {
@@ -166,38 +197,33 @@ class UsersImport implements
                 return Jalalian::fromFormat('Y/m/d', $cleanDate)->toCarbon()->format('Y-m-d');
             }
             return Carbon::parse($value)->format('Y-m-d');
-        } catch (\Exception $e) { return null; }
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
-    private function convertPersianToEnglishNumbers($string) {
+    private function convertPersianToEnglishNumbers($string): array|string
+    {
         if (!is_string($string)) return $string;
         $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
         $english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
         return str_replace($persian, $english, $string);
     }
 
-    private function transformBoolean($value) {
+    private function transformBoolean($value): bool
+    {
         return in_array($value, [1, '1', 'true', 'yes', 'بله', 'متاهل'], true);
     }
 
-    private function normalizeGender($value)
+    /**
+     * @param $value
+     * @return string
+     */
+    private function normalizeGender($value): string
     {
-        return in_array($value, ['female', 'زن', 'خانم']) ? 'female' : 'male';
+        if (in_array($value, ['female', 'زن', 'خانم', 'f'])) {
+            return 'female';
+        }
+        return 'male';
     }
-
-    public function registerEvents(): array
-    {
-        return [
-            AfterImport::class => function(AfterImport $event) {
-                $adminId = $this->settings['admin_id'] ?? null;
-
-                if ($adminId) {
-                    Log::info("Import Finished. Dispatching event for admin: $adminId");
-
-                    UserImportCompleted::dispatch($adminId);
-                }
-            },
-        ];
-    }
-
 }
