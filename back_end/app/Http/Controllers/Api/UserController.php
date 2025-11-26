@@ -428,7 +428,9 @@ class UserController extends Controller
              {
                  Log::info("this is employee data : " .json_encode($employeeData));
                  $employeeFields = collect($employeeData)->except(['images', 'delete_images'])->toArray();
-                 $user->employee->update($employeeFields);
+                 Log::info("this is employee filed : " .json_encode($employeeFields));
+                 $user = $user->employee->update($employeeFields);
+                  Log::info("this is user : " .json_encode($user));
              }
              $aiDeletePaths = [];
              $deleteImageIds = $validatedData['employee']['delete_images'] ?? [];
