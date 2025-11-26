@@ -528,7 +528,6 @@ class UserController extends Controller
             }
         }
 
-         // 2. Handle Updates/Insertions in AI
          if (!empty($newImagesToProcess))
          {
              ProcessEmployeeImages::dispatch($user->employee, $newImagesToProcess, 'update');
@@ -548,7 +547,6 @@ class UserController extends Controller
         $employee = $user->employee;
 
 
-        // 2. Prevent self-deletion
         if (request()->user()->id === $user->id)
         {
             return response()->json(['message' => 'Users cannot delete themselves.'], 403);
@@ -626,6 +624,7 @@ class UserController extends Controller
             'work_group_id'     => 'nullable|integer|exists:work_groups,id',
             'shift_schedule_id' => 'nullable|integer|exists:shift_schedules,id',
             'default_password'  => 'required|boolean',
+            'admin_id'          => $user->id,
         ]);
 
         $globalSettings = [
@@ -637,13 +636,12 @@ class UserController extends Controller
 
         try
         {
-            // 1. ذخیره فایل روی دیسک (Local)
             $file = $request->file('file');
             $filename = 'import_' . time() . '.' . $file->getClientOriginalExtension();
-            // ذخیره با دیسک local
+
             $path = $file->storeAs('temp_imports', $filename, 'local');
 
-            // تشخیص نوع فایل
+
             $extension = strtolower($file->getClientOriginalExtension());
             $readerType = match ($extension) {
                 'csv' => ExcelType::CSV,
@@ -651,8 +649,6 @@ class UserController extends Controller
                 default => ExcelType::XLSX,
             };
 
-            // 2. استفاده از Excel::import به جای Excel::queue
-            // چون کلاس UsersImport اینترفیس ShouldQueue دارد، خودکار صف‌بندی می‌شود.
             Excel::import(new UsersImport($globalSettings), $path, 'local', $readerType);
 
             return response()->json([
