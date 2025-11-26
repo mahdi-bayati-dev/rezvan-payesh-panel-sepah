@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Events\UserImportCompleted;
 use App\Models\User;
 use App\Models\Employee;
 use Carbon\Carbon;
@@ -15,6 +16,7 @@ use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Events\AfterImport;
 use Maatwebsite\Excel\Row;
 use Maatwebsite\Excel\Validators\Failure;
 use Morilog\Jalali\Jalalian;
@@ -40,7 +42,8 @@ class UsersImport implements
     {
         $rowRaw = $row->toArray();
 
-        try {
+        try
+        {
             DB::transaction(function () use ($rowRaw) {
 
                 // --- پیش‌پردازش داده‌های حیاتی ---
@@ -115,7 +118,8 @@ class UsersImport implements
                 $user->assignRole("user");
             });
 
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error("Import Row Failed", [
                 'row_index' => $row->getIndex(),
                 'error' => $e->getMessage(),
@@ -176,7 +180,24 @@ class UsersImport implements
         return in_array($value, [1, '1', 'true', 'yes', 'بله', 'متاهل'], true);
     }
 
-    private function normalizeGender($value) {
+    private function normalizeGender($value)
+    {
         return in_array($value, ['female', 'زن', 'خانم']) ? 'female' : 'male';
     }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function(AfterImport $event) {
+                $adminId = $this->settings['admin_id'] ?? null;
+
+                if ($adminId) {
+                    Log::info("Import Finished. Dispatching event for admin: $adminId");
+
+                    UserImportCompleted::dispatch($adminId);
+                }
+            },
+        ];
+    }
+
 }

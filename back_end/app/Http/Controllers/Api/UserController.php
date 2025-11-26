@@ -590,8 +590,9 @@ class UserController extends Controller
     /**
      * Check if the admin can manage resources within the target organization.
      */
-    protected function canAdminManageOrg(User $admin, int $targetOrgId): bool
+    protected function canAdminManageOrg(Request $request , User $admin, int $targetOrgId): bool
     {
+        $user = $request->user();
         $adminEmployee = $admin->employee;
         if (!$adminEmployee?->organization_id) return false;
 
@@ -626,6 +627,7 @@ class UserController extends Controller
             'work_group_id'     => 'nullable|integer|exists:work_groups,id',
             'shift_schedule_id' => 'nullable|integer|exists:shift_schedules,id',
             'default_password'  => 'required|boolean',
+            'admin_id'          => $user->id,
         ]);
 
         $globalSettings = [
