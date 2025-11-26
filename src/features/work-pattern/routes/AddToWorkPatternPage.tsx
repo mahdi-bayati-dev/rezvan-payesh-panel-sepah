@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ اضافه شدن useNavigate
+import { useNavigate } from 'react-router-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -11,98 +11,72 @@ import {
 import clsx from 'clsx';
 import { toast } from 'react-toastify';
 
-// --- هوک‌ها و تایپ‌های کارمندان ---
+// hooks & types
 import {
   useUsers,
   useUpdateUserWorkPattern,
   useUpdateUserShiftSchedule
 } from '@/features/User/hooks/hook';
 import { type User } from '@/features/User/types/index';
-
-// --- ✅ هوک‌ها و تایپ‌های گروه‌های کاری ---
-// ✅ حل خطای TS2724: استفاده از هوک جدید useWorkGroups
 import { useWorkGroups, useUpdateWorkGroup } from '@/features/work-group/hooks/hook';
 import { type WorkGroup } from '@/features/work-group/types/index';
-
-// --- هوک الگوها ---
 import { useWorkPatterns } from '@/features/work-pattern/hooks/useWorkPatternsHookGet';
 
-// --- کامپوننت‌های UI ---
+// ui
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable/index";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 import Checkbox from "@/components/ui/CheckboxTable";
-import { UserPlus, Search, Loader2, Users, Briefcase, ArrowRight } from 'lucide-react'; // ✅ اضافه شدن آیکون ArrowRight
+import { UserPlus, Search, Loader2, Users, Briefcase, ArrowRight, AlertTriangle } from 'lucide-react'; // آیکون هشدار اضافه شد
 
-// تایپ SelectOption اختصاصی
 interface PatternSelectOption extends SelectOption {
   pattern_type: 'WEEK_PATTERN' | 'SHIFT_SCHEDULE';
 }
 
-// تایپ برای مدیریت تب‌ها
 type AssignmentTab = 'EMPLOYEES' | 'WORK_GROUPS';
 
 function AddToWorkPattern() {
-  const navigate = useNavigate(); // ✅ استفاده از هوک ناوبری
+  const navigate = useNavigate();
 
-  // --- State های عمومی ---
+  // State
   const [selectedPattern, setSelectedPattern] = useState<PatternSelectOption | null>(null);
   const [activeTab, setActiveTab] = useState<AssignmentTab>('EMPLOYEES');
   const [searchQuery, setSearchQuery] = useState("");
 
-  // --- State های جدول کارمندان ---
   const [employeeRowSelection, setEmployeeRowSelection] = useState<RowSelectionState>({});
-  const [employeePagination, setEmployeePagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [employeePagination, setEmployeePagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
-  // --- State های جدول گروه‌های کاری ---
   const [groupRowSelection, setGroupRowSelection] = useState<RowSelectionState>({});
-  const [groupPagination, setGroupPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [groupPagination, setGroupPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+
   const handlePatternSelect = (option: SelectOption) => {
-    // چون ما می‌دانیم که گزینه‌های ما PatternSelectOption هستند (توسط useMemo ساخته شده‌اند)
-    // می‌توانیم با خیال راحت Type Casting انجام دهیم.
     setSelectedPattern(option as PatternSelectOption);
   };
-  // --- دریافت داده‌ها ---
 
-  // ۱. لیست الگوها (ترکیبی)
+  // Data Fetching
   const { data: combinedPatternsData, isLoading: isLoadingPatterns } = useWorkPatterns(1, 99999);
-
-  // ۲. لیست کارمندان
   const { data: usersResponse, isLoading: isLoadingUsers } = useUsers({
     page: 1,
-    per_page: 9999, // دریافت همه برای فیلتر کلاینت ساید
-    search: activeTab === 'EMPLOYEES' ? searchQuery : undefined // جستجو فقط وقتی تب فعال است
+    per_page: 9999,
+    search: activeTab === 'EMPLOYEES' ? searchQuery : undefined
   });
-
-  // ۳. ✅ لیست گروه‌های کاری
   const { data: workGroupsResponse, isLoading: isLoadingGroups } = useWorkGroups(1, 9999);
-  // نکته: اگر API گروه‌ها سرچ سمت سرور دارد، می‌توانید اینجا پارامتر search را پاس دهید.
-  // فعلاً فرض بر فیلتر سمت کلاینت است.
 
-  // --- هوک‌های Mutation ---
+  // Mutations
   const updateUserPatternMutation = useUpdateUserWorkPattern();
   const updateUserScheduleMutation = useUpdateUserShiftSchedule();
   const updateWorkGroupMutation = useUpdateWorkGroup();
 
-  // --- پردازش داده‌ها ---
+  // Processing Data
   const employees: User[] = usersResponse?.data ?? [];
 
-  // ✅ فیلتر گروه‌های کاری بر اساس جستجو (سمت کلاینت)
   const workGroups: WorkGroup[] = useMemo(() => {
     const allGroups = workGroupsResponse?.data ?? [];
     if (!searchQuery || activeTab !== 'WORK_GROUPS') return allGroups;
-    // ✅ حل خطای TS7006: تایپ صریح WorkGroup به پارامتر g داده شد
     return allGroups.filter((g: WorkGroup) => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [workGroupsResponse, searchQuery, activeTab]);
-
 
   const patternOptions: PatternSelectOption[] = useMemo(() => {
     return (combinedPatternsData?.patterns || []).map(p => ({
@@ -112,8 +86,7 @@ function AddToWorkPattern() {
     }));
   }, [combinedPatternsData]);
 
-
-  // --- تعریف ستون‌های جدول کارمندان ---
+  // Columns - Employees
   const employeeColumns = useMemo<ColumnDef<User>[]>(() => [
     {
       id: 'select',
@@ -162,7 +135,7 @@ function AddToWorkPattern() {
     }
   ], []);
 
-  // --- ✅ تعریف ستون‌های جدول گروه‌های کاری ---
+  // Columns - Work Groups
   const workGroupColumns = useMemo<ColumnDef<WorkGroup>[]>(() => [
     {
       id: 'select',
@@ -191,19 +164,14 @@ function AddToWorkPattern() {
       id: 'pattern_status',
       cell: ({ row }) => {
         const group = row.original;
-        if (group.week_pattern) {
-          return <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">الگوی هفتگی: {group.week_pattern.name}</span>
-        }
-        if (group.shift_schedule) {
-          return <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">شیفت: {group.shift_schedule.name}</span>
-        }
-        return <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD">بدون الگو</span>
+        if (group.week_pattern) return <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">الگوی هفتگی: {group.week_pattern.name}</span>
+        if (group.shift_schedule) return <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">شیفت: {group.shift_schedule.name}</span>
+        return <span className="text-xs text-muted-foregroundL">بدون الگو</span>
       }
     }
   ], []);
 
-
-  // --- پیکربندی جداول ---
+  // Tables
   const employeesTable = useReactTable({
     data: employees,
     columns: employeeColumns,
@@ -213,6 +181,7 @@ function AddToWorkPattern() {
     onPaginationChange: setEmployeePagination,
     state: { rowSelection: employeeRowSelection, pagination: employeePagination },
     manualPagination: false,
+    getRowId: (row) => String(row.id),
   });
 
   const workGroupsTable = useReactTable({
@@ -224,25 +193,29 @@ function AddToWorkPattern() {
     onPaginationChange: setGroupPagination,
     state: { rowSelection: groupRowSelection, pagination: groupPagination },
     manualPagination: false,
+    getRowId: (row) => String(row.id),
   });
 
-
-  // --- هندلر اصلی تخصیص ---
+  // Assign Handler
   const handleAssign = () => {
+    console.group("🚀 [Start] Assign Process");
+
     const workPatternId = selectedPattern?.id ? Number(selectedPattern.id) : null;
     const patternType = selectedPattern?.pattern_type;
 
     if (!workPatternId || !patternType) {
       toast.warn("لطفا ابتدا یک الگوی کاری انتخاب کنید.");
+      console.groupEnd();
       return;
     }
 
-    // --- سناریوی ۱: تخصیص به کارمندان ---
+    // Scenario 1: Employees
     if (activeTab === 'EMPLOYEES') {
-      const selectedIds = Object.keys(employeeRowSelection).map(index => employeesTable.getRow(index).original.id);
+      const selectedIds = employeesTable.getSelectedRowModel().flatRows.map(row => row.original.id);
 
       if (selectedIds.length === 0) {
         toast.warn("لطفا حداقل یک کارمند را انتخاب کنید.");
+        console.groupEnd();
         return;
       }
 
@@ -251,18 +224,45 @@ function AddToWorkPattern() {
       const promises = selectedIds.map(userId => {
         // @ts-ignore
         const payload = patternType === 'SHIFT_SCHEDULE' ? { userId, shiftScheduleId: workPatternId } : { userId, workPatternId };
+
+        console.log(`📤 Sending Request for User ${userId}...`);
+
         // @ts-ignore
-        return mutation.mutateAsync(payload).catch(err => ({ status: 'rejected', userId, err }));
+        return mutation.mutateAsync(payload)
+          .then(res => {
+            // 🛡️ بررسی امنیتی: آیا واقعاً سرور دیتا را تغییر داد؟
+            const emp = res?.employee;
+            const serverPatternId = patternType === 'SHIFT_SCHEDULE'
+              ? emp?.shift_schedule?.id
+              : emp?.week_pattern?.id;
+
+            // تبدیل به عدد برای مقایسه دقیق
+            const isUpdated = Number(serverPatternId) === Number(workPatternId);
+
+            if (!isUpdated) {
+              console.error(`⚠️ [Backend Issue] User ${userId}: Server ignored the update! fillable?`);
+              // 💥 پرتاب خطا برای اینکه در بخش catch گرفته شود و به عنوان "خطا" شمرده شود
+              throw new Error("Server ignored update (Check $fillable)");
+            }
+
+            console.log(`✅ [Success] User ${userId} updated.`);
+            return res;
+          })
+          .catch(err => {
+            console.error(`❌ [Error] Failed for User ${userId}:`, err);
+            return { status: 'rejected', userId, err };
+          });
       });
 
       executePromises(promises, selectedIds.length, 'کارمند');
     }
-    // --- سناریوی ۲: تخصیص به گروه‌های کاری ---
+    // Scenario 2: Groups
     else {
-      const selectedIds = Object.keys(groupRowSelection).map(index => workGroupsTable.getRow(index).original.id);
+      const selectedIds = workGroupsTable.getSelectedRowModel().flatRows.map(row => row.original.id);
 
       if (selectedIds.length === 0) {
         toast.warn("لطفا حداقل یک گروه کاری را انتخاب کنید.");
+        console.groupEnd();
         return;
       }
 
@@ -270,70 +270,77 @@ function AddToWorkPattern() {
         const group = workGroups.find(g => g.id === groupId);
         if (!group) return Promise.resolve();
 
-        // ✅ پِی‌لود هوشمند: اگر الگوی هفتگی ست شود، شیفت باید نال شود و برعکس
         const payload = {
-          name: group.name, // نام اجباری است، نام فعلی را می‌فرستیم
+          name: group.name,
           week_pattern_id: patternType === 'WEEK_PATTERN' ? workPatternId : null,
           shift_schedule_id: patternType === 'SHIFT_SCHEDULE' ? workPatternId : null,
         };
 
-        return updateWorkGroupMutation.mutateAsync({ id: groupId, payload }).catch(err => ({ status: 'rejected', groupId, err }));
+        return updateWorkGroupMutation.mutateAsync({ id: groupId, payload })
+          .then(res => {
+            console.log(`✅ [Success] Group ${groupId} updated.`);
+            return res;
+          })
+          .catch(err => {
+            console.error(`❌ [Error] Failed for Group ${groupId}:`, err);
+            return { status: 'rejected', groupId, err };
+          });
       });
 
       executePromises(promises, selectedIds.length, 'گروه کاری');
     }
+    console.groupEnd();
   };
 
-  // تابع کمکی برای اجرای پرامیس‌ها و نمایش نتیجه
   const executePromises = (promises: Promise<any>[], count: number, entityName: string) => {
     Promise.allSettled(promises).then(results => {
+      // ✅ حالا فقط مواردی که واقعاً موفق بوده‌اند (و تایید سرور را گرفته‌اند) شمرده می‌شوند
       const successCount = results.filter(r => r.status === 'fulfilled' && !(r as any).value?.status).length;
       const errorCount = count - successCount;
 
       if (successCount > 0) {
         toast.success(`${successCount} ${entityName} با موفقیت به‌روزرسانی شد.`);
-        // پاک کردن انتخاب‌ها
         if (activeTab === 'EMPLOYEES') setEmployeeRowSelection({});
         else setGroupRowSelection({});
       }
+
       if (errorCount > 0) {
-        toast.error(`${errorCount} مورد با خطا مواجه شد.`);
+        // 🔴 نمایش خطای هوشمند
+        toast.error(
+          <div>
+            <div className='font-bold flex items-center gap-1'>
+              <AlertTriangle className="w-4 h-4" />
+              {errorCount} مورد انجام نشد!
+            </div>
+            <div className='text-xs mt-1 opacity-90'>
+              احتمالا مشکل از سمت سرور است (فیلدها Fillable نیستند).
+            </div>
+          </div>
+        );
       }
     });
   }
-
 
   const isGlobalLoading = isLoadingUsers || isLoadingPatterns || isLoadingGroups ||
     updateUserPatternMutation.isPending || updateUserScheduleMutation.isPending || updateWorkGroupMutation.isPending;
 
   return (
     <div className="space-y-6 p-4 md:p-6 bg-backgroundL-500 rounded-2xl border border-borderL dark:border-borderD dark:bg-backgroundD" dir="rtl">
-
-      {/* ✅ بخش هدر با دکمه بازگشت */}
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-borderL dark:border-borderD pb-4">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/work-patterns')}
-            className="h-10 w-10 text-muted-foregroundL dark:text-muted-foregroundD hover:text-foregroundL dark:hover:text-foregroundD"
-            aria-label="بازگشت"
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate('/work-patterns')} className="h-10 w-10">
             <ArrowRight className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-foregroundL dark:text-foregroundD">
-              تخصیص الگوی کاری
-            </h1>
-            <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD mt-1">
-              شما می‌توانید الگوها را به صورت انفرادی به کارمندان یا به صورت گروهی به گروه‌های کاری اختصاص دهید.
-            </p>
+            <h1 className="text-2xl font-semibold">تخصیص الگوی کاری</h1>
+            <p className="text-sm text-muted-foregroundL">الگوها را به کارمندان یا گروه‌های کاری اختصاص دهید.</p>
           </div>
         </div>
       </div>
 
-      {/* بخش ۱: انتخاب الگو */}
-      <div className="bg-backgroundL-500 rounded-md transition-colors duration-300 dark:bg-backgroundD ">
+      {/* Pattern Selection */}
+      <div className="bg-backgroundL-500 rounded-md">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="md:col-span-1">
             <SelectBox
@@ -341,35 +348,32 @@ function AddToWorkPattern() {
               placeholder="یک الگو را انتخاب کنید..."
               options={patternOptions}
               value={selectedPattern}
-              // onChange={setSelectedPattern}
               onChange={handlePatternSelect}
               disabled={isGlobalLoading}
             />
           </div>
-
-          {/* جستجو */}
           <div className="md:col-span-2">
             <Input
               label={`جستجو در ${activeTab === 'EMPLOYEES' ? 'کارمندان' : 'گروه‌های کاری'}`}
-              placeholder="نام، کد پرسنلی و ..."
+              placeholder="نام، کد پرسنلی..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              icon={<Search className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD" />}
+              icon={<Search className="h-4 w-4" />}
             />
           </div>
         </div>
       </div>
 
-      {/* بخش ۲: تب‌ها */}
+      {/* Tabs */}
       <div className="flex space-x-1 rounded-xl bg-secondaryL/20 dark:bg-secondaryD/20 p-1 rtl:space-x-reverse">
         <button
           onClick={() => { setActiveTab('EMPLOYEES'); setSearchQuery(''); }}
           className={clsx(
-            "w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200",
+            "w-full rounded-lg py-2.5 text-sm font-medium transition-all",
             "flex items-center justify-center gap-2",
             activeTab === 'EMPLOYEES'
-              ? "bg-white dark:bg-gray-700 shadow text-primaryL dark:text-primaryD"
-              : "text-muted-foregroundL dark:text-muted-foregroundD hover:bg-white/[0.12] hover:text-foregroundL dark:hover:text-foregroundD"
+              ? "bg-white dark:bg-gray-700 shadow text-primaryL"
+              : "text-muted-foregroundL hover:bg-white/[0.12]"
           )}
         >
           <Users className="h-4 w-4" />
@@ -378,11 +382,11 @@ function AddToWorkPattern() {
         <button
           onClick={() => { setActiveTab('WORK_GROUPS'); setSearchQuery(''); }}
           className={clsx(
-            "w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200",
+            "w-full rounded-lg py-2.5 text-sm font-medium transition-all",
             "flex items-center justify-center gap-2",
             activeTab === 'WORK_GROUPS'
-              ? "bg-white dark:bg-gray-700 shadow text-primaryL dark:text-primaryD"
-              : "text-muted-foregroundL dark:text-muted-foregroundD hover:bg-white/[0.12] hover:text-foregroundL dark:hover:text-foregroundD"
+              ? "bg-white dark:bg-gray-700 shadow text-primaryL"
+              : "text-muted-foregroundL hover:bg-white/[0.12]"
           )}
         >
           <Briefcase className="h-4 w-4" />
@@ -390,12 +394,12 @@ function AddToWorkPattern() {
         </button>
       </div>
 
-      {/* بخش ۳: جدول‌ها */}
-      <div className="bg-backgroundL-500 border rounded-md border-borderL transition-colors duration-300 dark:bg-backgroundD dark:border-borderD overflow-hidden min-h-[300px]">
+      {/* Tables */}
+      <div className="bg-backgroundL-500 border rounded-md border-borderL min-h-[300px]">
         {isGlobalLoading && !usersResponse ? (
           <div className="flex justify-center items-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="mr-2">در حال بارگذاری اطلاعات...</span>
+            <Loader2 className="h-8 w-8 animate-spin mr-2" />
+            <span>در حال بارگذاری...</span>
           </div>
         ) : (
           <>
@@ -414,32 +418,19 @@ function AddToWorkPattern() {
         )}
       </div>
 
-      {/* بخش ۴: دکمه عملیات */}
-      <div className="flex justify-end gap-4 pt-4 border-t border-borderL dark:border-borderD">
-        <Button
-          type="button"
-          variant="outline" // دکمه انصراف اضافه شد
-          onClick={() => navigate('/work-patterns')}
-          disabled={isGlobalLoading}
-        >
+      {/* Footer Actions */}
+      <div className="flex justify-end gap-4 pt-4 border-t border-borderL">
+        <Button variant="outline" onClick={() => navigate('/work-patterns')} disabled={isGlobalLoading}>
           انصراف
         </Button>
         <Button
-          type="button"
           variant="primary"
           onClick={handleAssign}
-          disabled={
-            !selectedPattern || isGlobalLoading ||
-            (activeTab === 'EMPLOYEES' && Object.keys(employeeRowSelection).length === 0) ||
-            (activeTab === 'WORK_GROUPS' && Object.keys(groupRowSelection).length === 0)
-          }
+          disabled={!selectedPattern || isGlobalLoading || (activeTab === 'EMPLOYEES' && Object.keys(employeeRowSelection).length === 0)}
         >
-          {(updateUserPatternMutation.isPending || updateUserScheduleMutation.isPending || updateWorkGroupMutation.isPending) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          {isGlobalLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
           <UserPlus className="ml-2 h-4 w-4" />
-          {activeTab === 'EMPLOYEES'
-            ? `تخصیص به ${Object.keys(employeeRowSelection).length} کارمند`
-            : `تخصیص به ${Object.keys(groupRowSelection).length} گروه کاری`
-          }
+          تخصیص نهایی
         </Button>
       </div>
     </div>

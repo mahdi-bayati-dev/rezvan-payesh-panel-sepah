@@ -137,43 +137,6 @@ export const useUpdateUserRole = () => {
 // --- --- --- --- --- --- --- --- --- --- --- ---
 
 /**
- * ✅ هوک جدید: به‌روزرسانی (تخصیص) الگوی کاری کارمندان
- * این هوک از زیرساخت updateUserProfile استفاده می‌کند اما متمرکز بر work_pattern_id است.
- */
-export const useUpdateUserWorkPattern = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<
-    User,
-    Error,
-    { userId: number; workPatternId: number | null }
-  >({
-    mutationFn: ({ userId, workPatternId }) => {
-      const payload: UserProfileFormData = {
-        employee: {
-          work_pattern_id: workPatternId,
-        } as any,
-      };
-      console.log(
-        `[useUpdateUserWorkPattern] در حال ارسال Payload برای آپدیت کاربر ${userId}:`,
-        JSON.stringify(payload)
-      );
-      return updateUserProfile({ userId, payload });
-    },
-
-    onSuccess: (updatedUser) => {
-      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
-    },
-    onError: (error) => {
-      const errorMessage =
-        (error as any)?.response?.data?.message || "خطا در تخصیص الگوی کاری.";
-      throw new Error(errorMessage);
-    },
-  });
-};
-
-/**
  * ✅ هوک جدید: حذف کاربر
  * این هوک برای ActionsCell.tsx مورد نیاز است.
  */
@@ -240,6 +203,46 @@ export const useCreateUser = () => {
       // ما خطا را مجدداً throw می‌کنیم تا کامپوننت فرم بتواند
       // خطاهای 422 (validation) را گرفته و در فیلدها ست کند.
       throw error;
+    },
+  });
+};
+// --- ✅ اصلاح نهایی: هوک تخصیص الگوی کاری ---
+/**
+ * هوک به‌روزرسانی (تخصیص) الگوی کاری کارمندان
+ */
+export const useUpdateUserWorkPattern = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    User,
+    Error,
+    { userId: number; workPatternId: number | null }
+  >({
+    mutationFn: ({ userId, workPatternId }) => {
+      // 🟢 اصلاح: حذف کلید اشتباه work_pattern_id
+      // فقط week_pattern_id که نام صحیح ستون دیتابیس است ارسال می‌شود.
+      const payload: any = {
+        employee: {
+          week_pattern_id: workPatternId,
+        },
+      };
+
+      console.log(
+        `[useUpdateUserWorkPattern] Sending Payload (Fixed):`,
+        JSON.stringify(payload)
+      );
+
+      return updateUserProfile({ userId, payload });
+    },
+
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+    onError: (error) => {
+      const errorMessage =
+        (error as any)?.response?.data?.message || "خطا در تخصیص الگوی کاری.";
+      throw new Error(errorMessage);
     },
   });
 };
