@@ -8,7 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 .env
 qodana.yaml
-
+public/assets
 node_modules
 dist
 dist-ssr
