@@ -2,7 +2,6 @@ import {
     type ActivityLog,
     type ApiAttendanceLog,
 } from "../types";
-// استفاده از مسیر نسبی برای اطمینان
 import { toPersianNumbers } from "./toPersianNumbers";
 
 const mapEventType = (
@@ -22,7 +21,7 @@ export const mapApiLogToActivityLog = (
     apiLog: ApiAttendanceLog
 ): ActivityLog => {
 
-    // 1. استراتژی Local Time: حذف Z برای نادیده گرفتن تایم‌زون
+    // 1. حذف Z برای جلوگیری از تغییر ساعت توسط مرورگر (Local Time Strategy)
     const rawTimestamp = apiLog.timestamp.replace('Z', '').replace('+00:00', '');
     
     // 2. ساخت آبجکت تاریخ
@@ -36,7 +35,7 @@ export const mapApiLogToActivityLog = (
         calendar: "persian" 
     }).format(timestamp); 
 
-    // 4. استخراج ساعت به فرمت ۲۴ ساعته
+    // 4. استخراج ساعت
     const timeString = new Intl.DateTimeFormat("fa-IR", {
         hour: "2-digit",
         minute: "2-digit",
@@ -55,10 +54,8 @@ export const mapApiLogToActivityLog = (
         ? apiLog.employee.personnel_code || `ID: ${employeeIdNum}`
         : `ID: ${apiLog.employee_id}`;
 
-    // ✅✅✅ اصلاح اصلی: استخراج هوشمند آواتار
+    // استخراج آواتار
     let employeeAvatar = apiLog.employee?.avatarUrl;
-    
-    // اگر avatarUrl خالی بود، سراغ آرایه images می‌رویم (مشابه فیچر User)
     if (!employeeAvatar && apiLog.employee?.images && apiLog.employee.images.length > 0) {
         employeeAvatar = apiLog.employee.images[0].url;
     }
@@ -70,8 +67,9 @@ export const mapApiLogToActivityLog = (
         id: employeeIdNum,
         userId: employeeUserId,
         name: employeeName,
+        // ✅ تبدیل کد پرسنلی به فارسی در همین مرحله
         employeeId: toPersianNumbers(employeeCode),
-        avatarUrl: employeeAvatar, // این مقدار حالا درست پر می‌شود
+        avatarUrl: employeeAvatar,
     };
 
     return {
@@ -79,6 +77,7 @@ export const mapApiLogToActivityLog = (
         employee: mappedEmployee,
         activityType: mapEventType(apiLog.event_type),
         trafficArea: apiLog.source_name,
+        // ✅ تبدیل تاریخ و ساعت به فارسی
         date: toPersianNumbers(jalaliDate),
         time: toPersianNumbers(timeString),
         lateness_minutes: apiLog.lateness_minutes || 0,

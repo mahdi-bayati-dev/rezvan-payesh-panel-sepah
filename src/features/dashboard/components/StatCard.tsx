@@ -1,13 +1,14 @@
 // src/features/dashboard/components/StatCard.tsx
 import type { ReactNode } from "react";
+import { toPersianDigits } from "@/features/dashboard/api/dashboardApi"; // ایمپورت تابع تبدیل عدد
 
 interface StatCardProps {
   title: string;
   value: number | string;
   icon: ReactNode;
-  // این دو پراپ را اختیاری کردیم تا بتوانیم لینک را مخفی کنیم
   linkText?: string;
   onLinkClick?: () => void;
+  variant?: 'success' | 'warning' | 'danger' | 'info'; // اضافه کردن این پراپ برای استایل‌دهی هوشمندتر (اختیاری)
 }
 
 const StatCard = ({
@@ -18,31 +19,31 @@ const StatCard = ({
   icon,
 }: StatCardProps) => {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-borderL bg-backgroundL-500 p-4 transition-colors dark:border-borderD dark:bg-secondaryD hover:shadow-md duration-300">
+    <div className="group flex flex-col gap-4 rounded-2xl border border-borderL bg-backgroundL-500 p-5 transition-all duration-300 hover:shadow-lg dark:border-borderD dark:bg-secondaryD hover:-translate-y-1">
       <div className="flex justify-between items-start">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-secondaryL/50 dark:bg-backgroundD/30">
+        <div className="flex items-center gap-3">
+          {/* آیکون با افکت هاور */}
+          <div className="p-2 rounded-xl bg-secondaryL/50 dark:bg-backgroundD/40 transition-colors group-hover:bg-secondaryL dark:group-hover:bg-backgroundD/60">
             {icon}
           </div>
-          <h3 className="text-xs sm:text-sm font-semibold text-muted-foregroundL dark:text-muted-foregroundD">
+          <h3 className="text-xs sm:text-sm font-bold text-muted-foregroundL dark:text-muted-foregroundD opacity-90">
             {title}
           </h3>
         </div>
 
-        {/* رندر شرطی: دکمه فقط زمانی نمایش داده می‌شود که متن لینک و تابع کلیک موجود باشند */}
         {linkText && onLinkClick && (
           <button
             onClick={onLinkClick}
-            className="text-[10px] sm:text-xs font-medium text-primaryL dark:text-primaryD hover:underline decoration-primaryL/30 underline-offset-4 transition-all"
+            className="text-[10px] sm:text-xs font-medium text-primaryL dark:text-primaryD hover:underline decoration-primaryL/30 underline-offset-4 transition-all opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0"
           >
             {linkText}
           </button>
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-2">
-        <p className="text-2xl sm:text-3xl font-bold text-foregroundL dark:text-foregroundD tracking-tight">
-          {value}
+      <div className="flex items-center justify-between mt-1">
+        <p className="text-2xl sm:text-3xl font-black text-foregroundL dark:text-foregroundD tracking-tight font-persian">
+          {toPersianDigits(value)}
         </p>
       </div>
     </div>

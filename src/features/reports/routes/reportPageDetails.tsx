@@ -1,13 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowRight, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowRight, Loader2, AlertTriangle, CalendarClock } from "lucide-react";
 
 import { useLogDetails } from "@/features/reports/hooks/hook";
 import { useUser } from "@/features/User/hooks/hook";
 
 import { EmployeeInfoCard } from "@/features/reports/components/reportPageDetails/EmployeeInfoCard";
 import { LogInfoCard } from "@/features/reports/components/reportPageDetails/LogInfoCard";
+import { toPersianNumbers } from "../utils/toPersianNumbers";
 
-// --- کامپوننت‌های وضعیت (Header, LoadingCard, NotFoundCard ... بدون تغییر) ---
 const ReportDetailHeader = ({
   id,
   date,
@@ -17,36 +17,48 @@ const ReportDetailHeader = ({
   date: string;
   onBack: () => void;
 }) => (
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-borderL dark:border-borderD gap-4">
-    <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD">
-      جزئیات گزارش فعالیت (ادمین)
-    </h2>
-    <div className="flex items-center gap-4">
-      <div className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
-        <span className="ml-2">{`#${id}`}</span>
-        <span>{date}</span>
-      </div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-sm text-primaryL dark:text-primaryD hover:bg-primaryL/10 dark:hover:bg-primaryD/10 px-3 py-1 rounded-md transition-colors"
-      >
-        <ArrowRight className="w-4 h-4" />
-        بازگشت
-      </button>
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-borderL dark:border-borderD gap-4">
+    <div className="flex items-center gap-3">
+        <button
+            onClick={onBack}
+            className="p-2.5 rounded-full bg-secondaryL/50 hover:bg-secondaryL dark:bg-secondaryD/30 dark:hover:bg-secondaryD text-muted-foregroundL dark:text-muted-foregroundD transition-all active:scale-95"
+            title="بازگشت به لیست"
+        >
+            <ArrowRight className="w-5 h-5" />
+        </button>
+        <div>
+            <h2 className="text-xl font-bold text-foregroundL dark:text-foregroundD">
+                جزئیات گزارش
+            </h2>
+            <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1">
+                مشاهده کامل اطلاعات ثبت شده توسط ادمین
+            </p>
+        </div>
+    </div>
+
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-backgroundL dark:bg-zinc-900 border border-borderL dark:border-zinc-800">
+        <CalendarClock size={16} className="text-primaryL dark:text-primaryD" />
+        <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">تاریخ:</span>
+        <span className="text-sm font-bold text-foregroundL dark:text-foregroundD">{date}</span>
+        <span className="mx-2 text-borderL dark:text-zinc-700">|</span>
+        <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">شناسه:</span>
+        <span className="text-sm font-mono font-bold text-foregroundL dark:text-foregroundD">{toPersianNumbers(id)}</span>
     </div>
   </div>
 );
+
 const LoadingCard = () => (
-  <div className="flex flex-col items-center justify-center p-10 min-h-[300px]">
+  <div className="flex flex-col items-center justify-center p-10 min-h-[400px]">
     <Loader2 className="w-10 h-10 text-primaryL dark:text-primaryD animate-spin" />
     <p className="mt-4 text-lg text-muted-foregroundL dark:text-muted-foregroundD">
       در حال بارگذاری جزئیات...
     </p>
   </div>
 );
+
 const NotFoundCard = ({ message }: { message: string }) => (
-  <div className="flex flex-col items-center justify-center p-10 min-h-[300px] bg-backgroundL-500 dark:bg-backgroundD rounded-2xl border border-destructiveL dark:border-destructiveD">
-    <AlertTriangle className="w-12 h-12 text-destructiveL dark:text-destructiveD" />
+  <div className="flex flex-col items-center justify-center p-10 min-h-[300px] bg-backgroundL-500 dark:bg-backgroundD rounded-3xl border border-destructiveL dark:border-destructiveD">
+    <AlertTriangle className="w-12 h-12 text-destructiveL dark:text-destructiveD opacity-80" />
     <h3 className="mt-4 text-xl font-bold text-destructiveL dark:text-destructiveD">
       خطا
     </h3>
@@ -55,7 +67,6 @@ const NotFoundCard = ({ message }: { message: string }) => (
     </p>
   </div>
 );
-// --- ---
 
 function ReportPageDetails() {
   const { reportId } = useParams<{ reportId: string }>();
@@ -67,11 +78,10 @@ function ReportPageDetails() {
     isError: isErrorLog,
   } = useLogDetails(reportId);
 
-  // userId رو از لاگ مپ شده می‌گیریم
   const employeeUserId = log?.employee.userId;
 
   const {
-    data: fullEmployeeProfile, // این آبجکت User کامل است
+    data: fullEmployeeProfile,
     isLoading: isLoadingUser,
   } = useUser(employeeUserId!);
 
@@ -83,7 +93,7 @@ function ReportPageDetails() {
   if (isLoadingLog || (log && isLoadingUser)) {
     return (
       <div className="p-4 max-w-7xl mx-auto">
-        <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
+        <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD shadow-sm">
           <LoadingCard />
         </main>
       </div>
@@ -100,22 +110,15 @@ function ReportPageDetails() {
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      <main className="p-6 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
+      <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD shadow-sm">
         <ReportDetailHeader id={log.id} date={log.date} onBack={handleGoBack} />
 
-        <div className="flex flex-col md:flex-row gap-6 pt-6">
-          <aside className="w-full md:w-72 lg:w-80 flex-shrink-0">
-
-            {/* --- [اصلاح کلیدی] --- */}
-            {/* ما به کارت، آبجکت ناقص employee از خود لاگ (برای نام و کد پرسنلی) 
-              و آبجکت کامل employee از useUser (برای سازمان و گروه کاری) رو پاس می‌دیم.
-            */}
+        <div className="flex flex-col lg:flex-row gap-6 pt-6">
+          <aside className="w-full lg:w-80 flex-shrink-0">
             <EmployeeInfoCard
               logEmployee={log.employee}
-              userEmployee={fullEmployeeProfile?.employee} // <-- اینجا فقط .employee پاس داده می‌شود
+              userEmployee={fullEmployeeProfile?.employee} 
             />
-            {/* --- [پایان اصلاح] --- */}
-
           </aside>
 
           <section className="flex-1">

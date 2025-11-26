@@ -31,18 +31,13 @@ import {
     type RequestInfoFormData,
 } from '../../schemas/requestInfoSchema';
 import { toast } from 'react-toastify';
-
+// ✅ ایمپورت تابع تبدیل اعداد
+import { toPersianNumbers } from "@/features/requests/components/mainRequests/RequestsColumnDefs";
 
 interface RequestInfoCardProps {
     request: LeaveRequest;
 }
 
-/**
- * تابع کمکی برای تبدیل ساختار درختی API به SelectOption
- * @param types درخت انواع مرخصی
- * @param prefix پیشوند برای نمایش ساختار درختی
- * @returns لیست مسطح SelectOption
- */
 const mapLeaveTypesToOptions = (types: LeaveType[], prefix = ''): SelectOption[] => {
     let options: SelectOption[] = [];
     for (const type of types) {
@@ -57,31 +52,22 @@ const mapLeaveTypesToOptions = (types: LeaveType[], prefix = ''): SelectOption[]
     return options;
 };
 
-/**
- * تابع کمکی برای تشخیص حالت تمام وقت از روی ساعت‌های API
- */
 const isRequestFullDay = (startTime: string, endTime: string): boolean => {
-    // API ساعت شروع روز را 00:00:00 و ساعت پایان روز را 23:59:59 ثبت می‌کند
-    // نکته: اینجا parseISO ساعت محلی را برمی‌گرداند، بنابراین اگر در دیتابیس UTC باشد
-    // و تبدیل به محلی شود، باید منطق فول دی بررسی شود.
     try {
         const startHour = parseISO(startTime).getHours();
         const endHour = parseISO(endTime).getHours();
-        // بررسی هم 0 و هم 23 بودن (یا نزدیک به آنها با توجه به شیفت زمانی)
-        // برای سادگی فعلا همان منطق قبلی را نگه می‌داریم چون parseISO خودش تبدیل را انجام می‌دهد
         return startHour === 0 && endHour === 23;
     } catch {
         return false;
     }
 };
 
-/**
- * کامپوننت کمکی برای نمایش فیلد در حالت فقط خواندنی
- */
+// ✅ کامپوننت ReadOnlyInput اصلاح شده برای پشتیبانی از اعداد فارسی
 const ReadOnlyInput = ({ label, value, containerClassName = 'opacity-90' }: { label: string; value: string; containerClassName?: string }) => (
     <Input
         label={label}
-        value={value}
+        // تبدیل اعداد ولیو به فارسی
+        value={toPersianNumbers(value)}
         readOnly
         disabled
         containerClassName={containerClassName}
@@ -100,7 +86,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     } = useLeaveTypes();
 
 
-    // ۱. استخراج گزینه‌ها (Categories: ریشه‌ها، Types: همه نودها)
     const { leaveTypeOptions, categoryOptions } = useMemo(() => {
         const allTypes = leaveTypesTree ? mapLeaveTypesToOptions(leaveTypesTree) : [];
         const categories = leaveTypesTree
@@ -110,7 +95,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     }, [leaveTypesTree]);
 
 
-    // ۲. محاسبه مقادیر پیش‌فرض (فقط زمانی که درخت لود شده)
     const defaultValues = useMemo<RequestInfoFormData | undefined>(() => {
         if (!leaveTypesTree || leaveTypeOptions.length === 0) return undefined;
 
@@ -138,7 +122,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     }, [request, leaveTypesTree, leaveTypeOptions, categoryOptions]);
 
 
-    // ۳. محاسبه نام دسته‌بندی برای حالت فقط خواندنی
     const readOnlyCategoryName = useMemo(() => {
         if (!leaveTypesTree || !request.leave_type.parent_id) {
             return '---';
@@ -173,15 +156,9 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     const updateMutation = useUpdateLeaveRequest();
     const isSubmitting = updateMutation.isPending;
 
-    /**
-     * ✅ تابع کمکی استاندارد برای تبدیل تاریخ و ساعت محلی به فرمت استاندارد UTC
-     * (تکرار منطق استاندارد NewRequestPage برای حالت ویرایش)
-     */
     const formatToAPIPayload = (dateObj: DateObject, timeStr: string): string => {
         const gDate = dateObj.convert(gregorian);
         const [hours, minutes] = timeStr.split(':').map(Number);
-
-        // ساخت Date با تایم‌زون لوکال کاربر
         const localDate = new Date(
             gDate.year,
             gDate.month.number - 1,
@@ -190,19 +167,15 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
             minutes,
             0
         );
-
-        // تبدیل به UTC و فرمت مناسب SQL
         return localDate.toISOString().slice(0, 19).replace('T', ' ');
     };
 
-    // --- تابع onSave (ساخت Payload اصلاح شده) ---
     const onSave: SubmitHandler<RequestInfoFormData> = async (data) => {
         if (!data.startDate || !data.endDate) {
             toast.error("تاریخ شروع و پایان الزامی است.");
             return;
         }
 
-        // تعیین ساعت‌ها بر اساس حالت تمام وقت یا پاره وقت
         let startTimePart = '00:00';
         let endTimePart = '23:59';
 
@@ -213,14 +186,10 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
 
         const payload = {
             leave_type_id: data.requestType!.id as number,
-            // ✅ استفاده از تبدیل استاندارد UTC
             start_time: formatToAPIPayload(data.startDate, startTimePart),
             end_time: formatToAPIPayload(data.endDate, endTimePart),
             reason: data.description || undefined,
         };
-        
-        // لاگ برای بررسی صحت تبدیل ساعت
-        console.log('Update Payload (UTC):', payload);
 
         updateMutation.mutate(
             { id: request.id, payload },
@@ -246,7 +215,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
         setIsEditing(false);
     };
 
-    // (مدیریت لودینگ - بدون تغییر)
     if (isLoadingLeaveTypes) {
         return <div className="flex justify-center items-center h-40"><Spinner text="در حال بارگذاری فرم..." /></div>;
     }
@@ -257,7 +225,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
         return <div className="flex justify-center items-center h-40"><Spinner text="در حال آماده‌سازی اطلاعات..." /></div>;
     }
 
-    // --- تابع کمکی برای رندر فیلد در حالت ویرایش یا نمایش ---
     const RenderField = ({ name, label, options, placeholder }: { name: keyof RequestInfoFormData, label: string, options?: SelectOption[], placeholder?: string }) => {
         if (isEditing) {
             return (
@@ -284,14 +251,13 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
             } else if (name === 'requestType') {
                 value = request.leave_type.name || '---';
             } else {
-                value = '---'; 
+                value = '---';
             }
 
             return <ReadOnlyInput label={label} value={value} />;
         }
     };
 
-    // تابع کمکی برای فرمت تاریخ فقط خواندنی
     const formatReadOnlyDate = (isoString: string) => {
         try {
             const date = parseISO(isoString);
@@ -303,12 +269,10 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
 
 
     return (
-        <div className="pr-1 w-full">
+        <div className="w-full">
             <form onSubmit={handleSubmit(onSave)}>
-                {/* ✅ ریسپانسیو: گپ عمودی و افقی مناسب در موبایل */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-6">
 
-                    {/* ردیف ۱: نوع و دسته‌بندی */}
                     <RenderField
                         name="requestType"
                         label="نوع درخواست"
@@ -316,11 +280,10 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                     />
                     <RenderField
                         name="category"
-                        label="دسته بندی درخواست"
+                        label="دسته بندی"
                         options={categoryOptions}
                     />
 
-                    {/* ردیف ۲: تاریخ شروع و پایان */}
                     {isEditing ? (
                         <>
                             <Controller
@@ -366,7 +329,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                     )}
 
 
-                    {/* ردیف ۳: تمام وقت و ساعت‌ها */}
                     <Controller
                         name="isFullDay"
                         control={control}
@@ -392,7 +354,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                         )}
                     />
 
-                    {/* فیلدهای ساعت (فقط در حالت ویرایش و اگر تمام وقت نباشد) */}
                     {isEditing && !isFullDayWatch && (
                         <>
                             <Controller
@@ -428,7 +389,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                         </>
                     )}
 
-                    {/* نمایش ساعت‌های فقط خواندنی (در صورت پاره وقت بودن) */}
                     {!isEditing && !defaultValues.isFullDay && (
                         <>
                             <ReadOnlyInput label="ساعت شروع" value={format(parseISO(request.start_time), 'HH:mm')} />
@@ -436,7 +396,6 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                         </>
                     )}
 
-                    {/* توضیحات */}
                     <div className="md:col-span-2">
                         <Textarea
                             label="توضیحات"
@@ -449,17 +408,17 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                     </div>
                 </div>
 
-                {/* --- بخش نمایش نتیجه (برای همه) --- */}
                 {request.status !== 'pending' && (
-                    <div className="mt-6 pt-6 border-t border-borderL dark:border-borderD">
-                        <h4 className="font-bold text-right mb-4 text-foregroundL dark:text-foregroundD">
+                    <div className="mt-8 pt-6 border-t border-borderL dark:border-borderD">
+                        <h4 className="font-bold text-right mb-5 text-foregroundL dark:text-foregroundD flex items-center gap-2">
+                            <span className="w-1.5 h-6 rounded-full bg-primaryL dark:bg-primaryD block"></span>
                             نتیجه بررسی درخواست
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-6">
                             <ReadOnlyInput
                                 label="وضعیت نهایی"
                                 value={request.status === 'approved' ? 'تایید شده' : 'رد شده'}
-                                containerClassName={request.status === 'approved' ? 'border-l-4 border-green-500 bg-green-50/50 dark:bg-green-900/50' : 'border-l-4 border-red-500 bg-red-50/50 dark:bg-red-900/50'}
+                                containerClassName={request.status === 'approved' ? 'border-l-4 border-green-500 bg-green-50/30 dark:bg-green-900/20' : 'border-l-4 border-red-500 bg-red-50/30 dark:bg-red-900/20'}
                             />
                             <ReadOnlyInput
                                 label="بررسی شده توسط"
@@ -473,7 +432,7 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                                         readOnly
                                         disabled
                                         rows={4}
-                                        className={`bg-red-50/50 dark:bg-red-900/50 border border-red-500`}
+                                        className={`bg-red-50/50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-300 focus:ring-0`}
                                     />
                                 </div>
                             )}
@@ -481,27 +440,25 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                     </div>
                 )}
 
-
-                {/* (دکمه‌های ویرایش/ذخیره/لغو) */}
-                <div className="flex justify-end mt-8">
+                <div className="flex justify-end mt-8 pt-4 border-t border-borderL dark:border-borderD">
                     {isEditing ? (
-                        <div className="flex items-center gap-4">
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="flex justify-center items-center hover:bg-successD-foreground cursor-pointer gap-2 bg-primaryL text-primary-foregroundL dark:bg-primaryD dark:text-primary-foregroundD px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                            >
-                                {isSubmitting ? <Spinner size="sm" /> : <Save size={16} />}
-                                {isSubmitting ? "در حال ذخیره..." : "ذخیره"}
-                            </button>
+                        <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={onCancel}
                                 disabled={isSubmitting}
-                                className="flex justify-center hover:bg-destructiveL-foreground cursor-pointer items-center gap-2 bg-backgroundL-500 text-foregroundL dark:bg-backgroundD dark:text-foregroundD px-6 py-2 rounded-lg text-sm font-medium border border-borderL dark:border-borderD disabled:opacity-50"
+                                className="flex justify-center hover:bg-secondaryL dark:hover:bg-secondaryD cursor-pointer items-center gap-2 bg-transparent text-foregroundL dark:text-foregroundD px-5 py-2 rounded-xl text-sm font-medium border border-borderL dark:border-borderD disabled:opacity-50 transition-colors"
                             >
-                                <X size={16} />
+                                <X size={18} />
                                 لغو
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="flex justify-center items-center hover:bg-primaryL/90 cursor-pointer gap-2 bg-primaryL text-primary-foregroundL dark:bg-primaryD dark:text-primary-foregroundD px-6 py-2 rounded-xl text-sm font-medium disabled:opacity-50 shadow-sm shadow-primaryL/20 transition-all"
+                            >
+                                {isSubmitting ? <Spinner size="sm" className="text-white" /> : <Save size={18} />}
+                                {isSubmitting ? "در حال ذخیره..." : "ذخیره تغییرات"}
                             </button>
                         </div>
                     ) : (
@@ -509,11 +466,11 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                             type="button"
                             onClick={() => setIsEditing(true)}
                             disabled={request.status !== 'pending'}
-                            className="bg-primaryL hover:bg-successD-foreground cursor-pointer dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-8 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-primaryL hover:bg-primaryL/90 cursor-pointer dark:bg-primaryD text-primary-foregroundL dark:text-primary-foregroundD px-6 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all active:scale-95"
                             title={request.status !== 'pending' ? "امکان ویرایش درخواست پردازش شده وجود ندارد" : "ویرایش درخواست"}
                         >
-                            <Pencil size={16} />
-                            ویرایش
+                            <Pencil size={18} />
+                            ویرایش درخواست
                         </button>
                     )}
                 </div>

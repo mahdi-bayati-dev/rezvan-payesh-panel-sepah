@@ -5,39 +5,36 @@ import {
     MapPin,
     Activity,
     Info,
-    // آیکون‌های جدید
     CheckCircle2,
     XCircle,
-    AlertTriangle
+    AlertTriangle,
+    FileSignature
 } from 'lucide-react';
-// اصلاح: استفاده از مسیر مطلق (Alias) برای جلوگیری از خطای بیلد
 import { toPersianNumbers } from '@/features/reports/utils/toPersianNumbers';
 
 const InfoBox = ({
     label,
     value,
     icon,
-    valueClassName = "" // پراپ جدید برای رنگ‌بندی متن
+    valueClassName = ""
 }: {
     label: string;
     value: string | null | undefined;
     icon: React.ReactNode;
     valueClassName?: string;
 }) => {
-    if (!value) {
-        return null;
-    }
+    if (!value) return null;
 
     return (
-        <div className="flex flex-col">
-            <label className="text-sm font-medium text-muted-foregroundL dark:text-muted-foregroundD mb-1 px-1">
+        <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD px-1">
                 {label}
             </label>
-            <div className="flex items-center gap-2 p-3 min-h-[42px] rounded-2xl border border-borderL dark:border-borderD bg-backgroundL-DEFAULT dark:bg-backgroundD-800">
-                <div className="text-muted-foregroundL dark:text-muted-foregroundD">
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-borderL dark:border-borderD bg-backgroundL-DEFAULT dark:bg-zinc-900/50 transition-colors hover:bg-secondaryL/30 dark:hover:bg-zinc-800">
+                <div className="text-muted-foregroundL dark:text-muted-foregroundD opacity-80">
                     {icon}
                 </div>
-                <span className={`text-sm font-medium ${valueClassName || 'text-foregroundL dark:text-foregroundD'}`}>
+                <span className={`text-sm font-semibold ${valueClassName || 'text-foregroundL dark:text-foregroundD'}`}>
                     {value}
                 </span>
             </div>
@@ -58,17 +55,16 @@ interface LogInfoCardProps {
 
 export const LogInfoCard = ({ logData }: LogInfoCardProps) => {
     return (
-        // گرید ریسپانسیو (تا 4 ستون در سایز بزرگ)
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
-            {/* ۱. وضعیت تایید (جدید) */}
+            {/* ۱. وضعیت تایید */}
             <InfoBox
                 label="وضعیت تایید"
                 value={logData.is_allowed ? "تایید شده (مجاز)" : "در انتظار بررسی"}
                 icon={
                     logData.is_allowed
-                        ? <CheckCircle2 className="w-4 h-4 text-successL dark:text-successD" />
-                        : <XCircle className="w-4 h-4 text-warningL dark:text-warningD" />
+                        ? <CheckCircle2 className="w-5 h-5 text-successL dark:text-successD" />
+                        : <XCircle className="w-5 h-5 text-warningL dark:text-warningD" />
                 }
                 valueClassName={logData.is_allowed ? "text-successL dark:text-successD" : "text-warningL dark:text-warningD"}
             />
@@ -77,56 +73,67 @@ export const LogInfoCard = ({ logData }: LogInfoCardProps) => {
             <InfoBox
                 label="نوع فعالیت"
                 value={activityLabelMap[logData.activityType] || logData.activityType}
-                icon={<Activity className="w-4 h-4" />}
+                icon={<Activity className="w-5 h-5" />}
             />
 
-            {/* ۳. تاریخ */}
+            {/* ۳. تاریخ (قبلاً فارسی شده در مپر) */}
             <InfoBox
-                label="تاریخ"
+                label="تاریخ ثبت"
                 value={logData.date}
-                icon={<Calendar className="w-4 h-4" />}
+                icon={<Calendar className="w-5 h-5" />}
             />
 
-            {/* ۴. ساعت */}
+            {/* ۴. ساعت (قبلاً فارسی شده در مپر) */}
             <InfoBox
                 label="ساعت ثبت"
                 value={logData.time}
-                icon={<Clock className="w-4 h-4" />}
+                icon={<Clock className="w-5 h-5" />}
             />
 
-            {/* ۵. میزان تاخیر (فقط اگر وجود داشته باشد) */}
+            {/* ۵. میزان تاخیر (فارسی سازی عدد) */}
             {logData.lateness_minutes > 0 && (
                 <InfoBox
                     label="میزان تاخیر"
                     value={`${toPersianNumbers(logData.lateness_minutes)} دقیقه`}
-                    icon={<Clock className="w-4 h-4 text-destructiveL dark:text-destructiveD" />}
+                    icon={<Clock className="w-5 h-5 text-destructiveL dark:text-destructiveD" />}
                     valueClassName="text-destructiveL dark:text-destructiveD"
                 />
             )}
 
-            {/* ۶. میزان تعجیل (فقط اگر وجود داشته باشد) */}
+            {/* ۶. میزان تعجیل (فارسی سازی عدد) */}
             {logData.early_departure_minutes > 0 && (
                 <InfoBox
                     label="میزان تعجیل"
                     value={`${toPersianNumbers(logData.early_departure_minutes)} دقیقه`}
-                    icon={<AlertTriangle className="w-4 h-4 text-warningL dark:text-warningD" />}
+                    icon={<AlertTriangle className="w-5 h-5 text-warningL dark:text-warningD" />}
                     valueClassName="text-warningL dark:text-warningD"
                 />
             )}
 
-            {/* ۷. منبع */}
+            {/* ۷. نحوه ثبت */}
+            <InfoBox
+                label="نحوه ثبت"
+                value={logData.is_manual ? "ثبت دستی" : "ثبت سیستمی (خودکار)"}
+                icon={<FileSignature className="w-5 h-5" />}
+            />
+
+            {/* ۸. منبع */}
             <InfoBox
                 label="منبع (دستگاه/ناحیه)"
                 value={logData.trafficArea}
-                icon={<MapPin className="w-4 h-4" />}
+                icon={<MapPin className="w-5 h-5" />}
             />
 
-            {/* ۸. ملاحظات */}
-            <InfoBox
-                label="ملاحظات / توضیحات"
-                value={logData.remarks}
-                icon={<Info className="w-4 h-4" />}
-            />
+            {/* ۹. ملاحظات */}
+            {logData.remarks && (
+                <div className="sm:col-span-2 lg:col-span-3">
+                    <InfoBox
+                        label="ملاحظات / توضیحات"
+                        value={logData.remarks}
+                        icon={<Info className="w-5 h-5" />}
+                    />
+                </div>
+            )}
 
         </div>
     );

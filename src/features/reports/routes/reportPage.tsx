@@ -5,8 +5,7 @@ import {
     getCoreRowModel,
     type PaginationState,
 } from "@tanstack/react-table";
-// import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, CheckCircle } from "lucide-react";
+import { Plus, Download, CheckCircle, FileText } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 
@@ -15,13 +14,11 @@ import {
     type ApiFilters,
 } from "@/features/reports/components/reportsPage/activityFilters";
 
-// --- ایمپورت هوک‌های داده ---
 import {
     useLogs,
     useApproveLog,
 } from "../hooks/hook";
 
-// ✅ ایمپورت هوک بهینه شده
 import { useReportSocket } from "../hooks/useReportSocket";
 
 import { columns as createColumns } from "@/features/reports/components/reportsPage/TableColumns";
@@ -32,6 +29,8 @@ import { DataTablePagination } from "@/components/ui/DataTable/DataTablePaginati
 import { Button } from "@/components/ui/Button";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { ExportModal } from "@/features/reports/components/Export/ExportModal";
+// import { toPersianNumbers } from "../utils/toPersianNumbers";
+import { toast } from "react-toastify"; // برای نمایش پیام ویرایش
 
 function pad(num: number): string {
     return num < 10 ? "0" + num : num.toString();
@@ -47,7 +46,6 @@ const formatApiDate = (date: DateObject | null): string | undefined => {
 
 export default function ActivityReportPage() {
     const navigate = useNavigate();
-    // const queryClient = useQueryClient();
 
     const [isExportFormModalOpen, setIsExportFormModalOpen] = useState(false);
     const [logToApprove, setLogToApprove] = useState<ActivityLog | null>(null);
@@ -74,25 +72,29 @@ export default function ActivityReportPage() {
         }));
     }, [pageIndex, pageSize]);
 
-    // --- فچ کردن داده‌ها ---
     const { data: queryResult, isLoading, isFetching } = useLogs(filters);
-    
+
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
+    // const totalRows = meta?.total || 0;
 
-    // ✅ استفاده از هوک مرکزی سوکت (تمام لاجیک پیچیده حذف شد)
     useReportSocket(filters);
 
     const pageCount = meta?.last_page || 1;
     const approveMutation = useApproveLog();
-    const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
+
+    // ✅ حذف متغیر استفاده نشده editingLog برای رفع خطای بیلد
+    // const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
 
     const handleApprove = (log: ActivityLog) => {
         setLogToApprove(log);
     };
 
     const handleEdit = (log: ActivityLog) => {
-        setEditingLog(log);
+        // setEditingLog(log);
+        // فعلاً فقط یک پیام نمایش می‌دهیم تا زمانی که مودال ویرایش پیاده‌سازی شود
+        console.log("Edit requested for:", log.id);
+        toast.info("قابلیت ویرایش به زودی فعال می‌شود.");
     };
 
     const handleConfirmApprove = () => {
@@ -202,58 +204,65 @@ export default function ActivityReportPage() {
                 isLoading={approveMutation.isPending}
             />
 
-            <div className="flex flex-col md:flex-row-reverse gap-6 p-4 md:p-6">
-                <aside className=" mx-auto">
+            <div className="flex flex-col lg:flex-row-reverse gap-6 p-4 md:p-6 min-h-screen">
+                <aside className="w-full lg:w-72 lg:sticky lg:top-6 lg:self-start">
                     <ActivityFilters
                         onFilterChange={handleFilterChange}
                     />
                 </aside>
 
-                <main className="flex-1 rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-4 space-y-4 min-w-0">
-                    <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
-                            گزارش آخرین فعالیت‌ها
-                        </h2>
-                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setIsExportFormModalOpen(true)}
-                                type="button"
-                                className="flex items-center w-full sm:w-auto"
-                            >
-                                <Download className="w-5 h-5" />
-                                <span>خروجی اکسل</span>
-                            </Button>
+                <main className="flex-1 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD p-5 sm:p-6 shadow-sm border border-borderL dark:border-borderD flex flex-col gap-6">
 
-                            <Button
-                                variant="primary"
-                                onClick={handelNewReport}
-                                type="button"
-                                className="flex items-center w-full sm:w-auto"
-                            >
-                                <Plus className="w-5 h-5" />
-                                <span>ثبت فعالیت</span>
-                            </Button>
+                    <div className="flex flex-col gap-4">
+                        <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl">
+                                    <FileText className="w-6 h-6 text-primaryL dark:text-primaryD" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
+                                        گزارش فعالیت‌ها
+                                    </h2>
+                                    {/* <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5">
+                                        {isLoading ? "در حال بارگذاری..." : `${toPersianNumbers(totalRows)} رکورد ثبت شده`}
+                                    </p> */}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setIsExportFormModalOpen(true)}
+                                    type="button"
+                                    className="flex-1 sm:flex-none items-center gap-2 hover:bg-secondaryL dark:hover:bg-secondaryD"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span>خروجی اکسل</span>
+                                </Button>
+
+                                <Button
+                                    variant="primary"
+                                    onClick={handelNewReport}
+                                    type="button"
+                                    className="flex-1 sm:flex-none items-center gap-2 shadow-sm"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>ثبت فعالیت</span>
+                                </Button>
+                            </div>
                         </div>
-                    </header>
+                    </div>
 
-                    <section className="border border-borderL dark:border-borderD rounded-lg overflow-hidden">
+                    <div className="border border-borderL dark:border-borderD rounded-2xl overflow-hidden shadow-sm">
                         <DataTable
                             table={table}
                             isLoading={isLoading || isFetching}
-                            notFoundMessage="هیچ فعالیتی یافت نشد."
+                            notFoundMessage="هیچ فعالیتی با فیلترهای انتخاب شده یافت نشد."
                         />
-                    </section>
+                    </div>
 
                     <DataTablePagination table={table} />
-
-                    {editingLog && (
-                        <p>
-                            Placeholder:
-                            در حال ویرایش لاگ {editingLog.id}
-                            <button onClick={() => setEditingLog(null)}>بستن</button>
-                        </p>
-                    )}
                 </main>
             </div>
         </>

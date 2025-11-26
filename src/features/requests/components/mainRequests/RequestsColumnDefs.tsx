@@ -8,17 +8,12 @@ import StatusBadgeCell from "@/features/requests/components/mainRequests/StatusB
 import CategoryBadgeCell from "@/features/requests/components/mainRequests/CategoryBadgeCell";
 import { format, parseISO } from "date-fns-jalali";
 
-// تابع کمکی برای تبدیل اعداد انگلیسی به فارسی
-const toPersianNumbers = (str: string): string => {
-    if (!str) return '---';
+// ✅ تابع کمکی مرکزی برای تبدیل اعداد (بهینه شده)
+export const toPersianNumbers = (num: string | number | null | undefined): string => {
+    if (num === null || num === undefined) return '---';
+    const str = String(num);
     const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-    const englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-
-    let result = str;
-    for (let i = 0; i < 10; i++) {
-        result = result.replace(new RegExp(englishNumbers[i], 'g'), persianNumbers[i]);
-    }
-    return result;
+    return str.replace(/[0-9]/g, (d) => persianNumbers[Number(d)]);
 };
 
 // تابع کمکی ترجمه مدت زمان
@@ -31,6 +26,7 @@ const translateDuration = (duration: string): string => {
         .replace('week', 'هفته')
         .replace('weeks', 'هفته')
         .replace('hours', 'ساعت')
+        .replace('hour', 'ساعت')
         .replace('minute', 'دقیقه')
         .replace('minutes', 'دقیقه')
         .replace('second', 'ثانیه')
@@ -54,36 +50,31 @@ const DateCell = React.memo(({ isoDate }: { isoDate: string }) => {
         }
     }, [isoDate]);
 
-    return <span className="text-sm text-foregroundL dark:text-foregroundD">{formattedDate}</span>;
+    return <span className="text-sm font-medium text-foregroundL dark:text-foregroundD dir-ltr">{formattedDate}</span>;
 });
 
 const DurationCell = React.memo(({ duration }: { duration: string }) => {
     const translated = useMemo(() => translateDuration(duration), [duration]);
-    return <span className="text-sm text-foregroundL dark:text-foregroundD">{translated}</span>;
+    return <span className="text-sm font-medium text-foregroundL dark:text-foregroundD">{translated}</span>;
 });
 
 export const requestsColumns: ColumnDef<LeaveRequest>[] = [
     {
         accessorKey: "employee",
-        header: "مشخصات",
+        header: "درخواست کننده",
         cell: ({ row }) => {
-            // استخراج اطلاعات کارمند
             const employee = row.original.employee;
             const { first_name, last_name, phone_number, images } = employee;
             const fullName = `${first_name} ${last_name}`;
 
-            // ✅ اصلاح منطق استخراج عکس:
-            // ۱. اولویت با فیلد مستقیم avatarUrl است (اگر در تایپ موجود باشد یا بکند بفرستد)
-            // ۲. اگر نبود، سراغ آرایه images می‌رویم.
-            // (از as any استفاده می‌کنیم چون ممکن است تایپ دقیق Employee در اینجا همه فیلدها را نداشته باشد)
             const explicitAvatar = (employee as any).avatarUrl || (employee as any).avatar;
             const galleryAvatar = images && images.length > 0 ? images[0].url : null;
-
             const finalAvatarUrl = explicitAvatar || galleryAvatar || null;
 
             return <UserAvatarCell
                 name={fullName}
-                phone={phone_number || '---'}
+                // ✅ تبدیل شماره تلفن به فارسی
+                phone={toPersianNumbers(phone_number)}
                 avatarUrl={finalAvatarUrl}
             />;
         },
@@ -91,7 +82,7 @@ export const requestsColumns: ColumnDef<LeaveRequest>[] = [
 
     {
         accessorKey: "leave_type",
-        header: "نوع درخواست",
+        header: "نوع مرخصی",
         cell: ({ row }) => {
             return (
                 <CategoryBadgeCell
@@ -126,7 +117,7 @@ export const requestsColumns: ColumnDef<LeaveRequest>[] = [
 
     {
         accessorKey: "duration_for_humans",
-        header: "مدت",
+        header: "مدت زمان",
         cell: ({ row }) => {
             return <DurationCell duration={row.original.duration_for_humans} />;
         }
@@ -134,7 +125,7 @@ export const requestsColumns: ColumnDef<LeaveRequest>[] = [
 
     {
         id: "actions",
-        header: "",
+        header: "عملیات",
         cell: ({ row }) => {
             return <ActionsMenuCell requestId={row.original.id} />;
         },

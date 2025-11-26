@@ -69,9 +69,12 @@ export function isUserDashboard(
 }
 
 // ====================================================================
-// ۵. توابع کمکی
+// ۵. توابع کمکی (Utility Functions)
 // ====================================================================
 
+/**
+ * تبدیل اعداد فارسی به انگلیسی برای ارسال به سرور
+ */
 const fixPersianNumbers = (str: string): string => {
   const persianNumbers = [
     /۰/g,
@@ -93,8 +96,20 @@ const fixPersianNumbers = (str: string): string => {
   return result;
 };
 
+/**
+ * تبدیل اعداد انگلیسی به فارسی برای نمایش در UI
+ * (این تابع جدید برای استانداردسازی نمایش اعداد اضافه شد)
+ */
+export const toPersianDigits = (
+  num: number | string | undefined | null
+): string => {
+  if (num === undefined || num === null) return "۰";
+  const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+  return num.toString().replace(/\d/g, (x) => farsiDigits[parseInt(x)]);
+};
+
 // ====================================================================
-// ۶. فراخوانی API (با لاگ دقیق و استراتژی حذف پارامتر)
+// ۶. فراخوانی API
 // ====================================================================
 
 const API_ENDPOINT = "/panel";
@@ -110,7 +125,7 @@ export async function fetchDashboardData(
 
   const params: Record<string, string> = {};
 
-  // ۲. مدیریت تاریخ (فقط اگر امروز نبود ارسال کن)
+  // ۲. مدیریت تاریخ
   if (dateObj) {
     const today = new DateObject({ calendar: persian, locale: persian_fa });
     const selectedDateStr = fixPersianNumbers(dateObj.format("YYYY-MM-DD"));
@@ -124,8 +139,7 @@ export async function fetchDashboardData(
     }
   }
 
-  // ۳. مدیریت فیلتر (اصلاحیه مهم: اگر daily بود نفرست!)
-  // چون کاربر عادی با filter=daily کرش می‌کند (ارور ستون end_date)
+  // ۳. مدیریت فیلتر
   if (timeFilter && timeFilter !== "daily") {
     params.filter = timeFilter;
     console.log("Filter param ADDED:", timeFilter);
@@ -146,12 +160,9 @@ export async function fetchDashboardData(
   } catch (error: any) {
     console.error("❌ API Error Occurred");
 
-    // نمایش جزئیات کامل خطا برای تشخیص باگ بک‌اند
     if (error.response) {
       console.log("Status:", error.response.status);
-      console.log("Headers:", error.response.headers);
-      // این لاگ دقیقاً متن ارور SQL را در کنسول به ما نشان می‌دهد
-      console.log("Response Body (Server Error):", error.response.data);
+      console.log("Response Body:", error.response.data);
     } else if (error.request) {
       console.log("No response received (Network Error)");
     } else {
@@ -159,7 +170,6 @@ export async function fetchDashboardData(
     }
     console.groupEnd();
 
-    // هندل کردن خطای ۴۰۴ طبق بیزنس
     if (error.response && error.response.status === 404) {
       throw new Error(
         "رکورد کارمند برای این کاربر یافت نشد. لطفاً با پشتیبانی تماس بگیرید."

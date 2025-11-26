@@ -36,6 +36,21 @@ import { Skeleton } from "@/components/ui/Skeleton";
 type TimeFilter = "daily" | "weekly" | "monthly";
 
 // ====================================================================
+// توابع کمکی (Utility)
+// ====================================================================
+
+/**
+ * تبدیل اعداد انگلیسی به فارسی برای نمایش در UI
+ */
+const toPersianDigits = (num: number | string | undefined | null): string => {
+  if (num === undefined || num === null) return "۰";
+  const farsiDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return num
+    .toString()
+    .replace(/\d/g, (x) => farsiDigits[parseInt(x)]);
+};
+
+// ====================================================================
 // پیکربندی کارت‌های آماری
 // ====================================================================
 
@@ -44,11 +59,9 @@ interface StatConfig<T> {
   title: string;
   icon: ReactNode;
   variant: 'success' | 'warning' | 'danger' | 'info';
-  // اختیاری شد تا بتوانیم فعلاً حذفش کنیم
-  linkText?: string; 
+  linkText?: string;
 }
 
-// نکته: linkText ها فعلاً حذف شدند چون فیچر مربوطه هنوز پیاده‌سازی نشده است.
 const adminStatsConfig: StatConfig<AdminSummaryStats>[] = [
   { key: "total_present", title: "حاضرین امروز", icon: <UserCheck size={20} className="text-green-600 dark:text-green-400" />, variant: 'success' },
   { key: "total_lateness", title: "تاخیرها", icon: <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />, variant: 'warning' },
@@ -101,12 +114,14 @@ const DashboardPage = () => {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 rounded-2xl border border-borderL p-4 bg-secondaryL/20 dark:border-borderD">
-              <Skeleton className="h-4 w-24 mb-4" />
-              <Skeleton className="h-8 w-16 mb-2" />
-              <Skeleton className="h-3 w-full mt-auto" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-36 rounded-2xl border border-borderL p-5 bg-secondaryL/20 dark:border-borderD dark:bg-secondaryD/10 flex flex-col justify-between">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-8 rounded-lg" />
+              </div>
+              <Skeleton className="h-10 w-16" />
             </div>
           ))}
         </div>
@@ -115,7 +130,7 @@ const DashboardPage = () => {
 
     if (isError) {
       return (
-        <Alert variant="destructive" className="col-span-full">
+        <Alert variant="destructive" className="col-span-full my-4">
           <AlertTitle>خطا در دریافت اطلاعات</AlertTitle>
           <AlertDescription>{(error as Error).message}</AlertDescription>
         </Alert>
@@ -125,32 +140,36 @@ const DashboardPage = () => {
     if (isAdmin && isAdminDashboard(data!)) {
       return (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {adminStatsConfig.map((stat) => (
               <StatCard
                 key={stat.key}
                 title={stat.title}
-                value={data.summary_stats[stat.key] ?? 0} 
-                linkText={stat.linkText} // الان undefined است و نمایش داده نمی‌شود
+                // اعمال تبدیل اعداد فارسی
+                value={toPersianDigits(data.summary_stats[stat.key] ?? 0)}
+                variant={stat.variant}
+                linkText={stat.linkText}
                 icon={stat.icon}
                 onLinkClick={
-                  stat.linkText 
-                    ? () => console.log(`Maps: ${stat.key}`) 
+                  stat.linkText
+                    ? () => console.log(`Maps: ${stat.key}`)
                     : undefined
                 }
               />
             ))}
           </div>
 
-          <div className="mt-6 bg-backgroundL-500 dark:bg-backgroundD p-6 rounded-2xl border border-borderL dark:border-borderD shadow-sm min-h-[400px] animate-in fade-in slide-in-from-bottom-6 duration-700">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-foregroundL dark:text-foregroundD flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primaryL dark:text-primaryD" />
+          <div className="mt-8 bg-backgroundL-500 dark:bg-backgroundD p-6 lg:p-8 rounded-3xl border border-borderL dark:border-borderD shadow-sm min-h-[450px] animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+              <h3 className="text-xl font-bold text-foregroundL dark:text-foregroundD flex items-center gap-3">
+                <div className="p-2 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl">
+                  <BarChart3 className="w-6 h-6 text-primaryL dark:text-primaryD" />
+                </div>
                 آمار لحظه‌ای سازمان‌ها
               </h3>
-              <button 
-                onClick={() => refetch()} 
-                className="text-xs bg-secondaryL hover:bg-secondaryL/80 dark:bg-secondaryD dark:text-secondary-foregroundD px-3 py-1.5 rounded-lg transition-colors"
+              <button
+                onClick={() => refetch()}
+                className="text-xs sm:text-sm bg-secondaryL/80 hover:bg-secondaryL dark:bg-secondaryD dark:text-secondary-foregroundD px-4 py-2 rounded-xl transition-all hover:shadow-md active:scale-95"
               >
                 بروزرسانی نمودار
               </button>
@@ -163,24 +182,28 @@ const DashboardPage = () => {
 
     if (isUser && isUserDashboard(data!)) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        // نکته مهم: اضافه کردن w-full برای حل مشکل چسبیدن به سایدبار
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {userStatsConfig.map((stat) => (
             <StatCard
               key={stat.key}
               title={stat.title}
-              value={data[stat.key] ?? 0}
+              // اعمال تبدیل اعداد فارسی
+              value={toPersianDigits(data[stat.key] ?? 0)}
+              variant={stat.variant}
               linkText={stat.linkText}
               icon={stat.icon}
               onLinkClick={
-                  stat.linkText 
-                    ? () => console.log(`Maps: ${stat.key}`) 
-                    : undefined
+                stat.linkText
+                  ? () => console.log(`Maps: ${stat.key}`)
+                  : undefined
               }
             />
           ))}
-          
-          <div className="col-span-full mt-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+
+          <div className="col-span-full mt-2 p-5 bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl backdrop-blur-sm">
+            <p className="text-sm md:text-base text-blue-800 dark:text-blue-300 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
               کاربر گرامی، آمار فوق مربوط به عملکرد شما در <strong>ماه جاری</strong> می‌باشد.
             </p>
           </div>
@@ -192,8 +215,8 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-10">
-      <div className="p-5 bg-backgroundL-500 dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD shadow-sm">
+    <div className=" flex flex-col gap-4 p-4 sm:p-4">
+      <div className="p-6 bg-backgroundL-500 dark:bg-backgroundD rounded-3xl border border-borderL dark:border-borderD shadow-sm">
         <DashboardHeader
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
@@ -203,8 +226,8 @@ const DashboardPage = () => {
           hideDatePicker={true}
           infoLabel={headerLabel}
         />
-        
-        <div className="my-4 h-px bg-borderL/60 dark:bg-borderD/60" />
+
+        <div className="my-6 h-px bg-gradient-to-r from-transparent via-borderL/80 to-transparent dark:via-borderD/80" />
 
         {renderContent()}
       </div>

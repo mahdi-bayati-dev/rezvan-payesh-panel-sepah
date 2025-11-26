@@ -1,11 +1,9 @@
 import { type ColumnDef } from '@tanstack/react-table';
-// اصلاح مسیر نسبی
 import { type ActivityLog } from "@/features/reports/types/index"
 import { ActionsMenuCell } from './ActionsMenuCell';
 import Badge, { type BadgeVariant } from '../../../../components/ui/Badge';
 import { toPersianNumbers } from '../../utils/toPersianNumbers';
 import { Clock, AlertCircle, CheckCircle2, Hourglass, User } from 'lucide-react';
-// ✅ مسیر نسبی دقیق به helper تصویر
 import { getFullImageUrl } from '../../../User/utils/imageHelper';
 
 const activityVariantMap: Record<ActivityLog['activityType'], BadgeVariant> = {
@@ -28,14 +26,12 @@ interface CreateColumnsProps {
 }
 
 export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): ColumnDef<ActivityLog>[] => [
-  // 1. مشخصات (همراه با عکس)
   {
     accessorKey: 'employee',
     header: 'مشخصات',
     cell: ({ row }) => {
+      // نام و کد پرسنلی از مپر می‌آیند (کد پرسنلی قبلاً فارسی شده)
       const { name, employeeId, avatarUrl } = row.original.employee;
-
-      // ✅ تبدیل آدرس ناقص به آدرس کامل سرور
       const fullAvatarUrl = getFullImageUrl(avatarUrl);
 
       return (
@@ -47,7 +43,6 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
                 alt={name}
                 className="w-full h-full rounded-full object-cover border border-borderL dark:border-borderD"
                 onError={(e) => {
-                  // هندل کردن خطای لود عکس
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.parentElement?.classList.add('bg-secondaryL', 'dark:bg-secondaryD', 'flex', 'items-center', 'justify-center');
                   const icon = document.createElement('div');
@@ -62,18 +57,17 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-medium text-sm text-foregroundL dark:text-foregroundD truncate">
+            <span className="font-bold text-sm text-foregroundL dark:text-foregroundD truncate">
               {name}
             </span>
-            <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD truncate font-mono">
-              {toPersianNumbers(employeeId)}
+            <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD truncate dir-ltr text-right">
+              {employeeId}
             </span>
           </div>
         </div>
       );
     },
   },
-  // ... (بقیه ستون‌ها بدون تغییر) ...
   {
     accessorKey: 'activityType',
     header: 'فعالیت',
@@ -100,13 +94,17 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
     accessorKey: 'date',
     header: 'تاریخ',
     cell: ({ row }) => (
-      <span className="text-sm font-medium text-foregroundL dark:text-foregroundD">{row.original.date}</span>
+      // تاریخ قبلاً در مپر فارسی شده است
+      <span className="text-sm font-medium text-foregroundL dark:text-foregroundD dir-ltr">
+        {row.original.date}
+      </span>
     )
   },
   {
     accessorKey: 'time',
     header: 'ساعت',
     cell: ({ row }) => (
+      // ساعت قبلاً در مپر فارسی شده است
       <span className="text-sm font-medium dir-ltr block text-right text-foregroundL dark:text-foregroundD">
         {row.original.time}
       </span>
@@ -128,6 +126,7 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
           {lateness_minutes > 0 && (
             <div className="flex items-center gap-1 text-destructiveL dark:text-destructiveD px-1">
               <Clock className="w-3 h-3" />
+              {/* تبدیل عدد تاخیر به فارسی */}
               <span className="text-[11px] font-medium">{toPersianNumbers(lateness_minutes)} دقیقه تاخیر</span>
             </div>
           )}
@@ -135,6 +134,7 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
           {early_departure_minutes > 0 && (
             <div className="flex items-center gap-1 text-warningL dark:text-warningD px-1">
               <AlertCircle className="w-3 h-3" />
+              {/* تبدیل عدد تعجیل به فارسی */}
               <span className="text-[11px] font-medium">{toPersianNumbers(early_departure_minutes)} دقیقه تعجیل</span>
             </div>
           )}
