@@ -391,9 +391,12 @@ class UserController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+
          $validatedData = $validator->validated();
+        Log::info("this is validated data : " .json_encode($validatedData));
          $employeeData = $validatedData['employee'] ?? [];
 
+           Log::info("this is employee data : " .json_encode($employeeData));
          if ($allowedOrgCheck && isset($employeeData['organization_id']) && $employeeData['organization_id'] !== $user->employee?->organization_id)
          {
               if (!$this->canAdminManageOrg($updatingUser, $employeeData['organization_id']))
@@ -423,6 +426,7 @@ class UserController extends Controller
              // Update Employee fields if provided
              if (!empty($employeeData) && $user->employee)
              {
+                 Log::info("this is employee data : " .json_encode($employeeData));
                  $employeeFields = collect($employeeData)->except(['images', 'delete_images'])->toArray();
                  $user->employee->update($employeeFields);
              }
