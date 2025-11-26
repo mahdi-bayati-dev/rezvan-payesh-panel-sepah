@@ -1,4 +1,3 @@
-// ManagePatternEmployeesPage.tsx
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { ReactElement } from "react";
@@ -12,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { toast } from "react-toastify";
 
-import { Loader2, Users, ArrowRight, Search, UserPlus, UserMinus } from "lucide-react";
+import { Loader2, Users, ArrowRight, Search, UserPlus, UserMinus, AlertTriangle } from "lucide-react";
 
 // hooks & api
 import { useUsers } from "@/features/User/hooks/hook";
@@ -33,7 +32,7 @@ import { DataTable } from "@/components/ui/DataTable/index";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 
 // ==============================
-// Debounce hook (small and reliable)
+// Debounce hook
 // ==============================
 const useDebounce = (value: string, delay = 500) => {
     const [debounced, setDebounced] = useState(value);
@@ -45,8 +44,7 @@ const useDebounce = (value: string, delay = 500) => {
 };
 
 // ==============================
-// Small subcomponent: Table wrapper for a card
-// (keeps parent clean & reusable)
+// Table Wrapper
 // ==============================
 const UserManagementTable: React.FC<{
     users: User[];
@@ -87,10 +85,14 @@ const UserManagementTable: React.FC<{
 export default function ManagePatternEmployeesPage(): ReactElement {
     const navigate = useNavigate();
     const { patternType, patternId } = useParams<{ patternType: string; patternId: string }>();
-    const numericPatternId = Number(patternId);
+
+    // تبدیل ایمن ID به عدد
+    const numericPatternId = useMemo(() => Number(patternId), [patternId]);
+
+    // تشخیص نوع الگو (شیفتی یا ثابت)
     const isShiftSchedule = patternType === "schedule";
 
-    // fetch pattern or schedule details
+    // fetch details
     const { data: patternDetails, isLoading: isLoadingPattern } = useWeekPatternDetails(
         !isShiftSchedule ? numericPatternId : 0
     );
@@ -108,6 +110,7 @@ export default function ManagePatternEmployeesPage(): ReactElement {
         isLoading: isLoadingUsers,
         isError: isErrorUsers,
         error: usersError,
+        refetch: refetchUsers
     } = useUsers({
         page: 1,
         per_page: 9999,
@@ -119,7 +122,7 @@ export default function ManagePatternEmployeesPage(): ReactElement {
     const assignScheduleMutation = useUpdateUserShiftSchedule();
     const mutationPending = assignPatternMutation.isPending || assignScheduleMutation.isPending;
 
-    // partition users -> assigned / available
+    // ✅ منطق تفکیک کاربران تخصیص‌یافته
     const { assignedUsers, availableUsers } = useMemo(() => {
         const all = userResponse?.data ?? [];
 
@@ -133,35 +136,68 @@ export default function ManagePatternEmployeesPage(): ReactElement {
             let isAssigned = false;
 
             if (isShiftSchedule) {
-                if (emp?.shift_schedule?.id === numericPatternId) isAssigned = true;
+                if (emp?.shift_schedule && Number(emp.shift_schedule.id) === numericPatternId) {
+                    isAssigned = true;
+                }
             } else {
-                if (emp?.week_pattern?.id === numericPatternId) isAssigned = true;
+                if (emp?.week_pattern && Number(emp.week_pattern.id) === numericPatternId) {
+                    isAssigned = true;
+                }
             }
 
-            if (isAssigned) assigned.push(u);
-            else {
-                const hasAnyAssignment = !!(emp?.week_pattern || emp?.shift_schedule);
-                if (!hasAnyAssignment) available.push(u);
+            if (isAssigned) {
+                assigned.push(u);
+            } else {
+                // 🟢 اصلاح فیکس: حذف متغیر اضافی که باعث ارور بیلد شده بود
+                // ما اینجا تمام کاربرانی که به "این الگو" متصل نیستند را نشان می‌دهیم.
+                // اگر بخواهیم آنهایی که جای دیگر مشغولند را نشان ندهیم، باید شرط اضافه کنیم.
+                // فعلا ساده‌ترین حالت:
+                available.push(u);
             }
         }
 
         return { assignedUsers: assigned, availableUsers: available };
     }, [userResponse, numericPatternId, isShiftSchedule]);
 
-    // assign/unassign handler
+    // ✅ هندلر تخصیص با اعتبارسنجی پاسخ سرور
     const handleAssign = (userId: number, assignId: number | null) => {
         const mutation = isShiftSchedule ? assignScheduleMutation : assignPatternMutation;
 
+        // پِی‌لود بر اساس نوع الگو
         const payload = isShiftSchedule
             ? { userId, shiftScheduleId: assignId }
             : { userId, workPatternId: assignId };
 
-        // mute TS here because hooks accept differing payload shapes
-        // and their types live in your hook definitions
         // @ts-ignore
         mutation.mutate(payload, {
-            onSuccess: () => {
-                toast.success(assignId ? "کارمند تخصیص یافت." : "تخصیص لغو شد.");
+            onSuccess: (response) => {
+                // 🛡️ بررسی امنیتی (Verification)
+
+                const emp = response?.employee;
+                const serverPatternId = isShiftSchedule
+                    ? emp?.shift_schedule?.id
+                    : emp?.week_pattern?.id;
+
+                const targetId = assignId ? Number(assignId) : null;
+                const currentId = serverPatternId ? Number(serverPatternId) : null;
+
+                if (targetId !== currentId) {
+                    console.error(`⚠️ [Backend Mismatch] Target: ${targetId}, Server Has: ${currentId}`);
+                    toast.error(
+                        <div className="text-sm">
+                            <div className="font-bold flex items-center gap-1">
+                                <AlertTriangle size={16} /> عدم اعمال تغییرات!
+                            </div>
+                            <span>سرور درخواست را پذیرفت اما دیتابیس آپدیت نشد.</span>
+                            <br />
+                            <span className="text-xs opacity-70">(احتمالا مشکل $fillable در بکند)</span>
+                        </div>
+                    );
+                    return;
+                }
+
+                toast.success(assignId ? "کارمند با موفقیت اضافه شد." : "کارمند با موفقیت حذف شد.");
+                refetchUsers();
             },
             onError: (err) => {
                 const msg = (err as Error)?.message ?? "خطای نامشخص";
@@ -170,7 +206,7 @@ export default function ManagePatternEmployeesPage(): ReactElement {
         });
     };
 
-    // columns (kept concise & accessible)
+    // Columns Definition
     const assignedColumns = useMemo<ColumnDef<User>[]>(
         () => [
             {
@@ -198,13 +234,9 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                             className="flex items-center gap-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
                             onClick={() => handleAssign(row.original.id, null)}
                             disabled={mutationPending}
-                            aria-label={`حذف ${row.original.employee?.first_name ?? ""}`}
+                            title="لغو تخصیص"
                         >
-                            {mutationPending ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                                <UserMinus className="h-3 w-3" />
-                            )}
+                            {mutationPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserMinus className="h-3 w-3" />}
                             <span className="text-xs">حذف</span>
                         </Button>
                     </div>
@@ -219,11 +251,19 @@ export default function ManagePatternEmployeesPage(): ReactElement {
             {
                 header: "کارمند",
                 accessorFn: (row) => `${row.employee?.first_name ?? ""} ${row.employee?.last_name ?? ""}`,
-                cell: ({ row }) => (
-                    <div className="text-sm font-medium text-foregroundL dark:text-foregroundD">
-                        {`${row.original.employee?.first_name ?? ""} ${row.original.employee?.last_name ?? ""}`}
-                    </div>
-                ),
+                cell: ({ row }) => {
+                    const currentPattern = row.original.employee?.week_pattern?.name || row.original.employee?.shift_schedule?.name;
+                    return (
+                        <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foregroundL dark:text-foregroundD">
+                                {`${row.original.employee?.first_name ?? ""} ${row.original.employee?.last_name ?? ""}`}
+                            </span>
+                            {currentPattern && (
+                                <span className="text-[10px] text-muted-foregroundL">فعلی: {currentPattern}</span>
+                            )}
+                        </div>
+                    )
+                },
             },
             {
                 header: "کد پرسنلی",
@@ -241,13 +281,9 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                             className="flex items-center gap-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
                             onClick={() => handleAssign(row.original.id, numericPatternId)}
                             disabled={mutationPending}
-                            aria-label={`افزودن ${row.original.employee?.first_name ?? ""}`}
+                            title="تخصیص به این الگو"
                         >
-                            {mutationPending ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                                <UserPlus className="h-3 w-3" />
-                            )}
+                            {mutationPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
                             <span className="text-xs">افزودن</span>
                         </Button>
                     </div>
@@ -257,7 +293,6 @@ export default function ManagePatternEmployeesPage(): ReactElement {
         [mutationPending, numericPatternId]
     );
 
-    // validation id
     if (isNaN(numericPatternId)) {
         return (
             <div className="p-8 text-center text-red-600 font-vazir" dir="rtl">
@@ -285,7 +320,7 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                         <h1 className="text-xl md:text-2xl font-semibold">مدیریت کارمندان</h1>
                     </div>
                     <div className="text-sm text-muted-foregroundL dark:text-muted-foregroundD mt-1">
-                        تخصیص به:
+                        مدیریت کاربران متصل به:
                         <span className="mr-2 inline-block px-2 py-0.5 rounded-md bg-primaryL/10 text-primaryL font-medium">
                             {patternName}
                         </span>
@@ -305,7 +340,7 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                 </div>
             </div>
 
-            {/* Toolbar - Search */}
+            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="relative w-full max-w-md">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -314,77 +349,66 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                         placeholder="جستجو در میان همه کارمندان..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pr-10   focus:ring-2 focus:ring-primaryL/30"
+                        className="pr-10 focus:ring-2 focus:ring-primaryL/30"
                     />
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
-                        {isLoadingUsers ? (
-                            <div className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                در حال بارگذاری کارمندان...
-                            </div>
-                        ) : (
-                            <div className="flex gap-3">
-                                <div className="text-sm">کل: <span className="font-medium">{userResponse?.data?.length ?? 0}</span></div>
-                                <div className="text-sm">قابل انتخاب: <span className="font-medium">{availableUsers.length}</span></div>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
 
-            {/* Errors */}
-            {isErrorUsers && (
+            {/* Content */}
+            {isErrorUsers ? (
                 <Alert variant="destructive">
                     <AlertTitle>خطا در بارگذاری کارمندان</AlertTitle>
                     <AlertDescription>{(usersError as Error)?.message ?? "خطای نامشخّص"}</AlertDescription>
                 </Alert>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Assigned Users */}
+                    <Card className="rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 bg-green-50/30 dark:bg-green-900/10">
+                        <CardHeader className="pb-2 border-b border-green-100 dark:border-green-900/30">
+                            <CardTitle className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <UserMinus className="h-5 w-5 text-green-700 dark:text-green-400" />
+                                    <span className="text-sm font-semibold text-green-800 dark:text-green-300">کارمندان متصل (تخصیص یافته)</span>
+                                </div>
+                                <span className="text-xs px-2 py-1 rounded-full bg-white dark:bg-gray-800 shadow-sm text-green-600 font-bold">
+                                    {assignedUsers.length} نفر
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            <UserManagementTable
+                                users={assignedUsers}
+                                columns={assignedColumns}
+                                isLoading={isLoadingUsers || mutationPending}
+                                notFoundMessage="هیچ کارمندی به این الگو متصل نیست."
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Available Users */}
+                    <Card className="rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+                        <CardHeader className="pb-2 border-b border-gray-100 dark:border-gray-800">
+                            <CardTitle className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <UserPlus className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                                    <span className="text-sm font-semibold">سایر کارمندان</span>
+                                </div>
+                                <span className="text-xs px-2 py-1 rounded-full bg-secondaryL dark:bg-gray-700 text-foregroundL font-bold">
+                                    {availableUsers.length} نفر
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            <UserManagementTable
+                                users={availableUsers}
+                                columns={availableColumns}
+                                isLoading={isLoadingUsers || mutationPending}
+                                notFoundMessage="کارمند دیگری یافت نشد."
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
             )}
-
-            {/* Main two-column area */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                                <UserMinus className="h-5 w-5 text-red-600" />
-                                <span className="text-sm font-semibold">کارمندان تخصیص‌یافته</span>
-                                <span className="text-xs ml-2 px-2 py-0.5 rounded bg-red-50 text-red-600">{assignedUsers.length} نفر</span>
-                            </div>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <UserManagementTable
-                            users={assignedUsers}
-                            columns={assignedColumns}
-                            isLoading={isLoadingUsers || mutationPending}
-                            notFoundMessage="هیچ کارمندی به این الگو تخصیص نیافته است."
-                        />
-                    </CardContent>
-                </Card>
-
-                <Card className="rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                                <UserPlus className="h-5 w-5 text-green-600" />
-                                <span className="text-sm font-semibold">کارمندان در دسترس</span>
-                                <span className="text-xs ml-2 px-2 py-0.5 rounded bg-green-50 text-green-600">{availableUsers.length} نفر</span>
-                            </div>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <UserManagementTable
-                            users={availableUsers}
-                            columns={availableColumns}
-                            isLoading={isLoadingUsers || mutationPending}
-                            notFoundMessage="هیچ کارمند آزاد دیگری یافت نشد."
-                        />
-                    </CardContent>
-                </Card>
-            </div>
         </div>
     );
 }
