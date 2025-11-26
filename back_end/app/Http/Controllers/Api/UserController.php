@@ -12,6 +12,7 @@ use App\Models\Status;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\CheckSystem;
+use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -521,7 +522,7 @@ class UserController extends Controller
                     Log::error("AI Delete Failed: " . $response->body());
                 }
             }
-            catch (\Exception $e)
+            catch (Exception $e)
             {
                 Log::error("Failed to sync deleted images with AI: " . $e->getMessage());
             }
@@ -568,7 +569,7 @@ class UserController extends Controller
                     Log::error("AI Delete Error: " . $response->body());
                 }
             }
-            catch (\Exception $e)
+            catch (Exception $e)
             {
                 Log::error("Failed to sync deleted images with AI: " . $e->getMessage());
             }
@@ -611,15 +612,16 @@ class UserController extends Controller
         return false;
     }
 
-public function importUsers(Request $request)
+    public function importUsers(Request $request)
     {
         $user = $request->user();
-        if(!$user->hasRole('super_admin')) {
+        if(!$user->hasRole('super_admin'))
+        {
             return response()->json(["message" => "You don't have permission to access this page."], 403);
         }
 
         $validatedData = $request->validate([
-            'file'              => 'required|mimes:xlsx,xls,csv|max:10240',
+            'file'              => 'required|mimes:xlsx,xls,csv|max:2048',
             'organization_id'   => 'required|integer|exists:organizations,id',
             'work_group_id'     => 'nullable|integer|exists:work_groups,id',
             'shift_schedule_id' => 'nullable|integer|exists:shift_schedules,id',
@@ -633,7 +635,8 @@ public function importUsers(Request $request)
             'default_password'  => $validatedData['default_password'] ,
         ];
 
-        try {
+        try
+        {
             // 1. ذخیره فایل روی دیسک (Local) برای دسترسی Worker به آن
             // فایل با پسوند اصلی ذخیره می‌شود تا نوع آن مشخص باشد
             $file = $request->file('file');
@@ -647,12 +650,16 @@ public function importUsers(Request $request)
             Excel::queue(new UsersImport($globalSettings), $path);
 
             return response()->json([
-                'message' => 'فایل با موفقیت آپلود شد و در صف پردازش قرار گرفت.'
+                'message' => 'فایل دریافت شد و پردازش در پس‌زمینه شروع شده است. بسته به تعداد رکوردها ممکن است چند دقیقه زمان ببرد.'
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (ValidationException $e)
+        {
+            return response()->json(['errors' => $e->failures()], 422);
+        } catch (Exception $e)
+        {
             Log::error("Import Queue Failed: " . $e->getMessage());
-            return response()->json(['message' => 'خطا در پردازش فایل.'], 500);
+            return response()->json(['message' => 'خطا در ارسال فایل به صف پردازش.'], 500);
         }
     }
 }
