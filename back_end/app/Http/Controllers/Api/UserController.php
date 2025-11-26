@@ -215,7 +215,7 @@ class UserController extends Controller
             // اطلاعات برنامه کاری (معمولاً این فیلدها nullable هستند چون ممکن است از گروه کاری ارث‌بری شوند)
             'employee.work_group_id' => ['nullable', 'integer', Rule::exists('work_groups', 'id')],
             'employee.shift_schedule_id' => ['nullable', 'integer', Rule::exists('shift_schedules', 'id')],
-            'employee.work_pattern_id' => ['nullable', 'integer', Rule::exists('work_patterns', 'id')],
+            'employee.week_pattern_id' => ['nullable', 'integer', Rule::exists('week_patterns', 'id')],
 
             'employee.images' => ['nullable', 'array'],
             'employee.images.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
@@ -377,7 +377,7 @@ class UserController extends Controller
             // اطلاعات برنامه کاری
             'employee.work_group_id' => ['nullable', 'integer', Rule::exists('work_groups', 'id')],
             'employee.shift_schedule_id' => ['nullable', 'integer', Rule::exists('shift_schedules', 'id')],
-            'employee.work_pattern_id' => ['nullable', 'integer', Rule::exists('work_patterns', 'id')],
+            'employee.week_pattern_id' => ['nullable', 'integer', Rule::exists('week_pattern_id', 'id')],
 
             // اعتبارسنجی تصاویر (جدید)
             'employee.images' => ['nullable', 'array'],
