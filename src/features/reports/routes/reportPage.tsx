@@ -29,7 +29,7 @@ import { DataTablePagination } from "@/components/ui/DataTable/DataTablePaginati
 import { Button } from "@/components/ui/Button";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { ExportModal } from "@/features/reports/components/Export/ExportModal";
-import { toPersianNumbers } from "../utils/toPersianNumbers";
+// import { toPersianNumbers } from "../utils/toPersianNumbers";
 import { toast } from "react-toastify"; // برای نمایش پیام ویرایش
 
 function pad(num: number): string {
@@ -76,7 +76,7 @@ export default function ActivityReportPage() {
 
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
-    const totalRows = meta?.total || 0;
+    // const totalRows = meta?.total || 0;
 
     useReportSocket(filters);
 
