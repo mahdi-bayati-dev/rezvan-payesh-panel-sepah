@@ -25,3 +25,4 @@ dist-ssr
 *.sln
 *.sw?
 /back_end/.scribe/endpoints/custom.0.yaml
+/public/index.html
