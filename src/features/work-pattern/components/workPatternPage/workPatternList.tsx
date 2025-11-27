@@ -150,7 +150,7 @@ export const WorkPatternList = ({
                           </div>
                           <div>
                             {/* ✅ تبدیل عدد طول دوره به فارسی */}
-                            {/* <span className="font-mono font-bold">{toPersianDigits(pattern.cycle_length_days)}</span> روزه */}
+                            {/* <span className=" font-bold">{toPersianDigits(pattern.cycle_length_days)}</span> روزه */}
                           </div>
                         </span>
                       ) : (

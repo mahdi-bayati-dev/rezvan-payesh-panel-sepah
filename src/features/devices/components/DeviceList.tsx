@@ -94,7 +94,7 @@ export function DeviceList() {
                     {!isLoading && apiResponse && (
                         <div className="text-xs text-gray-400 flex flex-col">
                             <span>آخرین بروزرسانی دیتا:</span>
-                            <span className="font-mono" dir="ltr">{apiResponse.generated_at}</span>
+                            <span className="" dir="ltr">{apiResponse.generated_at}</span>
                         </div>
                     )}
                 </div>

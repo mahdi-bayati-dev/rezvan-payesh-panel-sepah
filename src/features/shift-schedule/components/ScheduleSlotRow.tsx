@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Check, X, Edit, Moon, Clock } from 'lucide-react';
+import { Loader2, Check, X, Edit, Moon, Clock, CalendarDays } from 'lucide-react';
 
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import { Button } from '@/components/ui/Button';
@@ -15,7 +15,14 @@ import {
 } from '../types';
 import clsx from 'clsx';
 
-// --- تابع کمکی برای محاسبه وضعیت شیفت (مشترک با فرم ایجاد) ---
+// --- تابع کمکی تبدیل اعداد به فارسی ---
+const toPersianDigits = (n: number | string | null | undefined): string => {
+    if (n === null || n === undefined) return "";
+    const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+    return n.toString().replace(/\d/g, (x) => farsiDigits[parseInt(x)]);
+};
+
+// --- تابع کمکی برای محاسبه وضعیت شیفت ---
 const calculateShiftInfo = (start: string | null | undefined, end: string | null | undefined) => {
     if (!start || !end) return { isNextDay: false, duration: null };
 
@@ -30,16 +37,16 @@ const calculateShiftInfo = (start: string | null | undefined, end: string | null
     let diff = endTotal - startTotal;
     let isNextDay = false;
 
-    // اگر پایان کوچکتر از شروع باشد (مثلاً ۲۰:۰۰ تا ۰۶:۰۰)، یعنی شیفت شب است
     if (diff < 0) {
-        diff += 24 * 60; // اضافه کردن ۲۴ ساعت به پایان
+        diff += 24 * 60;
         isNextDay = true;
     }
 
     const hours = Math.floor(diff / 60);
     const minutes = diff % 60;
 
-    const durationText = `${hours > 0 ? `${hours} ساعت` : ''} ${minutes > 0 ? `و ${minutes} دقیقه` : ''}`.trim();
+    // نمایش مدت زمان به فارسی
+    const durationText = `${hours > 0 ? `${toPersianDigits(hours)} ساعت` : ''} ${minutes > 0 ? `و ${toPersianDigits(minutes)} دقیقه` : ''}`.trim();
 
     return { isNextDay, duration: durationText };
 };
@@ -164,10 +171,8 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
         ? (watchedEndTime || (selectedPattern ? '16:00' : null))
         : (slot.override_end_time || (slot.work_pattern ? slot.work_pattern.end_time : null));
 
-    // محاسبه وضعیت شیفت
     const { isNextDay, duration } = calculateShiftInfo(calcStart, calcEnd);
 
-    // مقادیر نمایشی برای View Mode
     const displayPatternName = slot.work_pattern ? slot.work_pattern.name : 'استراحت';
     const displayStartTime = slot.override_start_time || (slot.work_pattern ? slot.work_pattern.start_time : null);
     const displayEndTime = slot.override_end_time || (slot.work_pattern ? slot.work_pattern.end_time : null);
@@ -176,15 +181,20 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
         <form onSubmit={handleSubmit(onSubmit)} className="contents" noValidate>
             <div className="contents text-sm text-center">
 
-                {/* ستون ۱: روز */}
-                <div className="p-3 border-r border-borderL dark:border-borderD flex justify-center items-center font-medium text-foregroundL dark:text-foregroundD">
-                    {slot.day_in_cycle}
+                {/* ستون ۱: روز (بهبود ظاهری و فارسی سازی) */}
+                <div className="p-3 border-l border-borderL dark:border-borderD flex justify-center items-center bg-gray-50/50 dark:bg-gray-800/20">
+                    <div className="flex flex-col items-center">
+                        <span className="text-xs text-muted-foregroundL mb-0.5">روز</span>
+                        <span className="font-bold text-lg text-foregroundL dark:text-foregroundD bg-white dark:bg-black/20 w-8 h-8 flex items-center justify-center rounded-full shadow-sm border border-borderL dark:border-borderD">
+                            {toPersianDigits(slot.day_in_cycle)}
+                        </span>
+                    </div>
                 </div>
 
                 {/* ستون ۲: الگو */}
-                <div className="p-2 border-r border-borderL dark:border-borderD text-right">
+                <div className="p-2 border-l border-borderL dark:border-borderD flex items-center justify-start text-right">
                     {isEditing ? (
-                        <div>
+                        <div className="w-full">
                             <Controller
                                 name="work_pattern_id"
                                 control={control}
@@ -201,17 +211,20 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                             />
                         </div>
                     ) : (
-                        <span className={clsx(
-                            "font-medium",
-                            slot.work_pattern_id === null ? 'text-red-500 dark:text-red-400' : 'text-foregroundL dark:text-foregroundD'
-                        )}>
-                            {displayPatternName}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <div className={clsx("w-2 h-2 rounded-full", slot.work_pattern_id === null ? "bg-amber-400" : "bg-blue-500")} />
+                            <span className={clsx(
+                                "font-medium text-sm",
+                                slot.work_pattern_id === null ? 'text-amber-700 dark:text-amber-500' : 'text-foregroundL dark:text-foregroundD'
+                            )}>
+                                {displayPatternName}
+                            </span>
+                        </div>
                     )}
                 </div>
 
-                {/* ستون ۳: شروع */}
-                <div className="p-2 border-r border-borderL dark:border-borderD">
+                {/* ستون ۳: شروع (فارسی سازی اعداد ساعت) */}
+                <div className="p-2 border-l border-borderL dark:border-borderD flex items-center justify-center">
                     {isEditing ? (
                         <Controller
                             name="override_start_time"
@@ -221,21 +234,21 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                                     value={field.value ?? null}
                                     onChange={field.onChange}
                                     disabled={isSubmitting || isRestDay}
-                                    className={clsx(isRestDay && "opacity-50 bg-stone-100 dark:bg-stone-800")}
+                                    className={clsx(isRestDay && "opacity-50 bg-stone-100 dark:bg-stone-800", "text-center dir-ltr")}
                                 />
                             )}
                         />
                     ) : (
-                        <span className={clsx(!displayStartTime && "text-muted-foregroundL")}>
-                            {displayStartTime || '---'}
+                        <span className={clsx("font-medium  text-sm", !displayStartTime && "text-muted-foregroundL opacity-30")}>
+                            {displayStartTime ? toPersianDigits(displayStartTime) : '---'}
                         </span>
                     )}
                 </div>
 
-                {/* ستون ۴: پایان (با نشانگر روز بعد) */}
-                <div className="p-2 border-r border-borderL dark:border-borderD relative">
+                {/* ستون ۴: پایان (فارسی سازی اعداد ساعت و بج) */}
+                <div className="p-2 border-l border-borderL dark:border-borderD relative flex items-center justify-center">
                     {isEditing ? (
-                        <div className="relative">
+                        <div className="relative w-full">
                             <Controller
                                 name="override_end_time"
                                 control={control}
@@ -245,61 +258,63 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                                         onChange={field.onChange}
                                         disabled={isSubmitting || isRestDay}
                                         className={clsx(
+                                            "text-center dir-ltr",
                                             isRestDay && "opacity-50 bg-stone-100 dark:bg-stone-800",
                                             !isRestDay && isNextDay && "border-indigo-400 focus:border-indigo-500 dark:border-indigo-500"
                                         )}
                                     />
                                 )}
                             />
-                            {/* بج روز بعد در حالت ویرایش */}
                             {isNextDay && !isRestDay && (
-                                <span className="absolute -top-3 left-0 px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200 text-[9px] font-bold shadow-sm border border-indigo-200 dark:border-indigo-700 flex items-center gap-0.5 z-10 pointer-events-none">
+                                <span className="absolute -top-3 right-0 left-0 mx-auto w-max px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200 text-[9px] font-bold shadow-sm border border-indigo-200 dark:border-indigo-700 flex items-center justify-center gap-0.5 z-10 pointer-events-none">
                                     <Moon className="w-2.5 h-2.5" />
-                                    1+ روز
+                                    ۱+ روز
                                 </span>
                             )}
                         </div>
                     ) : (
                         <div className="flex items-center justify-center gap-2 relative">
-                            <span className={clsx(!displayEndTime && "text-muted-foregroundL")}>
-                                {displayEndTime || '---'}
+                            <span className={clsx("font-medium  text-sm", !displayEndTime && "text-muted-foregroundL opacity-30")}>
+                                {displayEndTime ? toPersianDigits(displayEndTime) : '---'}
                             </span>
-                            {/* بج روز بعد در حالت نمایش */}
                             {isNextDay && !isRestDay && (
-                                <span title="پایان شیفت در روز بعد" className="flex items-center gap-1 text-[10px] bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                                <span title="پایان شیفت در روز بعد" className="flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800/50">
                                     <Moon className="w-3 h-3" />
-                                    <span className="hidden xl:inline">+1</span>
+                                    <span className="hidden xl:inline">+۱</span>
                                 </span>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* ستون ۵: وضعیت/مدت (ستون جدید) */}
-                <div className="p-2 border-r border-borderL dark:border-borderD flex justify-center items-center">
+                {/* ستون ۵: وضعیت/مدت */}
+                <div className="p-2 border-l border-borderL dark:border-borderD flex justify-center items-center">
                     {!isRestDay && duration ? (
-                        <div className="flex items-center gap-1 text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full whitespace-nowrap">
-                            <Clock className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full whitespace-nowrap border border-emerald-100 dark:border-emerald-800/30">
+                            <Clock className="w-3.5 h-3.5" />
                             <span>{duration}</span>
                         </div>
                     ) : (
-                        <span className="text-xs text-muted-foregroundL/30">---</span>
+                        <div className="flex items-center gap-1 text-xs text-amber-600/60 dark:text-amber-500/60 bg-amber-50/50 dark:bg-amber-900/10 px-2 py-1 rounded border border-amber-100/50 dark:border-amber-800/10">
+                            <CalendarDays className="w-3 h-3" />
+                            <span>استراحت</span>
+                        </div>
                     )}
                 </div>
 
                 {/* ستون ۶: عملیات */}
-                <div className="p-2 flex gap-2 justify-center">
+                <div className="p-2 flex gap-2 justify-center items-center">
                     {isEditing ? (
                         <>
-                            <Button type="submit" size="icon" variant="primary" disabled={!isDirty || isSubmitting}>
+                            <Button type="submit" size="icon" className="h-8 w-8 bg-green-600 hover:bg-green-700 text-white" disabled={!isDirty || isSubmitting}>
                                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                             </Button>
-                            <Button type="button" variant="ghost" size="icon" onClick={handleCancel} disabled={isSubmitting}>
-                                <X className="h-4 w-4 text-red-500" />
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-red-50 hover:text-red-600" onClick={handleCancel} disabled={isSubmitting}>
+                                <X className="h-4 w-4" />
                             </Button>
                         </>
                     ) : (
-                        <Button type="button" size="icon" variant="outline" onClick={() => setIsEditing(true)}>
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-muted-foregroundL hover:text-primaryL hover:bg-primaryL/10" onClick={() => setIsEditing(true)}>
                             <Edit className="h-4 w-4" />
                         </Button>
                     )}

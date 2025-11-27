@@ -55,7 +55,7 @@ const RequestDetailHeader = ({ number, date, onBack }: RequestDetailHeaderProps)
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-backgroundL dark:bg-zinc-900 border border-borderL dark:border-zinc-800">
         <Hash size={16} className="text-primaryL dark:text-primaryD" />
         <span className="text-muted-foregroundL dark:text-muted-foregroundD">شماره:</span>
-        <span className="font-bold font-mono text-foregroundL dark:text-foregroundD">{toPersianNumbers(number)}</span>
+        <span className="font-bold  text-foregroundL dark:text-foregroundD">{toPersianNumbers(number)}</span>
       </div>
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-backgroundL dark:bg-zinc-900 border border-borderL dark:border-zinc-800">
         <CalendarClock size={16} className="text-primaryL dark:text-primaryD" />

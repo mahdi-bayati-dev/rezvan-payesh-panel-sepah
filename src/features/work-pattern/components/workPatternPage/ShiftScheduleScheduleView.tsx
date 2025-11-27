@@ -149,7 +149,7 @@ export const ShiftScheduleScheduleView = ({
                             <div className="sticky top-0 z-10 flex h-10 bg-backgroundL-500/95 dark:bg-backgroundD/95 border-b border-borderL dark:border-borderD backdrop-blur-md">
                                 {hours.map((hour) => (
                                     <div key={hour} className="flex-1 border-l border-borderL/30 dark:border-borderD/30 flex items-center justify-start px-1 relative">
-                                        <span className="absolute -right-3 top-3 text-[10px] text-muted-foregroundL dark:text-muted-foregroundD font-mono">
+                                        <span className="absolute -right-3 top-3 text-[10px] text-muted-foregroundL dark:text-muted-foregroundD ">
                                             {toPersianDigits(hour.toString().padStart(2, "0"))}:00
                                         </span>
                                     </div>
@@ -191,7 +191,7 @@ export const ShiftScheduleScheduleView = ({
                                             >
                                                 <div className="flex items-center gap-1 px-2 w-full justify-center text-[11px] font-bold drop-shadow-md">
                                                     {isOverflow && <ArrowLeft className="w-3 h-3 shrink-0" />}
-                                                    <span className="truncate dir-ltr font-mono tracking-tight">
+                                                    <span className="truncate dir-ltr  tracking-tight">
                                                         {formatTimeToPersian(block.start)} - {formatTimeToPersian(block.end)}
                                                     </span>
                                                     {block.end === "24:00" && <Moon className="w-3 h-3 shrink-0 ml-1 fill-yellow-200 text-yellow-200" />}
@@ -202,7 +202,7 @@ export const ShiftScheduleScheduleView = ({
                                                     <span className="font-bold text-violet-200">روز {toPersianDigits(day.dayNumber)}</span>
                                                     <div className="flex items-center gap-1.5 bg-white/10 px-2 py-0.5 rounded">
                                                         <Sun className="w-3 h-3 text-orange-400" />
-                                                        <span className="font-mono dir-ltr">
+                                                        <span className=" dir-ltr">
                                                             {formatTimeToPersian(block.start)} - {formatTimeToPersian(block.end)}
                                                         </span>
                                                     </div>

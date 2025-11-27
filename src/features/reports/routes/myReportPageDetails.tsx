@@ -44,7 +44,7 @@ const ReportDetailHeader = ({
             <span className="text-sm font-bold text-foregroundL dark:text-foregroundD">{date}</span>
             <span className="mx-2 text-borderL dark:text-zinc-700">|</span>
             <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">شناسه:</span>
-            <span className="text-sm font-mono font-bold text-foregroundL dark:text-foregroundD">{toPersianNumbers(id)}</span>
+            <span className="text-sm  font-bold text-foregroundL dark:text-foregroundD">{toPersianNumbers(id)}</span>
         </div>
     </div>
 );

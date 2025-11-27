@@ -131,6 +131,7 @@ export interface GetShiftsParams {
   employee_id?: number;
   is_off_day?: 0 | 1;
   per_page?: number;
+  page?: number; // ✅ اضافه شد برای حل مشکل Pagination
   sort_order?: "asc" | "desc";
 }
 

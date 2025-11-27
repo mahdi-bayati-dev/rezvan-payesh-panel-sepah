@@ -85,7 +85,7 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: {
               <div className="sticky top-0 z-10 flex h-10 bg-backgroundL-500/95 dark:bg-backgroundD/95 border-b border-borderL dark:border-borderD backdrop-blur-sm">
                 {hours.map((hour) => (
                   <div key={`hour-${hour}`} className="flex-1 min-w-[40px] border-l border-borderL/30 dark:border-borderD/30 flex items-center justify-start px-1 relative">
-                    <span className="absolute -right-3 top-3 text-[10px] font-mono text-muted-foregroundL dark:text-muted-foregroundD">
+                    <span className="absolute -right-3 top-3 text-[10px]  text-muted-foregroundL dark:text-muted-foregroundD">
                       {toPersianDigits(String(hour).padStart(2, "0"))}:00
                     </span>
                   </div>
@@ -113,7 +113,7 @@ export const WorkPatternScheduleView = ({ selectedPattern, isLoadingDetails }: {
                       <div className={clsx("absolute top-2.5 bottom-2.5 rounded-lg shadow-sm flex items-center justify-center overflow-hidden whitespace-nowrap transition-all z-10 hover:shadow-md hover:scale-[1.01] border text-white", blockData.isFloating ? "bg-gradient-to-r from-sky-500/90 to-sky-400/90 border-sky-600 dark:from-sky-600 dark:to-sky-500 dark:border-sky-400" : "bg-gradient-to-r from-emerald-500/90 to-emerald-400/90 border-emerald-600 dark:from-emerald-600 dark:to-emerald-500 dark:border-emerald-400")} style={blockData.style}>
                         <div className="flex items-center gap-1.5 px-2 w-full justify-center text-[11px] font-bold">
                             <Clock className="w-3.5 h-3.5 opacity-90 shrink-0" />
-                            <span className="truncate dir-ltr font-mono tracking-tight">
+                            <span className="truncate dir-ltr  tracking-tight">
                                 {formatTimeToPersian(blockData.startTime)} - {formatTimeToPersian(blockData.endTime)}
                             </span>
                         </div>

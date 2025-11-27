@@ -127,7 +127,7 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({
                                 <div className="p-3 bg-white dark:bg-gray-900 text-xs space-y-3 animate-in slide-in-from-top-2">
                                     <div>
                                         <p className="font-bold text-red-600 dark:text-red-400 mb-1">ستون‌های اجباری (باید حتماً باشند):</p>
-                                        <div className="flex flex-wrap gap-1 font-mono text-gray-600 dark:text-gray-400" dir="ltr">
+                                        <div className="flex flex-wrap gap-1  text-gray-600 dark:text-gray-400" dir="ltr">
                                             <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">email</span>
                                             <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">first_name</span>
                                             <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">last_name</span>
@@ -137,7 +137,7 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({
                                     </div>
                                     <div>
                                         <p className="font-bold text-green-600 dark:text-green-400 mb-1">ستون‌های اختیاری:</p>
-                                        <div className="flex flex-wrap gap-1 font-mono text-gray-600 dark:text-gray-400" dir="ltr">
+                                        <div className="flex flex-wrap gap-1  text-gray-600 dark:text-gray-400" dir="ltr">
                                             <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">user_name</span>
                                             <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">password</span>
                                             <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">phone_number</span>
