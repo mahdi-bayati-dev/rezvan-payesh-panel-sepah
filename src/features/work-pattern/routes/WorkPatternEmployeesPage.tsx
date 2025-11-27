@@ -220,7 +220,7 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                 header: "کد پرسنلی",
                 accessorKey: "employee.personnel_code",
                 // ✅ فارسی کردن کد پرسنلی
-                cell: ({ getValue }) => <div className="text-sm font-mono">{toPersianDigits(String(getValue() ?? "-"))}</div>,
+                cell: ({ getValue }) => <div className="text-sm ">{toPersianDigits(String(getValue() ?? "-"))}</div>,
             },
             {
                 id: "actions",
@@ -268,7 +268,7 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                 header: "کد پرسنلی",
                 accessorKey: "employee.personnel_code",
                 // ✅ فارسی کردن کد پرسنلی
-                cell: ({ getValue }) => <div className="text-sm font-mono">{toPersianDigits(String(getValue() ?? "-"))}</div>,
+                cell: ({ getValue }) => <div className="text-sm ">{toPersianDigits(String(getValue() ?? "-"))}</div>,
             },
             {
                 id: "actions",

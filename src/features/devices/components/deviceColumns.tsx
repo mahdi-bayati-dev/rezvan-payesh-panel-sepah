@@ -40,7 +40,7 @@ export const columns: ColumnDef<Device>[] = [
                     {row.getValue("name")}
                 </span>
                 {/* نمایش API Key به صورت ریز زیر نام برای دسترسی سریع ادمین */}
-                <span className="text-[10px] text-gray-400 font-mono">
+                <span className="text-[10px] text-gray-400 ">
                     Key: {row.original.api_key}
                 </span>
             </div>
@@ -83,7 +83,7 @@ export const columns: ColumnDef<Device>[] = [
             
             // نمایش تاریخ به فرمت لوکال و خوانا
             return (
-                <div className="text-xs font-mono text-gray-600 dark:text-gray-300" dir="ltr">
+                <div className="text-xs  text-gray-600 dark:text-gray-300" dir="ltr">
                     {rawDate}
                 </div>
             );

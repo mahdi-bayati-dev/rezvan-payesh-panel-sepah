@@ -146,7 +146,7 @@ const LicensePage = () => {
 
                         <div className="flex justify-between py-2 border-b border-borderL/50 dark:border-borderD/50">
                             <span className="text-muted-foregroundL">محدودیت کاربر:</span>
-                            <span className="font-mono font-bold">{licenseData?.user_limit} کاربر</span>
+                            <span className=" font-bold">{licenseData?.user_limit} کاربر</span>
                         </div>
 
                         <div className="flex justify-between py-2 border-b border-borderL/50 dark:border-borderD/50">
@@ -161,7 +161,7 @@ const LicensePage = () => {
                                 شناسه نصب (Installation ID)
                             </label>
                             <div className="flex items-center gap-2">
-                                <code className="flex-1 bg-backgroundL dark:bg-backgroundD p-2 rounded text-xs font-mono border border-borderL select-all truncate">
+                                <code className="flex-1 bg-backgroundL dark:bg-backgroundD p-2 rounded text-xs  border border-borderL select-all truncate">
                                     {licenseData?.installation_id}
                                 </code>
                                 <button
@@ -192,7 +192,7 @@ const LicensePage = () => {
                             value={tokenInput}
                             onChange={(e) => setTokenInput(e.target.value)}
                             placeholder="توکن لایسنس (eyJ...)"
-                            className="w-full flex-1 min-h-[150px] p-3 rounded-lg bg-backgroundL dark:bg-backgroundD border border-borderL dark:border-borderD focus:ring-2 focus:ring-primaryL focus:border-transparent resize-none font-mono text-xs transition-shadow"
+                            className="w-full flex-1 min-h-[150px] p-3 rounded-lg bg-backgroundL dark:bg-backgroundD border border-borderL dark:border-borderD focus:ring-2 focus:ring-primaryL focus:border-transparent resize-none  text-xs transition-shadow"
                             dir="ltr"
                             disabled={isActivating}
                         />

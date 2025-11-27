@@ -196,7 +196,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                                 <UploadCloud className="w-6 h-6 text-primaryL dark:text-primaryD" />
                             </div>
                             <span className="text-xs font-medium text-foregroundL dark:text-foregroundD">افزودن تصویر</span>
-                            <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD mt-1 font-mono">JPG, PNG (Max 5MB)</span>
+                            <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD mt-1 ">JPG, PNG (Max 5MB)</span>
                             <input
                                 type="file"
                                 accept="image/*"

@@ -87,7 +87,7 @@ export const WeekDayRow = ({
                                 onChange={field.onChange}
                                 disabled={!isWorking || isPending}
                                 placeholder="08:00"
-                                className={clsx("h-9 text-center font-mono text-sm", dayErrors?.start_time && "border-red-500")}
+                                className={clsx("h-9 text-center  text-sm", dayErrors?.start_time && "border-red-500")}
                             />
                         )}
                     />
@@ -108,7 +108,7 @@ export const WeekDayRow = ({
                                 onChange={field.onChange}
                                 disabled={!isWorking || isPending}
                                 placeholder="16:00"
-                                className={clsx("h-9 text-center font-mono text-sm", dayErrors?.end_time && "border-red-500")}
+                                className={clsx("h-9 text-center  text-sm", dayErrors?.end_time && "border-red-500")}
                             />
                         )}
                     />
@@ -126,7 +126,7 @@ export const WeekDayRow = ({
                             type="number"
                             {...register(`days.${index}.work_duration_minutes`)}
                             disabled={true} // همیشه غیرفعال چون محاسبه می‌شود
-                            className="h-9 text-center font-mono text-sm disabled:opacity-80 disabled:bg-secondaryL/50 dark:disabled:bg-secondaryD/50"
+                            className="h-9 text-center  text-sm disabled:opacity-80 disabled:bg-secondaryL/50 dark:disabled:bg-secondaryD/50"
                         />
                         {/* نمایش ساعت معادل برای UX بهتر */}
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foregroundL dir-ltr pointer-events-none">
