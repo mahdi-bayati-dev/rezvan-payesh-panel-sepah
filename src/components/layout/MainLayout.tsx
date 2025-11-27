@@ -77,7 +77,7 @@ export const MainLayout = () => {
         )}
 
         {/* محتوای اصلی */}
-        <main className="flex-1 overflow-y-auto p-2 md:p-4 md:pl-1">
+        <main className="flex-1 overflow-y-auto p-2 md:p-2 ">
           <Outlet />
         </main>
       </div>

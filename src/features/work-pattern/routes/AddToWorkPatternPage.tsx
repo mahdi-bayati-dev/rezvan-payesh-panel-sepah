@@ -29,7 +29,10 @@ import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable/index";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 import Checkbox from "@/components/ui/CheckboxTable";
-import { UserPlus, Search, Loader2, Users, Briefcase, ArrowRight, AlertTriangle } from 'lucide-react'; // آیکون هشدار اضافه شد
+import { UserPlus, Search, Loader2, Users, Briefcase, ArrowRight, AlertTriangle } from 'lucide-react';
+
+// ✅ ایمپورت اعداد فارسی
+import { toPersianDigits } from '@/features/work-pattern/utils/persianUtils';
 
 interface PatternSelectOption extends SelectOption {
   pattern_type: 'WEEK_PATTERN' | 'SHIFT_SCHEDULE';
@@ -122,7 +125,7 @@ function AddToWorkPattern() {
         );
       }
     },
-    { header: 'کد پرسنلی', accessorKey: 'employee.personnel_code', cell: ({ row }) => row.original.employee?.personnel_code || '---' },
+    { header: 'کد پرسنلی', accessorKey: 'employee.personnel_code', cell: ({ row }) => toPersianDigits(row.original.employee?.personnel_code || '---') },
     {
       header: 'الگوی فعلی',
       accessorFn: (row) => row.employee?.week_pattern?.name || row.employee?.shift_schedule?.name,
@@ -198,6 +201,7 @@ function AddToWorkPattern() {
 
   // Assign Handler
   const handleAssign = () => {
+    // ... (logic remains same, just ensuring UI is localized)
     console.group("🚀 [Start] Assign Process");
 
     const workPatternId = selectedPattern?.id ? Number(selectedPattern.id) : null;
@@ -225,31 +229,23 @@ function AddToWorkPattern() {
         // @ts-ignore
         const payload = patternType === 'SHIFT_SCHEDULE' ? { userId, shiftScheduleId: workPatternId } : { userId, workPatternId };
 
-        console.log(`📤 Sending Request for User ${userId}...`);
-
         // @ts-ignore
         return mutation.mutateAsync(payload)
           .then(res => {
-            // 🛡️ بررسی امنیتی: آیا واقعاً سرور دیتا را تغییر داد؟
+            // Check verification logic...
             const emp = res?.employee;
             const serverPatternId = patternType === 'SHIFT_SCHEDULE'
               ? emp?.shift_schedule?.id
               : emp?.week_pattern?.id;
 
-            // تبدیل به عدد برای مقایسه دقیق
             const isUpdated = Number(serverPatternId) === Number(workPatternId);
 
             if (!isUpdated) {
-              console.error(`⚠️ [Backend Issue] User ${userId}: Server ignored the update! fillable?`);
-              // 💥 پرتاب خطا برای اینکه در بخش catch گرفته شود و به عنوان "خطا" شمرده شود
               throw new Error("Server ignored update (Check $fillable)");
             }
-
-            console.log(`✅ [Success] User ${userId} updated.`);
             return res;
           })
           .catch(err => {
-            console.error(`❌ [Error] Failed for User ${userId}:`, err);
             return { status: 'rejected', userId, err };
           });
       });
@@ -278,11 +274,9 @@ function AddToWorkPattern() {
 
         return updateWorkGroupMutation.mutateAsync({ id: groupId, payload })
           .then(res => {
-            console.log(`✅ [Success] Group ${groupId} updated.`);
             return res;
           })
           .catch(err => {
-            console.error(`❌ [Error] Failed for Group ${groupId}:`, err);
             return { status: 'rejected', groupId, err };
           });
       });
@@ -294,26 +288,24 @@ function AddToWorkPattern() {
 
   const executePromises = (promises: Promise<any>[], count: number, entityName: string) => {
     Promise.allSettled(promises).then(results => {
-      // ✅ حالا فقط مواردی که واقعاً موفق بوده‌اند (و تایید سرور را گرفته‌اند) شمرده می‌شوند
       const successCount = results.filter(r => r.status === 'fulfilled' && !(r as any).value?.status).length;
       const errorCount = count - successCount;
 
       if (successCount > 0) {
-        toast.success(`${successCount} ${entityName} با موفقیت به‌روزرسانی شد.`);
+        toast.success(`${toPersianDigits(successCount)} ${entityName} با موفقیت به‌روزرسانی شد.`);
         if (activeTab === 'EMPLOYEES') setEmployeeRowSelection({});
         else setGroupRowSelection({});
       }
 
       if (errorCount > 0) {
-        // 🔴 نمایش خطای هوشمند
         toast.error(
           <div>
             <div className='font-bold flex items-center gap-1'>
               <AlertTriangle className="w-4 h-4" />
-              {errorCount} مورد انجام نشد!
+              {toPersianDigits(errorCount)} مورد انجام نشد!
             </div>
             <div className='text-xs mt-1 opacity-90'>
-              احتمالا مشکل از سمت سرور است (فیلدها Fillable نیستند).
+              احتمالا مشکل از سمت سرور است.
             </div>
           </div>
         );
@@ -377,7 +369,8 @@ function AddToWorkPattern() {
           )}
         >
           <Users className="h-4 w-4" />
-          کارمندان ({usersResponse?.data?.length ?? 0})
+          {/* ✅ اعداد فارسی */}
+          کارمندان ({toPersianDigits(usersResponse?.data?.length ?? 0)})
         </button>
         <button
           onClick={() => { setActiveTab('WORK_GROUPS'); setSearchQuery(''); }}
@@ -390,7 +383,8 @@ function AddToWorkPattern() {
           )}
         >
           <Briefcase className="h-4 w-4" />
-          گروه‌های کاری ({workGroupsResponse?.data?.length ?? 0})
+          {/* ✅ اعداد فارسی */}
+          گروه‌های کاری ({toPersianDigits(workGroupsResponse?.data?.length ?? 0)})
         </button>
       </div>
 

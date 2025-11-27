@@ -30,6 +30,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/DataTable/index";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
+// ✅ ایمپورت اعداد فارسی
+import { toPersianDigits } from '@/features/work-pattern/utils/persianUtils';
 
 // ==============================
 // Debounce hook
@@ -148,10 +150,6 @@ export default function ManagePatternEmployeesPage(): ReactElement {
             if (isAssigned) {
                 assigned.push(u);
             } else {
-                // 🟢 اصلاح فیکس: حذف متغیر اضافی که باعث ارور بیلد شده بود
-                // ما اینجا تمام کاربرانی که به "این الگو" متصل نیستند را نشان می‌دهیم.
-                // اگر بخواهیم آنهایی که جای دیگر مشغولند را نشان ندهیم، باید شرط اضافه کنیم.
-                // فعلا ساده‌ترین حالت:
                 available.push(u);
             }
         }
@@ -221,7 +219,8 @@ export default function ManagePatternEmployeesPage(): ReactElement {
             {
                 header: "کد پرسنلی",
                 accessorKey: "employee.personnel_code",
-                cell: ({ getValue }) => <div className="text-sm">{String(getValue() ?? "-")}</div>,
+                // ✅ فارسی کردن کد پرسنلی
+                cell: ({ getValue }) => <div className="text-sm font-mono">{toPersianDigits(String(getValue() ?? "-"))}</div>,
             },
             {
                 id: "actions",
@@ -268,7 +267,8 @@ export default function ManagePatternEmployeesPage(): ReactElement {
             {
                 header: "کد پرسنلی",
                 accessorKey: "employee.personnel_code",
-                cell: ({ getValue }) => <div className="text-sm">{String(getValue() ?? "-")}</div>,
+                // ✅ فارسی کردن کد پرسنلی
+                cell: ({ getValue }) => <div className="text-sm font-mono">{toPersianDigits(String(getValue() ?? "-"))}</div>,
             },
             {
                 id: "actions",
@@ -370,8 +370,9 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                                     <UserMinus className="h-5 w-5 text-green-700 dark:text-green-400" />
                                     <span className="text-sm font-semibold text-green-800 dark:text-green-300">کارمندان متصل (تخصیص یافته)</span>
                                 </div>
+                                {/* ✅ فارسی کردن تعداد */}
                                 <span className="text-xs px-2 py-1 rounded-full bg-white dark:bg-gray-800 shadow-sm text-green-600 font-bold">
-                                    {assignedUsers.length} نفر
+                                    {toPersianDigits(assignedUsers.length)} نفر
                                 </span>
                             </CardTitle>
                         </CardHeader>
@@ -393,8 +394,9 @@ export default function ManagePatternEmployeesPage(): ReactElement {
                                     <UserPlus className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                                     <span className="text-sm font-semibold">سایر کارمندان</span>
                                 </div>
+                                {/* ✅ فارسی کردن تعداد */}
                                 <span className="text-xs px-2 py-1 rounded-full bg-secondaryL dark:bg-gray-700 text-foregroundL font-bold">
-                                    {availableUsers.length} نفر
+                                    {toPersianDigits(availableUsers.length)} نفر
                                 </span>
                             </CardTitle>
                         </CardHeader>

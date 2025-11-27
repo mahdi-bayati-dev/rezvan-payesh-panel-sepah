@@ -5,6 +5,8 @@ import Checkbox from '@/components/ui/Checkbox';
 import { daysOfWeek } from '@/features/work-pattern/utils/constants';
 import type { NewWeekPatternFormData } from '@/features/work-pattern/schema/NewWeekPatternSchema';
 import { CustomTimeInput } from '@/components/ui/CustomTimeInput';
+import clsx from 'clsx';
+import { Clock } from 'lucide-react';
 
 interface WeekDayRowProps {
     field: FieldArrayWithId<NewWeekPatternFormData, "days", "id">;
@@ -28,17 +30,27 @@ export const WeekDayRow = ({
 
     const dayName = daysOfWeek[field.day_of_week] || `روز ${index + 1}`;
     const dayErrors = formErrors.days?.[index];
+    const hasError = !!(dayErrors?.start_time || dayErrors?.end_time || dayErrors?.work_duration_minutes);
 
     return (
-        <div className="grid grid-cols-12 gap-x-4 gap-y-2 items-center border-b border-borderL transition-colors duration-300 dark:bg-backgroundD dark:border-borderD pb-3 last:border-b-0 last:pb-0">
+        <div className={clsx(
+            "group relative grid grid-cols-12 gap-x-4 gap-y-3 items-start p-4 rounded-xl transition-all duration-200 border",
+            // ✨ UX Fix: تغییر رنگ پس‌زمینه برای روزهای کاری و غیرکاری برای تشخیص سریع‌تر
+            isWorking
+                ? "bg-backgroundL-500 dark:bg-backgroundD border-borderL dark:border-borderD shadow-sm"
+                : "bg-secondaryL/30 dark:bg-secondaryD/10 border-transparent opacity-70 hover:opacity-100",
+            hasError && "border-red-300 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10"
+        )}>
 
-            {/* --- ستون نام روز --- */}
-            <span className="col-span-12 sm:col-span-1 font-medium text-sm pt-2 sm:pt-0 dark:text-stone-300">
-                {dayName}
-            </span>
+            {/* --- هدر ردیف: نام روز و چک‌باکس --- */}
+            <div className="col-span-12 md:col-span-2 flex md:flex-col items-center md:items-start justify-between md:justify-center gap-2">
+                <span className={clsx(
+                    "font-bold text-sm",
+                    isWorking ? "text-foregroundL dark:text-foregroundD" : "text-muted-foregroundL"
+                )}>
+                    {dayName}
+                </span>
 
-            {/* --- ستون چک‌باکس روز کاری --- */}
-            <div className="col-span-12 sm:col-span-2">
                 <Controller
                     name={`days.${index}.is_working_day`}
                     control={control}
@@ -49,103 +61,93 @@ export const WeekDayRow = ({
                             checked={!!checkboxField.value}
                             onCheckedChange={checkboxField.onChange}
                             disabled={isPending}
+                            className="text-xs"
                         />
                     )}
                 />
-                {/* فضای خطا برای هماهنگی ارتفاع */}
-                <div className="h-5">
-                    {dayErrors?.is_working_day?.message && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                            {dayErrors.is_working_day.message}
-                        </p>
-                    )}
-                </div>
             </div>
 
-            {/* --- ستون ساعت شروع --- */}
-            <div className="col-span-12 sm:col-span-3">
-                <label className="mb-1.5 block text-sm font-medium text-foregroundL dark:text-foregroundD">
-                    ساعت شروع
-                </label>
-                <Controller
-                    name={`days.${index}.start_time`}
-                    control={control}
-                    render={({ field }) => (
-                        <CustomTimeInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            disabled={!isWorking || isPending}
-                            className="disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-stone-700"
-                            placeholder="08:00"
+            {/* --- بخش زمان‌ها (فقط اگر روز کاری باشد فعال است) --- */}
+            <div className={clsx(
+                "col-span-12 md:col-span-10 grid grid-cols-2 md:grid-cols-10 gap-3 items-start transition-all duration-300",
+                !isWorking && "opacity-40 grayscale pointer-events-none filter blur-[0.5px]"
+            )}>
+
+                {/* ساعت شروع */}
+                <div className="col-span-1 md:col-span-3 space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> شروع
+                    </label>
+                    <Controller
+                        name={`days.${index}.start_time`}
+                        control={control}
+                        render={({ field }) => (
+                            <CustomTimeInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                disabled={!isWorking || isPending}
+                                placeholder="08:00"
+                                className={clsx("h-9 text-center font-mono text-sm", dayErrors?.start_time && "border-red-500")}
+                            />
+                        )}
+                    />
+                    <ErrorMessage message={dayErrors?.start_time?.message} />
+                </div>
+
+                {/* ساعت پایان */}
+                <div className="col-span-1 md:col-span-3 space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> پایان
+                    </label>
+                    <Controller
+                        name={`days.${index}.end_time`}
+                        control={control}
+                        render={({ field }) => (
+                            <CustomTimeInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                disabled={!isWorking || isPending}
+                                placeholder="16:00"
+                                className={clsx("h-9 text-center font-mono text-sm", dayErrors?.end_time && "border-red-500")}
+                            />
+                        )}
+                    />
+                    <ErrorMessage message={dayErrors?.end_time?.message} />
+                </div>
+
+                {/* مدت زمان (فشرده شده برای موبایل) */}
+                <div className="col-span-2 md:col-span-4 space-y-1.5">
+                    <label htmlFor={`duration_${index}`} className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD">
+                        مدت (دقیقه)
+                    </label>
+                    <div className="relative">
+                        <Input
+                            id={`duration_${index}`}
+                            type="number"
+                            {...register(`days.${index}.work_duration_minutes`)}
+                            disabled={true} // همیشه غیرفعال چون محاسبه می‌شود
+                            className="h-9 text-center font-mono text-sm disabled:opacity-80 disabled:bg-secondaryL/50 dark:disabled:bg-secondaryD/50"
                         />
-                    )}
-                />
-                <div className="h-5">
-                    {dayErrors?.start_time?.message && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                            {dayErrors.start_time.message}
-                        </p>
-                    )}
-                </div>
-            </div>
-
-            {/* --- ستون ساعت پایان --- */}
-            <div className="col-span-12 sm:col-span-3">
-                <label className="mb-1.5 block text-sm font-medium text-foregroundL dark:text-foregroundD">
-                    ساعت پایان
-                </label>
-                <Controller
-                    name={`days.${index}.end_time`}
-                    control={control}
-                    render={({ field }) => (
-                        <CustomTimeInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            disabled={!isWorking || isPending}
-                            className="disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-stone-700"
-                            placeholder="16:00"
-                        />
-                    )}
-                />
-                <div className="h-5">
-                    {dayErrors?.end_time?.message && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                            {dayErrors.end_time.message}
-                        </p>
-                    )}
-                </div>
-            </div>
-
-            {/* --- ستون مدت زمان (اصلاح شده برای هم‌ترازی دقیق) --- */}
-            <div className="col-span-12 sm:col-span-3">
-                {/* ✅ ۱. استفاده از لیبل دستی دقیقاً مثل ستون‌های ساعت */}
-                <label
-                    htmlFor={`duration_${index}`}
-                    className="mb-1.5 block text-sm font-medium text-foregroundL dark:text-foregroundD"
-                >
-                    مدت (دقیقه)
-                </label>
-
-                {/* ✅ ۲. استفاده از Input بدون لیبل و ارور داخلی */}
-                <Input
-                    id={`duration_${index}`}
-                    type="number"
-                    {...register(`days.${index}.work_duration_minutes`)}
-                    disabled={true}
-                    className="disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-stone-700 text-center"
-                    min="0" max="1440"
-                // مهم: لیبل و ارور را اینجا پاس نمی‌دهیم تا ساختار DOM با تایم‌ها یکی شود
-                />
-
-                {/* ✅ ۳. فضای رزرو شده برای خطا (دقیقاً مثل ستون‌های ساعت) */}
-                <div className="h-5">
-                    {dayErrors?.work_duration_minutes?.message && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                            {dayErrors.work_duration_minutes.message}
-                        </p>
-                    )}
+                        {/* نمایش ساعت معادل برای UX بهتر */}
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foregroundL dir-ltr pointer-events-none">
+                            {control._formValues.days?.[index]?.work_duration_minutes
+                                ? `≈ ${(control._formValues.days[index].work_duration_minutes / 60).toFixed(1)}h`
+                                : ''}
+                        </div>
+                    </div>
+                    <ErrorMessage message={dayErrors?.work_duration_minutes?.message} />
                 </div>
             </div>
         </div>
+    );
+};
+
+// کامپوننت کمکی کوچک برای نمایش خطا
+const ErrorMessage = ({ message }: { message?: string }) => {
+    if (!message) return <div className="h-0" />; // برای حفظ layout
+    return (
+        <p className="text-[10px] text-red-600 dark:text-red-400 font-medium animate-in slide-in-from-top-1">
+            {message}
+        </p>
     );
 };
