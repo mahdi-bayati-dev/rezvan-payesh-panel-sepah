@@ -7,7 +7,7 @@ import { type WorkPatternUI } from '@/features/work-pattern/types/index';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/Button';
 // ✅ ایمپورت تابع تبدیل اعداد
-import { toPersianDigits } from '@/features/work-pattern/utils/persianUtils';
+// import { toPersianDigits } from '@/features/work-pattern/utils/persianUtils';
 
 interface WorkPatternListProps {
   patterns: WorkPatternUI[];
