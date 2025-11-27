@@ -1,74 +1,86 @@
 import React from 'react';
-
-// ایمپورت کردن تایپ‌ها
 import type { Holiday } from '../types';
 import { HolidayType } from '../types';
+import { toPersianDigits } from '../utils/numberUtils';
 
 interface DayCellProps {
-    date: string; // "YYYY-MM-DD" (میلادی)
-    holiday: Holiday | undefined; // اطلاعات تعطیلی اگر وجود داشته باشد
-    isEditing: boolean; // آیا در حالت ویرایش هستیم؟
+    date: string;
+    holiday: Holiday | undefined;
+    isEditing: boolean;
     onClick: (date: string, currentHoliday?: Holiday) => void;
     className?: string;
-    weekDayShort: string | null; // پراپرتی جدید برای حرف روز هفته (مثلاً "ش")
+    weekDayShort: string | null;
+    dayNumber: number; // پراپرتی جدید برای نمایش عدد روز
 }
 
-/**
- * کامپوننت کوچک و بهینه برای نمایش یک روز در گرید.
- */
 export const DayCell: React.FC<DayCellProps> = React.memo(({
     date,
     holiday,
     isEditing,
     onClick,
-    className = "w-7 h-7",
-    weekDayShort // دریافت پراپرتی
+    className = "w-8 h-8", // کمی بزرگتر برای تاچ بهتر در موبایل
+    weekDayShort,
+    dayNumber
 }) => {
 
-    // تابع برای تعیین استایل سلول بر اساس تعطیل بودن یا نبودن
     const getCellStyle = (): string => {
+        // بیس استایل برای همه سلول‌ها
+        const base = "transition-all duration-200 ease-in-out transform";
+
         if (!holiday) {
-            // روز عادی: (استایل پیش‌فرض با بوردر)
-            return 'bg-backgroundL-500 border border-borderL dark:bg-backgroundD dark:border-borderD';
+            return `${base} bg-backgroundL-500 border border-borderL/60 dark:bg-backgroundD dark:border-borderD hover:bg-secondaryL/50 dark:hover:bg-secondaryD/50`;
         }
 
-        // بررسی نوع تعطیلی
         switch (holiday.type) {
             case HolidayType.OFFICIAL:
-                // تعطیل رسمی (قرمز)
-                // متن سفید برای کنتراست بهتر
-                return 'bg-destructiveL text-white dark:bg-destructiveD dark:text-destructiveD-foreground';
+                return `${base} bg-rose-500 text-white border-rose-600 shadow-sm scale-105 z-10`; // رنگ جذاب‌تر برای تعطیلی
             case HolidayType.AGREEMENT:
-                // تعطیل توافقی (زرد)
-                // متن سیاه برای کنتراست بهتر
-                return 'bg-yellow-400 text-black dark:bg-yellow-500';
+                return `${base} bg-amber-400 text-amber-950 border-amber-500 shadow-sm`;
             default:
-                // حالت ناشناخته (استایل روز عادی)
-                return 'bg-backgroundL-500 border border-borderL dark:bg-backgroundD dark:border-borderD';
+                return `${base} bg-backgroundL-500 border border-borderL dark:bg-backgroundD dark:border-borderD`;
         }
     };
 
-    // هندلر کلیک (فقط در حالت ویرایش فعال است)
     const handleClick = () => {
         if (isEditing) {
             onClick(date, holiday);
         }
     };
 
-    // کلاس‌های مربوط به حالت ویرایش (افکت هاور)
-    const editClasses = isEditing
-        ? 'cursor-pointer hover:ring-2 hover:ring-blue dark:hover:ring-blue hover:ring-offset-1 dark:hover:ring-offset-backgroundD'
-        : '';
+    // کلاس‌های تعاملی
+    const interactionClasses = isEditing
+        ? 'cursor-pointer hover:ring-2 hover:ring-blue-500 hover:z-20'
+        : 'cursor-default';
 
     return (
         <div
-            // اعمال کلاس‌های دریافتی، استایل تعطیلی، افکت ویرایش و چیدمان (flex)
-            className={`${className} rounded-sm transition-all ${getCellStyle()} ${editClasses} flex items-center justify-center text-xs font-bold`}
+            className={`
+                ${className} 
+                ${getCellStyle()} 
+                ${interactionClasses} 
+                rounded-md flex flex-col items-center justify-center 
+                select-none relative group
+            `}
             onClick={handleClick}
-            title={holiday ? `${holiday.name} (${holiday.date})` : date}
         >
-            {/* نمایش حرف روز هفته در مرکز سلول */}
-            {weekDayShort}
+            {/* نمایش حرف روز هفته (فقط اگر وجود داشته باشد) */}
+            {weekDayShort && (
+                <span className={`text-[9px] leading-none mb-0.5 opacity-70 dark:text-backgroundL-500 ${holiday ? 'font-medium' : ''}`}>
+                    {weekDayShort}
+                </span>
+            )}
+
+            {/* نمایش عدد روز به فارسی */}
+            <span className={`text-xs font-bold leading-none dark:text-backgroundL-500`}>
+                {toPersianDigits(dayNumber)}
+            </span>
+
+            {/* تولتیپ ساده برای نمایش نام تعطیلی در هاور */}
+            {holiday && (
+                <div className="absolute bottom-full mb-1 hidden group-hover:block bg-black/80 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50">
+                    {holiday.name}
+                </div>
+            )}
         </div>
     );
 });

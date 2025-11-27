@@ -2,50 +2,53 @@ import React, { useState } from 'react';
 import { WorkCalendarGrid } from '../components/WorkCalendarGrid';
 import { HolidayType } from '../types';
 import type { ActiveTool } from '../types/index';
-
-// --- اصلاحیه ۱: ایمپورت کردن SelectBox و تایپ آن ---
-// مسیر ایمپورت را بر اساس ساختار پروژه خودتان تنظیم کنید
 import SelectBox from '@/components/ui/SelectBox';
 import type { SelectOption } from '@/components/ui/SelectBox';
-// --- پایان اصلاحیه ۱ ---
+// import { toPersianDigits } from '@/features/work-calendar/utils/numberUtils';
+
+// --- ایمپورت آیکون‌های Lucide ---
+import {
+    CalendarCheck,
+    Check,
+    Eraser,
+    Flag,
+    Handshake,
+    SquarePen,
+    // LucideIcon
+} from 'lucide-react';
 
 export const WorkCalendarPage = () => {
-
     const [selectedJalaliYear, setSelectedJalaliYear] = useState(1404);
     const [isEditing, setIsEditing] = useState(false);
     const [activeTool, setActiveTool] = useState<ActiveTool>(HolidayType.OFFICIAL);
 
     return (
-        <div className=" max-w-full mx-auto">
-            <h1 className="text-2xl font-bold mb-6 text-foregroundL dark:text-foregroundD">تقویم کاری</h1>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                <div className="lg:col-span-4">
-                    <WorkCalendarGrid
-                        jalaliYear={selectedJalaliYear}
-                        isEditing={isEditing}
-                        activeTool={activeTool}
-                    />
-                </div>
-                <aside className="lg:col-span-1">
-                    <WorkCalendarSidebar
-                        selectedYear={selectedJalaliYear}
-                        onYearChange={setSelectedJalaliYear}
-                        isEditing={isEditing}
-                        onIsEditingChange={setIsEditing}
-                        activeTool={activeTool}
-                        onActiveToolChange={setActiveTool}
-                    />
-                </aside>
-            </div>
+        <div className="container mx-auto px-4 py-6 max-w-[1600px] min-h-screen flex flex-col gap-6">
+
+            {/* هدر و نوار ابزار یکپارچه */}
+            <WorkCalendarHeader
+                selectedYear={selectedJalaliYear}
+                onYearChange={setSelectedJalaliYear}
+                isEditing={isEditing}
+                onIsEditingChange={setIsEditing}
+                activeTool={activeTool}
+                onActiveToolChange={setActiveTool}
+            />
+
+            {/* محتوای اصلی - گرید تقویم */}
+            <main className="flex-1 w-full animate-fadeIn">
+                <WorkCalendarGrid
+                    jalaliYear={selectedJalaliYear}
+                    isEditing={isEditing}
+                    activeTool={activeTool}
+                />
+            </main>
         </div>
     );
 };
 
-
-/**
- * کامپوننت سایدبار (اکنون دکمه‌های ویرایش را هم دارد)
- */
-const WorkCalendarSidebar: React.FC<{
+// --- کامپوننت نوار ابزار (Header & Toolbar) ---
+const WorkCalendarHeader: React.FC<{
     selectedYear: number;
     onYearChange: (year: number) => void;
     isEditing: boolean;
@@ -60,85 +63,140 @@ const WorkCalendarSidebar: React.FC<{
     activeTool,
     onActiveToolChange
 }) => {
-
-        // --- اصلاحیه ۲: تعریف گزینه‌ها برای SelectBox ---
         const yearOptions: SelectOption[] = [
-            { id: 1403, name: "1403" },
-            { id: 1404, name: "1404" },
-            { id: 1405, name: "1405" },
+            { id: 1403, name: "۱۴۰۳" },
+            { id: 1404, name: "۱۴۰۴" },
+            { id: 1405, name: "۱۴۰۵" },
         ];
 
-        // --- اصلاحیه ۳: پیدا کردن آبجکت 'value' بر اساس 'state' (که یک عدد است) ---
         const selectedYearOption = yearOptions.find(opt => opt.id === selectedYear) || null;
 
-        // --- اصلاحیه ۴: مدیریت 'onChange' که یک آبجکت برمی‌گرداند ---
-        const handleYearChange = (option: SelectOption) => {
-            onYearChange(Number(option.id));
-        };
-        // --- پایان اصلاحیه‌ها ---
-
         return (
-            <div className="bg-backgroundL-500 p-4 rounded-lg border border-borderL sticky top-4 shadow-sm transition-colors duration-300 dark:bg-backgroundD dark:border-borderD">
-                <h3 className="text-lg font-semibold mb-4 border-b border-borderL pb-2 text-foregroundL dark:text-foregroundD">ویرایش تقویم</h3>
+            <div className="sticky top-4 z-40 flex flex-col gap-4">
 
-                {/* --- اصلاحیه ۵: جایگزینی select با SelectBox --- */}
-                <div className="mb-4">
-                    <SelectBox
-                        label="سال تقویم"
-                        placeholder="انتخاب سال..."
-                        options={yearOptions}
-                        value={selectedYearOption}
-                        onChange={handleYearChange}
-                    />
+                {/* بخش ۱: عنوان و سال (همیشه ثابت) */}
+                <div className="bg-backgroundL-500 dark:bg-backgroundD rounded-2xl border border-borderL dark:border-borderD shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300">
+
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                            {/* آیکون تقویم */}
+                            <CalendarCheck className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-black text-foregroundL dark:text-foregroundD tracking-tight">
+                                تقویم کاری
+                            </h1>
+                            <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5">
+                                مدیریت شیفت‌ها و تعطیلات
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        {/* انتخابگر سال */}
+                        <div className="w-32">
+                            <SelectBox
+                                label=""
+                                placeholder="سال"
+                                options={yearOptions}
+                                value={selectedYearOption}
+                                onChange={(opt) => onYearChange(Number(opt.id))}
+                            />
+                        </div>
+
+                        {/* دکمه اصلی ویرایش */}
+                        <button
+                            onClick={() => onIsEditingChange(!isEditing)}
+                            className={`
+                            flex-1 md:flex-none h-[42px] px-6 rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2
+                            ${isEditing
+                                    ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/50'
+                                    : 'bg-primary text-primary-foregroundL shadow-lg shadow-primary/20 hover:scale-105'
+                                }
+                        `}
+                        >
+                            {isEditing ? (
+                                <>
+                                    <Check className="w-4 h-4" />
+                                    <span>پایان ویرایش</span>
+                                </>
+                            ) : (
+                                <>
+                                    <SquarePen className="w-4 h-4 text-infoD-background  dark:text-infoD-foreground" />
+                                    <span className='text-infoD-background dark:text-infoD-foreground'>ویرایش تقویم</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
-                {/* --- پایان اصلاحیه ۵ --- */}
 
-                {/* دکمه‌های ویرایش */}
-                <div className="border-t border-borderL pt-4 mt-4 dark:border-borderD">
-                    <button
-                        onClick={() => onIsEditingChange(!isEditing)}
-                        className="w-full bg-blue text-primary-foregroundL px-4 py-2 rounded-lg shadow-sm hover:opacity-90 transition-all mb-4"
-                    >
-                        {isEditing ? 'اتمام ویرایش' : 'ویرایش'}
-                    </button>
+                {/* بخش ۲: پالت ابزار (فقط در حالت ویرایش ظاهر می‌شود) */}
+                <div className={`
+                overflow-hidden transition-all duration-500 ease-in-out bg-backgroundL-500 dark:bg-backgroundD rounded-lg
+                ${isEditing ? 'max-h-24 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-4'}
+            `}>
+                    <div className="bg-cardL/90 backdrop-blur-md dark:bg-cardD/90 rounded-xl border border-blue-500/30 p-2 shadow-lg flex items-center justify-center md:justify-start gap-2 overflow-x-auto">
+                        <span className="text-xs font-bold text-muted-foregroundL dark:text-backgroundL-500 ml-2 hidden md:block whitespace-nowrap px-2">
+                            ابزار انتخاب:
+                        </span>
 
-                    {/* گروه ابزارها */}
-                    <div className={`flex flex-col gap-2 ${!isEditing ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-                        <button
-                            disabled={!isEditing}
+                        {/* پاس دادن کامپوننت آیکون به جای استرینگ */}
+                        <ToolButton
+                            isActive={activeTool === HolidayType.OFFICIAL}
                             onClick={() => onActiveToolChange(HolidayType.OFFICIAL)}
-                            className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-all ${activeTool === HolidayType.OFFICIAL
-                                    ? 'bg-destructiveL text-white shadow-md'
-                                    : 'bg-secondaryL text-secondary-foregroundL hover:bg-borderL dark:bg-secondaryD dark:text-secondary-foregroundD dark:hover:bg-borderD'
-                                }`}
-                        >
-                            رسمی
-                        </button>
-                        <button
-                            disabled={!isEditing}
+                            activeClass="bg-rose-500 text-white shadow-rose-500/30"
+                            Icon={Flag}
+                            label="تعطیلی رسمی"
+                        />
+
+                        <ToolButton
+                            isActive={activeTool === HolidayType.AGREEMENT}
                             onClick={() => onActiveToolChange(HolidayType.AGREEMENT)}
-                            className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-all ${activeTool === HolidayType.AGREEMENT
-                                    ? 'bg-yellow-400 text-black shadow-md'
-                                    : 'bg-secondaryL text-secondary-foregroundL hover:bg-borderL dark:bg-secondaryD dark:text-secondary-foregroundD dark:hover:bg-borderD'
-                                }`}
-                        >
-                            توافقی
-                        </button>
-                        <button
-                            disabled={!isEditing}
+                            activeClass="bg-amber-400 text-amber-950 shadow-amber-400/30"
+                            Icon={Handshake}
+                            label="تعطیلی توافقی"
+                        />
+
+                        <div className="w-px h-6 bg-borderL dark:bg-borderD mx-1" /> {/* خط جداکننده */}
+
+                        <ToolButton
+                            isActive={activeTool === 'remove'}
                             onClick={() => onActiveToolChange('remove')}
-                            className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-all ${activeTool === 'remove'
-                                    ? 'bg-destructiveL text-white shadow-md'
-                                    : 'bg-destructiveL-background text-destructiveL-foreground dark:bg-destructiveD-background dark:text-destructiveD-foreground hover:bg-destructiveL/20'
-                                }`}
-                        >
-                            پاک کردن
-                        </button>
+                            activeClass="bg-slate-600 text-white shadow-slate-600/30"
+                            Icon={Eraser}
+                            label="پاک کردن"
+                        />
                     </div>
                 </div>
             </div>
         );
     };
 
-export default WorkCalendarPage;
+// --- تعریف تایپ پراپ‌های دکمه ابزار ---
+interface ToolButtonProps {
+    isActive: boolean;
+    onClick: () => void;
+    activeClass: string;
+    Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; // تایپ صحیح برای کامپوننت آیکون
+    label: string;
+}
 
+// کامپوننت دکمه ابزار (آپدیت شده برای دریافت کامپوننت Icon)
+const ToolButton: React.FC<ToolButtonProps> = ({ isActive, onClick, activeClass, Icon, label }) => (
+    <button
+        onClick={onClick}
+        className={`
+            relative cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap flex-1 md:flex-none justify-center dark:text-backgroundL-500
+            ${isActive
+                ? `${activeClass} shadow-md scale-100 ring-2 ring-white dark:ring-black ring-offset-0`
+                : 'bg-secondaryL dark:bg-secondaryD text-secondary-foregroundL hover:bg-secondaryL/80'
+            }
+        `}
+    >
+        {/* رندر کردن کامپوننت آیکون دریافتی */}
+        <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
+        <span>{label}</span>
+    </button>
+);
+
+export default WorkCalendarPage;

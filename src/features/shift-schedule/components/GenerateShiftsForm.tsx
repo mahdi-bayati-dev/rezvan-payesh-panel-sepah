@@ -114,7 +114,7 @@ export const GenerateShiftsForm: React.FC<GenerateShiftsFormProps> = ({
     return (
         <>
             {/* --- فرم اصلی (انتخاب تاریخ) --- */}
-            <DialogContent className="max-w-lg overflow-visible" onClose={onClose}>
+            <DialogContent className="max-w-lg overflow-visible p-4" onClose={onClose}>
                 <DialogHeader>
                     <div className="flex items-center gap-2 text-primaryL dark:text-primaryD mb-2">
                         <CalendarRange className="w-6 h-6" />
@@ -182,7 +182,7 @@ export const GenerateShiftsForm: React.FC<GenerateShiftsFormProps> = ({
                         </div>
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <DialogFooter className="gap-2 ">
                         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
                             انصراف
                         </Button>
