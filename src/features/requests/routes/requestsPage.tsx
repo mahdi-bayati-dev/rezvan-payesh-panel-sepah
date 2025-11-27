@@ -97,7 +97,7 @@ const RequestsPage = () => {
   );
 
   return (
-    <div className="flex flex-col md:flex-row-reverse gap-6 p-4 sm:p-6 min-h-[calc(100vh-80px)]">
+    <div className="flex flex-col md:flex-row-reverse gap-4 p-4 sm:p-4 min-h-[calc(100vh-80px)]">
 
       <ExportSettingsModal
         isOpen={isExportModalOpen}

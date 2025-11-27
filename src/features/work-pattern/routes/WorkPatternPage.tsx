@@ -1,28 +1,20 @@
 import { useState, useMemo } from 'react';
-// ✅ اصلاح حساسیت به حروف: Alert -> alert
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
-// ✅ ۱. ایمپورت هوک‌های React Query
-// ✅ اصلاح مسیر: حذف /features/ از alias
+// Hooks
 import { useWorkPatterns } from '@/features/work-pattern/hooks/useWorkPatternsHookGet';
 import { useWeekPatternDetails } from '@/features/work-pattern/hooks/useWeekPatternDetails';
-// ✅✅✅ جدید: ایمپورت هوک جزئیات برنامه شیفتی (مسیر alias صحیح است)
-// ✅ اصلاح مسیر: حذف /features/ از alias
 import { useShiftSchedule } from '@/features/shift-schedule/hooks/hook';
 
-// کامپوننت‌های ماژولار
-// ✅ اصلاح مسیر: حذف /features/ از alias
+// Components
 import { WorkPatternList } from '@/features/work-pattern/components/workPatternPage/workPatternList';
 import { WorkPatternScheduleView } from '@/features/work-pattern/components/workPatternPage/workPatternScheduleView';
-// ✅✅✅ جدید: ایمپورت کامپوننت شماتیک برنامه شیفتی
-// ✅ اصلاح مسیر: حذف /features/ از alias
 import { ShiftScheduleScheduleView } from '@/features/work-pattern/components/workPatternPage/ShiftScheduleScheduleView';
 import { WorkPatternActions } from '@/features/work-pattern/components/workPatternPage/workPatternActions';
 
-// کامپوننت صفحه‌بندی
-// ✅ اصلاح حساسیت به حروف: Button -> button
+// UI
 import { Button } from '@/components/ui/Button';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, LayoutDashboard } from 'lucide-react';
 
 interface PaginationControlsProps {
   currentPage: number;
@@ -37,35 +29,33 @@ const PaginationControls = ({
   onPageChange,
   isLoading,
 }: PaginationControlsProps) => (
-  <div className="flex justify-center items-center gap-2 mt-4">
+  <div className="flex justify-between items-center px-2 py-3 mt-auto border-t border-borderL dark:border-borderD bg-backgroundL-500/50 dark:bg-backgroundD/50 backdrop-blur-sm rounded-b-xl">
     <Button
-      variant="outline"
+      variant="ghost"
       size="sm"
       onClick={() => onPageChange(currentPage - 1)}
       disabled={currentPage <= 1 || isLoading}
+      className="h-8 w-8 p-0"
     >
-      <ChevronRight size={16} /> {/* آیکون برای RTL */}
-      قبلی
+      <ChevronRight size={16} />
     </Button>
-    <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
-      صفحه {currentPage} از {lastPage}
+    <span className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD">
+      {currentPage} / {lastPage}
     </span>
     <Button
-      variant="outline"
+      variant="ghost"
       size="sm"
       onClick={() => onPageChange(currentPage + 1)}
       disabled={currentPage >= lastPage || isLoading}
+      className="h-8 w-8 p-0"
     >
-      بعدی
-      <ChevronLeft size={16} /> {/* آیکون برای RTL */}
+      <ChevronLeft size={16} />
     </Button>
   </div>
 );
 
 export default function WorkPatternPage() {
-  const [selectedPatternKey, setSelectedPatternKey] = useState<string | null>(
-    null
-  );
+  const [selectedPatternKey, setSelectedPatternKey] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const {
@@ -92,17 +82,14 @@ export default function WorkPatternPage() {
     };
   }, [selectedPatternKey]);
 
-  const selectedPattern =
-    patternsList.find(
-      (p) => p.id === selectedId && p.pattern_type === selectedType
-    ) || null;
+  const selectedPattern = patternsList.find(
+    (p) => p.id === selectedId && p.pattern_type === selectedType
+  ) || null;
 
   const selectedPatternName = selectedPattern?.name || null;
   const isShiftScheduleSelected = selectedType === 'SHIFT_SCHEDULE';
 
-  // --- ۲. فچ کردن جزئیات الگوی انتخاب شده ---
-
-  // هوک جزئیات الگوی هفتگی (فقط زمانی فعال است که شیفتی انتخاب *نشده* باشد)
+  // --- Fetch Details ---
   const {
     data: selectedPatternDetails,
     isLoading: isLoadingWeekDetails,
@@ -110,7 +97,6 @@ export default function WorkPatternPage() {
     error: weekDetailsError,
   } = useWeekPatternDetails(isShiftScheduleSelected ? null : selectedId);
 
-  // ✅✅✅ جدید: هوک جزئیات برنامه شیفتی (فقط زمانی فعال است که شیفتی انتخاب *شده* باشد)
   const {
     data: selectedShiftScheduleDetails,
     isLoading: isLoadingShiftDetails,
@@ -118,12 +104,11 @@ export default function WorkPatternPage() {
     error: shiftDetailsError,
   } = useShiftSchedule(isShiftScheduleSelected ? (selectedId || 0) : 0);
 
-  // ✅✅✅ جدید: یکپارچه‌سازی وضعیت لودینگ و خطا
   const isLoadingDetails = isLoadingWeekDetails || isLoadingShiftDetails;
   const isDetailsError = isWeekDetailsError || isShiftDetailsError;
   const detailsError = weekDetailsError || shiftDetailsError;
 
-  // --- ۳. هندلرها ---
+  // --- Handlers ---
   const handleSelectPattern = (key: string | null) => {
     setSelectedPatternKey(key);
   };
@@ -135,20 +120,24 @@ export default function WorkPatternPage() {
     }
   };
 
-  // --- ۴. رندر ---
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3  lg:h-[calc(100vh-6rem)]">
-      {/* ستون راست: لیست */}
-      <div className="lg:col-span-3 h-full order-last lg:order-none flex flex-col">
+    // ✨ UX Fix: استفاده از h-screen منهای هدر برای جلوگیری از اسکرول اضافه صفحه اصلی
+    // و استفاده از gap کمتر برای فشردگی بیشتر در دسکتاپ
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-100px)] p-1 overflow-hidden">
+
+      {/* --- ستون راست: لیست (سایدبار) --- */}
+      <div className="lg:col-span-3 h-full flex flex-col min-h-0 bg-backgroundL-500 dark:bg-backgroundD rounded-xl border border-borderL dark:border-borderD shadow-sm overflow-hidden">
         {isListError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>خطا</AlertTitle>
-            <AlertDescription>
-              {(listError as Error)?.message || 'خطا در دریافت لیست'}
-            </AlertDescription>
-          </Alert>
+          <div className="p-2">
+            <Alert variant="destructive" className="py-2 text-xs">
+              <AlertTitle>خطا</AlertTitle>
+              <AlertDescription>{(listError as Error)?.message}</AlertDescription>
+            </Alert>
+          </div>
         )}
-        <div className="flex-1 min-h-0">
+
+        {/* لیست با اسکرول داخلی */}
+        <div className="flex-1 overflow-hidden flex flex-col">
           <WorkPatternList
             patterns={patternsList}
             selectedPatternKey={selectedPatternKey}
@@ -156,6 +145,8 @@ export default function WorkPatternPage() {
             isLoading={isLoadingList}
           />
         </div>
+
+        {/* Pagination چسبیده به پایین */}
         {paginationMeta && paginationMeta.last_page > 1 && (
           <PaginationControls
             currentPage={currentPage}
@@ -166,43 +157,57 @@ export default function WorkPatternPage() {
         )}
       </div>
 
-      {/* ستون وسط: شماتیک (✅ بخش آپدیت شده) */}
-      <div className="lg:col-span-7 h-full min-h-[400px]">
-        {/* مدیریت خطای یکپارچه برای هر دو نوع جزئیات */}
-        {isDetailsError && selectedId && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>خطا در دریافت جزئیات</AlertTitle>
-            <AlertDescription>
-              {(detailsError as Error)?.message ||
-                'خطا در دریافت جزئیات الگوی انتخاب شده.'}
-            </AlertDescription>
-          </Alert>
-        )}
+      {/* --- ستون وسط و چپ: محتوا و اکشن‌ها --- */}
+      <div className="lg:col-span-9 h-full flex flex-col lg:flex-row gap-4 min-h-0 overflow-y-auto lg:overflow-hidden">
 
-        {/* ✅ رندر شرطی بر اساس نوع الگو */}
-        {isShiftScheduleSelected ? (
-          // اگر برنامه شیفتی بود، کامپوننت جدید را رندر کن
-          <ShiftScheduleScheduleView
-            schedule={selectedShiftScheduleDetails || null}
-            isLoadingDetails={isLoadingDetails && !!selectedId}
-          />
-        ) : (
-          // در غیر این صورت، کامپوننت الگوی هفتگی قبلی را رندر کن
-          <WorkPatternScheduleView
-            selectedPattern={selectedPatternDetails || null}
-            isLoadingDetails={isLoadingDetails && !!selectedId}
-          />
-        )}
-      </div>
+        {/* بخش نمایش شماتیک (ویژوال) */}
+        <div className="flex-1 h-full flex flex-col min-h-[400px] bg-backgroundL-500/50 dark:bg-backgroundD/50 rounded-xl border border-borderL dark:border-borderD shadow-sm overflow-hidden relative">
 
-      {/* ستون چپ: گزینه‌ها (بدون تغییر) */}
-      <div className="lg:col-span-2 ">
-        <WorkPatternActions
-          selectedPatternId={selectedId}
-          selectedPatternName={selectedPatternName}
-          isShiftSchedule={isShiftScheduleSelected}
-          onActionComplete={() => setSelectedPatternKey(null)}
-        />
+          {isDetailsError && selectedId && (
+            <div className="absolute top-4 right-4 left-4 z-50">
+              <Alert variant="destructive">
+                <AlertTitle>خطا در دریافت جزئیات</AlertTitle>
+                <AlertDescription>{(detailsError as Error)?.message}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* اگر هیچ الگویی انتخاب نشده */}
+          {!selectedId && !isLoadingDetails && (
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foregroundL dark:text-muted-foregroundD opacity-60">
+              <LayoutDashboard className="w-16 h-16 mb-4 stroke-1" />
+              <p className="text-lg font-medium">یک الگو را برای مشاهده جزئیات انتخاب کنید</p>
+            </div>
+          )}
+
+          {/* کامپوننت‌های نمایش */}
+          <div className="flex-1 overflow-hidden p-1">
+            {selectedId && (
+              isShiftScheduleSelected ? (
+                <ShiftScheduleScheduleView
+                  schedule={selectedShiftScheduleDetails || null}
+                  isLoadingDetails={isLoadingDetails}
+                />
+              ) : (
+                <WorkPatternScheduleView
+                  selectedPattern={selectedPatternDetails || null}
+                  isLoadingDetails={isLoadingDetails}
+                />
+              )
+            )}
+          </div>
+        </div>
+
+        {/* بخش اکشن‌ها (سمت چپ در دسکتاپ) */}
+        <div className="lg:w-64 shrink-0">
+          <WorkPatternActions
+            selectedPatternId={selectedId}
+            selectedPatternName={selectedPatternName}
+            isShiftSchedule={isShiftScheduleSelected}
+            onActionComplete={() => setSelectedPatternKey(null)}
+          />
+        </div>
+
       </div>
     </div>
   );
