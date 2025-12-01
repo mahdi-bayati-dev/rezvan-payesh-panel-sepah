@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeShiftController;
 use App\Http\Controllers\Api\GenerateScheduleShiftsController;
 use App\Http\Controllers\Api\HolidayController;
+use App\Http\Controllers\Api\ImageApprovalController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LeaveTypeController;
 use App\Http\Controllers\Api\PackController;
@@ -62,6 +63,15 @@ Route::middleware([
 
     //admin attend
     Route::apiResource('admin/attendance-logs', AdminAttendanceLogController::class);
+
+    //Admin confirm pic
+    Route::prefix('admin')->group(function () {
+        Route::get('pending-images', [ImageApprovalController::class, 'index']);
+        Route::post('pending-images/{id}/approve', [ImageApprovalController::class, 'approve']);
+        Route::post('pending-images/{id}/reject', [ImageApprovalController::class, 'reject']);
+    });
+
+
 
     //users
     Route::apiResource('users', UserController::class);
