@@ -1,124 +1,113 @@
-import { User, Lock, SquaresExclude, Loader2 } from "lucide-react"; // Loader2 برای نمایش وضعیت لودینگ
-import { ThemeToggleBtn } from "@/components/ui/ThemeToggleBtn";
+import { useEffect, useRef, useState } from "react";
+import { User, Lock, SquaresExclude, Loader2, Info, UserPlus } from "lucide-react";
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginFormData } from '@/features/auth/schema/loginSchema'; // ایمپورت اسکیما و تایپ
-import { useAppDispatch, useAppSelector } from '@/hook/reduxHooks'; // هوک‌های تایپ شده Redux (باید در پروژه تعریف شوند)
-import { loginUser } from '@/store/slices/authSlice'; // ایمپورت Async Thunk
-import Input from '@/components/ui/Input'; // ایمپورت کامپوننت Input ماژولار
 import { toast } from 'react-toastify';
 import type { Id as ToastId } from 'react-toastify';
-import { useEffect, useRef } from "react";
+
+// ✅ ایمپورت کامپوننت‌های UI
+import { Button } from "@/components/ui/Button";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
+import Input from "@/components/ui/Input";
+import { ThemeToggleBtn } from "@/components/ui/ThemeToggleBtn";
+// اضافه کردن کامپوننت‌های مدال
+import { Modal, ModalHeader, ModalBody } from "@/components/ui/Modal";
+
+import { loginSchema, type LoginFormData } from '../schema/loginSchema';
+import { useAppDispatch, useAppSelector } from '@/store/index';
+import { loginUser, resetAuthStatus } from '@/store/slices/authSlice';
 
 const LoginForm = () => {
-  const theme = useAppSelector((state) => state.ui.theme)
+  const theme = useAppSelector((state) => state.ui.theme);
+  const dispatch = useAppDispatch();
 
-  const logoSrc =
-    theme === "dark"
-      ? "/img/img-header/logo-2.webp" // مسیر مطلق از ریشه سایت
-      : "/img/img-header/logo-1.webp"; // مسیر مطلق از ریشه سایت
-  // --- ۱. اتصال به Redux ---
-  const dispatch = useAppDispatch(); // هوک dispatch تایپ شده
-  // انتخاب وضعیت‌های مورد نیاز از state ریداکس
   const authStatus = useAppSelector((state) => state.auth.loginStatus);
   const authError = useAppSelector((state) => state.auth.error);
-  const isLoading = authStatus === 'loading'; // محاسبه وضعیت لودینگ
+  const isLoading = authStatus === 'loading';
 
-  //  React Hook Form 
+  // ✅ استیت برای مدیریت نمایش مدال ثبت نام
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+  const logoSrc = theme === "dark"
+    ? "/img/img-header/logo-2.webp"
+    : "/img/img-header/logo-1.webp";
+
   const {
-    reset,
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema), // اتصال به Zod
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       username: '',
       password: '',
     },
   });
+
   const loadingToastId = useRef<ToastId | null>(null);
-  // -onSubmit 
+
+  useEffect(() => {
+    return () => {
+      dispatch(resetAuthStatus());
+      if (loadingToastId.current) toast.dismiss(loadingToastId.current);
+    };
+  }, [dispatch]);
+
   const onSubmit: SubmitHandler<LoginFormData> = (data) => {
-    // dispatch کردن Async Thunk با داده‌های فرم
-    console.log('==>', data);
-
+    dispatch(resetAuthStatus());
     dispatch(loginUser(data));
-    console.log(data);
-
   };
 
   useEffect(() => {
     if (authStatus === 'loading') {
-      // ۲. ذخیره مستقیم ID بازگشتی از toast.loading در ref
       loadingToastId.current = toast.loading("در حال بررسی اطلاعات...", { rtl: true });
-    } else if (authStatus === 'succeeded') {
-      // ۳. بررسی و بستن نوتیفیکیشن لودینگ با استفاده از ref.current
-      if (loadingToastId.current) {
-        toast.dismiss(loadingToastId.current);
-        loadingToastId.current = null; // پاک کردن ref
-      }
+    }
+
+    if (authStatus === 'succeeded') {
+      if (loadingToastId.current) toast.dismiss(loadingToastId.current);
       toast.success("ورود با موفقیت انجام شد!", { rtl: true });
-      reset();
-    } else if (authStatus === 'failed' && authError) {
-      // ۳. بررسی و بستن نوتیفیکیشن لودینگ
-      if (loadingToastId.current) {
-        toast.dismiss(loadingToastId.current);
-        loadingToastId.current = null; // پاک کردن ref
-      }
+    }
+
+    if (authStatus === 'failed' && authError) {
+      if (loadingToastId.current) toast.dismiss(loadingToastId.current);
       toast.error(authError, { rtl: true });
     }
 
-    // Cleanup function: بستن نوتیفیکیشن لودینگ اگر کامپوننت unmount شود
-    return () => {
-      if (loadingToastId.current) {
-        toast.dismiss(loadingToastId.current);
-      }
-    }
-    // وابستگی‌ها بدون تغییر
-  }, [authStatus, authError, reset]);
+  }, [authStatus, authError]);
 
   return (
-    // استایل‌های کلی فرم (بدون تغییر زیاد)
-    <div className="w-full max-w-sm rounded-t-3xl md:rounded-t-3xl md:rounded-b-0 bg-white/40 p-4 shadow-2xl backdrop-blur-sm sm:p-8 dark:bg-black/50">
-      {/* هدر فرم (بدون تغییر) */}
+    <div className="w-full max-w-sm rounded-t-3xl md:rounded-t-3xl md:rounded-b-0 bg-white/40 p-4 shadow-2xl backdrop-blur-sm sm:p-8 dark:bg-black/50 animate-in fade-in zoom-in-95 duration-300">
       <div className="text-center">
         <h2 className="text-lg font-bold text-gray-800 dark:text-white">ورود</h2>
-        {/* ... (بقیه هدر: خط جداکننده، لوگو، عنوان) ... */}
         <span className="my-2 flex items-center">
-          <span className="h-px flex-1 bg-borderL"></span>
+          <span className="h-px flex-1 bg-borderL/50"></span>
           <span className="shrink-0 px-2 text-sm text-borderD sm:px-4 dark:text-backgroundL-500">
             خوش آمدید
           </span>
-          <span className="h-px flex-1 bg-borderL"></span>
+          <span className="h-px flex-1 bg-borderL/50"></span>
         </span>
-        <div className="flex flex-col items-center justify-center  sm:flex-row">
+        <div className="flex flex-col items-center justify-center sm:flex-row gap-2">
           <img
-            src={logoSrc} // ✅ مسیرها را مطلق کنید
+            src={logoSrc}
             alt="لوگوی رضوان پایش"
-            className="h-20 sm:h-24"
+            className="h-16 w-auto sm:h-20 object-contain"
           />
-          <p className="text-2xl font-bold text-gray-700 sm:text-3xl dark:text-gray-200">
+          <p className="text-xl font-bold text-gray-700 sm:text-2xl dark:text-gray-200">
             رضـــوان پایش
           </p>
         </div>
       </div>
 
-      {/* --- ۴. بدنه فرم با React Hook Form --- */}
-      {/* handleSubmit وظیفه اعتبارسنجی و فراخوانی onSubmit را دارد */}
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
-        {/* استفاده از کامپوننت Input ماژولار */}
         <Input
           id="username"
-          label="نام کاربری" // لیبل برای accessibility بهتر
+          label="نام کاربری"
           type="text"
+          autoComplete="username"
           placeholder="نام کاربری خود را وارد کنید"
-          icon={<User className="h-5 w-5 text-gray-400" />} // آیکون به عنوان prop
-          // اتصال به React Hook Form با register
+          icon={<User className="h-5 w-5 text-gray-400" />}
           {...register('username')}
-          // نمایش خطا از errors
           error={errors.username?.message}
-          // غیرفعال کردن در زمان لودینگ
           disabled={isLoading}
         />
 
@@ -126,6 +115,7 @@ const LoginForm = () => {
           id="password"
           label="رمز عبور"
           type="password"
+          autoComplete="current-password"
           placeholder="رمز عبور خود را وارد کنید"
           icon={<Lock className="h-5 w-5 text-gray-400" />}
           {...register('password')}
@@ -133,48 +123,94 @@ const LoginForm = () => {
           disabled={isLoading}
         />
 
-        {/* --- ۵. نمایش خطای کلی لاگین از Redux --- */}
         {authStatus === 'failed' && authError && (
-          <p className="text-sm text-red-600 dark:text-red-400 text-center">{authError}</p>
+          <Alert variant="destructive" className="py-2">
+            <AlertDescription className="text-center font-medium">
+              {authError}
+            </AlertDescription>
+          </Alert>
         )}
 
-        {/* دکمه‌های فرم */}
         <div className="flex flex-col items-center gap-3 pt-2 sm:flex-row sm:gap-4">
-          <button
+          <Button
             type="submit"
-            className="w-full flex justify-center items-center rounded-xl bg-primaryL py-2 px-4 text-sm font-bold text-white shadow-lg transition hover:opacity-80 disabled:opacity-50 dark:bg-primaryD dark:text-black"
-            // غیرفعال کردن دکمه در زمان لودینگ
+            variant="primary"
+            className="w-full shadow-lg hover:shadow-primaryL/25 dark:hover:shadow-primaryD/20"
             disabled={isLoading}
           >
-            {/* --- ۶. نمایش آیکون لودینگ --- */}
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
             {isLoading ? 'در حال ورود...' : 'ورود'}
-          </button>
-          {/* دکمه ثبت نام (فعلاً غیرفعال) */}
-          <button
+          </Button>
+
+          <Button
             type="button"
-            className="w-full rounded-xl border border-primaryL py-2 text-sm font-bold text-primaryL transition hover:bg-primaryL hover:text-white dark:border-primaryD dark:text-primaryD dark:hover:bg-primaryD dark:hover:text-black disabled:opacity-50"
+            variant="outline"
+            className="w-full border-primaryL/50 text-primaryL hover:bg-primaryL hover:text-white dark:border-primaryD/50 dark:text-primaryD dark:hover:bg-primaryD dark:hover:text-black"
             disabled={isLoading}
-            onClick={() => alert('صفحه ثبت نام هنوز پیاده‌سازی نشده است.')} // رویداد موقت
+            // ✅ باز کردن مدال راهنما به جای Toast
+            onClick={() => setIsRegisterModalOpen(true)}
           >
             ثبت نام
-          </button>
+          </Button>
         </div>
       </form>
 
-      {/* بخش تم (بدون تغییر) */}
       <div className="mt-6 flex items-center justify-between border-t border-borderL pt-4 dark:border-borderD">
         <span className="flex items-center gap-2 text-sm font-medium text-foregroundL dark:text-foregroundD">
-          <SquaresExclude size={20} />
+          <SquaresExclude size={18} />
           تم صفحه:
         </span>
         <ThemeToggleBtn />
       </div>
+
+      {/* ✅ مدال راهنمای ثبت نام */}
+      <Modal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        size="md"
+      >
+        <ModalHeader onClose={() => setIsRegisterModalOpen(false)}>
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-primaryL dark:text-primaryD" />
+            <span>راهنمای ایجاد حساب کاربری</span>
+          </div>
+        </ModalHeader>
+        <ModalBody>
+          <div className="flex flex-col items-center gap-4 text-center px-2">
+            <div className="p-4 bg-secondaryL/50 rounded-full dark:bg-secondaryD/50">
+              <Info className="h-10 w-10 text-primaryL dark:text-primaryD" />
+            </div>
+
+            <h4 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
+              نحوه دریافت نام کاربری
+            </h4>
+
+            <p className="text-sm leading-7 text-muted-foregroundL dark:text-muted-foregroundD">
+              در سامانه <strong className="text-foregroundL dark:text-foregroundD">رضوان پایش</strong>، حساب‌های کاربری به صورت متمرکز مدیریت می‌شوند.
+              <br />
+              برای ایجاد حساب جدید، لطفاً با <strong className="text-foregroundL dark:text-foregroundD">مدیر ارشد</strong> یا مسئول سیستم در سازمان خود تماس بگیرید.
+            </p>
+
+            <div className="w-full rounded-lg bg-secondaryL/30 p-3 border border-borderL dark:bg-secondaryD/30 dark:border-borderD mt-2">
+              <p className="text-xs text-foregroundL dark:text-foregroundD font-medium">
+                نام کاربری و رمز عبور پس از تایید هویت، توسط مدیریت در اختیار شما قرار خواهد گرفت.
+              </p>
+            </div>
+
+            <Button
+              className="w-full mt-4"
+              onClick={() => setIsRegisterModalOpen(false)}
+            >
+              متوجه شدم
+            </Button>
+          </div>
+        </ModalBody>
+      </Modal>
+
     </div>
   );
 };
 
 export default LoginForm;
-
