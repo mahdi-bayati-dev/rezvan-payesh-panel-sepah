@@ -10,6 +10,7 @@ import {
   Mails,
   Puzzle,
   ListCheck,
+  FileCheck,
   ShieldCheck,
   UserCheck // ✅ آیکون جدید برای پروفایل من
 } from "lucide-react";
@@ -90,5 +91,11 @@ export const mainNavItems: NavItem[] = [
     href: "/license",
     icon: <ShieldCheck size={20} />,
     allowedRoles: SUPER_ADMIN_ONLY,
+  },
+  {
+    label: "بررسی تصاویر", // یا "کارتابل درخواست‌ها"
+    href: "/confirm-photos/pending-images",
+    icon: <FileCheck size={20} />, // آیکون مرتبط با تایید
+    allowedRoles: ADMIN_ACCESS, // فقط ادمین‌ها می‌بینند
   },
 ];

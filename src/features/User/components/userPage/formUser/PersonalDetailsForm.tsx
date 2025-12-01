@@ -5,7 +5,10 @@ import { toast } from 'react-toastify';
 import { DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 import gregorian_en from "react-date-object/locales/gregorian_en";
-import { UploadCloud, Trash, ImageIcon, X, Image as LucideImage } from 'lucide-react';
+import {
+    UploadCloud, Trash, ImageIcon, X,
+    Clock, CheckCircle2,
+} from 'lucide-react';
 
 import { useUpdateUserProfile } from '@/features/User/hooks/hook';
 import { type User, type EmployeeImage } from '@/features/User/types/index';
@@ -20,16 +23,15 @@ import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import FormSection from '@/features/User/components/userPage/FormSection';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 
+// --- آپشن‌های ثابت ---
 const genderOptions: SelectOption[] = [
     { id: 'male', name: 'مرد' },
     { id: 'female', name: 'زن' },
 ];
-
 const maritalStatusOptions: SelectOption[] = [
     { id: 'false', name: 'مجرد' },
     { id: 'true', name: 'متاهل' },
 ];
-
 const educationLevelOptions: SelectOption[] = [
     { id: 'diploma', name: 'دیپلم' },
     { id: 'advanced_diploma', name: 'کاردانی' },
@@ -43,27 +45,27 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
     const [isEditing, setIsEditing] = useState(false);
     const updateMutation = useUpdateUserProfile();
 
-    // --- State های مربوط به تصویر ---
+    // --- State های تصاویر ---
     const [existingImages, setExistingImages] = useState<EmployeeImage[]>([]);
     const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
 
-    // مقادیر پیش‌فرض فرم
+    // شبیه‌سازی وضعیت عکس‌های در حال بررسی (چون API ممکن است هنوز نفرستد)
+    // در پروژه واقعی، باید این لیست را از API یا LocalStorage بگیریم
+    const [pendingImages, setPendingImages] = useState<string[]>([]);
+
+    // مقادیر پیش‌فرض
     const defaultValues = useMemo((): PersonalDetailsFormData => {
         if (!user.employee) return { employee: null };
         return {
             employee: {
                 first_name: user.employee.first_name,
                 last_name: user.employee.last_name,
-                // ✅ اصلاح: تبدیل null به رشته خالی ""
                 father_name: user.employee.father_name || "",
                 nationality_code: user.employee.nationality_code || "",
                 birth_date: user.employee.birth_date || "",
                 gender: user.employee.gender,
                 is_married: user.employee.is_married,
-
-                // چون education_level در اسکیما اجباری شده، نباید null باشد.
                 education_level: user.employee.education_level || "diploma",
-
                 images: [],
                 deleted_image_ids: [],
             }
@@ -83,6 +85,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
         defaultValues
     });
 
+    // همگام‌سازی با تغییرات کاربر یا کنسل کردن
     useEffect(() => {
         if (isEditing) return;
         reset(defaultValues);
@@ -92,25 +95,30 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
         } else {
             setExistingImages([]);
         }
+
+        // پاکسازی پریویوها
+        newImagePreviews.forEach(url => URL.revokeObjectURL(url));
         setNewImagePreviews([]);
     }, [user, defaultValues, reset, isEditing]);
 
-
+    // هندلر انتخاب فایل
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const files = Array.from(e.target.files);
             const currentFiles = watch('employee.images') || [];
-            const updatedFiles = [...currentFiles, ...files];
 
-            setValue('employee.images', updatedFiles, { shouldValidate: true, shouldDirty: true });
+            // ذخیره فایل‌ها در فرم
+            setValue('employee.images', [...currentFiles, ...files], { shouldValidate: true, shouldDirty: true });
 
+            // ساخت پیش‌نمایش
             const newUrls = files.map(file => URL.createObjectURL(file));
             setNewImagePreviews(prev => [...prev, ...newUrls]);
 
-            e.target.value = '';
+            e.target.value = ''; // ریست اینپوت
         }
     };
 
+    // حذف تصویر جدید (قبل از آپلود)
     const removeNewImage = (index: number) => {
         const currentFiles = watch('employee.images') || [];
         const updatedFiles = currentFiles.filter((_, i) => i !== index);
@@ -120,6 +128,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
         setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
     };
 
+    // حذف تصویر موجود (از سرور)
     const removeExistingImage = (imageId: number) => {
         setExistingImages(prev => prev.filter(img => img.id !== imageId));
         const currentDeletedIds = watch('employee.deleted_image_ids') || [];
@@ -131,12 +140,18 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
             { userId: user.id, payload: formData },
             {
                 onSuccess: () => {
-                    toast.success("مشخصات فردی و تصاویر به‌روزرسانی شدند.");
+                    toast.success("اطلاعات ذخیره شد. تصاویر جدید جهت بررسی ارسال گردیدند.");
+
+                    // انتقال عکس‌های جدید به لیست "در حال بررسی" (Optimistic UI)
+                    setPendingImages(prev => [...prev, ...newImagePreviews]);
+
                     setIsEditing(false);
-                    newImagePreviews.forEach(url => URL.revokeObjectURL(url));
+                    // نکته: اینجا URL ها را revoke نمی‌کنیم چون در pendingImages استفاده می‌شوند
                     setNewImagePreviews([]);
                 },
-                onError: (err) => { toast.error(`خطا: ${(err as Error).message}`); }
+                onError: (err) => {
+                    toast.error(`خطا: ${(err as Error).message}`);
+                }
             }
         );
     };
@@ -149,6 +164,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
         setIsEditing(false);
     };
 
+    // تبدیل تاریخ
     const handleDateChange = (date: DateObject | null, onChange: (val: string | null) => void) => {
         if (date) {
             onChange(date.convert(gregorian, gregorian_en).format("YYYY-MM-DD"));
@@ -157,13 +173,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
         }
     };
 
-    if (!user.employee) {
-        return (
-            <div className="p-4 rounded-lg border border-warning-200 bg-warning-50 text-warning-800 dark:bg-warning-900/20 dark:text-warning-200">
-                این کاربر فاقد پروفایل کارمندی است. مشخصات فردی قابل ویرایش نیست.
-            </div>
-        );
-    }
+    if (!user.employee) return null;
 
     return (
         <FormSection
@@ -175,146 +185,116 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
             isDirty={isDirty}
             isSubmitting={updateMutation.isPending}
         >
-            {/* --- بخش مدیریت تصاویر (بهینه شده برای Dark Mode) --- */}
-            <div className="mb-8 p-4 rounded-xl border border-borderL bg-secondaryL/20 dark:border-borderD dark:bg-backgroundD/50">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="p-1.5 rounded-lg bg-primaryL/10 dark:bg-primaryD/10 text-primaryL dark:text-primaryD">
+            {/* === بخش گالری تصاویر === */}
+            <div className="mb-8 p-5 rounded-2xl border border-borderL bg-white dark:bg-gray-900 dark:border-borderD shadow-sm">
+                <div className="flex items-center gap-2 mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                         <ImageIcon className="w-5 h-5" />
                     </div>
                     <div>
-                        <h4 className="font-semibold text-sm text-foregroundL dark:text-foregroundD">گالری تصاویر</h4>
-                        <p className="text-[11px] text-muted-foregroundL dark:text-muted-foregroundD">اولین تصویر به عنوان پروفایل اصلی نمایش داده می‌شود</p>
+                        <h4 className="font-bold text-gray-800 dark:text-gray-100">گالری تصاویر پروفایل</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">وضعیت تصاویر خود را در اینجا مشاهده کنید</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
 
-                    {/* ۱. دکمه آپلود */}
+                    {/* ۱. دکمه آپلود (فقط در حالت ویرایش) */}
                     {isEditing && (
-                        <label className="relative flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed border-primaryL/30 dark:border-primaryD/30 bg-backgroundL-500 hover:bg-primaryL/5 dark:bg-backgroundD dark:hover:bg-primaryD/10 cursor-pointer transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-primaryL dark:hover:border-primaryD">
-                            <div className="p-3 rounded-full bg-secondaryL dark:bg-secondaryD group-hover:scale-110 transition-transform mb-2">
-                                <UploadCloud className="w-6 h-6 text-primaryL dark:text-primaryD" />
+                        <label className="relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 cursor-pointer transition-all group overflow-hidden">
+                            <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm group-hover:scale-110 transition-transform mb-2">
+                                <UploadCloud className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <span className="text-xs font-medium text-foregroundL dark:text-foregroundD">افزودن تصویر</span>
-                            <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD mt-1 ">JPG, PNG (Max 5MB)</span>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleFileChange}
-                                disabled={!isEditing}
-                            />
+                            <span className="text-xs font-bold text-blue-700 dark:text-blue-300">آپلود عکس جدید</span>
+                            <span className="text-[10px] text-blue-500 dark:text-blue-400 mt-1 opacity-80">JPG, PNG</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={!isEditing} />
                         </label>
                     )}
 
-                    {/* ۲. تصاویر موجود */}
+                    {/* ۲. تصاویر تایید شده (موجود در سرور) */}
                     {existingImages.map((img) => (
-                        <div key={img.id} className="group relative aspect-square rounded-xl overflow-hidden border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD shadow-sm">
+                        <div key={img.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 shadow-sm">
                             <img
                                 src={getFullImageUrl(img.url)}
-                                alt="Existing"
+                                alt="Approved Profile"
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                                }}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
-                            {/* فال‌بک */}
-                            <div className="hidden w-full h-full items-center justify-center bg-secondaryL dark:bg-secondaryD">
-                                <LucideImage className="w-8 h-8 text-muted-foregroundL dark:text-muted-foregroundD/50" />
+                            {/* بج وضعیت: تایید شده */}
+                            <div className="absolute top-2 left-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 z-10 backdrop-blur-md bg-opacity-90">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>تایید شده</span>
                             </div>
 
                             {/* دکمه حذف */}
                             {isEditing && (
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                    <button
-                                        type="button"
-                                        onClick={() => removeExistingImage(img.id)}
-                                        className="bg-destructiveL hover:bg-destructiveL/90 text-white p-2.5 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300"
-                                        title="حذف تصویر"
-                                    >
-                                        <Trash className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => removeExistingImage(img.id)}
+                                    className="absolute top-2 right-2 bg-white/90 hover:bg-red-500 hover:text-white text-red-500 p-1.5 rounded-full shadow-sm transition-all opacity-0 group-hover:opacity-100 translate-y-[-10px] group-hover:translate-y-0"
+                                >
+                                    <Trash className="w-3.5 h-3.5" />
+                                </button>
                             )}
                         </div>
                     ))}
 
-                    {/* ۳. تصاویر جدید */}
+                    {/* ۳. تصاویر جدید (در حال آپلود - پیش‌نمایش) */}
                     {newImagePreviews.map((url, index) => (
-                        <div key={`new-${index}`} className="group relative aspect-square rounded-xl overflow-hidden border-2 border-primaryL/50 dark:border-primaryD/50 shadow-md bg-backgroundL-500 dark:bg-backgroundD">
-                            <img src={url} alt="New Preview" className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105" />
-
-                            <div className="absolute top-2 right-2 bg-primaryL dark:bg-primaryD text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">
-                                جدید
+                        <div key={`new-${index}`} className="group relative aspect-square rounded-2xl overflow-hidden border-2 border-blue-500 dark:border-blue-400 shadow-md">
+                            <img src={url} alt="New Preview" className="w-full h-full object-cover" />
+                            {/* بج وضعیت: آماده ارسال */}
+                            <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 z-10">
+                                <UploadCloud className="w-3 h-3" />
+                                <span>جدید</span>
                             </div>
 
+                            {/* دکمه حذف */}
                             {isEditing && (
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                    <button
-                                        type="button"
-                                        onClick={() => removeNewImage(index)}
-                                        className="bg-destructiveL hover:bg-destructiveL/90 text-white p-2.5 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300"
-                                        title="انصراف"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => removeNewImage(index)}
+                                    className="absolute top-2 right-2 bg-white/90 hover:bg-red-500 hover:text-white text-gray-700 p-1.5 rounded-full shadow-sm transition-all"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
                             )}
                         </div>
                     ))}
 
-                    {/* پیام خالی بودن */}
-                    {!isEditing && existingImages.length === 0 && (
-                        <div className="col-span-full flex flex-col items-center justify-center p-8 border-2 border-dashed border-borderL dark:border-white/10 rounded-xl text-muted-foregroundL dark:text-muted-foregroundD bg-secondaryL/30 dark:bg-white/5">
-                            <div className="p-3 bg-backgroundL-500 dark:bg-gray-800 rounded-full mb-3 shadow-sm">
-                                <ImageIcon className="w-8 h-8 opacity-50" />
+                    {/* ۴. تصاویر در حال بررسی (Pending) */}
+                    {pendingImages.map((url, index) => (
+                        <div key={`pending-${index}`} className="group relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-amber-400 bg-amber-50 dark:bg-amber-900/10">
+                            <img src={url} alt="Pending" className="w-full h-full object-cover opacity-60 grayscale-[30%]" />
+
+                            {/* بج وضعیت: در حال بررسی */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-amber-900/10 backdrop-blur-[1px]">
+                                <div className="bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg">
+                                    <Clock className="w-3.5 h-3.5 animate-pulse" />
+                                    <span>در حال بررسی</span>
+                                </div>
+                                <p className="text-[10px] text-white font-medium mt-2 drop-shadow-md">منتظر تایید ادمین</p>
                             </div>
-                            <span className="text-sm font-medium">هیچ تصویری ثبت نشده است</span>
+                        </div>
+                    ))}
+
+                    {/* وضعیت خالی */}
+                    {!isEditing && existingImages.length === 0 && pendingImages.length === 0 && (
+                        <div className="col-span-full py-8 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-800/20">
+                            <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
+                            <span className="text-sm">هنوز تصویری بارگذاری نشده است</span>
                         </div>
                     )}
                 </div>
-
-                {errors.employee?.images && (
-                    <div className="mt-3 p-2 bg-destructiveL/10 dark:bg-destructiveD/10 border border-destructiveL/20 dark:border-destructiveD/20 rounded-lg">
-                        <p className="text-destructiveL dark:text-destructiveD text-xs font-medium text-center">
-                            {errors.employee.images.message}
-                        </p>
-                    </div>
-                )}
             </div>
 
-            {/* خط جداکننده */}
-            <div className="h-px bg-gradient-to-r from-transparent via-borderL to-transparent dark:via-borderD mb-8 opacity-50" />
-
-            {/* --- فیلدهای متنی --- */}
+            {/* === فیلدهای اطلاعات فردی === */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Input
-                    label="نام"
-                    {...register("employee.first_name")}
-                    error={errors.employee?.first_name?.message}
-                    disabled={!isEditing}
-                />
-                <Input
-                    label="نام خانوادگی"
-                    {...register("employee.last_name")}
-                    error={errors.employee?.last_name?.message}
-                    disabled={!isEditing}
-                />
-                <Input
-                    label="نام پدر"
-                    {...register("employee.father_name")}
-                    error={errors.employee?.father_name?.message}
-                    disabled={!isEditing}
-                />
-                <Input
-                    label="کد ملی"
-                    {...register("employee.nationality_code")}
-                    error={errors.employee?.nationality_code?.message}
-                    dir="ltr"
-                    className="text-right"
-                    disabled={!isEditing}
-                />
+                <Input label="نام" {...register("employee.first_name")} error={errors.employee?.first_name?.message} disabled={!isEditing} />
+                <Input label="نام خانوادگی" {...register("employee.last_name")} error={errors.employee?.last_name?.message} disabled={!isEditing} />
+                <Input label="نام پدر" {...register("employee.father_name")} error={errors.employee?.father_name?.message} disabled={!isEditing} />
+
+                <Input label="کد ملی" {...register("employee.nationality_code")} error={errors.employee?.nationality_code?.message} disabled={!isEditing} dir="ltr" className="text-left font-mono" />
 
                 <Controller
                     name="employee.birth_date"
@@ -340,7 +320,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                             options={genderOptions}
                             value={genderOptions.find(opt => opt.id === field.value) || null}
                             onChange={(option) => field.onChange(option ? option.id : null)}
-                            disabled={!isEditing || updateMutation.isPending}
+                            disabled={!isEditing}
                             error={errors.employee?.gender?.message}
                         />
                     )}
@@ -356,7 +336,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                             options={maritalStatusOptions}
                             value={maritalStatusOptions.find(opt => opt.id === String(field.value)) || null}
                             onChange={(option) => field.onChange(option ? option.id === 'true' : null)}
-                            disabled={!isEditing || updateMutation.isPending}
+                            disabled={!isEditing}
                             error={errors.employee?.is_married?.message}
                         />
                     )}
@@ -372,7 +352,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                             options={educationLevelOptions}
                             value={educationLevelOptions.find(opt => opt.id === field.value) || null}
                             onChange={(option) => field.onChange(option ? option.id : null)}
-                            disabled={!isEditing || updateMutation.isPending}
+                            disabled={!isEditing}
                             error={errors.employee?.education_level?.message}
                         />
                     )}
