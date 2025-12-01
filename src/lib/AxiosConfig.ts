@@ -15,7 +15,8 @@ const API_BASE_URL =
 
 // دریافت حالت احراز هویت از متغیر محیطی (پیش‌فرض: token)
 // این متغیر در کل برنامه ایمپورت می‌شود تا همه رفتار یکسان داشته باشند
-export const AUTH_MODE = (import.meta.env.VITE_AUTH_MODE as "token" | "cookie") || "token";
+export const AUTH_MODE =
+  (import.meta.env.VITE_AUTH_MODE as "token" | "cookie") || "token";
 
 const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
 
@@ -25,17 +26,20 @@ const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
  */
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: AUTH_MODE === "cookie", 
+  withCredentials: AUTH_MODE === "cookie",
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
   },
-  timeout: 15000,
+  timeout: 20000,
 });
 
 // لاگ وضعیت برای اطمینان در محیط توسعه
 if (import.meta.env.DEV) {
-    console.log(`%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode`, "background: #333; color: #bada55; padding: 4px; border-radius: 4px;");
+  console.log(
+    `%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode`,
+    "background: #333; color: #bada55; padding: 4px; border-radius: 4px;"
+  );
 }
 
 // ====================================================================
@@ -46,14 +50,14 @@ axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // فقط اگر در حالت توکن هستیم، توکن را از ریداکس می‌خوانیم و در هدر می‌گذاریم
     if (AUTH_MODE === "token") {
-        const state = store.getState();
-        const token = state.auth.accessToken;
+      const state = store.getState();
+      const token = state.auth.accessToken;
 
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
-    
+
     // در حالت cookie، مرورگر خودش کوکی httpOnly را ارسال می‌کند و ما کاری نمی‌کنیم.
 
     return config;
@@ -112,7 +116,10 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    console.error(`❌ API Error [${status}] at ${originalRequest?.url}:`, error.message);
+    console.error(
+      `❌ API Error [${status}] at ${originalRequest?.url}:`,
+      error.message
+    );
     return Promise.reject(error);
   }
 );

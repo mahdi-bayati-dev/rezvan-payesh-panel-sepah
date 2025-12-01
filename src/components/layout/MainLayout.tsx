@@ -5,17 +5,19 @@ import { Header } from "./Header";
 
 // ۱. نگهبان اتصال (عمومی - اتصال سوکت)
 import { GlobalWebSocketHandler } from './GlobalWebSocketHandler';
-// ۲. نگهبان درخواست‌ها (مدیریت بج و نوتیفیکیشن)
+// ۲. نگهبان درخواست‌ها (مدیریت بج و نوتیفیکیشن - مربوط به مرخصی و ...)
 import { GlobalRequestSocketHandler } from './GlobalRequestSocketHandler';
 
 // ۳. ایمپورت کامپوننت‌های Toast
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// ۴. ایمپورت هندلر مخصوص دانلود (طبق فایل‌های قبلی شما)
+// ۴. ایمپورت هندلر مخصوص دانلود
 import { GlobalNotificationHandler } from '@/features/reports/components/Export/DownloadToast';
 
+// ۵. هوک‌های سوکت تصاویر
 import { useImageNotificationSocket } from '@/features/ConfirmPhotos/hooks/useImageNotificationSocket';
+import { useAdminImageSocket } from '@/features/ConfirmPhotos/hooks/useAdminImageSocket';
 
 
 
@@ -24,7 +26,12 @@ export const MainLayout = () => {
   const location = useLocation();
   const isLicensePage = location.pathname === '/license';
 
+  // --- Socket Hooks ---
+  // این هوک برای "کارمند" است (نتیجه تایید/رد عکس خودش)
   useImageNotificationSocket();
+
+  // ✅ اضافه شده: این هوک برای "ادمین" است (دریافت درخواست جدید)
+  useAdminImageSocket();
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
@@ -34,7 +41,7 @@ export const MainLayout = () => {
       {/* اتصال اولیه سوکت */}
       <GlobalWebSocketHandler />
 
-      {/* مدیریت بج و نوتیفیکیشن درخواست‌ها */}
+      {/* مدیریت بج و نوتیفیکیشن درخواست‌های عمومی (مثل مرخصی) */}
       <GlobalRequestSocketHandler />
 
       {/* مدیریت دانلود فایل اکسل */}
