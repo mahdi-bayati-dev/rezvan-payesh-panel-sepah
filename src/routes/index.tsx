@@ -39,10 +39,11 @@ const CreateUser = lazy(() => import('../features/User/components/userCreate/Cre
 const AssignUserPage = lazy(() => import('../features/User/components/AssignUser/AssignUserPage'))
 const UserProfilePage = lazy(() => import('../features/User/components/userPage/UserProfilePage'))
 
-// ✅ ۱. ایمپورت صفحه پروفایل من (مسیر را بر اساس جایی که فایل را ساختی تنظیم کن)
-// فرض بر این است که فایل MyProfilePage را در مسیر User/components/myProfile ساخته‌ایم.
-// چون فایل routes/index.tsx در پوشه routes است و User در features است (طبق ایمپورت‌های بالا):
+// ✅ ۱. ایمپورت صفحه پروفایل من
 const MyProfilePage = lazy(() => import('../features/User/components/myProfile/myProfilePage'))
+
+// ✅ ۲. ایمپورت صفحه جدید بررسی تصاویر (از فیچر Request)
+const PendingImagesPage = lazy(() => import('../features/ConfirmPhotos/routes/PendingImagesPage'))
 
 const WorkCalendarPage = lazy(() => import('../features/work-calendar/routes/WorkCalendarPage'))
 const AdminManagement = lazy(() => import('../features/User/components/userPage/AdminManagementPage'))
@@ -70,7 +71,7 @@ export const router = createBrowserRouter([
                 path: "/",
                 element: <Suspense fallback={<Spinner />}><DashboardPage /></Suspense>,
               },
-              
+
               {
                 path: "my-profile",
                 element: <Suspense fallback={<Spinner />}><MyProfilePage /></Suspense>,
@@ -147,6 +148,11 @@ export const router = createBrowserRouter([
               {
                 path: "organizations/:id/assign-user",
                 element: <Suspense fallback={<Spinner />}><AssignUserPage /></Suspense>,
+              },
+              // ✅ ۳. اضافه کردن روت بررسی تصاویر (مخصوص ادمین‌ها)
+              {
+                path: "confirm-photos/pending-images",
+                element: <Suspense fallback={<Spinner />}><PendingImagesPage /></Suspense>,
               },
             ]
           },

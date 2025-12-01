@@ -15,11 +15,16 @@ import 'react-toastify/dist/ReactToastify.css';
 // ۴. ایمپورت هندلر مخصوص دانلود (طبق فایل‌های قبلی شما)
 import { GlobalNotificationHandler } from '@/features/reports/components/Export/DownloadToast';
 
+import { useImageNotificationSocket } from '@/features/ConfirmPhotos/hooks/useImageNotificationSocket';
+
+
 
 export const MainLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const isLicensePage = location.pathname === '/license';
+
+  useImageNotificationSocket();
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
