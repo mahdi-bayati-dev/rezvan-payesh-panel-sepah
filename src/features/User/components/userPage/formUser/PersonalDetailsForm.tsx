@@ -67,7 +67,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                 is_married: user.employee.is_married,
                 education_level: user.employee.education_level || "diploma",
                 images: [],
-                deleted_image_ids: [],
+                delete_images: [],
             }
         };
     }, [user]);
@@ -131,8 +131,8 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
     // حذف تصویر موجود (از سرور)
     const removeExistingImage = (imageId: number) => {
         setExistingImages(prev => prev.filter(img => img.id !== imageId));
-        const currentDeletedIds = watch('employee.deleted_image_ids') || [];
-        setValue('employee.deleted_image_ids', [...currentDeletedIds, imageId], { shouldDirty: true });
+        const currentDeletedIds = watch('employee.delete_images') || [];
+        setValue('employee.delete_images', [...currentDeletedIds, imageId], { shouldDirty: true });
     };
 
     const onSubmit = (formData: PersonalDetailsFormData) => {

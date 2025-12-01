@@ -98,8 +98,8 @@ export const updateUserProfile = async ({
     (payload as any).employee?.images &&
     (payload as any).employee.images.length > 0;
   const hasDeletedFiles =
-    (payload as any).employee?.deleted_image_ids &&
-    (payload as any).employee.deleted_image_ids.length > 0;
+    (payload as any).employee?.delete_images &&
+    (payload as any).employee.delete_images.length > 0;
 
   // اگر فایل نداشتیم و حذفی هم نداشتیم، ارسال معمولی JSON (متد PUT)
   if (!hasFiles && !hasDeletedFiles) {
@@ -128,7 +128,7 @@ export const updateUserProfile = async ({
           formData.append(`${rootKey}[${index}]`, item);
         }
         // ID های حذف شده
-        else if (rootKey?.includes("deleted_image_ids")) {
+        else if (rootKey?.includes("delete_images")) {
           formData.append(`${rootKey}[${index}]`, String(item));
         } else {
           appendToFormData(item, `${rootKey}[${index}]`);

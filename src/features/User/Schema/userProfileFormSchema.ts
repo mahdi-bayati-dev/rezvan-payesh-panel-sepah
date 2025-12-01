@@ -54,7 +54,7 @@ export const personalDetailsFormSchema = z.object({
       birth_date: requiredString("تاریخ تولد"),
       education_level: z.enum(EDUCATION_LEVELS),
       images: z.array(z.custom<File>()).optional().nullable(),
-      deleted_image_ids: z.array(z.number()).optional().nullable(),
+      delete_images: z.array(z.number()).optional().nullable(),
     })
     .nullable(),
 });
