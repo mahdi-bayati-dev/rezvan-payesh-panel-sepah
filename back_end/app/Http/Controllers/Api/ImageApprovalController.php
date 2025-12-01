@@ -16,7 +16,7 @@ class ImageApprovalController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        if(!$user->hasRole('org-admin-l2',"super_admin","org-admin-l3"))
+        if(!$user->hasRole(['org-admin-l2',"super_admin","org-admin-l3"]))
         {
             return response()->json(["message" => "Unauthorized"], 401);
         }
