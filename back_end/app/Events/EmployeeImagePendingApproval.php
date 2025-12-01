@@ -1,0 +1,81 @@
+<?php
+
+namespace App\Events;
+
+
+use App\Models\PendingEmployeeImage;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
+
+
+class EmployeeImagePendingApproval implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
+    public $pendingImages;
+    public $employee;
+    public $organization;
+
+    /**
+     * @param  Collection $pendingImages  کالکشنی از مدل‌های PendingEmployeeImage
+     */
+    public function __construct(Collection $pendingImages)
+    {
+        $this->pendingImages = $pendingImages;
+
+        if ($pendingImages->isNotEmpty()) {
+            /** @var PendingEmployeeImage $firstImage */
+            $firstImage = $pendingImages->first();
+            $firstImage->load('employee.organization.ancestors', 'employee.user');
+
+            $this->employee = $firstImage->employee;
+            $this->organization = $this->employee->organization;
+        }
+    }
+
+    public function broadcastOn(): array
+    {
+        $channels = [];
+
+        if (!$this->organization)
+        {
+            return $channels;
+        }
+
+        $channels[] = new PrivateChannel('super-admin-global');
+
+        $channels[] = new PrivateChannel('l3-channel.' . $this->organization->id);
+
+        $allAncestors = $this->organization->ancestors;
+        $allAncestors->push($this->organization);
+
+        foreach ($allAncestors as $org) {
+            if ($org && $org->id) {
+                $channels[] = new PrivateChannel('l2-channel.' . $org->id);
+            }
+        }
+
+        return array_unique($channels);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'images.pending';
+    }
+
+    public function broadcastWith(): array
+    {
+        return [
+            'message' => "کاربر {$this->employee->first_name} {$this->employee->last_name} تعداد {$this->pendingImages->count()} تصویر جدید ارسال کرد.",
+            'pending_images_count' => $this->pendingImages->count(),
+            'personnel_code' => $this->employee->personnel_code,
+            'pending_image_ids' => $this->pendingImages->pluck('id'),
+            'preview_image' => $this->pendingImages->first() ? asset('storage/' . $this->pendingImages->first()->original_path) : null,
+            'timestamp' => now()->toIso8601String(),
+        ];
+    }
+}

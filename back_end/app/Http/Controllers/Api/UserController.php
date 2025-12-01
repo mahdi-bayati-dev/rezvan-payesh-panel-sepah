@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EmployeeImagePendingApproval;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
 use App\Imports\UsersImport;
 use App\Jobs\ProcessEmployeeImages;
 use App\Models\EmployeeImage;
+use App\Models\PendingEmployeeImage;
 use App\Models\Status;
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\ImageUploadPending;
 use App\Services\CheckSystem;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
@@ -417,7 +420,7 @@ class UserController extends Controller
          }
 
          // 4. Update User and Employee in Transaction
-         $updateResult = DB::transaction(function () use ($request,$user, $validatedData, $employeeData)
+         $updateResult = DB::transaction(function () use ($request,$user, $validatedData, $employeeData,$updatingUser)
          {
              // Update User fields
              $userDataToUpdate = [];
@@ -465,7 +468,8 @@ class UserController extends Controller
 
                  EmployeeImage::destroy($deleteImageIds);
              }
-             $newImagePaths = [];
+             $newImagesToProcess = [];
+             $pendingImagesBatch = collect();
              if ($request->hasFile('employee.images'))
              {
                  $user->employee->refresh();
@@ -474,18 +478,38 @@ class UserController extends Controller
                  foreach ($request->file('employee.images') as $image)
                  {
                      $path = $image->store($directory, 'public');
-                     $imgRecord = EmployeeImage::create([
-                         'employee_id' => $user->employee->id,
-                         'original_path' => $path,
-                         'webp_path' => null,
-                         'original_name' => $image->getClientOriginalName(),
-                         'mime_type' => $image->getClientMimeType(),
-                         'size' => $image->getSize(),
-                     ]);
-                     $newImagesToProcess[] = [
-                         'id' => $imgRecord->id,
-                         'original_path' => $path
-                     ];
+
+                     //check permission
+                     $isAdmin = $updatingUser->hasRole('super_admin') || $updatingUser->hasRole('org-admin-l2');
+                     if ($isAdmin)
+                     {
+                         $imgRecord = EmployeeImage::create([
+                             'employee_id' => $user->employee->id,
+                             'original_path' => $path,
+                             'webp_path' => null,
+                             'original_name' => $image->getClientOriginalName(),
+                             'mime_type' => $image->getClientMimeType(),
+                             'size' => $image->getSize(),
+                         ]);
+                         $newImagesToProcess[] = [
+                             'id' => $imgRecord->id,
+                             'original_path' => $path
+                         ];
+                     }
+                     else
+                     {
+                         $pendingImg = PendingEmployeeImage::create([
+                             'employee_id' => $user->employee->id,
+                             'original_path' => $path,
+                             'original_name' => $image->getClientOriginalName(),
+                             'mime_type' => $image->getClientMimeType(),
+                             'size' => $image->getSize(),
+                             'status' => 'pending'
+                         ]);
+                         // افزودن به لیست دسته
+                         $pendingImagesBatch->push($pendingImg);
+                     }
+
                  }
              }
 
@@ -499,13 +523,16 @@ class UserController extends Controller
                  'aiDeletePaths' => $aiDeletePaths,
                  'newImagesToProcess' => $newImagesToProcess ?? null,
                  'personnelCode' => $user->employee->personnel_code,
-                 'gender' => $user->employee->gender
+                 'gender' => $user->employee->gender,
+                 'pendingImagesBatch' => $pendingImagesBatch,
              ];
          });
         $aiDeletePaths = $updateResult['aiDeletePaths'];
         $newImagesToProcess = $updateResult['newImagesToProcess'];
         $personnelCode = $updateResult['personnelCode'];
         $gender = $updateResult['gender'];
+        $pendingImagesBatch = $updateResult['pendingImagesBatch'];
+
 
          // 1. Handle Deletions in AI
         if (!empty($aiDeletePaths))
@@ -532,6 +559,12 @@ class UserController extends Controller
          {
              ProcessEmployeeImages::dispatch($user->employee, $newImagesToProcess, 'update');
          }
+
+        if ($pendingImagesBatch->isNotEmpty())
+        {
+            $updatingUser->notify(new ImageUploadPending($pendingImagesBatch->count()));
+             event(new EmployeeImagePendingApproval($pendingImagesBatch));
+        }
 
         return new UserResource($user->load(['employee.organization', 'roles', 'employee.images', 'employee.workGroup','employee.shiftSchedule','employee.weekPattern']));
 
