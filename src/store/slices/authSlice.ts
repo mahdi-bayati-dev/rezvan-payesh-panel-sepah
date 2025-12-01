@@ -1,8 +1,5 @@
-import {
-  createSlice,
-  createAsyncThunk,
-} from "@reduxjs/toolkit";
-import axiosInstance, { AUTH_MODE } from "@/lib/AxiosConfig"; // استفاده از متغیر سراسری
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axiosInstance, { AUTH_MODE } from "@/lib/AxiosConfig";
 import { AxiosError } from "axios";
 import type { LoginFormData } from "@/features/auth/schema/loginSchema";
 import type { RootState } from "@/store";
@@ -20,7 +17,7 @@ interface User {
 }
 
 interface LoginResponse {
-  access_token?: string; // اختیاری چون در حالت کوکی ممکن است نیاید
+  access_token?: string;
   token_type?: string;
   user: User;
 }
@@ -50,9 +47,8 @@ interface ThunkConfig {
 
 const getInitialToken = (): string | null => {
   if (typeof window === "undefined") return null;
-  // فقط اگر در حالت توکن هستیم از لوکال استوریج می‌خوانیم
   if (AUTH_MODE === "token") {
-      return localStorage.getItem("accessToken");
+    return localStorage.getItem("accessToken");
   }
   return null;
 };
@@ -71,31 +67,22 @@ const initialState: AuthState = {
 // ⚡ Async Thunks
 // ====================================================================
 
-/**
- * 🔍 بررسی وضعیت احراز هویت
- */
 export const checkAuthStatus = createAsyncThunk<User, void, ThunkConfig>(
   "auth/checkStatus",
   async (_, { rejectWithValue, getState }) => {
-    
-    // در حالت توکن، اگر توکن نداریم اصلا ریکوئست نزن (چون بی فایده است)
     if (AUTH_MODE === "token") {
-        const token = (getState() as RootState).auth.accessToken;
-        if (!token) return rejectWithValue("No token found.");
+      const token = (getState() as RootState).auth.accessToken;
+      if (!token) return rejectWithValue("No token found.");
     }
-    // در حالت کوکی، همیشه ریکوئست میزنیم چون شاید کوکی معتبر باشد
 
     try {
       const response = await axiosInstance.get<MeResponse>("/me");
       return response.data.data;
     } catch (error: any) {
       let errorMessage = "عدم احراز هویت";
-      
-      // اگر 401 گرفتیم و مود توکن بود، توکن را از مرورگر پاک کن
       if (error instanceof AxiosError && error.response?.status === 401) {
-          if (AUTH_MODE === "token") localStorage.removeItem("accessToken");
+        if (AUTH_MODE === "token") localStorage.removeItem("accessToken");
       }
-      
       if (error instanceof AxiosError && error.response) {
         errorMessage = error.response.data?.message || errorMessage;
       }
@@ -104,40 +91,35 @@ export const checkAuthStatus = createAsyncThunk<User, void, ThunkConfig>(
   }
 );
 
-/**
- * 🔐 ورود کاربر
- */
-export const loginUser = createAsyncThunk<LoginResponse, LoginFormData, ThunkConfig>(
-  "auth/login",
-  async (loginData, { rejectWithValue }) => {
-    try {
-      const response = await axiosInstance.post<LoginResponse>("/login", {
-        user_name: loginData.username,
-        password: loginData.password,
-      });
+export const loginUser = createAsyncThunk<
+  LoginResponse,
+  LoginFormData,
+  ThunkConfig
+>("auth/login", async (loginData, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.post<LoginResponse>("/login", {
+      user_name: loginData.username,
+      password: loginData.password,
+    });
 
-      // فقط اگر در حالت توکن هستیم، توکن دریافتی را ذخیره می‌کنیم
-      if (AUTH_MODE === "token" && response.data.access_token) {
-        localStorage.setItem("accessToken", response.data.access_token);
-      }
-
-      return response.data;
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      let errorMessage = "خطایی در هنگام ورود رخ داد.";
-
-      if (error instanceof AxiosError && error.response) {
-        errorMessage = error.response.data?.message || "نام کاربری یا رمز عبور اشتباه است.";
-      }
-      
-      return rejectWithValue(errorMessage);
+    if (AUTH_MODE === "token" && response.data.access_token) {
+      localStorage.setItem("accessToken", response.data.access_token);
     }
-  }
-);
 
-/**
- * 🚪 خروج کاربر
- */
+    return response.data;
+  } catch (error: any) {
+    console.error("Login failed:", error);
+    let errorMessage = "خطایی در هنگام ورود رخ داد.";
+
+    if (error instanceof AxiosError && error.response) {
+      errorMessage =
+        error.response.data?.message || "نام کاربری یا رمز عبور اشتباه است.";
+    }
+
+    return rejectWithValue(errorMessage);
+  }
+});
+
 export const logoutUser = createAsyncThunk<void, void, ThunkConfig>(
   "auth/logout",
   async (_, { dispatch }) => {
@@ -146,7 +128,6 @@ export const logoutUser = createAsyncThunk<void, void, ThunkConfig>(
     } catch (error) {
       console.error("Logout API warning:", error);
     } finally {
-      // عملیات پاکسازی سمت کلاینت در هر صورت انجام شود
       dispatch(authSlice.actions.clearSession());
     }
   }
@@ -160,11 +141,11 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    clearAuthError: (state) => {
+    // ✅ نام‌گذاری بهتر: این اکشن برای ریست کردن وضعیت لاگین هنگام ورود به صفحه لاگین است
+    resetAuthStatus: (state) => {
       state.error = null;
       state.loginStatus = "idle";
     },
-    // اکشن همگانی برای پاکسازی نشست
     clearSession: (state) => {
       state.accessToken = null;
       state.user = null;
@@ -172,7 +153,7 @@ const authSlice = createSlice({
       state.initialAuthCheckStatus = "failed";
       state.loginStatus = "idle";
       if (AUTH_MODE === "token") {
-          localStorage.removeItem("accessToken");
+        localStorage.removeItem("accessToken");
       }
     },
   },
@@ -221,12 +202,15 @@ const authSlice = createSlice({
 });
 
 export const selectUser = (state: RootState) => state.auth.user;
-export const selectUserRoles = (state: RootState) => state.auth.user?.roles || [];
-export const selectIsLoggedIn = (state: RootState) => state.auth.isAuthenticated;
+export const selectUserRoles = (state: RootState) =>
+  state.auth.user?.roles || [];
+export const selectIsLoggedIn = (state: RootState) =>
+  state.auth.isAuthenticated;
 export const selectAccessToken = (state: RootState) => state.auth.accessToken;
-export const selectAuthCheckStatus = (state: RootState) => state.auth.initialAuthCheckStatus;
+export const selectAuthCheckStatus = (state: RootState) =>
+  state.auth.initialAuthCheckStatus;
 export const selectLoginStatus = (state: RootState) => state.auth.loginStatus;
 export const selectAuthError = (state: RootState) => state.auth.error;
 
-export const { clearAuthError, clearSession } = authSlice.actions;
+export const { resetAuthStatus, clearSession } = authSlice.actions;
 export default authSlice.reducer;

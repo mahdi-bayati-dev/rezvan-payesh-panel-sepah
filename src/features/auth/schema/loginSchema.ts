@@ -1,16 +1,13 @@
 import { z } from "zod";
 
-// تعریف اسکیمای اعتبارسنجی برای فرم لاگین
 export const loginSchema = z.object({
-  // نام کاربری باید حداقل ۳ کاراکتر باشد
   username: z
     .string()
-    .min(3, { message: "نام کاربری باید حداقل ۳ کاراکتر باشد" }),
-  // رمز عبور باید حداقل ۶ کاراکتر باشد
+    .min(3, { message: "نام کاربری باید حداقل ۳ کاراکتر باشد" })
+    .trim(), // حذف فاصله‌های اضافی احتمالی
   password: z
     .string()
-    .min(8, { message: "رمز عبور باید حداقل ۶ کاراکتر باشد" }),
+    .min(8, { message: "رمز عبور باید حداقل ۸ کاراکتر باشد" }), // اصلاح پیام خطا برای تطابق با منطق
 });
 
-// استخراج تایپ داده‌های فرم از اسکیما برای استفاده در React Hook Form
 export type LoginFormData = z.infer<typeof loginSchema>;
