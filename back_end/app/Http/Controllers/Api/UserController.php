@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EmployeeImagePendingApproval;
+use App\Events\ImageUploadStatusEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
@@ -563,7 +564,16 @@ class UserController extends Controller
 
         if ($pendingImagesBatch->isNotEmpty())
         {
-            $updatingUser->notify(new ImageUploadPending($pendingImagesBatch->count()));
+            $message = $pendingImagesBatch->count() > 1
+                ? "تعداد {$pendingImagesBatch->count()} تصویر جدید با موفقیت آپلود شد و پس از تایید مدیریت نمایش داده می‌شود."
+                : "تصویر جدید شما با موفقیت آپلود شد و پس از تایید مدیریت نمایش داده می‌شود.";
+
+            event(new ImageUploadStatusEvent(
+                userId: $updatingUser->id,
+                status: 'pending',
+                message: $message,
+                count: $pendingImagesBatch->count()
+            ));
              event(new EmployeeImagePendingApproval($pendingImagesBatch));
         }
 

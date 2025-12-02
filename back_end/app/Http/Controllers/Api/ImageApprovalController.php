@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ImageUploadStatusEvent;
 use App\Http\Controllers\Controller;
 use App\Models\PendingEmployeeImage;
 use App\Models\EmployeeImage;
@@ -51,6 +52,14 @@ class ImageApprovalController extends Controller
 
             ProcessEmployeeImages::dispatch($pendingImage->employee, $imagesToProcess, 'update');
 
+            $userId = $pendingImage->employee->user->id;
+            event(new ImageUploadStatusEvent(
+                userId: $userId,
+                status: 'approved',
+                message: 'تصویر پروفایل شما تایید شد.',
+                count: 1
+            ));
+
             $pendingImage->delete();
         });
 
@@ -77,8 +86,15 @@ class ImageApprovalController extends Controller
         ]);
 
         $user = $pendingImage->employee?->user;
-        if ($user) {
-            $user->notify(new ImageUploadRejected($request->reason));
+        if ($user)
+        {
+            event(new ImageUploadStatusEvent(
+                userId: $user->id,
+                status: 'rejected',
+                message: "تصویر شما به دلیل «{$request->reason}» تایید نشد.",
+                reason: $request->reason,
+                count: 1
+            ));
         }
 
         return response()->json(['message' => 'تصویر رد شد.']);
