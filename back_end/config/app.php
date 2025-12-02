@@ -83,6 +83,7 @@ return [
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    'ai_url'=> env('APP_AI_URL', 'http://192.168.1.50'),
 
     /*
     |--------------------------------------------------------------------------
