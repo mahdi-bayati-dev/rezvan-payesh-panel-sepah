@@ -2,7 +2,6 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>رضوان پایش</title>
@@ -10,19 +9,20 @@
       name="description"
       content="پنل مدیریتی سازمان رضوان پایش برای مدیریت حضور و غیاب، درخواست‌ها و گزارشات کارکنان."
     />
-
     <meta name="theme-color" content="#ffffff" />
-    <link
-      rel="preload"
-      href="/src/assets/fonts/Vazirmatn-Variable-font-face.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
+
+    <!-- 
+       ✅ اصلاحیه فنی (Performance Optimization):
+       تگ‌های Preload فونت حذف شدند.
+       
+       دلیل: چون در لحظات اولیه (Skeleton State) هیچ متنی رندر نمی‌شود، 
+       Preload کردن فونت باعث هدررفت پهنای باند و وارنینگ مرورگر می‌شود.
+       فایل‌های CSS (fonts.css) به صورت خودکار و بهینه فونت‌ها را 
+       در زمان نمایش اولین متن لود خواهند کرد.
+    -->
+
     <link rel="manifest" href="/site.webmanifest" />
-
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -31,14 +31,13 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <noscript
-      >برای استفاده از این برنامه، لازم است جاوااسکریپت را در مرورگر خود فعال
-      کنید.</noscript
-    >
+    <noscript>
+      برای استفاده از این برنامه، لازم است جاوااسکریپت را در مرورگر خود فعال
+      کنید.
+    </noscript>
   </body>
   <script>
     (function () {
-      // این تابع بلافاصله اجرا می‌شود تا از چشمک زدن جلوگیری کند
       function getInitialTheme() {
         const storedTheme = localStorage.getItem("theme");
         if (storedTheme === "dark" || storedTheme === "light") {
