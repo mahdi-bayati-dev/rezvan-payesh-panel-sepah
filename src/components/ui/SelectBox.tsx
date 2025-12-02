@@ -1,18 +1,15 @@
 import { Fragment } from 'react';
 import { Listbox, Transition } from '@headlessui/react';
-import { ChevronDown } from 'lucide-react'; // آیکون برای chevron
-
+import { ChevronDown } from 'lucide-react';
 
 export type SelectOption = {
     id: string | number;
     name: string;
-    error?: string; // برای نمایش خطای اعتب]%d
+    error?: string;
 };
 
 interface SelectBoxProps {
-
     label: string;
-
     placeholder: string;
     /**
      * آرایه‌ای از گزینه‌ها با فرمت SelectOption
@@ -20,22 +17,13 @@ interface SelectBoxProps {
     options: SelectOption[];
     /**
      * گزینه‌ی انتخاب شده فعلی (controlled component)
+     * مقدار null به معنی انتخاب نشدن هیچ گزینه‌ای است.
      */
     value: SelectOption | null;
-
     onChange: (value: SelectOption) => void;
-    /**
-     * اختیاری: برای غیرفعال کردن سلکت باکس
-     */
     disabled?: boolean;
     error?: string;
-
-    // --- ✅ اصلاحیه ۱: افزودن پراپ className ---
-    /**
-     * برای اعمال کلاس‌های Tailwind سفارشی به عنصر ریشه
-     */
     className?: string;
-
 }
 
 const SelectBox = ({
@@ -46,27 +34,20 @@ const SelectBox = ({
     error,
     onChange,
     disabled = false,
-    className = '', // <-- ✅ اصلاحیه ۲: دریافت className
+    className = '',
 }: SelectBoxProps) => {
     return (
-
-        // --- ✅ اصلاحیه ۳: اعمال className به عنصر ریشه ---
-        // کلاس w-full به صورت پیش‌فرض وجود داشت،
-        // ما className دریافتی را به آن اضافه می‌کنیم
         <Listbox
             as="div"
-            className={`w-full ${className}`} // <-- اعمال شد
-            value={value || undefined}
+            className={`w-full ${className}`}
+            value={value as any}
             onChange={onChange}
             disabled={disabled}
         >
-
-
             <Listbox.Label className="block text-sm font-medium text-right mb-1 text-foregroundL dark:text-foregroundD">
                 {label}
             </Listbox.Label>
 
-            {/* ۳. بقیه ساختار داخل یک div قرار می‌گیرد */}
             <div className="relative">
                 <Listbox.Button
                     className="relative w-full cursor-default rounded-lg py-2.5 pr-3 pl-10 text-right
@@ -132,7 +113,6 @@ const SelectBox = ({
                 </p>
             )}
         </Listbox>
-
     );
 };
 
