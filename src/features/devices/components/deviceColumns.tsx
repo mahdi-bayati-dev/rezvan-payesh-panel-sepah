@@ -4,6 +4,8 @@ import { type ColumnDef } from "@tanstack/react-table";
 import type { Device } from "../types";
 import Badge from "@/components/ui/Badge";
 import { ArrowUpDown, Wifi, WifiOff } from "lucide-react";
+// ✅ ایمپورت تابع ماژولار تبدیل اعداد فارسی
+import { toPersianNumber } from '@/features/User/utils/numberHelper';
 
 const StatusCell = ({ status }: { status: Device["status"] }) => {
     const isOnline = status === "online";
@@ -64,7 +66,8 @@ export const columns: ColumnDef<Device>[] = [
 
             return (
                 <div className="text-xs text-gray-600 dark:text-gray-300" dir="ltr">
-                    {rawDate}
+                    {/* ✅ تبدیل رشته زمان به اعداد فارسی */}
+                    {toPersianNumber(rawDate)}
                 </div>
             );
         },

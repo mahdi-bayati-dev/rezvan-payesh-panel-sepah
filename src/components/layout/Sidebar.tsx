@@ -11,6 +11,16 @@ import { usePendingRequestsCount } from '@/features/requests/hook/usePendingRequ
 // ۱. اضافه کردن سلکتور کاربر
 import { selectUser } from '@/store/slices/authSlice';
 
+/**
+ * تابع کمکی برای تبدیل اعداد انگلیسی (Western) به اعداد فارسی (Persian)
+ * @param num عدد یا رشته‌ای شامل اعداد
+ * @returns رشته‌ای با اعداد فارسی
+ */
+const toPersianDigits = (num: number | string): string => {
+  const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return String(num).replace(/[0-9]/g, (digit) => persian[parseInt(digit, 10)]);
+};
+
 interface SidebarNavItemProps {
   item: NavItem;
   badgeCount?: number;
@@ -35,6 +45,10 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
     }
   }
 
+  // نمایش Badge به صورت فارسی
+  const displayCount = badgeCount ? toPersianDigits(badgeCount) : undefined;
+  const badgeText = badgeCount && badgeCount > 99 ? toPersianDigits(99) + '+' : displayCount;
+
   return (
     <li>
       <NavLink
@@ -51,7 +65,8 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
 
         {badgeCount !== undefined && badgeCount > 0 && (
           <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-sm animate-pulse ml-auto">
-            {badgeCount > 99 ? '+99' : badgeCount}
+            {/* نمایش عدد تبدیل شده به فارسی */}
+            {badgeText}
           </span>
         )}
       </NavLink>
