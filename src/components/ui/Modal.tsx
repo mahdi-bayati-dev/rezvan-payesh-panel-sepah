@@ -33,7 +33,7 @@ export const ModalHeader = ({ children, onClose }: { children: ReactNode, onClos
 );
 
 export const ModalBody = ({ children }: { children: ReactNode }) => (
-    <div className="p-6 space-y-6">
+    <div className="p-5 space-y-6">
         {children}
     </div>
 );
@@ -45,7 +45,7 @@ export const Modal = ({
     children,
     size = 'md',
 }: ModalProps) => {
-     if (!isOpen) return null;
+    if (!isOpen) return null;
 
     // مپ کردن سایز به کلاس‌های Tailwind
     const sizeClasses = {
