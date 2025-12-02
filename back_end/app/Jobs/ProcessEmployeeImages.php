@@ -102,11 +102,12 @@ class ProcessEmployeeImages implements ShouldQueue
     protected function syncWithAi(array $imagePaths): void
     {
         try {
-            $url = config("app.ai_url").'/v1/user';
+            $url = config("app.ai_url").'/api/user';
             $payload = [
                 'personnel_code' => $this->employee->personnel_code,
                 'gender' => $this->employee->gender,
                 'images' => $imagePaths,
+                'api_key' => config("app.ai_api_key"),
             ];
 
             $response = match ($this->action) {
