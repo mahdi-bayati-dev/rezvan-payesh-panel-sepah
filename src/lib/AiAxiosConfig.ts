@@ -1,0 +1,48 @@
+import axios, { type AxiosResponse, AxiosError } from "axios";
+
+import { AUTH_MODE } from "./AxiosConfig"; // استفاده از تنظیم مشترک مود احراز هویت
+
+// ۱. دریافت آدرس پایه سرویس هوش مصنوعی از Env
+const AI_BASE_URL = import.meta.env.VITE_API_BASE_AI_URL;
+
+if (!AI_BASE_URL) {
+  console.warn("⚠️ VITE_API_BASE_AI_URL is not defined in .env file!");
+}
+
+/**
+ * 💡 اینستنس اختصاصی برای سرویس‌های AI
+ * این اینستنس جدا از بک‌ند اصلی است تا تنظیمات و مدیریت خطای مستقل داشته باشد.
+ */
+const aiAxiosInstance = axios.create({
+  baseURL: AI_BASE_URL,
+  withCredentials: AUTH_MODE === "cookie",
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
+  // معمولاً سرویس‌های AI پاسخ‌دهی کندتری دارند، تایم‌اوت را کمی بیشتر می‌گیریم
+  timeout: 40000,
+});
+
+// ====================================================================
+// 🔒 Response Interceptor (مدیریت خطاهای خاص AI)
+// ====================================================================
+aiAxiosInstance.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    // اینجا می‌توانی خطاهای خاص سرویس AI را هندل کنی
+    // مثلاً اگر سرویس AI پایین بود، فقط یک وارنینگ ساده بدهی و کاربر را لاگ‌اوت نکنی
+
+    const originalRequest = error.config;
+    const status = error.response?.status;
+
+    console.error(
+      `🤖 AI Service Error [${status}] at ${originalRequest?.url}:`,
+      error.message
+    );
+
+    return Promise.reject(error);
+  }
+);
+
+export default aiAxiosInstance;
