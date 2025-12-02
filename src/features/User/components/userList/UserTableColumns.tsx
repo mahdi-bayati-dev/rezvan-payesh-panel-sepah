@@ -11,6 +11,7 @@ import { type User } from "@/features/User/types";
 import ActionsCell from '@/features/User/components/userList/ActionsCell';
 import { formatDateToPersian } from '@/features/User/utils/dateHelper';
 import { getFullImageUrl } from '@/features/User/utils/imageHelper'; // ✅ ایمپورت هلپر جدید
+import { toPersianNumber } from '@/features/User/utils/numberHelper'; // ✅ ایمپورت جدید
 
 const roleVariantMap: Record<string, BadgeVariant> = {
     "super_admin": "danger",
@@ -77,6 +78,10 @@ export const columns: ColumnDef<User>[] = [
                     <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD dir-ltr text-right">
                         @{user.user_name}
                     </span>
+                    {/* ✅ تبدیل ID کاربر به فارسی برای نمایش در سطر */}
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 dir-ltr text-right">
+                        ID: {toPersianNumber(user.id)}
+                    </span>
                 </div>
             );
         }
@@ -94,6 +99,7 @@ export const columns: ColumnDef<User>[] = [
             return (
                 <div className="flex items-center gap-1 text-xs text-muted-foregroundL">
                     <CalendarDays className="h-3 w-3" />
+                    {/* formatDateToPersian اکنون به طور خودکار از اعداد فارسی استفاده می‌کند */}
                     <span>{formatDateToPersian(row.original.created_at, 'short')}</span>
                 </div>
             );

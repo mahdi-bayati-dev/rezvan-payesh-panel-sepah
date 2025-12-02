@@ -3,6 +3,7 @@ import { type User } from '@/features/User/types/index';
 import { UserInfoCard, type InfoRowData } from '@/components/ui/UserInfoCard';
 import { formatDateToPersian } from '@/features/User/utils/dateHelper';
 import { getFullImageUrl } from '@/features/User/utils/imageHelper';
+import { toPersianNumber } from '@/features/User/utils/numberHelper'; // ✅ ایمپورت جدید
 
 // تابع کمکی برای ساخت حروف اختصاری آواتار
 const getAvatarPlaceholder = (firstName?: string, lastName?: string): string => {
@@ -27,9 +28,11 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
     const profileImageUrl = getFullImageUrl(rawPath);
 
     const infoRows: InfoRowData[] = [
-        { label: "کد پرسنلی", value: employee?.personnel_code || '---' },
+        // ✅ تبدیل کد پرسنلی به فارسی
+        { label: "کد پرسنلی", value: toPersianNumber(employee?.personnel_code) || '---' },
         { label: "سازمان", value: employee?.organization?.name || '---' },
         { label: "گروه کاری", value: employee?.work_group?.name || '---' },
+        // formatDateToPersian خودش از toPersianNumber استفاده می‌کند
         { label: "شروع همکاری", value: formatDateToPersian(employee?.starting_job, 'long') },
         { label: "تاریخ ثبت‌نام", value: formatDateToPersian(user.created_at, 'short') }
     ];

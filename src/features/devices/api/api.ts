@@ -28,6 +28,7 @@ export async function getDevicesStatus(): Promise<DevicesAPIResponse> {
   const response = await aiAxiosInstance.post<DevicesAPIResponse>(API_URL, {
     api_key: apiKey,
   });
+  console.log(response.data);
 
   return response.data;
 }

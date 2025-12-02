@@ -17,6 +17,9 @@ import { columns } from './deviceColumns';
 import { DataTable } from '@/components/ui/DataTable';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
 
+// ✅ ایمپورت تابع ماژولار تبدیل اعداد فارسی
+import { toPersianNumber } from '@/features/User/utils/numberHelper';
+
 /**
  * 💡 کامپوننت اصلی لیست دستگاه‌ها
  * بازنویسی شده برای هندل کردن لیست کامل (Client-Side Pagination)
@@ -85,7 +88,8 @@ export function DeviceList() {
                     <div className="flex flex-col">
                         <span className="text-sm text-gray-500">تعداد کل دستگاه‌ها</span>
                         <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                            {isLoading ? "..." : apiResponse?.total ?? 0}
+                            {/* ✅ تبدیل عدد کل دستگاه‌ها به فارسی (نمایش) */}
+                            {isLoading ? "..." : toPersianNumber(apiResponse?.total ?? 0)}
                         </span>
                     </div>
                     {/* جداکننده */}
@@ -94,7 +98,10 @@ export function DeviceList() {
                     {!isLoading && apiResponse && (
                         <div className="text-xs text-gray-400 flex flex-col">
                             <span>آخرین بروزرسانی دیتا:</span>
-                            <span className="" dir="ltr">{apiResponse.generated_at}</span>
+                            <span className="" dir="ltr">
+                                {/* ✅ تبدیل timestamp API به اعداد فارسی (نمایش) */}
+                                {toPersianNumber(apiResponse.generated_at)}
+                            </span>
                         </div>
                     )}
                 </div>
@@ -120,7 +127,8 @@ export function DeviceList() {
                     table={table}
                     isLoading={isLoading}
                     notFoundMessage="هیچ دستگاهی یافت نشد."
-                    skeletonRowCount={pagination.pageSize}
+                    // 🟢 رفع خطا: بازگشت به مقدار عددی خام
+                    skeletonRowCount={pagination.pageSize} 
                 />
             </div>
 
