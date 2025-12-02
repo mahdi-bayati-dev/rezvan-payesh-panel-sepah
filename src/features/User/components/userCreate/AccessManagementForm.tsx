@@ -24,7 +24,7 @@ const roleOptions: SelectOption[] = [
     { id: 'user', name: 'کارمند (user)' },
     { id: 'org-admin-l3', name: 'ادمین سازمانی L3' },
     { id: 'org-admin-l2', name: 'ادمین سازمانی L2' },
-    { id: 'super_admin', name: 'ادمین کل (Super Admin)' },
+    // { id: 'super_admin', name: 'ادمین کل (Super Admin)' },
 ];
 
 /**
@@ -92,7 +92,7 @@ const AccessManagementForm: React.FC<{ user: User }> = ({ user }) => {
 
     return (
         <FormSection
-            title="مدیریت دسترسی (مخصوص Super Admin)"
+            title="مدیریت دسترسی (مخصوص مدیر ارشد)"
             onSubmit={handleSubmit(onSubmit)}
             isEditing={isEditing}
             setIsEditing={setIsEditing} // (این prop دیگر استفاده نمی‌شود)
