@@ -1,142 +1,137 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { getEcho } from "@/lib/echoService";
 import { useAppSelector } from "@/hook/reduxHooks";
 import { selectUser } from "@/store/slices/authSlice";
 import { userKeys } from "@/features/User/hooks/hook";
+import type Echo from "laravel-echo";
 
 /**
- * هوک هوشمند و تضمینی برای دریافت نتیجه تایید/رد عکس پروفایل
- * مجهز به تکنیک Raw Binding برای رفع مشکل نام‌گذاری ایونت‌ها
+ * هوک دریافت نتیجه تایید/رد عکس پروفایل
+ * نسخه فیکس شده: حل مشکل Race Condition و هندلینگ JSON
  */
 export const useImageNotificationSocket = () => {
   const user = useAppSelector(selectUser);
   const queryClient = useQueryClient();
 
-  // جلوگیری از نمایش تکراری (Deduplication)
+  // ✅ اضافه شدن استیت برای نگهداری اینستنس سوکت
+  const [echoInstance, setEchoInstance] = useState<Echo<any> | null>(null);
+  
   const processedEventIds = useRef<Set<string>>(new Set());
 
+  /**
+   * ۱. اثر جانبی برای انتظار اتصال سوکت (Polling)
+   * دقیقاً مثل هوک ادمین، اینجا هم صبر می‌کنیم تا سوکت آماده شود.
+   */
   useEffect(() => {
-    const echo = getEcho();
-    if (!user || !echo) return;
+    // اگر همین الان وصل است
+    const initialEcho = getEcho();
+    if (initialEcho) {
+      setEchoInstance(initialEcho);
+      return;
+    }
 
-    // ۱. لیست کانال‌های احتمالی کاربر
-    // طبق اسکرین‌شات شما: App.User.{id} کانال صحیح است، اما برای اطمینان هر دو را چک می‌کنیم
+    // اگر نه، چک کردن دوره‌ای
+    const intervalId = setInterval(() => {
+      const echo = getEcho();
+      if (echo) {
+        console.log("🔌 [User Socket] Echo instance found via polling.");
+        setEchoInstance(echo);
+        clearInterval(intervalId);
+      }
+    }, 500);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  /**
+   * ۲. لاجیک اصلی اتصال به کانال‌ها
+   * وابسته به echoInstance (که حالا مطمئنیم پر شده)
+   */
+  useEffect(() => {
+    if (!user || !echoInstance) return;
+
+    // کانال‌های احتمالی
     const channelNames = [
-      `App.User.${user.id}`, // کانال مشاهده شده در اسکرین‌شات
-      `App.Models.User.${user.id}`, // استاندارد جدید لاراول
+      `App.User.${user.id}`, 
+      `App.Models.User.${user.id}`, 
     ];
 
-    console.log("📡 [User Socket] Connecting to channels:", channelNames);
+    console.log("📡 [User Socket] Connecting channels:", channelNames);
 
-    // --- تابع پردازش مرکزی پیام ---
-    const handleSocketData = (source: string, eventName: string, data: any) => {
-      // ساخت شناسه یکتا برای جلوگیری از پردازش تکراری
-      const uniqueId = `${eventName}-${JSON.stringify(data)}`; // یا استفاده از timestamp اگر موجود باشد
+    // --- تابع هندلر مرکزی ---
+    const handleEvent = (eventName: string, incomingData: any) => {
+      console.log(`🚀 [User Socket] Event: ${eventName}`, incomingData);
 
+      // الف) پارس کردن دیتا
+      let payload = incomingData;
+
+      if (typeof incomingData === "string") {
+        try {
+          payload = JSON.parse(incomingData);
+        } catch (e) {
+          console.error("⚠️ [User Socket] JSON Parse Error 1", e);
+        }
+      } 
+      else if (incomingData?.data && typeof incomingData.data === "string") {
+        try {
+          payload = { ...incomingData, ...JSON.parse(incomingData.data) };
+        } catch (e) {
+          console.error("⚠️ [User Socket] JSON Parse Error 2", e);
+        }
+      }
+
+      // ب) جلوگیری از تکرار
+      const uniqueId = `${eventName}-${JSON.stringify(payload.message || payload)}`;
       if (processedEventIds.current.has(uniqueId)) return;
 
-      console.log(`🚀 [User Socket] Event Caught via [${source}]`, {
-        eventName,
-        data,
-      });
-
-      // ثبت در حافظه موقت
       processedEventIds.current.add(uniqueId);
-      setTimeout(() => processedEventIds.current.delete(uniqueId), 2000);
+      setTimeout(() => processedEventIds.current.delete(uniqueId), 3000);
 
-      // نرمال‌سازی دیتا (استخراج از لایه‌های مختلف)
-      const rawData = data.data || data.request || data;
-      const status = rawData.status || data.status;
-      const message = rawData.message || data.message;
+      // ج) استخراج وضعیت و پیام
+      // هندلینگ حالتی که status داخل payload.data باشد یا مستقیم در payload
+      const status = payload.status || payload.data?.status; 
+      const message = payload.message || payload.data?.message;
 
-      // اگر هیچ پیامی نبود، احتمالا ایونت مربوط به ما نیست
-      if (!status && !message) return;
-
-      // منطق تشخیص وضعیت
-      const isApproved =
-        status === "approved" ||
-        status === "approve" ||
-        String(eventName).toLowerCase().includes("approved");
-
-      const isRejected =
-        status === "rejected" ||
-        status === "reject" ||
-        String(eventName).toLowerCase().includes("rejected");
+      // د) نمایش نوتیفیکیشن
+      const isRejected = status === "rejected" || status === "error" || String(eventName).toLowerCase().includes("rejected");
+      const isApproved = status === "approved" || String(eventName).toLowerCase().includes("approved");
 
       if (isRejected) {
-        toast.error(message || "متاسفانه تصویر پروفایل شما رد شد.", {
-          toastId: uniqueId,
-        });
+        toast.error(message || "تصویر تایید نشد.", { toastId: uniqueId });
       } else if (isApproved) {
-        toast.success(message || "تبریک! تصویر پروفایل شما تایید شد.", {
-          toastId: uniqueId,
-        });
-
-        // رفرش کردن کش کاربر برای نمایش عکس جدید
-        console.log("🔄 [User Socket] Refreshing User Profile...");
+        toast.success(message || "تصویر تایید شد.", { toastId: uniqueId });
+        
+        // رفرش کردن اطلاعات کاربر
         queryClient.invalidateQueries({ queryKey: userKeys.detail(user.id) });
         queryClient.invalidateQueries({ queryKey: ["users"] });
       } else {
-        // پیام‌های عمومی
         if (message) toast.info(message, { toastId: uniqueId });
       }
     };
 
+    // لیست نام‌های احتمالی ایونت
+    const eventVariations = [
+      "image.status",
+      ".image.status",
+      "App\\Events\\image.status",
+      "Illuminate\\Notifications\\Events\\BroadcastNotificationCreated",
+      ".Illuminate\\Notifications\\Events\\BroadcastNotificationCreated",
+    ];
+
+    // اتصال
     channelNames.forEach((channelName) => {
-      const channel = echo.private(channelName);
+      const channel = echoInstance.private(channelName);
 
-      // --- روش تضمینی: Raw Binding ---
-      // این قسمت مستقیماً به هسته Pusher وصل می‌شود
-      setTimeout(() => {
-        if (channel.subscription) {
-          channel.subscription.bind_global((eventName: string, data: any) => {
-            // ایونت‌های سیستمی Pusher را نادیده بگیر
-            if (eventName.startsWith("pusher:")) return;
-            if (eventName.startsWith("internal:")) return;
-
-            // لاگ کردن همه چیز برای دیباگ (فقط در کنسول)
-            console.log(
-              `🕵️ [User Socket DEBUG] Raw Event on ${channelName}:`,
-              eventName,
-              data
-            );
-
-            // فیلتر کردن ایونت‌های مربوط به عکس
-            // اگر کلمه image یا profile یا notification در اسم ایونت یا دیتا بود، پردازش کن
-            const isRelevant =
-              eventName.toLowerCase().includes("image") ||
-              eventName.toLowerCase().includes("profile") ||
-              eventName.includes("Notification") ||
-              (data &&
-                (data.status === "approved" || data.status === "rejected"));
-
-            if (isRelevant) {
-              handleSocketData("RAW BINDING", eventName, data);
-            }
-          });
-        }
-      }, 1000);
-
-      // --- روش استاندارد (برای اطمینان) ---
-      // لیست ایونت‌های رایج را هم گوش می‌دهیم
-      const commonEvents = [
-        ".Illuminate\\Notifications\\Events\\BroadcastNotificationCreated",
-        "images.processed",
-        ".images.processed",
-      ];
-
-      commonEvents.forEach((evt) => {
-        channel.listen(evt, (data: any) =>
-          handleSocketData("Standard Listener", evt, data)
-        );
+      eventVariations.forEach((evt) => {
+        channel.listen(evt, (data: any) => handleEvent(evt, data));
       });
     });
 
     return () => {
-      channelNames.forEach((name) => echo.leave(name));
-      console.log("🛑 [User Socket] Disconnected");
+      console.log("🛑 [User Socket] Disconnecting channels");
+      channelNames.forEach((name) => echoInstance.leave(name));
     };
-  }, [user, queryClient]);
+  }, [user, queryClient, echoInstance]); // ✅ echoInstance به عنوان وابستگی
 };

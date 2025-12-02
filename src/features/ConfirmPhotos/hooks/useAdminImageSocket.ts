@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { getEcho } from "@/lib/echoService";
@@ -6,15 +6,19 @@ import { useAppSelector } from "@/hook/reduxHooks";
 import { selectUserRoles } from "@/store/slices/authSlice";
 import { requestKeys } from "./useImageRequests";
 import { ROLES } from "@/constants/roles";
+import type Echo from "laravel-echo";
 
 /**
- * هوک اختصاصی و تضمینی برای دریافت نوتیفیکیشن‌های ادمین
+ * هوک دریافت نوتیفیکیشن‌های ادمین (درخواست‌های جدید)
+ * نسخه فیکس شده: حل مشکل بیلد (تغییر echo به echoInstance)
  */
 export const useAdminImageSocket = () => {
   const queryClient = useQueryClient();
   const roles = useAppSelector(selectUserRoles) || [];
 
-  // برای جلوگیری از پروسس تکراری ایونت‌ها (Debouncing دستی)
+  // ✅ فیکس: استفاده از استیت برای نگه داشتن اینستنس سوکت پس از لود شدن
+  const [echoInstance, setEchoInstance] = useState<Echo<any> | null>(null);
+
   const processedEventIds = useRef<Set<string>>(new Set());
 
   const hasAdminAccess =
@@ -22,97 +26,111 @@ export const useAdminImageSocket = () => {
     roles.includes(ROLES.ADMIN_L2) ||
     roles.includes(ROLES.ADMIN_L3);
 
+  /**
+   * ۱. اثر جانبی برای انتظار اتصال سوکت
+   * مشکل قبلی: هوک قبل از اینکه سوکت وصل شود اجرا می‌شد و خارج می‌شد.
+   * راه حل: چک کردن دوره‌ای تا زمانی که getEcho مقدار برگرداند.
+   */
   useEffect(() => {
-    const echo = getEcho();
-    if (!echo || !hasAdminAccess) return;
+    // اگر همین الان وصل است، ست کن و تمام
+    const initialEcho = getEcho();
+    if (initialEcho) {
+      setEchoInstance(initialEcho);
+      return;
+    }
+
+    // اگر نه، هر ۵۰۰ میلی‌ثانیه چک کن (Polling)
+    const intervalId = setInterval(() => {
+      const echo = getEcho();
+      if (echo) {
+        console.log("🔌 [Admin Socket] Echo instance found via polling.");
+        setEchoInstance(echo);
+        clearInterval(intervalId); // پیدا شد، تایمر را متوقف کن
+      }
+    }, 500);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  /**
+   * ۲. اتصال به کانال و گوش دادن به ایونت‌ها
+   * حالا به جای getEcho() از echoInstance استفاده می‌کنیم که مطمئنیم پر است.
+   */
+  useEffect(() => {
+    // تا زمانی که سوکت وصل نشده یا دسترسی نداریم، کاری نکن
+    if (!echoInstance || !hasAdminAccess) return;
 
     const channelName = "super-admin-global";
-    const channel = echo.private(channelName);
+    const channel = echoInstance.private(channelName);
 
-    console.log(`📡 [Admin Socket] Connecting to raw channel: ${channelName}`);
+    console.log(`📡 [Admin Socket] Subscribing to: ${channelName}`);
 
-    // --- هندلر اصلی پردازش پیام ---
-    const handleEvent = (source: string, eventName: string, data: any) => {
-      // 1. ساخت شناسه یکتا برای ایونت جهت جلوگیری از تکرار
-      // از timestamp یا پرسنلی یا ترکیبی استفاده میکنیم
-      const eventId = `${data.timestamp || Date.now()}-${
-        data.personnel_code || "unknown"
+    // --- تابع هندلر مرکزی ---
+    const handleEvent = (eventName: string, incomingData: any) => {
+      console.log(
+        `🔔 [Admin Socket] Event Received: ${eventName}`,
+        incomingData
+      );
+
+      // الف) پارس کردن دیتا
+      let payload = incomingData;
+      if (typeof incomingData === "string") {
+        try {
+          payload = JSON.parse(incomingData);
+        } catch (e) {
+          console.error("⚠️ [Admin Socket] JSON Parse Error:", e);
+        }
+      }
+
+      // ب) نرمال‌سازی
+      payload = payload.data || payload.payload || payload;
+
+      // ج) جلوگیری از تکرار
+      const uniqueKey = `${payload.timestamp || Date.now()}_${
+        payload.pending_images_count || "evt"
       }`;
 
-      // اگر این ایونت قبلا در 2 ثانیه اخیر پردازش شده، نادیده بگیر
-      if (processedEventIds.current.has(eventId)) return;
+      if (processedEventIds.current.has(uniqueKey)) return;
 
-      console.log(`🚀 [Admin Socket] Event Received via [${source}]`, {
-        eventName,
-        data,
-      });
+      processedEventIds.current.add(uniqueKey);
+      setTimeout(() => processedEventIds.current.delete(uniqueKey), 5000);
 
-      // ثبت ایونت به عنوان پردازش شده
-      processedEventIds.current.add(eventId);
-      setTimeout(() => processedEventIds.current.delete(eventId), 2000);
+      // د) نمایش پیام
+      const message = payload.message || "درخواست جدید تصویر دریافت شد.";
+      const count = payload.pending_images_count || 1;
 
-      // 2. استخراج پیام
-      const message = data.message || "درخواست جدید تصویر دریافت شد.";
-
-      // 3. نمایش نوتیفیکیشن
-      toast.info(`📸 ${message}`, {
+      toast.info(`📸 ${message} (تعداد: ${count})`, {
         position: "bottom-left",
         autoClose: 7000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        toastId: `toast-${eventId}`, // جلوگیری از نمایش تکراری Toast
+        toastId: uniqueKey,
+        onClick: () => {
+          queryClient.invalidateQueries({ queryKey: requestKeys.all });
+        },
       });
 
-      // 4. آپدیت لیست (Real-time)
-      // باطل کردن تمام کوئری‌های مربوط به درخواست‌ها برای دریافت دیتای تازه
+      // ه) آپدیت لیست
       console.log("🔄 [Admin Socket] Invalidating Queries...");
       queryClient.invalidateQueries({ queryKey: requestKeys.all });
-
-      // پخش صدا (اختیاری)
-      try {
-        // const audio = new Audio('/assets/sounds/notification.mp3');
-        // audio.play().catch(() => {});
-      } catch (e) {
-        console.log(e);
-      }
     };
 
-    // --- روش ۱: لیسنر استاندارد Echo (برای حالت استاندارد) ---
-    const standardEventName = ".images.pending";
-    channel.listen(standardEventName, (data: any) => {
-      handleEvent("Standard Listener", standardEventName, data);
+    // --- لیست ایونت‌ها ---
+    const eventVariations = [
+      "images.pending",
+      ".images.pending",
+      "App\\Events\\images.pending",
+      "images.new",
+      "images.created",
+    ];
+
+    eventVariations.forEach((evt) => {
+      channel.listen(evt, (data: any) => handleEvent(evt, data));
     });
 
-    // --- روش ۲: لیسنر خام Pusher (تضمینی - برای حل مشکل شما) ---
-    // این قسمت مستقیماً به سابسکرایبشن کانال وصل می‌شود و همه چیز را می‌شنود
-    // با کمی تاخیر اجرا میکنیم تا مطمئن شویم سابسکرایبشن انجام شده
-    const rawListenerTimeout = setTimeout(() => {
-      if (channel.subscription) {
-        channel.subscription.bind_global((eventName: string, data: any) => {
-          // نادیده گرفتن ایونت‌های داخلی خود Pusher
-          if (eventName.startsWith("pusher:")) return;
-
-          // اگر اسم ایونت شامل images.pending بود (چه با نقطه چه بی نقطه)
-          if (eventName.includes("images.pending")) {
-            handleEvent("RAW BINDING", eventName, data);
-          }
-        });
-        console.log(
-          "🛡️ [Admin Socket] Raw 'bind_global' listener attached successfully."
-        );
-      }
-    }, 1500);
-
     return () => {
-      clearTimeout(rawListenerTimeout);
-      channel.stopListening(standardEventName);
-
-      if (channel.subscription) {
-        channel.subscription.unbind_global();
-      }
-      console.log("🛑 [Admin Socket] Disconnected");
+      console.log(`🛑 [Admin Socket] Unsubscribing form: ${channelName}`);
+      eventVariations.forEach((evt) => channel.stopListening(evt));
+      // ✅ فیکس: تغییر echo به echoInstance
+      echoInstance.leave(channelName);
     };
-  }, [hasAdminAccess, queryClient]);
+  }, [hasAdminAccess, queryClient, echoInstance]); // ✅ echoInstance به وابستگی‌ها اضافه شد
 };
