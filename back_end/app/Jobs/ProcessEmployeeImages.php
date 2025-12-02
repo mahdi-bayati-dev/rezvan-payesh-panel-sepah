@@ -102,7 +102,7 @@ class ProcessEmployeeImages implements ShouldQueue
     protected function syncWithAi(array $imagePaths): void
     {
         try {
-            $url = 'http://192.168.1.50/v1/user';
+            $url = config("app.ai_url").'/v1/user';
             $payload = [
                 'personnel_code' => $this->employee->personnel_code,
                 'gender' => $this->employee->gender,

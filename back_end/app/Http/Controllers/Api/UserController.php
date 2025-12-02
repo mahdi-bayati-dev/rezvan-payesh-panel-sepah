@@ -538,7 +538,7 @@ class UserController extends Controller
         if (!empty($aiDeletePaths))
         {
             try {
-                $response = Http::delete('http://192.168.1.50/v1/user', [
+                $response = Http::delete(config("app.ai_url").'/v1/user', [
                     'personnel_code' => $personnelCode,
                     'gender' => $gender,
                     'images' => $aiDeletePaths,
@@ -590,7 +590,7 @@ class UserController extends Controller
             $personnelCode = $employee->personnel_code;
             try
             {
-                $response = Http::delete('http://192.168.1.50/v1/user', [
+                $response = Http::delete(config("app.ai_url").'/v1/user', [
                     'personnel_code' => $personnelCode,
                     'gender' => $employee->gender,
                     'images' => null,
@@ -676,7 +676,8 @@ class UserController extends Controller
 
 
             $extension = strtolower($file->getClientOriginalExtension());
-            $readerType = match ($extension) {
+            $readerType = match ($extension)
+            {
                 'csv' => ExcelType::CSV,
                 'xls' => ExcelType::XLS,
                 default => ExcelType::XLSX,
@@ -688,10 +689,12 @@ class UserController extends Controller
                 'message' => 'فایل دریافت شد و پردازش در پس‌زمینه شروع شده است. بسته به تعداد رکوردها ممکن است چند دقیقه زمان ببرد.'
             ], 200);
 
-        } catch (ValidationException $e)
+        }
+        catch (ValidationException $e)
         {
             return response()->json(['errors' => $e->failures()], 422);
-        } catch (\Exception $e)
+        }
+        catch (\Exception $e)
         {
             Log::error("Import Queue Failed: " . $e->getMessage());
             return response()->json(['message' => 'خطا در ارسال فایل به صف پردازش.'], 500);
