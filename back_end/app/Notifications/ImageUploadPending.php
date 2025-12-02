@@ -13,14 +13,13 @@ class ImageUploadPending extends Notification
     /**
      * تعداد عکس‌های آپلود شده
      */
-    public int $count;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(int $count = 1)
+    public function __construct(public int $count = 1)
     {
-        $this->count = $count;
+
     }
 
     /**
@@ -62,5 +61,10 @@ class ImageUploadPending extends Notification
             'type' => 'info',
             'count' => $this->count,
         ]);
+    }
+
+    public function receivesBroadcastNotificationsOn(): string
+    {
+        return 'App.User.' . $this->id;
     }
 }
