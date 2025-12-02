@@ -84,6 +84,7 @@ return [
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
     'ai_url'=> env('APP_AI_URL', 'http://192.168.1.50'),
+    'ai_api_key' => env('APP_AI_API_KEY', ''),
 
     /*
     |--------------------------------------------------------------------------

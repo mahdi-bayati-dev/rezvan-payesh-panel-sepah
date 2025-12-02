@@ -59,4 +59,9 @@ class ImageUploadRejected extends Notification
             'status' => 'rejected'
         ]);
     }
+
+    public function receivesBroadcastNotificationsOn(): string
+    {
+        return 'App.User.' . $this->id;
+    }
 }

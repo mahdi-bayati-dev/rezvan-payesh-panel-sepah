@@ -70,7 +70,7 @@ class EmployeeImagePendingApproval implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'message' => "کاربر {$this->employee->first_name} {$this->employee->last_name} تعداد {$this->pendingImages->count()} تصویر جدید ارسال کرد.",
+            'message' => " کاربر {$this->employee->first_name} {$this->employee->last_name} تعداد {$this->pendingImages->count()} تصویر جدید ارسال کرد. ",
             'pending_images_count' => $this->pendingImages->count(),
             'personnel_code' => $this->employee->personnel_code,
             'pending_image_ids' => $this->pendingImages->pluck('id'),

@@ -538,10 +538,11 @@ class UserController extends Controller
         if (!empty($aiDeletePaths))
         {
             try {
-                $response = Http::delete(config("app.ai_url").'/v1/user', [
+                $response = Http::delete(config("app.ai_url").'/api/user/delete_pic', [
                     'personnel_code' => $personnelCode,
                     'gender' => $gender,
                     'images' => $aiDeletePaths,
+                    'api_key'=> config("app.ai_api_key"),
                 ]);
 
                 if ($response->failed())
@@ -590,10 +591,9 @@ class UserController extends Controller
             $personnelCode = $employee->personnel_code;
             try
             {
-                $response = Http::delete(config("app.ai_url").'/v1/user', [
+                $response = Http::delete(config("app.ai_url").'/api/user', [
                     'personnel_code' => $personnelCode,
-                    'gender' => $employee->gender,
-                    'images' => null,
+                    'api_key'=> config("app.ai_api_key"),
                 ]);
                 if ($response->failed())
                 {
