@@ -57,6 +57,29 @@
 
   --color-warningD-foreground: oklch(0.8 0.1 80); /* derived from light yellow text */
   --color-warningD-background: oklch(0.25 0.08 80); /* derived from dark yellow */
+  /* اضافه کردن انیمیشن‌های نرم‌تر */
+  --animate-dot-fade: dot-fade 1.5s ease-in-out infinite;
+  --animate-spin-slow: spin 3s linear infinite; /* چرخش آهسته‌تر برای کانتینر نقطه‌ها */
+}
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(0.5); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 1; }
+}
+
+@keyframes dot-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+/* Keyframe ترکیبی برای سایز و شفافیت */
+@keyframes dot-fade {
+  0%, 100% { 
+    transform: scale(0.4); 
+    opacity: 0.3; 
+  }
+  50% { 
+    transform: scale(1.2); 
+    opacity: 1; 
+  }
 }
 
 body {

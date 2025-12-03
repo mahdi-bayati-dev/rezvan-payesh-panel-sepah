@@ -1,12 +1,12 @@
 import { createBrowserRouter } from "react-router-dom";
 import { Suspense, lazy } from "react";
-import { Spinner } from "../components/ui/Spinner";
 import { MainLayout } from "../components/layout/MainLayout";
 import { ProtectedRoute } from "./ProtectedRoute/ProtectedRoute";
 import { RoleBasedGuard } from "./RoleBasedGuard/RoleBasedGuard";
 import { ALL_ACCESS, ADMIN_ACCESS, SUPER_ADMIN_ONLY } from "@/constants/roles";
-
+import { Spinner, RouteSpinner } from "../components/ui/Spinner";
 // --- Lazy Imports ---
+// (ایمپورت‌های شما بدون تغییر باقی ماندند)
 const LicensePage = lazy(() => import("@/features/license/routes/licensePage"));
 const ReportsIndexPage = lazy(() => import("../features/reports/routes/ReportsIndexPage"));
 const MyReportPageDetails = lazy(() => import("../features/reports/routes/myReportPageDetails"));
@@ -15,7 +15,6 @@ const LoginPage = lazy(() => import("../features/auth/routes/LoginPage"));
 const RequestsPage = lazy(() => import("../features/requests/routes/requestsPage"));
 const NewRequestPage = lazy(() => import("../features/requests/routes/NewRequestPage"));
 const RequestDetailPage = lazy(() => import("../features/requests/routes/RequestDetailPage"));
-// const ExportSettingsPage = lazy(() => import("../features/requests/routes/ExportSettingsPage"));
 const TableSettingsPage = lazy(() => import("../features/requests/routes/TableSettingsPage"));
 const ReportsPageSkeleton = lazy(() => import("../features/reports/Skeleton/SkeletonRepotrs"));
 const ActivityReportPageDetails = lazy(() => import("../features/reports/routes/reportPageDetails"));
@@ -38,18 +37,20 @@ const OrganizationDetailPage = lazy(() => import('../features/Organization/compo
 const CreateUser = lazy(() => import('../features/User/components/userCreate/CreateUserPage'))
 const AssignUserPage = lazy(() => import('../features/User/components/AssignUser/AssignUserPage'))
 const UserProfilePage = lazy(() => import('../features/User/components/userPage/UserProfilePage'))
-
-// ✅ ۱. ایمپورت صفحه پروفایل من
 const MyProfilePage = lazy(() => import('../features/User/components/myProfile/myProfilePage'))
-
-// ✅ ۲. ایمپورت صفحه جدید بررسی تصاویر (از فیچر Request)
 const PendingImagesPage = lazy(() => import('../features/ConfirmPhotos/routes/PendingImagesPage'))
-
 const WorkCalendarPage = lazy(() => import('../features/work-calendar/routes/WorkCalendarPage'))
 const AdminManagement = lazy(() => import('../features/User/components/userPage/AdminManagementPage'))
 const DevicePage = lazy(() => import('../features/devices/routes/DevicePage'));
 const ErrorPage = lazy(() => import("./ErrorPage"));
 const UnauthorizedPage = lazy(() => import("./UnauthorizedPage"));
+
+/**
+ * ✅ کامپوننت لودینگ استاندارد برای روت‌ها
+ * این کامپوننت از تکرار کد جلوگیری می‌کند و مطمئن می‌شود که
+ * اسپینر همیشه در مرکز صفحه (با ارتفاع مناسب) نمایش داده می‌شود.
+ */
+
 
 export const router = createBrowserRouter([
   {
@@ -62,97 +63,97 @@ export const router = createBrowserRouter([
         errorElement: <ErrorPage />,
         children: [
           // ------------------------------------------------------------
-          // ۱. روت‌های عمومی (برای همه نقش‌ها: کاربر و ادمین‌ها)
+          // ۱. روت‌های عمومی (برای همه نقش‌ها)
           // ------------------------------------------------------------
           {
             element: <RoleBasedGuard allowedRoles={ALL_ACCESS} />,
             children: [
               {
                 path: "/",
-                element: <Suspense fallback={<Spinner />}><DashboardPage /></Suspense>,
+                // ✅ استفاده از RouteSpinner به جای Spinner خالی
+                element: <Suspense fallback={<RouteSpinner />}><DashboardPage /></Suspense>,
               },
-
               {
                 path: "my-profile",
-                element: <Suspense fallback={<Spinner />}><MyProfilePage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><MyProfilePage /></Suspense>,
               },
               {
                 path: "license",
-                element: <Suspense fallback={<Spinner />}><LicensePage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><LicensePage /></Suspense>,
               },
               {
                 path: "requests",
-                element: <Suspense fallback={<Spinner />}><RequestsPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><RequestsPage /></Suspense>,
               },
               {
                 path: "requests/new",
-                element: <Suspense fallback={<Spinner />}><NewRequestPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><NewRequestPage /></Suspense>,
               },
               {
                 path: "requests/:requestId",
-                element: <Suspense fallback={<Spinner />}><RequestDetailPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><RequestDetailPage /></Suspense>,
               },
               {
                 path: "requests/settings-table",
-                element: <Suspense fallback={<Spinner />}><TableSettingsPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><TableSettingsPage /></Suspense>,
               },
               {
                 path: "reports",
+                // ⚠️ نکته: اسکلتون‌ها تجربه کاربری بهتری دارند، پس آن‌ها را نگه داشتیم
                 element: <Suspense fallback={<ReportsPageSkeleton />}><ReportsIndexPage /></Suspense>,
               },
               {
                 path: "reports/:reportId",
-                element: <Suspense fallback={<Spinner />}><ActivityReportPageDetails /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><ActivityReportPageDetails /></Suspense>,
               },
               {
                 path: "reports/my/:reportId",
-                element: <Suspense fallback={<Spinner />}><MyReportPageDetails /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><MyReportPageDetails /></Suspense>,
               },
               {
                 path: "reports/employee/:employeeApiId",
-                element: <Suspense fallback={<Spinner />}><EmployeeReportsPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><EmployeeReportsPage /></Suspense>,
               },
               {
                 path: "reports/new",
-                element: <Suspense fallback={<Spinner />}><NewActivityRegistrationPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><NewActivityRegistrationPage /></Suspense>,
               },
               {
                 path: "work-calender",
-                element: <Suspense fallback={<Spinner />}><WorkCalendarPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><WorkCalendarPage /></Suspense>,
               },
               {
                 path: "organizations/users/:userId",
-                element: <Suspense fallback={<Spinner />}><UserProfilePage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><UserProfilePage /></Suspense>,
               }
             ]
           },
 
           // ------------------------------------------------------------
-          // ۲. روت‌های مشترک ادمین‌ها (سوپر + L2 + L3)
+          // ۲. روت‌های مشترک ادمین‌ها
           // ------------------------------------------------------------
           {
             element: <RoleBasedGuard allowedRoles={ADMIN_ACCESS} />,
             children: [
               {
                 path: "organizations",
-                element: <Suspense fallback={<Spinner />}><OrganizationPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><OrganizationPage /></Suspense>,
               },
               {
                 path: "organizations/:id",
-                element: <Suspense fallback={<Spinner />}><OrganizationDetailPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><OrganizationDetailPage /></Suspense>,
               },
               {
                 path: "organizations/:id/create-user",
-                element: <Suspense fallback={<Spinner />}><CreateUser /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><CreateUser /></Suspense>,
               },
               {
                 path: "organizations/:id/assign-user",
-                element: <Suspense fallback={<Spinner />}><AssignUserPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><AssignUserPage /></Suspense>,
               },
-              // ✅ ۳. اضافه کردن روت بررسی تصاویر (مخصوص ادمین‌ها)
               {
                 path: "confirm-photos/pending-images",
-                element: <Suspense fallback={<Spinner />}><PendingImagesPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><PendingImagesPage /></Suspense>,
               },
             ]
           },
@@ -163,42 +164,62 @@ export const router = createBrowserRouter([
           {
             element: <RoleBasedGuard allowedRoles={SUPER_ADMIN_ONLY} />,
             children: [
-              { path: "work-patterns", element: <Suspense fallback={<WorkPatternPageSkeleton />}><WorkPatternPage /></Suspense> },
-              { path: "work-patterns/assign", element: <Suspense fallback={<Spinner />}><AddToWorkPatternPage /></Suspense> },
-              { path: "work-patterns/new-work-patterns", element: <Suspense fallback={<Spinner />}><NewWorkPatternPage /></Suspense> },
-              { path: "work-patterns/edit/:patternId", element: <Suspense fallback={<Spinner />}><WorkPatternsEdit /></Suspense> },
-              { path: "work-patterns/employees/:patternType/:patternId", element: <Suspense fallback={<Spinner />}><WorkPatternsEmployeesPage /></Suspense> },
-              { path: "shift-schedules/edit/:patternId", element: <Suspense fallback={<EditShiftScheduleFormSkeleton />}><EditShiftSchedulePage /></Suspense> },
+              {
+                path: "work-patterns",
+                // اسکلتون حفظ شد
+                element: <Suspense fallback={<WorkPatternPageSkeleton />}><WorkPatternPage /></Suspense>
+              },
+              {
+                path: "work-patterns/assign",
+                element: <Suspense fallback={<RouteSpinner />}><AddToWorkPatternPage /></Suspense>
+              },
+              {
+                path: "work-patterns/new-work-patterns",
+                element: <Suspense fallback={<RouteSpinner />}><NewWorkPatternPage /></Suspense>
+              },
+              {
+                path: "work-patterns/edit/:patternId",
+                element: <Suspense fallback={<RouteSpinner />}><WorkPatternsEdit /></Suspense>
+              },
+              {
+                path: "work-patterns/employees/:patternType/:patternId",
+                element: <Suspense fallback={<RouteSpinner />}><WorkPatternsEmployeesPage /></Suspense>
+              },
+              {
+                path: "shift-schedules/edit/:patternId",
+                // اسکلتون حفظ شد
+                element: <Suspense fallback={<EditShiftScheduleFormSkeleton />}><EditShiftSchedulePage /></Suspense>
+              },
               {
                 path: "device-management",
-                element: <Suspense fallback={<Spinner />}><DevicePage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><DevicePage /></Suspense>,
               },
               {
                 path: "admin-management",
-                element: <Suspense fallback={<Spinner />}><AdminManagement /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><AdminManagement /></Suspense>,
               },
               {
                 path: "work-groups",
-                element: <Suspense fallback={<Spinner />}><WorkGroupPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><WorkGroupPage /></Suspense>,
               },
               {
                 path: "work-groups/new",
-                element: <Suspense fallback={<Spinner />}><NewWorkGroupDetailPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><NewWorkGroupDetailPage /></Suspense>,
               },
               {
                 path: "work-groups/:id/assign",
-                element: <Suspense fallback={<Spinner />}><WorkGroupAssignmentPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><WorkGroupAssignmentPage /></Suspense>,
               },
               {
                 path: "work-groups/:id",
-                element: <Suspense fallback={<Spinner />}><WorkGroupDetailPage /></Suspense>,
+                element: <Suspense fallback={<RouteSpinner />}><WorkGroupDetailPage /></Suspense>,
               },
             ]
           },
 
           {
             path: "unauthorized",
-            element: <Suspense fallback={<Spinner />}><UnauthorizedPage /></Suspense>
+            element: <Suspense fallback={<RouteSpinner />}><UnauthorizedPage /></Suspense>
           }
         ],
       },
@@ -206,6 +227,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <Suspense fallback={<Spinner />}><LoginPage /></Suspense>,
+    // ✅ برای صفحه لاگین از حالت fullscreen استفاده می‌کنیم چون خارج از MainLayout است
+    element: <Suspense fallback={<Spinner variant="dots" fullscreen text="در حال آماده‌سازی..." />}><LoginPage /></Suspense>,
   },
 ]);
