@@ -21,6 +21,9 @@ export const fetchUsers = async (
     page: String(params.page),
     per_page: String(params.per_page),
   });
+  
+  if (params.organization_id)
+    queryParams.append("organization_id", String(params.organization_id));
 
   if (params.search) queryParams.append("search", params.search);
   if (params.organization_id)
