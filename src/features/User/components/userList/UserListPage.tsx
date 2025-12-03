@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     useReactTable,
     getCoreRowModel,
-    getPaginationRowModel,
+    // getPaginationRowModel,
     type PaginationState,
 } from "@tanstack/react-table";
 
@@ -13,7 +13,7 @@ import { selectUser } from '@/store/slices/authSlice';
 import { useUsers } from '@/features/User/hooks/hook';
 import { useOrganization } from '@/features/Organization/hooks/useOrganizations';
 
-// ✅ ایمپورت هوک جدید برای سوکت
+// ✅ هوک برای آپدیت لحظه‌ای (سوکت)
 import { useUserImportListener } from '@/features/User/hooks/useUserImportListener';
 
 // --- Components ---
@@ -27,7 +27,7 @@ import { columns } from './UserTableColumns';
 // --- Icons ---
 import { Search, ArrowRight, Loader2, UserPlus, FileUp } from 'lucide-react';
 
-// (هوک Debounce داخلی)
+// (هوک Debounce داخلی برای بهینه‌سازی جستجو)
 const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
     useEffect(() => {
@@ -35,6 +35,16 @@ const useDebounce = (value: string, delay: number) => {
         return () => clearTimeout(handler);
     }, [value, delay]);
     return debouncedValue;
+};
+
+// ✅ تابع کمکی برای نرمال‌سازی داده‌های متا (حل مشکل آرایه بودن [42, 42])
+const normalizeMetaValue = (value: any): number => {
+    if (Array.isArray(value)) {
+        // اگر آرایه بود، مقدار اول را برگردان
+        return Number(value[0]) || 0;
+    }
+    // اگر عدد یا رشته بود، تبدیل کن و برگردان
+    return Number(value) || 0;
 };
 
 interface UserListPageProps {
@@ -48,14 +58,12 @@ export function UserListPage({ organizationId }: UserListPageProps) {
     const navigate = useNavigate();
     const user = useAppSelector(selectUser);
 
-    // --- ✅ فعال‌سازی لیسنر سوکت ---
-    // همین یک خط کافیست تا وقتی کاربر در این صفحه است،
-    // اگر ایمپورت تمام شد، نوتیفیکیشن بیاید و جدول رفرش شود.
+    // فعال‌سازی لیسنر سوکت برای رفرش خودکار پس از ایمپورت
     useUserImportListener();
 
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-    // --- استیت‌های جدول ---
+    // --- استیت‌های جدول (سمت کلاینت) ---
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
@@ -69,10 +77,10 @@ export function UserListPage({ organizationId }: UserListPageProps) {
         r => ['super_admin', 'org-admin-l2', 'org-admin-l3'].includes(r)
     ) ?? false;
 
-    // --- دریافت اطلاعات سازمان ---
+    // --- دریافت اطلاعات خود سازمان ---
     const { data: organization, isLoading: isLoadingOrg } = useOrganization(organizationId);
 
-    // --- دریافت لیست کاربران ---
+    // --- 🔥 دریافت لیست کاربران (Server-Side Pagination) ---
     const {
         data: userResponse,
         isLoading: isLoadingUsers,
@@ -86,17 +94,28 @@ export function UserListPage({ organizationId }: UserListPageProps) {
     });
 
     const users = useMemo(() => userResponse?.data ?? [], [userResponse]);
-    const pageCount = useMemo(() => userResponse?.meta?.last_page ?? 0, [userResponse]);
+
+    // ✅ دریافت و نرمال‌سازی تعداد کل رکوردها
+    const totalRows = useMemo(() => {
+        return normalizeMetaValue(userResponse?.meta?.total);
+    }, [userResponse]);
+
+    // ✅ دریافت و نرمال‌سازی تعداد کل صفحات
+    const pageCount = useMemo(() => {
+        return normalizeMetaValue(userResponse?.meta?.last_page);
+    }, [userResponse]);
 
     // --- تنظیمات جدول ---
     const table = useReactTable({
         data: users,
         columns,
+        // پاس دادن مقادیر نرمال‌سازی شده
+        rowCount: totalRows,
         pageCount: pageCount,
+
         state: { pagination: { pageIndex, pageSize } },
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         manualPagination: true,
         manualFiltering: true,
     });
@@ -193,8 +212,8 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                 notFoundMessage="هیچ کارمندی یافت نشد."
             />
 
-            {/* صفحه‌بندی */}
-            {pageCount > 0 && <DataTablePagination table={table} />}
+            {/* ✅ حالا totalRows یک عدد صحیح است و شرط به درستی کار می‌کند */}
+            {totalRows > 0 && <DataTablePagination table={table} />}
 
             {/* مودال ایمپورت */}
             {isSuperAdmin && (
