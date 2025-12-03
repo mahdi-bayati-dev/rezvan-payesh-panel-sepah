@@ -5,9 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+
 
 class AuthController extends Controller
 {
@@ -18,10 +17,8 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // ۱. جستجو با user_name، نه email
         $user = User::where('user_name', $request->user_name)->first();
 
-        // ۲. بررسی کاربر و صحت پسورد
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'error' => 'Unauthorized',
@@ -29,7 +26,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // ۳. بررسی فعال بودن کاربر (این بخش عالی بود)
+        // ۳. بررسی فعال بودن کاربر
         if ($user->status !== 'active') {
             return response()->json([
                 'error' => 'Unauthorized',
@@ -40,21 +37,56 @@ class AuthController extends Controller
         // ۴. ایجاد توکن و پاسخ (این بخش هم عالی بود)
         $tokenResult = $user->createToken('AuthToken');
         $token = $tokenResult->accessToken;
-        $expiresAt = $tokenResult->token->expires_at;
+        if(config('app.auth_type') === 'token')
+        {
+            $expiresAt = $tokenResult->token->expires_at;
 
-        return response()->json(
-            [
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'expires_at' => $expiresAt->toDateTimeString(),
-                'user' =>
-                    [
-                        'id' => $user->id,
-                        'user_name' => $user->user_name,
-                        'email' => $user->email,
-                        'roles' => $user->getRoleNames(),
-                    ]
-            ]);
+            return response()->json(
+                [
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                    'expires_at' => $expiresAt->toDateTimeString(),
+                    'user' =>
+                        [
+                            'id' => $user->id,
+                            'user_name' => $user->user_name,
+                            'email' => $user->email,
+                            'roles' => $user->getRoleNames(),
+                        ]
+                ]);
+        }
+        elseif (config('app.auth_type') === 'http_only')
+        {
+            $domain = config('SESSION_DOMAIN');
+
+            $cookie = cookie(
+                'access_token',
+                $token,
+                360,
+                '/',
+                $domain,
+                true,
+                true,
+                false,
+                'Lax'
+            );
+
+            return response()->json([
+                'message' => 'Login successful',
+                'user' => [
+                    'id' => $user->id,
+                    'user_name' => $user->user_name,
+                    'email' => $user->email,
+                    'roles' => $user->getRoleNames(),
+                ],
+                'expires_at' => $tokenResult->token->expires_at->toDateTimeString(),
+            ])->withCookie($cookie);
+        }
+        else
+        {
+            return response()->json(["error" => "env => auth type"], 401);
+        }
+
     }
 
 
@@ -62,7 +94,36 @@ class AuthController extends Controller
 
    public function logout(Request $request)
    {
-        $request->user()->token()->revoke();
+       if(config('app.auth_type') === 'token')
+       {
+           $request->user()->token()->revoke();
+       }
+       elseif (config('app.auth_type') === 'http_only')
+       {
+           if ($request->user())
+           {
+               $request->user()->token()->revoke();
+           }
+
+           $domain = config('SESSION_DOMAIN');
+
+           $cookie = cookie(
+               'access_token',
+               '',
+               -1,
+               '/',
+               $domain,
+               true,
+               true,
+               false,
+               'Lax'
+           );
+
+           return response()->json([
+               'message' => 'خروج با موفقیت انجام شد.'
+           ])->withCookie($cookie);
+       }
+
         return response()->json(['message' => 'خروج با موفقیت انجام شد.']);
    }
 }
