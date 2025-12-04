@@ -4,6 +4,7 @@ import { AUTH_MODE } from "./AxiosConfig"; // استفاده از تنظیم م�
 
 // ۱. دریافت آدرس پایه سرویس هوش مصنوعی از Env
 const AI_BASE_URL = import.meta.env.VITE_API_BASE_AI_URL;
+console.log("بیس ادرس ai", AI_BASE_URL);
 
 if (!AI_BASE_URL) {
   console.warn("⚠️ VITE_API_BASE_AI_URL is not defined in .env file!");

@@ -17,6 +17,7 @@ export async function getDevicesStatus(): Promise<DevicesAPIResponse> {
   // ۱. دریافت کلید امنیتی از متغیرهای محیطی
   // نکته استاندارد: هرگز کلیدهای امنیتی را در کد هاردکد نکنید.
   const apiKey = import.meta.env.VITE_AI_SERVICE_SECRET;
+  console.log("==>", apiKey);
 
   if (!apiKey && import.meta.env.DEV) {
     console.warn(
@@ -28,7 +29,9 @@ export async function getDevicesStatus(): Promise<DevicesAPIResponse> {
   const response = await aiAxiosInstance.post<DevicesAPIResponse>(API_URL, {
     api_key: apiKey,
   });
-  console.log(response.data);
+  console.log(API_URL);
+
+  console.log("پاسخ دیوایس", response.data);
 
   return response.data;
 }
