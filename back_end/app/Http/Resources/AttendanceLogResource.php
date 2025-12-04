@@ -24,6 +24,7 @@ class AttendanceLogResource extends JsonResource
             'source_type' => $this->source_type,
             'lateness_minutes' => $this->lateness_minutes,
             'early_departure_minutes' => $this->early_departure_minutes,
+            'is_allowed' => $this->is_allowed,
             'remarks' => $this->remarks,
             'device_id' => $this->device_id,
             'edited_by_user_id' => $this->edited_by_user_id,
