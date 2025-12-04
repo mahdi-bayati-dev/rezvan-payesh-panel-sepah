@@ -604,6 +604,7 @@ class UserController extends Controller
                 $response = Http::delete(config("app.ai_url").'/api/user', [
                     'personnel_code' => $personnelCode,
                     'api_key'=> config("app.ai_api_key"),
+                    "gender"=> $employee->gender,
                 ]);
                 if ($response->failed())
                 {
