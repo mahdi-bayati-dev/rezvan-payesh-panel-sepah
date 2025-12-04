@@ -539,7 +539,7 @@ class UserController extends Controller
         if (!empty($aiDeletePaths))
         {
             try {
-                $response = Http::delete(config("app.ai_url").'/api/user/delete_pic', [
+                $response = Http::delete(config("app.ai_url").'/api/user', [
                     'personnel_code' => $personnelCode,
                     'gender' => $gender,
                     'images' => $aiDeletePaths,
