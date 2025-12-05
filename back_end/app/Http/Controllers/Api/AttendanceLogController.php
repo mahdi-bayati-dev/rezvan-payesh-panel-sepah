@@ -8,6 +8,7 @@ use App\Models\Device;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -158,8 +159,10 @@ class AttendanceLogController extends Controller
             {
                 // --- سناریوی خروج (شامل شیفت شب) ---
                 // اگر زودتر از پایان شیفت می‌رود
+                Log::info("the exit time is: " . $expectedEnd->diffInMinutes($logTimestamp));
                 if ($logTimestamp->lt($expectedEnd))
                 {
+                    Log::info("the exit time is2 : " . $expectedEnd->diffInMinutes($logTimestamp));
                     $diffInMinutes = $expectedEnd->diffInMinutes($logTimestamp);
 
                     if ($diffInMinutes > $floatingEnd)
