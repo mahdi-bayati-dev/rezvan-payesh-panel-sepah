@@ -30,77 +30,134 @@ class AttendanceLogController extends Controller
 
         $validated = $validator->validated();
 
-
         $device = Device::where('api_key', $validated['device_api_key'])->first();
-        if (!$device)
-        {
+        if (!$device) {
             return response()->json(['message' => 'Invalid API Key.'], 401);
         }
-        if ($device->status !== 'online')
-        {
+        if ($device->status !== 'online') {
             return response()->json(['message' => 'Device is not active.'], 403);
         }
 
         $employee = Employee::where('personnel_code', $validated['personnel_code'])->first();
+
         $logTimestamp = Carbon::parse($validated['timestamp']);
-        $dateOnly = $logTimestamp->toDateString();
 
+        // ---------------------------------------------------------
+        // 1. تشخیص هوشمند شیفت (امروز یا دیروز؟)
+        // ---------------------------------------------------------
+        // این بخش برای شیفت‌های شبانه (که از نیمه‌شب عبور می‌کنند) حیاتی است.
+        // ما برنامه کاری را برای "تاریخ لاگ" و "یک روز قبل از لاگ" می‌گیریم.
+        $scheduleToday = $employee->getWorkScheduleFor($logTimestamp);
+        $scheduleYesterday = $employee->getWorkScheduleFor($logTimestamp->copy()->subDay());
 
-        // end check
-        $schedule = $employee->getWorkScheduleFor($logTimestamp);
+        $schedule = null;
+        $diffToday = 999999;
+        $diffYesterday = 999999;
+
+        if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN) {
+            // برای ورود، فاصله زمانی با "شروع شیفت" را مقایسه می‌کنیم
+            if ($scheduleToday && $scheduleToday->expected_start) {
+                $diffToday = abs($logTimestamp->diffInMinutes($scheduleToday->expected_start));
+            }
+            if ($scheduleYesterday && $scheduleYesterday->expected_start) {
+                // مثلاً اگر شیفت دیشب ساعت 22 شروع شده و الان 1 بامداد است
+                $diffYesterday = abs($logTimestamp->diffInMinutes($scheduleYesterday->expected_start));
+            }
+        } else {
+            // برای خروج، فاصله زمانی با "پایان شیفت" را مقایسه می‌کنیم
+            if ($scheduleToday && $scheduleToday->expected_end) {
+                $diffToday = abs($logTimestamp->diffInMinutes($scheduleToday->expected_end));
+            }
+            if ($scheduleYesterday && $scheduleYesterday->expected_end) {
+                // مثلاً اگر شیفت دیشب ساعت 4 صبح امروز تمام می‌شود و الان 03:55 است
+                $diffYesterday = abs($logTimestamp->diffInMinutes($scheduleYesterday->expected_end));
+            }
+        }
+
+        // انتخاب شیفتی که زمانش به زمان لاگ نزدیک‌تر است
+        // اگر تفاوت خیلی کم باشد (مثلاً زیر 12 ساعت)، اولویت با شیفتی است که فاصله کمتری دارد
+        if ($diffYesterday < $diffToday) {
+            $schedule = $scheduleYesterday;
+        } else {
+            $schedule = $scheduleToday;
+        }
+
+        // ---------------------------------------------------------
+        // 2. دریافت آخرین لاگ (سراسری) برای بررسی بازگشت به کار
+        // ---------------------------------------------------------
+        // آخرین لاگ ثبت شده قبل از این زمان را می‌گیریم (فارغ از اینکه مال امروز است یا دیروز)
+        $lastLog = AttendanceLog::where('employee_id', $employee->id)
+            ->where('timestamp', '<', $logTimestamp)
+            ->orderBy('timestamp', 'desc')
+            ->first();
+
+        // تشخیص اینکه آیا این ورود اول است یا قبلاً وارد شده؟
+        // اگر آخرین لاگ "ورود" باشد، یعنی هنوز در حال کار است یا لاگ خروج فراموش شده
+        // اگر آخرین لاگ "خروج" باشد، یعنی قبلاً وارد شده و خارج شده (سناریوی بازگشت)
+        // برای سادگی، اگر آخرین لاگ وجود داشته باشد و زمانش خیلی پرت نباشد (مثلا مال 2 روز پیش نباشد)،
+        // می‌توانیم فرض کنیم قبلاً CheckIn داشته.
+        $hasPriorCheckIn = false;
+        if ($schedule && $schedule->expected_start) {
+             // اگر لاگی در بازه این شیفت وجود داشته باشد
+             // (مثلاً از 2 ساعت قبل از شروع شیفت تا الان)
+             $hasPriorCheckIn = AttendanceLog::where('employee_id', $employee->id)
+                ->where('timestamp', '>=', $schedule->expected_start->copy()->subHours(4))
+                ->where('timestamp', '<', $logTimestamp)
+                ->where('event_type', AttendanceLog::TYPE_CHECK_IN)
+                ->exists();
+        }
 
         $lateness_minutes = 0;
         $early_departure_minutes = 0;
 
-        // آیا لاگ قبلی برای امروز وجود داره؟
-        $todaysLogs = AttendanceLog::where('employee_id', $employee->id)
-            ->whereDate('timestamp', $dateOnly)
-            ->orderBy('timestamp', 'desc')
-            ->get();
-        $lastLog = $todaysLogs->first();
-        $hasPriorCheckIn = $todaysLogs->where('event_type', AttendanceLog::TYPE_CHECK_IN)->isNotEmpty();
-
         if ($schedule)
         {
-
+            $expectedStart = $schedule->expected_start;
+            $expectedEnd = $schedule->expected_end;
             $floatingStart = $schedule->floating_start ?? 0;
             $floatingEnd = $schedule->floating_end ?? 0;
 
-
-            $expectedStart = isset($schedule->expected_start) ? Carbon::parse($schedule->expected_start) : null;
-            $expectedEnd = isset($schedule->expected_end) ? Carbon::parse($schedule->expected_end) : null;
-
-
-
-
             if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN && $expectedStart)
             {
-                // کارمند رفته بیرون و بعد برگشته سر کار
+                // --- سناریوی ۱: بازگشت به کار (ورود مجدد پس از خروج موقت/جیم شدن) ---
                 if ($lastLog && $lastLog->event_type == AttendanceLog::TYPE_CHECK_OUT)
                 {
-                    // اگر کارمند زودتر جیم شده و یک تعجیل ثبت شده براش تعجیل را 0 میکنیم
-                    if ($lastLog->early_departure_minutes > 0)
-                    {
+                    // اگر آخرین لاگ خروج بوده و فاصله زمانی معقول است (مثلاً زیر 16 ساعت)
+                    // یعنی فرد در حال بازگشت به همان شیفت است.
+
+                    // الف: باطل کردن تعجیل لاگ قبلی (چون به کار برگشته)
+                    if ($lastLog->early_departure_minutes > 0) {
                         $lastLog->early_departure_minutes = 0;
                         $lastLog->save();
                     }
-                    // فاصله گپ بین خروج کارمند و ورود دوباره اش محاسبه میشود
+
+                    // ب: محاسبه مدت زمان غیبت (فاصله خروج قبلی تا این ورود)
                     $lastExitTime = Carbon::parse($lastLog->timestamp);
                     $gapMinutes = $lastExitTime->diffInMinutes($logTimestamp);
+
+                    // ثبت مدت زمان بیرون بودن به عنوان "تاخیر" در لاگ جدید
                     $lateness_minutes = $gapMinutes;
                 }
-                elseif (!$hasPriorCheckIn && $logTimestamp->gt($expectedStart))
+                // --- سناریوی ۲: اولین ورود شیفت ---
+                elseif (!$hasPriorCheckIn)
                 {
-                    $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
-
-                    if ($diffInMinutes > $floatingStart)
+                    // اگر اولین بار است وارد می‌شود، نسبت به شروع شیفت سنجیده می‌شود
+                    if ($logTimestamp->gt($expectedStart))
                     {
-                        $lateness_minutes = $diffInMinutes;
+                        $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
+
+                        // اعمال فرجه شناور (فقط برای شروع شیفت)
+                        if ($diffInMinutes > $floatingStart)
+                        {
+                            $lateness_minutes = $diffInMinutes;
+                        }
                     }
                 }
             }
             elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT && $expectedEnd)
             {
+                // --- سناریوی خروج (شامل شیفت شب) ---
+                // اگر زودتر از پایان شیفت می‌رود
                 if ($logTimestamp->lt($expectedEnd))
                 {
                     $diffInMinutes = $expectedEnd->diffInMinutes($logTimestamp);
@@ -129,7 +186,8 @@ class AttendanceLogController extends Controller
             'message' => 'Attendance log created successfully',
             'log_id' => $log->id,
             'calculated_lateness' => $lateness_minutes,
-            'calculated_early_departure' => $early_departure_minutes
+            'calculated_early_departure' => $early_departure_minutes,
+            'matched_schedule_start' => $schedule ? $schedule->expected_start->toDateTimeString() : null
         ], 201);
     }
 }
