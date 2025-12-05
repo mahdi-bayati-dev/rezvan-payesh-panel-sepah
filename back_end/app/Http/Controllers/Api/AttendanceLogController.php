@@ -43,6 +43,7 @@ class AttendanceLogController extends Controller
 
         $employee = Employee::where('personnel_code', $validated['personnel_code'])->first();
         $logTimestamp = Carbon::parse($validated['timestamp']);
+        $dateOnly = $logTimestamp->toDateString();
 
 
         // end check
@@ -51,18 +52,44 @@ class AttendanceLogController extends Controller
         $lateness_minutes = 0;
         $early_departure_minutes = 0;
 
+        // آیا لاگ قبلی برای امروز وجود داره؟
+        $todaysLogs = AttendanceLog::where('employee_id', $employee->id)
+            ->whereDate('timestamp', $dateOnly)
+            ->orderBy('timestamp', 'desc')
+            ->get();
+        $lastLog = $todaysLogs->first();
+        $hasPriorCheckIn = $todaysLogs->where('event_type', AttendanceLog::TYPE_CHECK_IN)->isNotEmpty();
+
         if ($schedule)
         {
 
             $floatingStart = $schedule->floating_start ?? 0;
             $floatingEnd = $schedule->floating_end ?? 0;
 
+
             $expectedStart = isset($schedule->expected_start) ? Carbon::parse($schedule->expected_start) : null;
             $expectedEnd = isset($schedule->expected_end) ? Carbon::parse($schedule->expected_end) : null;
 
+
+
+
             if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN && $expectedStart)
             {
-                if ($logTimestamp->gt($expectedStart))
+                // کارمند رفته بیرون و بعد برگشته سر کار
+                if ($lastLog && $lastLog->event_type == AttendanceLog::TYPE_CHECK_OUT)
+                {
+                    // اگر کارمند زودتر جیم شده و یک تعجیل ثبت شده براش تعجیل را 0 میکنیم
+                    if ($lastLog->early_departure_minutes > 0)
+                    {
+                        $lastLog->early_departure_minutes = 0;
+                        $lastLog->save();
+                    }
+                    // فاصله گپ بین خروج کارمند و ورود دوباره اش محاسبه میشود
+                    $lastExitTime = Carbon::parse($lastLog->timestamp);
+                    $gapMinutes = $lastExitTime->diffInMinutes($logTimestamp);
+                    $lateness_minutes = $gapMinutes;
+                }
+                elseif (!$hasPriorCheckIn && $logTimestamp->gt($expectedStart))
                 {
                     $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
 
