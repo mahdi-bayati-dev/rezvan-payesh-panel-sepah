@@ -65,10 +65,13 @@ export function MyActivityFilters({ onFilterChange }: MyActivityFiltersProps) {
                  shadow-sm transition-colors duration-300 space-y-6"
         >
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-primaryL dark:text-primaryD" />
-                    <h3 className="font-semibold text-foregroundL dark:text-foregroundD">
-                        فیلتر گزارش‌ها
+                {/* هدر بخش فیلتر */}
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="p-1.5 bg-primaryL/10 dark:bg-primaryD/10 rounded-lg">
+                        <Filter className="w-4 h-4 text-primaryL dark:text-primaryD" />
+                    </div>
+                    <h3 className="font-bold text-sm text-foregroundL dark:text-foregroundD">
+                        فیلتر درخواست ها
                     </h3>
                 </div>
                 {/* دکمه بستن (فقط در مودال موبایل نمایش داده می‌شود) */}

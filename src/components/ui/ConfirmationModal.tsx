@@ -1,7 +1,7 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, type ReactNode } from 'react';
 import { AlertTriangle, Check, X } from 'lucide-react';
-import { SpinnerButton } from '@/components/ui/spinnrtButton';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
