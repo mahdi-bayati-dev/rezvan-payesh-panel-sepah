@@ -1,6 +1,6 @@
-import { MoreVertical, Eye, User, Check } from 'lucide-react';
+import { MoreVertical, Eye, User, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { type ActivityLog } from '../../types/index'; // مسیر نسبی برای اطمینان
+import { type ActivityLog } from '../../types/index';
 import {
     Dropdown,
     DropdownTrigger,
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 
 type ActivityLogActionsProps = {
     log: ActivityLog;
-    onEdit: (log: ActivityLog) => void; // فعلاً استفاده نمی‌شود اما در اینترفیس هست
+    onEdit: (log: ActivityLog) => void;
     onApprove: (log: ActivityLog) => void;
 };
 
@@ -30,44 +30,59 @@ export const ActionsMenuCell = ({ log, onApprove }: ActivityLogActionsProps) => 
         onApprove(log);
     };
 
-    // شرط نمایش دکمه تایید:
-    // ۱. اگر کلاً تایید نشده باشد (!is_allowed)
-    // ۲. اگر دارای مغایرت (تاخیر یا تعجیل) باشد (حتی اگر قبلاً تایید شده باشد، شاید نیاز به تایید مجدد/موجه کردن باشد)
-    const showApproveOption = !log.is_allowed || log.lateness_minutes > 0 || log.early_departure_minutes > 0;
+    // ✅ اصلاح مهم: تبدیل اجباری به Boolean
+    // اگر از API عدد 0 بیاید، در JSX به عنوان متن "0" رندر می‌شود.
+    // با !! آن را به false واقعی تبدیل می‌کنیم تا چیزی نمایش ندهد.
+    const isApproved = !!log.is_allowed;
+
+    // بررسی وجود مغایرت (تاخیر یا تعجیل)
+    const hasException = log.lateness_minutes > 0 || log.early_departure_minutes > 0;
+
+    // دکمه تایید سریع فقط زمانی نمایش داده می‌شود که:
+    // ۱. هنوز تایید نشده باشد (!isApproved)
+    // ۲. حتماً دارای مغایرت باشد (hasException)
+    const showQuickApproveButton = !isApproved && hasException;
 
     return (
         <div className="flex items-center justify-end gap-2">
 
-            {/* دکمه تایید سریع (فقط برای رکوردهایی که هنوز تایید اولیه نشده‌اند) */}
-            {/* این دکمه بیرون منو می‌ماند تا دسترسی سریع برای ادمین حفظ شود */}
-            {!log.is_allowed && (
+            {/* دکمه تایید سریع (فقط برای موارد دارای مغایرت) */}
+            {showQuickApproveButton && (
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={handleApprove}
-                    className="hidden md:flex items-center gap-1 h-8 px-3
-                               text-successL border-successL hover:bg-successL/10 hover:text-successL
-                               dark:text-successD dark:border-successD dark:hover:bg-successD/10 dark:hover:text-successD"
-                    title="تایید سریع"
+                    className="hidden md:flex items-center gap-1.5 h-8 px-3 transition-all duration-200
+                               border-primaryL text-primaryL hover:bg-primaryL hover:text-successD-foreground
+                               dark:border-primaryD dark:text-primaryD dark:hover:bg-primaryD dark:hover:text-black shadow-sm"
+                    title="تایید و مجاز کردن "
                 >
-                    <Check className="w-4 h-4" />
-                    <span className="text-xs">تایید</span>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">تایید</span>
                 </Button>
             )}
 
-            {/* منوی عملیات (همیشه نمایش داده می‌شود) */}
+            {/* نمایش آیکون تایید شده (فقط بصری) */}
+            {/* اینجا چون isApproved حالا بولین واقعی است، اگر false باشد هیچی رندر نمیشود */}
+            {isApproved && (
+                <div className="hidden md:flex items-center gap-1 h-8 px-2 text-emerald-600/60 dark:text-emerald-400/60 select-none cursor-default" title="تایید شده">
+                    <ShieldCheck className="w-4 h-4" />
+                </div>
+            )}
+
+            {/* منوی عملیات */}
             <Dropdown>
                 <DropdownTrigger>
                     <button
                         type="button"
                         className="p-2 rounded-md hover:bg-secondaryL dark:hover:bg-secondaryD
-                                 text-muted-foregroundL dark:text-muted-foregroundD transition-colors"
+                                 text-muted-foregroundL dark:text-muted-foregroundD transition-colors active:scale-95"
                     >
-                        <MoreVertical className="w-5 h-5" />
+                        <MoreVertical className="w-4 h-4" />
                     </button>
                 </DropdownTrigger>
 
-                <DropdownContent>
+                <DropdownContent className="w-48">
                     <DropdownItem onClick={handleViewDetails} icon={<Eye className="w-4 h-4" />}>
                         مشاهده جزئیات
                     </DropdownItem>
@@ -76,22 +91,19 @@ export const ActionsMenuCell = ({ log, onApprove }: ActivityLogActionsProps) => 
                         onClick={handleViewEmployeeReport}
                         icon={<User className="w-4 h-4" />}
                     >
-                        گزارش فردی
+                        گزارش‌های {log.employee.name}
                     </DropdownItem>
 
-                    {/* ✅ گزینه تایید که به درخواست شما اضافه شد */}
-                    {showApproveOption && (
+                    {/* گزینه تایید در منو */}
+                    {!isApproved && (
                         <>
-                            {/* یک خط جداکننده برای تمیزی */}
                             <div className="h-px bg-borderL dark:bg-borderD my-1 opacity-50" />
-
                             <DropdownItem
                                 onClick={handleApprove}
-                                // رنگ سبز برای تمایز
-                                className="text-successL dark:text-successD focus:bg-successL/10 dark:focus:bg-successD/10"
-                                icon={<Check className="w-4 h-4" />}
+                                className="text-successL dark:text-successD focus:bg-successL/10 dark:focus:bg-successD/10 font-medium"
+                                icon={<CheckCircle2 className="w-4 h-4" />}
                             >
-                                {!log.is_allowed ? 'تایید نهایی' : 'موجه کردن مغایرت'}
+                                {hasException ? 'تایید و موجه کردن' : 'تایید نهایی'}
                             </DropdownItem>
                         </>
                     )}
