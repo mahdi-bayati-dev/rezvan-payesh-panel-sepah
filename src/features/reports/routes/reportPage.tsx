@@ -5,7 +5,7 @@ import {
     getCoreRowModel,
     type PaginationState,
 } from "@tanstack/react-table";
-import { Plus, Download, CheckCircle, FileText } from "lucide-react";
+import { Plus, Download, ShieldCheck, FileText } from "lucide-react"; // ShieldCheck برای مودال
 import { type DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 
@@ -21,6 +21,7 @@ import {
 
 import { useReportSocket } from "../hooks/useReportSocket";
 
+// استفاده از ستون‌های آپدیت شده
 import { columns as createColumns } from "@/features/reports/components/reportsPage/TableColumns";
 import { type ActivityLog } from "../types";
 import { type LogFilters } from "../api/api";
@@ -29,8 +30,7 @@ import { DataTablePagination } from "@/components/ui/DataTable/DataTablePaginati
 import { Button } from "@/components/ui/Button";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { ExportModal } from "@/features/reports/components/Export/ExportModal";
-// import { toPersianNumbers } from "../utils/toPersianNumbers";
-import { toast } from "react-toastify"; // برای نمایش پیام ویرایش
+import { toast } from "react-toastify";
 
 function pad(num: number): string {
     return num < 10 ? "0" + num : num.toString();
@@ -64,6 +64,7 @@ export default function ActivityReportPage() {
         pageSize: 10,
     });
 
+    // هماهنگ‌سازی فیلترها با صفحه‌بندی
     useEffect(() => {
         setFilters((prev) => ({
             ...prev,
@@ -72,38 +73,43 @@ export default function ActivityReportPage() {
         }));
     }, [pageIndex, pageSize]);
 
+    // دریافت داده‌ها از هوک React Query
     const { data: queryResult, isLoading, isFetching } = useLogs(filters);
 
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
-    // const totalRows = meta?.total || 0;
+    const totalRows = meta?.total || 0;
 
+    // اتصال به سوکت برای آپدیت زنده
     useReportSocket(filters);
 
     const pageCount = meta?.last_page || 1;
+
+    // هوک تایید (Mutation)
     const approveMutation = useApproveLog();
 
-    // ✅ حذف متغیر استفاده نشده editingLog برای رفع خطای بیلد
-    // const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
-
     const handleApprove = (log: ActivityLog) => {
+        // باز کردن مودال تایید با ست کردن لاگ انتخاب شده
         setLogToApprove(log);
     };
 
     const handleEdit = (log: ActivityLog) => {
-        // setEditingLog(log);
-        // فعلاً فقط یک پیام نمایش می‌دهیم تا زمانی که مودال ویرایش پیاده‌سازی شود
         console.log("Edit requested for:", log.id);
         toast.info("قابلیت ویرایش به زودی فعال می‌شود.");
     };
 
     const handleConfirmApprove = () => {
         if (!logToApprove) return;
+
         approveMutation.mutate(logToApprove.id, {
             onSuccess: () => {
+                // بستن مودال بلافاصله بعد از موفقیت
                 setLogToApprove(null);
+                // نکته: نیازی به رفرش دستی نیست چون در هوک useApproveLog از invalidateQueries استفاده شده
+                // و لیست خودکار آپدیت می‌شود.
             },
             onError: () => {
+                // مودال باز می‌ماند تا کاربر متوجه خطا شود یا دستی ببندد
                 console.error("Failed to approve log.");
             }
         });
@@ -176,42 +182,60 @@ export default function ActivityReportPage() {
                 />
             )}
 
+            {/* مودال تایید با آیکون و متن بهبود یافته */}
             <ConfirmationModal
                 isOpen={!!logToApprove}
                 onClose={() => setLogToApprove(null)}
                 onConfirm={handleConfirmApprove}
-                title="تأیید تردد"
+                title="تأیید نهایی تردد"
                 message={
-                    <div className="text-right" dir="rtl">
-                        <p>
-                            آیا از تأیید این تردد برای
-                            <strong className="font-bold mx-1">{logToApprove?.employee.name}</strong>
-                            در تاریخ
-                            <strong className="font-bold mx-1">{logToApprove?.date}</strong>
-                            ساعت
-                            <strong className="font-bold mx-1">{logToApprove?.time}</strong>
+                    <div className="text-right flex flex-col gap-3" dir="rtl">
+                        <p className="leading-7">
+                            آیا از تأیید تردد مربوط به
+                            <strong className="text-foregroundL dark:text-foregroundD mx-1 bg-secondaryL/50 dark:bg-secondaryD px-1 rounded">
+                                {logToApprove?.employee.name}
+                            </strong>
                             مطمئن هستید؟
                         </p>
-                        <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD mt-2">
-                            این لاگ به عنوان مجاز علامت‌گذاری خواهد شد.
+
+                        <div className="text-sm bg-secondaryL/30 dark:bg-secondaryD/20 p-3 rounded-lg border border-borderL dark:border-borderD space-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foregroundL">تاریخ:</span>
+                                <span dir="ltr">{logToApprove?.date}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foregroundL">ساعت:</span>
+                                <span dir="ltr" >{logToApprove?.time}</span>
+                            </div>
+                            {(logToApprove?.lateness_minutes ?? 0) > 0 && (
+                                <div className="flex justify-between text-destructiveL dark:text-destructiveD">
+                                    <span>میزان تاخیر:</span>
+                                    <span>{logToApprove?.lateness_minutes} دقیقه</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" />
+                            با تایید این مورد، وضعیت آن به «مجاز» تغییر کرده و در گزارش‌ها سبز می‌شود.
                         </p>
                     </div>
                 }
                 variant="success"
-                icon={<CheckCircle className="h-6 w-6 text-successL dark:text-successD" aria-hidden="true" />}
-                confirmText={approveMutation.isPending ? "در حال تایید..." : "بله، تایید کن"}
+                icon={<ShieldCheck className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />}
+                confirmText={approveMutation.isPending ? "در حال ثبت..." : "بله، تایید و مجاز شود"}
                 cancelText="انصراف"
                 isLoading={approveMutation.isPending}
             />
 
             <div className="flex flex-col lg:flex-row-reverse gap-6 p-4 md:p-6 min-h-screen">
-                <aside className="w-full lg:w-72 lg:sticky lg:top-6 lg:self-start">
+                <aside className="w-full lg:w-72 lg:sticky lg:top-6 lg:self-start transition-all duration-300">
                     <ActivityFilters
                         onFilterChange={handleFilterChange}
                     />
                 </aside>
 
-                <main className="flex-1 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD p-5 sm:p-6 shadow-sm border border-borderL dark:border-borderD flex flex-col gap-6">
+                <main className="flex-1 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD p-5 sm:p-6 shadow-sm border border-borderL dark:border-borderD flex flex-col gap-6 transition-all duration-300">
 
                     <div className="flex flex-col gap-4">
                         <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -224,9 +248,11 @@ export default function ActivityReportPage() {
                                     <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
                                         گزارش فعالیت‌ها
                                     </h2>
-                                    {/* <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5">
-                                        {isLoading ? "در حال بارگذاری..." : `${toPersianNumbers(totalRows)} رکورد ثبت شده`}
-                                    </p> */}
+                                    <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5">
+                                        {isLoading
+                                            ? "در حال بارگذاری..."
+                                            : totalRows > 0 ? `${totalRows.toLocaleString('fa-IR')} رکورد یافت شد` : "رکوردی یافت نشد"}
+                                    </p>
                                 </div>
                             </div>
 
