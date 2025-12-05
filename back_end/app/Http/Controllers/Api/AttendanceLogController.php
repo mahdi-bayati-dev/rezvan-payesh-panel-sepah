@@ -165,7 +165,7 @@ class AttendanceLogController extends Controller
                     Log::info("the exit time is2 : " . $expectedEnd->diffInMinutes($logTimestamp));
                     Log::info("the expectedEnd time is: " . $expectedEnd);
                     Log::info("the logTimestamp is: " . $logTimestamp);
-                    $diffInMinutes = $expectedEnd->diffInMinutes($logTimestamp);
+                    $diffInMinutes = abs($expectedEnd->diffInMinutes($logTimestamp));
 
                     if ($diffInMinutes > $floatingEnd)
                     {
