@@ -129,7 +129,7 @@ export const ShiftScheduleScheduleView = ({
                 </div>
             ) : (
                 <div className="flex-1 overflow-auto border border-borderL/70 dark:border-borderD/60 rounded-xl bg-backgroundL-500/50 dark:bg-backgroundD/50 relative shadow-inner">
-                    
+
                     {/* ستون روزها (Sticky Right) */}
                     <div className="sticky right-0 top-0 z-20 w-[80px] float-right shadow-[0_0_15px_rgba(0,0,0,0.05)] dark:shadow-[0_0_15px_rgba(0,0,0,0.3)]">
                         <div className="h-10 border-b border-l border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD flex items-center justify-center font-bold text-xs text-muted-foregroundL">
@@ -144,13 +144,14 @@ export const ShiftScheduleScheduleView = ({
 
                     <div className="overflow-x-auto custom-scrollbar">
                         <div className="relative min-w-[1200px]">
-                            
+
                             {/* هدر ساعت‌ها (Sticky Top) */}
                             <div className="sticky top-0 z-10 flex h-10 bg-backgroundL-500/95 dark:bg-backgroundD/95 border-b border-borderL dark:border-borderD backdrop-blur-md">
                                 {hours.map((hour) => (
                                     <div key={hour} className="flex-1 border-l border-borderL/30 dark:border-borderD/30 flex items-center justify-start px-1 relative">
                                         <span className="absolute -right-3 top-3 text-[10px] text-muted-foregroundL dark:text-muted-foregroundD ">
-                                            {toPersianDigits(hour.toString().padStart(2, "0"))}:00
+                                            {/* ✅ اصلاح شده: کل ساعت و دقیقه یکجا فارسی می‌شود */}
+                                            {toPersianDigits(`${hour.toString().padStart(2, "0")}:00`)}
                                         </span>
                                     </div>
                                 ))}

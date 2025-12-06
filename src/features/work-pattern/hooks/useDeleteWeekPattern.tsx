@@ -15,36 +15,43 @@ export const useDeleteWeekPattern = () => {
         mutationFn: deleteWeekPattern, // تابع API نهایی
 
         onSuccess: (_, deletedId) => {
-
-            // 🟢🟢🟢 راه‌حل کلیدی مشکل ۳ (کلید Invalidation اشتباه) 🟢🟢🟢
-            // کلید ['weekPatterns'] اشتباه بود.
+            // 🟢 Invalidation صحیح لیست
             queryClient.invalidateQueries({ queryKey: ['weekPatternsList'] })
-            // 🐞 لاگ دیباگ:
-            console.log("useDeleteWeekPattern (DELETE) onSuccess: Invalidated query list: ['weekPatternsList']");
 
-
-            // 🟢🟢🟢 راه‌حل کلیدی مشکل ۱ (عدم تطابق کلید) 🟢🟢🟢
-            // ما باید کلید کش جزئیات را *دقیقاً* مشابه useWeekPatternDetails (با رشته‌ای کردن ID) پاک کنیم.
+            // 🟢 حذف کش جزئیات (برای جلوگیری از نمایش اطلاعات قدیمی اگر کاربر همان ID را دوباره باز کرد)
             const queryKey = ['weekPatternDetails', String(deletedId)];
             queryClient.removeQueries({ queryKey: queryKey })
-            // 🐞 لاگ دیباگ:
-            console.log(`useDeleteWeekPattern (DELETE) onSuccess: Removed queries for key: ${JSON.stringify(queryKey)}`);
 
             toast.success('الگوی کاری با موفقیت حذف شد.');
         },
 
         onError: (error) => {
-            const errorMessage = error.response?.data?.message
-                || 'خطایی در هنگام حذف الگو رخ داد.';
-
-            // 🐞 لاگ دیباگ:
             console.error("useDeleteWeekPattern (DELETE) onError:", error);
 
-            // کامنت: مدیریت خطای 409 Conflict (مثلاً اگر الگو به گروهی اختصاص داده شده باشد)
+            // ✅ مدیریت اختصاصی خطای 409 (Conflict)
+            // این خطا زمانی رخ می‌دهد که الگو به کارمند یا گروهی متصل باشد
             if (error.response?.status === 409) {
-                toast.error(errorMessage); // نمایش پیام Conflict از سمت سرور
+                toast.error(
+                    <div className="text-right text-sm font-vazir" dir="rtl">
+                        <div className="font-bold mb-1 flex items-center gap-1">
+                            ⛔ حذف غیرمجاز
+                        </div>
+                        <p className="leading-6">
+                            این الگو به تعدادی از کارمندان اختصاص داده شده است و قابل حذف نیست.
+                        </p>
+                        <p className="mt-2 text-xs opacity-90 border-t border-white/20 pt-1">
+                            لطفاً ابتدا کارمندان را مدیریت کنید، سپس اقدام به حذف نمایید.
+                        </p>
+                    </div>,
+                    {
+                        autoClose: 6000, // زمان نمایش بیشتر برای خواندن متن طولانی
+                        className: "font-vazir"
+                    }
+                );
             } else {
                 // مدیریت سایر خطاها (404, 500 و ...)
+                const errorMessage = error.response?.data?.message
+                    || 'خطایی در هنگام حذف الگو رخ داد.';
                 toast.error(errorMessage);
             }
         },

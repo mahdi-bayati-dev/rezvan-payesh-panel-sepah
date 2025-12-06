@@ -6,8 +6,8 @@ import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useDeleteShiftSchedule } from '@/features/shift-schedule/hooks/hook';
 import { Dialog } from '@/components/ui/Dialog';
 import { GenerateShiftsForm } from '@/features/shift-schedule/components/GenerateShiftsForm';
-// import clsx from 'clsx';
 import { Button } from '@/components/ui/Button';
+// import { SpinnerButton } from '@/components/ui/SpinnerButton'; // ❌ نیازی به ایمپورت نیست چون خود مودال هندل می‌کند
 
 interface WorkPatternActionsProps {
   selectedPatternId: number | null;
@@ -49,6 +49,8 @@ export const WorkPatternActions = ({
       },
       onError: (error) => {
         console.error("Delete failed:", error);
+        // بستن مودال در صورت خطا تا توست دیده شود
+        setIsDeleteModalOpen(false);
       }
     });
   };
@@ -134,8 +136,9 @@ export const WorkPatternActions = ({
           onConfirm={confirmDelete}
           title="حذف الگو"
           message={`آیا از حذف «${selectedPatternName}» مطمئن هستید؟ این عملیات غیرقابل بازگشت است.`}
-          confirmText={isDeleting ? '...' : 'بله، حذف کن'}
+          confirmText="بله، حذف کن" // ✅ فقط متن ساده
           variant="danger"
+          isLoading={isDeleting} // ✅ استفاده از پراپ داخلی خود مودال
         />
       )}
 
