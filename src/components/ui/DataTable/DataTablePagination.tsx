@@ -14,6 +14,14 @@ interface DataTablePaginationProps<TData> {
   table: Table<TData>;
 }
 
+// 🔹 تابع کمکی برای تبدیل اعداد انگلیسی به فارسی
+const toPersianDigits = (num: number | string) => {
+  const farsiDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return num
+    .toString()
+    .replace(/\d/g, (x) => farsiDigits[parseInt(x)]);
+};
+
 export function DataTablePagination<TData>({
   table,
 }: DataTablePaginationProps<TData>) {
@@ -24,11 +32,7 @@ export function DataTablePagination<TData>({
       className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border mt-2 transition-colors duration-300
       bg-backgroundL-500 dark:bg-backgroundD border-borderL dark:border-borderD"
     >
-      {/* ✅ تعداد ردیف‌های انتخاب‌شده */}
-      {/* <div className="text-xs sm:text-sm text-muted-foregroundL dark:text-muted-foregroundD text-center sm:text-right">
-        {table.getFilteredSelectedRowModel().rows.length} از{" "}
-        {table.getFilteredRowModel().rows.length} ردیف انتخاب شده است.
-      </div> */}
+
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 w-full sm:w-auto">
         {/* ✅ انتخاب تعداد ردیف در صفحه */}
@@ -40,7 +44,10 @@ export function DataTablePagination<TData>({
           >
             <div className="relative w-24">
               <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:text-backgroundL-500 dark:bg-zinc-800 py-1.5 pl-3 pr-8 text-left border dark:border-borderD text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primaryL">
-                <span className="block truncate">{table.getState().pagination.pageSize}</span>
+                {/* نمایش عدد سایز صفحه به فارسی */}
+                <span className="block truncate text-right">
+                  {toPersianDigits(table.getState().pagination.pageSize)}
+                </span>
                 <span className="pointer-events-none absolute inset-y-0 right-1 flex items-center pr-1">
                   <ChevronsUpDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 </span>
@@ -56,10 +63,9 @@ export function DataTablePagination<TData>({
                     <Listbox.Option
                       key={pageSize}
                       className={({ active }) =>
-                        `relative cursor-default select-none py-2 pl-8 pr-3 ${
-                          active
-                            ? "bg-amber-100 text-amber-900 dark:bg-zinc-700 dark:text-amber-300"
-                            : "text-gray-900 dark:text-gray-200"
+                        `relative cursor-default select-none py-2 pl-8 pr-3 ${active
+                          ? "bg-amber-100 text-amber-900 dark:bg-zinc-700 dark:text-amber-300"
+                          : "text-gray-900 dark:text-gray-200"
                         }`
                       }
                       value={pageSize}
@@ -67,11 +73,11 @@ export function DataTablePagination<TData>({
                       {({ selected }) => (
                         <>
                           <span
-                            className={`block truncate ${
-                              selected ? "font-medium" : "font-normal"
-                            }`}
+                            className={`block truncate text-right ${selected ? "font-medium" : "font-normal"
+                              }`}
                           >
-                            {pageSize}
+                            {/* نمایش گزینه‌ها به فارسی */}
+                            {toPersianDigits(pageSize)}
                           </span>
                           {selected && (
                             <span className="absolute inset-y-0 left-0 flex items-center pl-2 text-amber-600 dark:text-amber-400">
@@ -93,31 +99,35 @@ export function DataTablePagination<TData>({
           <span className="px-2 text-foregroundL dark:text-foregroundD">
             صفحه{" "}
             <strong className="text-primaryL dark:text-primaryD">
-              {table.getState().pagination.pageIndex + 1}
+              {/* نمایش شماره صفحه جاری به فارسی */}
+              {toPersianDigits(table.getState().pagination.pageIndex + 1)}
             </strong>{" "}
-            از {table.getPageCount()}
+            از{" "}
+            {/* نمایش کل صفحات به فارسی */}
+            {toPersianDigits(table.getPageCount())}
           </span>
 
-          <div className="flex gap-1">
+          <div className="flex gap-1" dir="ltr">
+
             <PaginationButton
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
-              icon={<ChevronsLeft className="w-4 h-4" />}
+              icon={<ChevronsLeft className="w-4 h-4 cursor-pointerF" />}
             />
             <PaginationButton
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              icon={<ChevronLeft className="w-4 h-4" />}
+              icon={<ChevronLeft className="w-4 h-4 cursor-pointerF" />}
             />
             <PaginationButton
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              icon={<ChevronRight className="w-4 h-4" />}
+              icon={<ChevronRight className="w-4 h-4 cursor-pointerF" />}
             />
             <PaginationButton
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
-              icon={<ChevronsRight className="w-4 h-4" />}
+              icon={<ChevronsRight className="w-4 h-4 cursor-pointerF" />}
             />
           </div>
         </div>
