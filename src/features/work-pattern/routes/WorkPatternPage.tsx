@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
 // Hooks
-import { useWorkPatterns } from '@/features/work-pattern/hooks/useWorkPatternsHookGet';
-import { useWeekPatternDetails } from '@/features/work-pattern/hooks/useWeekPatternDetails';
+import { useWorkPatterns } from '@/features/work-pattern/hooks/api/useWorkPatternsHookGet';
+import { useWeekPatternDetails } from '@/features/work-pattern/hooks/api/useWeekPatternDetails';
 import { useShiftSchedule } from '@/features/shift-schedule/hooks/hook';
 
 // Components

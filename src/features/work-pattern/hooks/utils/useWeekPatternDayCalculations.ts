@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import type { UseFormSetValue, UseFormWatch } from 'react-hook-form';
 // کامنت: مسیر schema باید بر اساس ساختار شما دقیق باشد
-import type { NewWeekPatternFormData } from '../schema/NewWeekPatternSchema';
+import type { NewWeekPatternFormData } from '@/features/work-pattern/schema/NewWeekPatternSchema';
 // کامنت: مسیر utils باید بر اساس ساختار شما دقیق باشد
-import { calculateDurationInMinutes } from '../utils/timeCalculations';
+import { calculateDurationInMinutes } from '@/features/work-pattern/utils/timeCalculations';
 
 /**
  * هوک سفارشی برای مدیریت محاسبات و منطق‌های وابسته در فرم الگوی هفتگی

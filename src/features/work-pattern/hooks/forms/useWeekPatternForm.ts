@@ -3,16 +3,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   newWeekPatternSchema,
   type NewWeekPatternFormData,
-} from "../schema/NewWeekPatternSchema";
-import { useCreateWeekPattern } from "@/features/work-pattern/hooks/useCreateWeekPatternPost";
+} from "@/features/work-pattern/schema/NewWeekPatternSchema";
+import { useCreateWeekPattern } from "@/features/work-pattern/hooks/api/useCreateWeekPatternPost";
 import { AxiosError } from "axios";
 import type {
   ApiValidationError,
   WeekPatternPayload,
   DayPayload,
-} from "../types/index";
-import { daysOfWeek } from "../utils/constants";
-import { useWeekPatternDayCalculations } from "./useWeekPatternDayCalculations";
+} from "@/features/work-pattern/types/index";
+import { daysOfWeek } from "@/features/work-pattern/utils/constants";
+import { useWeekPatternDayCalculations } from "@/features/work-pattern/hooks/utils/useWeekPatternDayCalculations";
 
 interface UseWeekPatternFormProps {
   onSuccess?: () => void;
