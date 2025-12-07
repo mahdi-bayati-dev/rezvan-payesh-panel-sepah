@@ -8,22 +8,19 @@ interface ModalProps {
     onClose: () => void;
     children: ReactNode;
     /** (اختیاری) اندازه‌های مختلف مودال */
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    // ✅ اضافه شدن سایزهای بزرگتر برای انعطاف‌پذیری بیشتر
+    size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full';
 }
 
-// --- ۲. کامپوننت‌های هدر و بدنه (برای راحتی) ---
+// --- ۲. کامپوننت‌های هدر و بدنه ---
 export const ModalHeader = ({ children, onClose }: { children: ReactNode, onClose: () => void }) => (
-    <div className="flex items-start justify-between p-4 border-b border-borderL dark:border-borderD rounded-t">
-        {/*
-          Dialog.Title برای دسترسی‌پذیری (accessibility) مهم است
-          و به Headless UI کمک می‌کند فوکوس را مدیریت کند
-        */}
+    <div className="flex items-start justify-between p-4 border-b border-borderL dark:border-borderD rounded-t-2xl bg-backgroundL-500 dark:bg-backgroundD">
         <Dialog.Title as="div" className="w-full">
             {children}
         </Dialog.Title>
         <button
             type="button"
-            className="p-1.5 text-muted-foregroundL dark:text-muted-foregroundD rounded-lg hover:bg-secondaryL dark:hover:bg-secondaryD"
+            className="p-1.5 text-muted-foregroundL dark:text-muted-foregroundD rounded-lg hover:bg-secondaryL dark:hover:bg-secondaryD transition-colors"
             onClick={onClose}
         >
             <span className="sr-only">بستن مودال</span>
@@ -47,19 +44,21 @@ export const Modal = ({
 }: ModalProps) => {
     if (!isOpen) return null;
 
-    // مپ کردن سایز به کلاس‌های Tailwind
+    // ✅ مپ کردن سایزهای جدید به کلاس‌های Tailwind
     const sizeClasses = {
         sm: 'max-w-sm',
         md: 'max-w-md',
         lg: 'max-w-lg',
         xl: 'max-w-xl',
+        '2xl': 'max-w-2xl',
+        '3xl': 'max-w-3xl',
+        '4xl': 'max-w-4xl',
+        '5xl': 'max-w-5xl',
+        'full': 'w-full max-w-[95vw]', // حالت تمام صفحه با کمی فاصله از لبه‌ها
     };
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            {/* Dialog اصلی که از Headless UI می‌آید.
-              onClose به صورت خودکار با زدن Esc یا کلیک بیرون، فراخوانی می‌شود
-            */}
             <Dialog as="div" className="relative z-50" onClose={onClose}>
                 {/* Backdrop (سایه‌ی پشت مودال) */}
                 <Transition.Child
@@ -71,10 +70,10 @@ export const Modal = ({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
                 </Transition.Child>
 
-                {/* کانتینر اصلی مودال (برای وسط‌چین کردن) */}
+                {/* کانتینر اصلی مودال */}
                 <div className="fixed inset-0 overflow-y-auto">
                     <div className="flex min-h-full items-center justify-center p-4 text-center">
                         <Transition.Child
@@ -86,15 +85,13 @@ export const Modal = ({
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            {/* پنل اصلی مودال (کارت سفید) */}
                             <Dialog.Panel
-                                className={`w-full ${sizeClasses[size]} transform overflow-hidden rounded-2xl 
+                                className={`w-full ${sizeClasses[size]} transform rounded-2xl 
                                             bg-backgroundL-500 dark:bg-backgroundD 
-                                            text-right shadow-xl transition-all`}
+                                            text-right shadow-2xl transition-all 
+                                            border border-borderL dark:border-borderD
+                                            overflow-visible`}
                             >
-                                {/* محتوای مودال (که شامل ModalHeader و ModalBody 
-                                  می‌شود) اینجا به عنوان children قرار می‌گیرد
-                                */}
                                 {children}
                             </Dialog.Panel>
                         </Transition.Child>
@@ -104,5 +101,3 @@ export const Modal = ({
         </Transition>
     );
 };
-
-

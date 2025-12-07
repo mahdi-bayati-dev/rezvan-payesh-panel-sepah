@@ -1,60 +1,66 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   type PaginationState,
 } from "@tanstack/react-table";
-// ✅ حل خطای TS2724: استفاده از هوک جدید useWorkGroups
+import { PlusCircle } from "lucide-react";
+
+// هوک‌ها و تایپ‌ها
 import { useWorkGroups } from "@/features/work-group/hooks/hook";
 import { columns } from "@/features/work-group/components/workGroupPage/WorkGroupListColumns";
-
 import type { PaginatedResponse, WorkGroup } from "@/features/work-group/types";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-// ایمپورت کامپوننت‌های UI شما
+// ✅ کامپوننت‌های UI اختصاصی خودت
 import { DataTable } from "@/components/ui/DataTable";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 import { Button } from "@/components/ui/Button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
-import { PlusCircle } from "lucide-react";
+import { Modal, ModalHeader, ModalBody } from "@/components/ui/Modal"; // استفاده از مودال خودت
+
+// کامپوننت فرم
+import { WorkGroupForm } from "@/features/work-group/components/newWorkGroup/WorkGroupForm";
 
 function WorkGroupPage() {
+  // مدیریت وضعیت باز/بسته بودن مودال
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const navigate = useNavigate()
-  // --- مدیریت وضعیت صفحه‌بندی ---
+  // مدیریت وضعیت صفحه‌بندی
   const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0, // صفحه اول (۰-مبنا)
-    pageSize: 10, // ۱۰ آیتم در هر صفحه
+    pageIndex: 0,
+    pageSize: 10,
   });
 
-  // --- فچ کردن داده‌ها ---
+  // فچ کردن داده‌ها
   const {
     data: paginatedData,
     isLoading,
     isError,
     error,
   } = useWorkGroups(
-    pagination.pageIndex + 1, // API شما صفحه را از 1 می‌خواهد
+    pagination.pageIndex + 1,
     pagination.pageSize
   ) as UseQueryResult<PaginatedResponse<WorkGroup>, unknown>;
 
-  // --- راه‌اندازی Table Instance ---
+  // تنظیمات جدول
   const table = useReactTable({
-    data: paginatedData?.data ?? [], // داده‌های جدول
-    columns, // ستون‌ها
-    pageCount: paginatedData?.meta.last_page ?? -1, // تعداد کل صفحات برای Pagination UI
-    state: {
-      pagination,
-    },
-    onPaginationChange: setPagination, // آپدیت کردن state صفحه‌بندی
+    data: paginatedData?.data ?? [],
+    columns,
+    pageCount: paginatedData?.meta.last_page ?? -1,
+    state: { pagination },
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: true, // مهم: به جدول می‌گوییم صفحه‌بندی سمت سرور است
+    manualPagination: true,
   });
 
-  // --- مدیریت حالت خطا ---
+  const handleCreateSuccess = () => {
+    setIsCreateModalOpen(false);
+    // داده‌ها به صورت خودکار توسط React Query رفرش می‌شوند
+  };
+
   if (isError) {
     return (
       <div className="p-8 max-w-4xl mx-auto" dir="rtl">
@@ -70,14 +76,21 @@ function WorkGroupPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6" dir="rtl">
-      {/* هدر صفحه: طراحی بهتر با حاشیه پایین */}
+
+      {/* هدر صفحه */}
       <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
-        <h1 className="text-3xl font-extrabold text-foregroundL dark:text-foregroundD">مدیریت گروه‌های کاری</h1>
+        <div>
+          <h1 className="text-3xl font-extrabold text-foregroundL dark:text-foregroundD">مدیریت گروه‌های کاری</h1>
+          <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD mt-1">
+            لیست گروه‌های کاری و مدیریت اعضا و الگوهای شیفتی
+          </p>
+        </div>
+
+        {/* دکمه افزودن که مودال را باز می‌کند */}
         <Button
           variant="primary"
-          // مسیر جدید برای ایجاد گروه کاری
-          onClick={() => navigate('/work-groups/new')}
-          className="shadow-lg hover:shadow-xl transition-shadow"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
         >
           <PlusCircle className="h-4 w-4 ml-2" />
           افزودن گروه کاری جدید
@@ -85,7 +98,7 @@ function WorkGroupPage() {
       </div>
 
       {/* جدول داده‌ها */}
-      <div className="bg-backgroundL-500 dark:bg-backgroundD p-4 rounded-lg shadow-xl">
+      <div className="bg-backgroundL-500 dark:bg-backgroundD p-4 rounded-lg shadow-xl border border-borderL dark:border-borderD">
         <DataTable
           table={table}
           isLoading={isLoading}
@@ -95,6 +108,31 @@ function WorkGroupPage() {
           <DataTablePagination table={table} />
         </div>
       </div>
+
+      {/* --- مودال ایجاد گروه کاری (با کامپوننت‌های خودت) --- */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        size="4xl" // سایز مودال از پراپ‌های کامپوننت خودت
+      >
+        <ModalHeader onClose={() => setIsCreateModalOpen(false)}>
+          <div className="flex flex-col items-start gap-1">
+            <span className="text-lg font-bold text-foregroundL dark:text-foregroundD">
+              ایجاد گروه کاری جدید
+            </span>
+            <span className="text-sm font-normal text-muted-foregroundL dark:text-muted-foregroundD">
+              مشخصات گروه را وارد کرده و نوع زمان‌بندی آن را تعیین کنید.
+            </span>
+          </div>
+        </ModalHeader>
+
+        <ModalBody>
+          <WorkGroupForm
+            onSuccess={handleCreateSuccess}
+            onCancel={() => setIsCreateModalOpen(false)}
+          />
+        </ModalBody>
+      </Modal>
 
     </div>
   );
