@@ -23,7 +23,9 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
     // --- مدیریت حذف ---
     const deleteMutation = useDeleteWorkGroup();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    // ✅ تغییر: استفاده از ReactNode برای امکان نمایش متن‌های فرمت‌دار
+    const [deleteError, setDeleteError] = useState<React.ReactNode | null>(null);
 
     const handleDelete = async () => {
         if (deleteMutation.isPending) return;
@@ -34,8 +36,16 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                 setShowDeleteConfirm(false);
             },
             onError: (error: any) => {
+                // ✅ مدیریت اختصاصی خطای ۴۰۹ طبق درخواست شما
                 if (error.response?.status === 409) {
-                    setDeleteError(error.response.data.message || "این گروه کاری به دلیل وجود وابستگی‌ها قابل حذف نیست.");
+                    setDeleteError(
+                        <div className="flex flex-col gap-1 text-right">
+                            <span className="font-bold">امکان حذف وجود ندارد!</span>
+                            <span className="leading-6">
+                                ابتدا باید کارمندان این گروه را مدیریت کنید و یا به گروه دیگری منتقل کنید تا بتوانید این گروه را پاک کنید.
+                            </span>
+                        </div>
+                    );
                 } else {
                     setDeleteError("خطای غیرمنتظره‌ای رخ داد. لطفاً دوباره تلاش کنید.");
                 }
@@ -63,7 +73,10 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                     </DropdownItem>
                     <DropdownItem
                         icon={<Trash2 className="h-4 w-4" />}
-                        onClick={() => setShowDeleteConfirm(true)}
+                        onClick={() => {
+                            setDeleteError(null); // ریست کردن خطا هنگام باز کردن مجدد
+                            setShowDeleteConfirm(true);
+                        }}
                         className="text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                         حذف
@@ -85,6 +98,7 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                         <p className="mt-2 text-xs text-muted-foregroundL dark:text-muted-foregroundD">
                             این عمل قابل بازگشت نیست و تمامی وابستگی‌های احتمالی باید قبل از حذف بررسی شوند.
                         </p>
+                        {/* نمایش خطا داخل مودال */}
                         {deleteError && (
                             <div className="mt-4">
                                 <Alert variant="destructive">
@@ -98,6 +112,8 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                 variant="danger"
                 confirmText={deleteMutation.isPending ? "در حال حذف..." : "حذف کن"}
                 cancelText="انصراف"
+                // غیرفعال کردن دکمه تایید اگر خطای ۴۰۹ وجود دارد (UX اختیاری، اما توصیه می‌شود)
+                isLoading={deleteMutation.isPending}
             />
         </>
     );
