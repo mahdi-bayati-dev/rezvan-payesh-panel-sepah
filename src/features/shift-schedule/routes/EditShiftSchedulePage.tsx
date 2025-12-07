@@ -4,7 +4,7 @@ import { EditShiftScheduleForm } from "../components/EditShiftScheduleForm";
 import { useEditShiftScheduleForm } from "../hooks/useEditShiftScheduleForm";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { EditShiftScheduleFormSkeleton } from "@/features/shift-schedule/Skeleton/EditShiftScheduleFormSkeleton";
-import { useWorkPatterns } from '@/features/work-pattern/hooks/useWorkPatternsHookGet';
+import { useWorkPatterns } from '@/features/work-pattern/hooks/api/useWorkPatternsHookGet';
 import { type WorkPatternBase } from '@/features/shift-schedule/types';
 
 export default function EditShiftSchedulePage() {

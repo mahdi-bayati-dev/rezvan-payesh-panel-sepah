@@ -1,6 +1,6 @@
 import { Trash2, Edit, Users, Cpu, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useDeleteWeekPattern } from '@/features/work-pattern/hooks/useDeleteWeekPattern';
+import { useDeleteWeekPattern } from '@/features/work-pattern/hooks/api/useDeleteWeekPattern';
 import { useState } from 'react';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useDeleteShiftSchedule } from '@/features/shift-schedule/hooks/hook';

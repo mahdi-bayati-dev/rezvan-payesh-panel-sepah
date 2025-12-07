@@ -1,19 +1,19 @@
 import { useForm, useFieldArray, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo } from "react";
-import { useUpdateWeekPattern } from "@/features/work-pattern/hooks/useUpdateWeekPattern";
-import { useWeekPatternDetails } from "@/features/work-pattern/hooks/useWeekPatternDetails";
+import { useUpdateWeekPattern } from "@/features/work-pattern/hooks/api/useUpdateWeekPattern";
+import { useWeekPatternDetails } from "@/features/work-pattern/hooks/api/useWeekPatternDetails";
 import {
   newWeekPatternSchema,
   type NewWeekPatternFormData,
-} from "../schema/NewWeekPatternSchema";
-import { daysOfWeek } from "../utils/constants";
-import { useWeekPatternDayCalculations } from "./useWeekPatternDayCalculations";
+} from "@/features/work-pattern/schema/NewWeekPatternSchema";
+import { daysOfWeek } from "@/features/work-pattern/utils/constants";
+import { useWeekPatternDayCalculations } from "@/features/work-pattern/hooks/utils/useWeekPatternDayCalculations";
 import type {
   WeekPatternPayload,
   ApiValidationError,
   DailyScheduleUI,
-} from "../types";
+} from "@/features/work-pattern/types/index";
 import { AxiosError } from "axios";
 
 interface UseEditWeekPatternFormProps {

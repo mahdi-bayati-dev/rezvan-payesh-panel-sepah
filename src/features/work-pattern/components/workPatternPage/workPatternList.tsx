@@ -97,11 +97,11 @@ export const WorkPatternList = ({
               const isSelected = selectedPatternKey === compositeKey;
 
               return (
-                <li key={compositeKey}>
+                <li key={compositeKey} >
                   <button
                     onClick={() => onSelectPattern(compositeKey)}
                     className={clsx(
-                      "group w-full text-right p-3 rounded-xl transition-all duration-200 border flex items-center justify-between relative overflow-hidden",
+                      "group w-full text-right p-3 rounded-xl transition-all duration-200 border flex items-center justify-between relative overflow-hidden cursor-pointer",
                       // --- استایل‌های اصلی و دارک مود ---
                       isSelected
                         ? "bg-primaryL/5 border-primaryL/60 dark:bg-primaryD/10 dark:border-primaryD/40 shadow-sm ring-1 ring-primaryL/10 dark:ring-primaryD/10"
