@@ -46,7 +46,7 @@ export const WorkPatternList = ({
               variant="outline"
               size="sm"
               onClick={() => navigate('/work-patterns/assign')}
-              className="h-8 text-xs px-2 gap-1.5 border-dashed hover:bg-primaryL/5 hover:text-primaryL dark:hover:text-primaryD transition-colors"
+              className="h-8 text-xs px-2 gap-1.5 border-dashed dark:text-infoD-foreground hover:bg-primaryL/5 hover:text-primaryL dark:hover:text-primaryD transition-colors dark:border-infoD-foreground"
               title="تخصیص به کاربران"
             >
               <UserPlus size={14} />
