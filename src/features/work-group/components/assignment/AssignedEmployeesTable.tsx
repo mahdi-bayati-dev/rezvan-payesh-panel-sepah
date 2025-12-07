@@ -6,7 +6,7 @@ import {
     type ColumnDef,
     type PaginationState,
 } from "@tanstack/react-table";
-import {  UserX } from 'lucide-react'; // Trash2 پاک شد چون استفاده نمیشد
+import { UserX } from 'lucide-react'; // Trash2 پاک شد چون استفاده نمیشد
 import { Link } from 'react-router-dom';
 
 import { type User } from '@/features/User/types/index';
