@@ -1,13 +1,17 @@
 import axios, { type AxiosResponse, AxiosError } from "axios";
-
+import { AppConfig } from "@/config"; // ✅ ایمپورت کانفیگ مرکزی
 import { AUTH_MODE } from "./AxiosConfig"; // استفاده از تنظیم مشترک مود احراز هویت
 
-// ۱. دریافت آدرس پایه سرویس هوش مصنوعی از Env
-const AI_BASE_URL = import.meta.env.VITE_API_BASE_AI_URL;
-console.log("بیس ادرس ai", AI_BASE_URL);
+// ۱. دریافت آدرس پایه سرویس هوش مصنوعی از AppConfig (نه مستقیم از env)
+const AI_BASE_URL = AppConfig.AI.BASE_URL;
+
+// لاگ وضعیت در محیط توسعه
+if (import.meta.env.DEV) {
+  console.log("🤖 AI Service URL:", AI_BASE_URL);
+}
 
 if (!AI_BASE_URL) {
-  console.warn("⚠️ VITE_API_BASE_AI_URL is not defined in .env file!");
+  console.warn("⚠️ AI Base URL is missing in configuration!");
 }
 
 /**
@@ -15,11 +19,13 @@ if (!AI_BASE_URL) {
  * این اینستنس جدا از بک‌ند اصلی است تا تنظیمات و مدیریت خطای مستقل داشته باشد.
  */
 const aiAxiosInstance = axios.create({
-  baseURL: AI_BASE_URL,
+  baseURL: AI_BASE_URL, // ✅ استفاده از آدرس داینامیک
   withCredentials: AUTH_MODE === "cookie",
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
+    // اگر توکن خاصی برای AI نیاز بود، اینجا اضافه می‌شود
+    // 'X-AI-Secret': AppConfig.AI.SECRET
   },
   // معمولاً سرویس‌های AI پاسخ‌دهی کندتری دارند، تایم‌اوت را کمی بیشتر می‌گیریم
   timeout: 40000,

@@ -5,18 +5,18 @@ import axios, {
 } from "axios";
 import { store } from "@/store";
 import { toast } from "react-toastify";
+import { AppConfig } from "@/config"; // ✅ ایمپورت فایل کانفیگ جدید
 
 // ====================================================================
-// ⚙️ تنظیمات پایه و هوشمند
+// ⚙️ تنظیمات پایه و هوشمند (بازنویسی شده با AppConfig)
 // ====================================================================
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
+// دیگر نیازی به تعریف API_BASE_URL به صورت جداگانه نیست، مستقیم از AppConfig می‌خوانیم
+// const API_BASE_URL = ... ❌ حذف شد
 
-// دریافت حالت احراز هویت از متغیر محیطی (پیش‌فرض: token)
-// این متغیر در کل برنامه ایمپورت می‌شود تا همه رفتار یکسان داشته باشند
-export const AUTH_MODE =
-  (import.meta.env.VITE_AUTH_MODE as "token" | "cookie") || "token";
+// دریافت حالت احراز هویت از کانفیگ مرکزی
+// این متغیر همچنان اکسپورت می‌شود تا اگر جای دیگری استفاده شده، کد نشکند
+export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
 
 const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
 
@@ -25,7 +25,7 @@ const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
  * اگر مود 'cookie' باشد، withCredentials باید true باشد تا کوکی HttpOnly ارسال شود.
  */
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: AppConfig.API_URL, // ✅ استفاده از آدرس داینامیک داکر
   withCredentials: AUTH_MODE === "cookie",
   headers: {
     Accept: "application/json",
@@ -37,7 +37,9 @@ const axiosInstance = axios.create({
 // لاگ وضعیت برای اطمینان در محیط توسعه
 if (import.meta.env.DEV) {
   console.log(
-    `%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode`,
+    `%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode with URL: ${
+      AppConfig.API_URL
+    }`,
     "background: #333; color: #bada55; padding: 4px; border-radius: 4px;"
   );
 }
