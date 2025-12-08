@@ -20,7 +20,7 @@ const FormSection: React.FC<{
         <form onSubmit={onSubmit} className="space-y-6">
             {/* هدر فرم و دکمه ویرایش */}
             <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
-                <h3 className="text-lg font-semibold">{title}</h3>
+                <h3 className="text-lg font-bold dark:text-backgroundL-500">{title}</h3>
                 {!isEditing ? (
                     <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                         <Edit className="h-4 w-4 ml-2" />
@@ -32,7 +32,7 @@ const FormSection: React.FC<{
                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 ml-2" />}
                             ذخیره
                         </Button>
-                        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSubmitting}>
+                        <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSubmitting}>
                             <X className="h-4 w-4 ml-2" />
                             لغو
                         </Button>

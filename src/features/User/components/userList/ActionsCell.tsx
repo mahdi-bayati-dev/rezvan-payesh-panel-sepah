@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Edit2, Trash2, Eye } from 'lucide-react';
+import { MoreHorizontal, Trash2, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 import { Button } from "@/components/ui/Button";
@@ -51,12 +51,10 @@ const ActionsCell: React.FC<{ user: User }> = ({ user }) => {
                 {/* ✅ Fix: حذف align="end" چون در تایپ DropdownContent وجود ندارد */}
                 <DropdownContent className="w-48">
                     <DropdownItem icon={<Eye className="h-4 w-4" />} onClick={handleViewProfile}>
-                        پروفایل کامل
+                        پرونده الکترونیکی کارمند
                     </DropdownItem>
 
-                    <DropdownItem icon={<Edit2 className="h-4 w-4" />} onClick={handleViewProfile}>
-                        ویرایش اطلاعات
-                    </DropdownItem>
+
 
                     <DropdownItem
                         icon={<Trash2 className="h-4 w-4" />}
