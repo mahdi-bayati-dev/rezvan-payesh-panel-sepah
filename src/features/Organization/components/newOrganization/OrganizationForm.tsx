@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
 import { useEffect, useMemo } from 'react';
@@ -8,19 +8,18 @@ import {
 } from '@/features/Organization/Schema/organizationFormSchema';
 import { type Organization, type FlatOrgOption } from '@/features/Organization/types';
 import { useCreateOrganization, useUpdateOrganization } from '@/features/Organization/hooks/useOrganizations';
+
+// --- UI Components ---
 import { Button } from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox'; // کامپوننت جدید
 import { Loader2 } from 'lucide-react';
 
 interface OrganizationFormProps {
     defaultOrganization?: Organization | null;
     defaultParentId?: number | null;
     organizationList?: FlatOrgOption[];
-    /**
-     * لیست ID هایی که نباید به عنوان والد انتخاب شوند
-     * (شامل خود سازمان و تمام فرزندانش)
-     */
     forbiddenParentIds?: number[];
     onSuccess: () => void;
 }
@@ -39,6 +38,7 @@ export const OrganizationForm = ({
     const {
         register,
         handleSubmit,
+        control, // اضافه شده برای مدیریت SelectBox
         setError,
         reset,
         formState: { errors, isSubmitting },
@@ -53,36 +53,7 @@ export const OrganizationForm = ({
     const createMutation = useCreateOrganization();
     const updateMutation = useUpdateOrganization();
 
-    const onSubmit = async (formData: OrganizationFormData) => {
-        try {
-            if (isEditMode && idToUpdate) {
-                await updateMutation.mutateAsync(
-                    { id: idToUpdate, payload: formData },
-                    {
-                        onSuccess: () => {
-                            toast.success(`سازمان "${formData.name}" به‌روزرسانی شد.`);
-                            onSuccess();
-                        },
-                    }
-                );
-            } else {
-                await createMutation.mutateAsync(formData, {
-                    onSuccess: () => {
-                        toast.success(`سازمان "${formData.name}" ایجاد شد.`);
-                        onSuccess();
-                    },
-                });
-            }
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.message || "خطای غیرمنتظره‌ای رخ داد.";
-            toast.error(errorMessage);
-            setError("root.serverError", {
-                type: "server",
-                message: errorMessage,
-            });
-        }
-    };
-
+    // بازنشانی فرم هنگام تغییر پراپ‌ها
     useEffect(() => {
         if (isEditMode && defaultOrganization) {
             reset({
@@ -97,19 +68,57 @@ export const OrganizationForm = ({
         }
     }, [defaultOrganization, defaultParentId, isEditMode, reset]);
 
-    // فیلتر کردن لیست برای جلوگیری از انتخاب خود یا فرزندان به عنوان والد
-    const filteredParentOptions = useMemo(() => {
-        if (!isEditMode) return [];
+    const onSubmit = async (formData: OrganizationFormData) => {
+        try {
+            if (isEditMode && idToUpdate) {
+                await updateMutation.mutateAsync(
+                    { id: idToUpdate, payload: formData },
+                    {
+                        onSuccess: () => {
+                            toast.success(`سازمان "${formData.name}" با موفقیت ویرایش شد.`);
+                            onSuccess();
+                        },
+                    }
+                );
+            } else {
+                await createMutation.mutateAsync(formData, {
+                    onSuccess: () => {
+                        toast.success(`سازمان "${formData.name}" با موفقیت ایجاد شد.`);
+                        onSuccess();
+                    },
+                });
+            }
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || "خطای سرور در انجام عملیات.";
+            toast.error(errorMessage);
+            setError("root.serverError", {
+                type: "server",
+                message: errorMessage,
+            });
+        }
+    };
 
-        return organizationList.filter(org => {
-            // اگر ID در لیست ممنوعه است، نشان نده
-            if (forbiddenParentIds.includes(org.id)) return false;
-            return true;
-        });
-    }, [organizationList, forbiddenParentIds, isEditMode]);
+    // ۱. فیلتر کردن لیست برای جلوگیری از چرخه (Loop)
+    const validParentOptions = useMemo(() => {
+        return organizationList.filter(org => !forbiddenParentIds.includes(org.id));
+    }, [organizationList, forbiddenParentIds]);
+
+    // ۲. تبدیل لیست فیلتر شده به فرمت استاندارد SelectBox
+    const selectBoxOptions: SelectOption[] = useMemo(() => {
+        // گزینه ریشه با ID خاص (چون SelectBox مقدار number/string میگیرد)
+        const rootOption: SelectOption = { id: 'root_null', name: '● سازمان ریشه (بدون والد)' };
+
+        const mappedOptions = validParentOptions.map(org => ({
+            id: org.id,
+            // ساخت رشته نام با تورفتگی بصری برای نمایش سلسله مراتب در دراپ‌داون
+            name: `${'\u00A0'.repeat(org.level * 4)}${org.level > 0 ? '└─ ' : ''}${org.name}`
+        }));
+
+        return [rootOption, ...mappedOptions];
+    }, [validParentOptions]);
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" dir="rtl">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" dir="rtl">
             {errors.root?.serverError && (
                 <Alert variant="destructive">
                     <AlertTitle>خطا</AlertTitle>
@@ -119,53 +128,73 @@ export const OrganizationForm = ({
                 </Alert>
             )}
 
+            {/* کامپوننت Input سفارشی */}
             <Input
-                label="نام سازمان"
+                label="نام واحد سازمانی"
+                placeholder="مثال: واحد فنی و مهندسی"
                 {...register("name")}
                 error={errors.name?.message}
                 disabled={isSubmitting}
                 autoFocus
+                className="bg-backgroundL-500 dark:bg-backgroundD" // اطمینان از رنگ پس‌زمینه صحیح
             />
 
-            {isEditMode && (
-                <div>
-                    <label htmlFor="parent_id" className="block text-sm font-medium mb-1 text-foreground dark:text-foregroundD">
-                        سازمان والد (سرگروه)
-                    </label>
-                    <select
-                        id="parent_id"
-                        className="w-full h-10 border border-input rounded-md px-3 bg-background dark:bg-backgroundD text-foreground dark:text-foregroundD focus:ring-2 focus:ring-ring"
-                        disabled={isSubmitting}
-                        {...register("parent_id", {
-                            setValueAs: (value) => (value === "null" || value === "") ? null : Number(value)
-                        })}
-                    >
-                        <option value="null">- ریشه (بدون والد) -</option>
-                        {filteredParentOptions.map(org => (
-                            <option key={org.id} value={org.id}>
-                                {'\u00A0\u00A0\u00A0'.repeat(org.level)} {org.level > 0 ? '└ ' : ''} {org.name}
-                            </option>
-                        ))}
-                    </select>
-                    {errors.parent_id && (
-                        <p className="text-destructive text-sm mt-1">{errors.parent_id.message}</p>
+            {/* کامپوننت SelectBox متصل شده با Controller */}
+            <div className="space-y-1">
+                <Controller
+                    control={control}
+                    name="parent_id"
+                    render={({ field }) => (
+                        <SelectBox
+                            label="واحد بالادستی (والد)"
+                            placeholder="انتخاب واحد والد..."
+                            options={selectBoxOptions}
+                            // تبدیل مقدار ID فرم به آبجکت کامل گزینه برای SelectBox
+                            value={selectBoxOptions.find(opt => {
+                                if (field.value === null) return opt.id === 'root_null';
+                                return opt.id === field.value;
+                            }) || null}
+                            // تبدیل آبجکت انتخاب شده به ID برای فرم
+                            onChange={(selected) => {
+                                const newValue = selected.id === 'root_null' ? null : Number(selected.id);
+                                field.onChange(newValue);
+                            }}
+                            error={errors.parent_id?.message}
+                            disabled={isSubmitting}
+                        />
                     )}
-                    {filteredParentOptions.length === 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                            هیچ سازمان والدی برای انتخاب وجود ندارد (نمی‌توان فرزندان را به عنوان والد انتخاب کرد).
-                        </p>
-                    )}
-                </div>
-            )}
+                />
 
-            <div className="flex justify-end pt-4">
+                {isEditMode && selectBoxOptions.length <= 1 && (
+                    <p className="text-xs text-amber-600 px-1">
+                        * امکان انتخاب والد وجود ندارد (تمام گزینه‌ها زیرمجموعه این واحد هستند).
+                    </p>
+                )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 border-t border-borderL dark:border-borderD mt-6">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onSuccess}
+                    disabled={isSubmitting}
+                >
+                    انصراف
+                </Button>
                 <Button
                     type="submit"
                     disabled={isSubmitting}
                     variant="primary"
+                    className="min-w-[140px]"
                 >
-                    {isSubmitting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-                    {isEditMode ? "ذخیره تغییرات" : "ایجاد سازمان"}
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                            درحال ثبت...
+                        </>
+                    ) : (
+                        isEditMode ? "ذخیره تغییرات" : "ایجاد سازمان"
+                    )}
                 </Button>
             </div>
         </form>
