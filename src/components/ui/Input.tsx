@@ -7,7 +7,7 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
     error?: string;
     containerClassName?: string;
     // اگر بخواهیم آیکون دیگری به جز چشم در سمت چپ یا راست باشد (برای توسعه آینده)
-    icon?: React.ReactNode; 
+    icon?: React.ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(({
@@ -88,9 +88,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
                         tabIndex={-1} // برای اینکه با Tab روی این دکمه فوکوس نشود (UX بهتر)
                     >
                         {showPassword ? (
-                            <EyeOff className="w-5 h-5" />
+                            <EyeOff className="w-5 h-5 dark:text-white" />
                         ) : (
-                            <Eye className="w-5 h-5" />
+                            <Eye className="w-5 h-5 dark:text-white" />
                         )}
                     </button>
                 )}

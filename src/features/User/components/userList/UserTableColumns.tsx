@@ -1,8 +1,6 @@
-"use client";
-
 import { type ColumnDef } from "@tanstack/react-table";
 import { Link } from 'react-router-dom';
-import { CalendarDays } from "lucide-react"; // آیکون User حذف شد چون Avatar هندل میکند
+import { CalendarDays } from "lucide-react"; // آیکون Phone اضافه شد
 
 import Badge from "@/components/ui/Badge";
 import { type BadgeVariant } from "@/components/ui/Badge";
@@ -40,10 +38,9 @@ export const columns: ColumnDef<User>[] = [
             return (
                 <Link
                     to={`/organizations/users/${user.id}`}
-                    className="flex items-center gap-3 group hover:underline" // فاصله کمی بیشتر شد
+                    className="flex items-center gap-3 group hover:underline"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* ✅ استفاده از کامپوننت ماژولار و بهینه */}
                     <Avatar
                         src={profileImage}
                         alt={displayName}
@@ -58,13 +55,22 @@ export const columns: ColumnDef<User>[] = [
         },
     },
     {
-        accessorKey: "email",
+        // تغییر accessorKey به چیزی که مرتبط‌تر باشه (هرچند برای نمایش مهم نیست، برای سورت ممکنه مهم باشه)
+        accessorFn: (row) => row.employee?.phone_number,
+        id: "contact_info",
         header: "اطلاعات تماس",
         cell: ({ row }) => {
             const user = row.original;
+            const phoneNumber = user.employee?.phone_number;
+
             return (
                 <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium">{user.email}</span>
+                    {/* ✅ نمایش شماره موبایل به جای ایمیل */}
+                    <div className="flex items-center  gap-1 text-sm font-medium dir-ltr text-right">
+                        <span>{phoneNumber ? toPersianNumber(phoneNumber) : '---'}</span>
+                        {/* <Phone className="h-3 w-3 text-muted-foregroundL" /> */}
+                    </div>
+
                     <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD dir-ltr text-right">
                         @{user.user_name}
                     </span>
@@ -86,7 +92,8 @@ export const columns: ColumnDef<User>[] = [
         header: "تاریخ عضویت",
         cell: ({ row }) => {
             return (
-                <div className="flex items-center gap-1 text-xs text-muted-foregroundL">
+                // ✅ اصلاح رنگ در حالت دارک مود (dark:text-muted-foregroundD اضافه شد)
+                <div className="flex items-center gap-1 text-xs text-muted-foregroundL dark:text-muted-foregroundD">
                     <CalendarDays className="h-3 w-3" />
                     <span>{formatDateToPersian(row.original.created_at, 'short')}</span>
                 </div>

@@ -96,6 +96,11 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
             setExistingImages([]);
         }
 
+        // ✅ FIX: پاکسازی لیست "در حال بررسی" وقتی اطلاعات جدید از سرور می‌رسد
+        // وقتی user تغییر می‌کند (یعنی دیتا از سرور آپدیت شده)، لیست انتظار را خالی می‌کنیم
+        // تا عکس‌ها دوباره در حالت Pending نشان داده نشوند.
+        setPendingImages([]);
+
         // پاکسازی پریویوها
         newImagePreviews.forEach(url => URL.revokeObjectURL(url));
         setNewImagePreviews([]);
@@ -140,13 +145,15 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
             { userId: user.id, payload: formData },
             {
                 onSuccess: () => {
-                    toast.success("اطلاعات ذخیره شد. تصاویر جدید جهت بررسی ارسال گردیدند.");
+                    toast.success("اطلاعات ذخیره شد.");
 
                     // انتقال عکس‌های جدید به لیست "در حال بررسی" (Optimistic UI)
+                    // این لیست فقط تا زمانی نمایش داده می‌شود که دیتای جدید از سرور نیامده باشد
                     setPendingImages(prev => [...prev, ...newImagePreviews]);
 
                     setIsEditing(false);
                     // نکته: اینجا URL ها را revoke نمی‌کنیم چون در pendingImages استفاده می‌شوند
+                    // آن‌ها در useEffect بعدی وقتی دیتای سرور رسید، پاک خواهند شد.
                     setNewImagePreviews([]);
                 },
                 onError: (err) => {
@@ -294,7 +301,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                 <Input label="نام خانوادگی" {...register("employee.last_name")} error={errors.employee?.last_name?.message} disabled={!isEditing} />
                 <Input label="نام پدر" {...register("employee.father_name")} error={errors.employee?.father_name?.message} disabled={!isEditing} />
 
-                <Input label="کد ملی" {...register("employee.nationality_code")} error={errors.employee?.nationality_code?.message} disabled={!isEditing} dir="ltr" className="text-left font-mono" />
+                <Input label="کد ملی" {...register("employee.nationality_code")} error={errors.employee?.nationality_code?.message} disabled={!isEditing} dir="ltr" className="text-left " />
 
                 <Controller
                     name="employee.birth_date"
