@@ -15,7 +15,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 // مپ کردن variant و size به کلاس‌های Tailwind
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-primaryL text-primary-foregroundL hover:bg-primaryL/90 dark:bg-primaryD dark:text-primary-foregroundD dark:hover:bg-primaryD/90',
-  outline: 'border border-borderL bg-transparent hover:bg-secondaryL hover:text-secondary-foregroundL dark:border-borderD dark:hover:bg-secondaryD dark:hover:text-secondary-foregroundD',
+  outline: 'border  border-borderL bg-transparent hover:bg-secondaryL hover:text-secondary-foregroundL dark:border-borderD dark:hover:bg-secondaryD dark:hover:text-secondary-foregroundD dark:text-secondary-foregroundD',
   destructive: 'bg-destructiveL text-destructive-foregroundL hover:bg-destructiveL/90 dark:bg-destructiveD dark:text-destructive-foregroundD dark:hover:bg-destructiveD/90',
   secondary: 'bg-secondaryL text-secondary-foregroundL hover:bg-secondaryL/80 dark:bg-secondaryD dark:text-secondary-foregroundD dark:hover:bg-secondaryD/80',
   ghost: 'hover:bg-secondaryL hover:text-secondary-foregroundL dark:hover:bg-secondaryD dark:hover:text-secondary-foregroundD',
