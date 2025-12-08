@@ -138,7 +138,7 @@ function OrganizationPage() {
             </div>
 
             {/* Tree Container */}
-            <div className="w-full p-4 rounded-xl border  border-borderL shadow-sm transition-colors duration-300 dark:bg-backgroundD dark:border-borderD min-h-[400px] ">
+            <div className="w-full p-4 rounded-xl border  border-borderL shadow-sm transition-colors duration-300 dark:bg-backgroundD dark:border-borderD min-h-[400px] bg-backgroundL-500">
                 {(organizationsData && organizationsData.length > 0) ? (
                     <div className="flex flex-col">
                         {organizationsData.map(rootNode => (

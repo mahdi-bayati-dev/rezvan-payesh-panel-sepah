@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
     useReactTable,
     getCoreRowModel,
-    // getPaginationRowModel,
     type PaginationState,
 } from "@tanstack/react-table";
 
@@ -12,9 +11,11 @@ import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
 import { useUsers } from '@/features/User/hooks/hook';
 import { useOrganization } from '@/features/Organization/hooks/useOrganizations';
-
-// ✅ هوک برای آپدیت لحظه‌ای (سوکت)
 import { useUserImportListener } from '@/features/User/hooks/useUserImportListener';
+
+// --- Utils ---
+// ✅ استفاده از تابع مشترک (ماژولار و تمیز)
+import { normalizePaginationValue } from '@/features/User/utils/dateHelper';
 
 // --- Components ---
 import { DataTable } from '@/components/ui/DataTable/index';
@@ -27,7 +28,6 @@ import { columns } from './UserTableColumns';
 // --- Icons ---
 import { Search, ArrowRight, Loader2, UserPlus, FileUp } from 'lucide-react';
 
-// (هوک Debounce داخلی برای بهینه‌سازی جستجو)
 const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
     useEffect(() => {
@@ -37,33 +37,20 @@ const useDebounce = (value: string, delay: number) => {
     return debouncedValue;
 };
 
-// ✅ تابع کمکی برای نرمال‌سازی داده‌های متا (حل مشکل آرایه بودن [42, 42])
-const normalizeMetaValue = (value: any): number => {
-    if (Array.isArray(value)) {
-        // اگر آرایه بود، مقدار اول را برگردان
-        return Number(value[0]) || 0;
-    }
-    // اگر عدد یا رشته بود، تبدیل کن و برگردان
-    return Number(value) || 0;
-};
+// ❌ تابع normalizeMetaValue لوکال حذف شد (چون به numberHelper منتقل شد)
 
 interface UserListPageProps {
     organizationId: number;
 }
 
-/**
- * صفحه لیست کاربران سازمان
- */
 export function UserListPage({ organizationId }: UserListPageProps) {
     const navigate = useNavigate();
     const user = useAppSelector(selectUser);
 
-    // فعال‌سازی لیسنر سوکت برای رفرش خودکار پس از ایمپورت
     useUserImportListener();
 
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-    // --- استیت‌های جدول (سمت کلاینت) ---
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
@@ -71,16 +58,13 @@ export function UserListPage({ organizationId }: UserListPageProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
 
-    // --- بررسی دسترسی‌ها ---
     const isSuperAdmin = user?.roles?.includes('super_admin') ?? false;
     const canCreateUser = user?.roles?.some(
         r => ['super_admin', 'org-admin-l2', 'org-admin-l3'].includes(r)
     ) ?? false;
 
-    // --- دریافت اطلاعات خود سازمان ---
     const { data: organization, isLoading: isLoadingOrg } = useOrganization(organizationId);
 
-    // --- 🔥 دریافت لیست کاربران (Server-Side Pagination) ---
     const {
         data: userResponse,
         isLoading: isLoadingUsers,
@@ -95,22 +79,19 @@ export function UserListPage({ organizationId }: UserListPageProps) {
 
     const users = useMemo(() => userResponse?.data ?? [], [userResponse]);
 
-    // ✅ دریافت و نرمال‌سازی تعداد کل رکوردها
+    // ✅ استفاده از Helper مشترک
     const totalRows = useMemo(() => {
-        return normalizeMetaValue(userResponse?.meta?.total);
+        return normalizePaginationValue(userResponse?.meta?.total);
     }, [userResponse]);
 
-    // ✅ دریافت و نرمال‌سازی تعداد کل صفحات
     const pageCount = useMemo(() => {
-        return normalizeMetaValue(userResponse?.meta?.last_page);
+        return normalizePaginationValue(userResponse?.meta?.last_page);
     }, [userResponse]);
 
-    // --- تنظیمات جدول ---
     const table = useReactTable({
         data: users,
         columns,
-        // پاس دادن مقادیر نرمال‌سازی شده
-        rowCount: totalRows,
+        rowCount: totalRows, // ✅ این خط برای Server-Side Pagination حیاتی است
         pageCount: pageCount,
 
         state: { pagination: { pageIndex, pageSize } },
@@ -122,16 +103,16 @@ export function UserListPage({ organizationId }: UserListPageProps) {
 
     if (isError) {
         return (
-            <div className="p-8 text-center text-red-600" dir="rtl">
-                <h1>خطا در بارگذاری کاربران</h1>
-                <p>{(error as any)?.message || "خطای ناشناخته"}</p>
+            <div className="p-8 text-center text-red-600 bg-red-50 rounded-xl m-4 border border-red-100" dir="rtl">
+                <h3 className="font-bold text-lg">خطا در بارگذاری کاربران</h3>
+                <p className="mt-2 text-sm opacity-90">{(error as any)?.message || "خطای ناشناخته"}</p>
             </div>
         );
     }
 
     return (
         <div className="p-4 md:p-8 space-y-6" dir="rtl">
-            {/* هدر صفحه */}
+            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold dark:text-borderL flex items-center gap-2">
@@ -143,8 +124,8 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                 </div>
             </div>
 
-            {/* نوار ابزار */}
-            <div className="flex flex-col xl:flex-row justify-between items-center gap-4 p-4 rounded-lg border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD">
+            {/* Toolbar */}
+            <div className="flex flex-col xl:flex-row justify-between items-center gap-4 p-4 rounded-lg border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD shadow-sm">
                 <div className='flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto'>
                     <Button variant="outline" size="md" onClick={() => navigate('/organizations')} className="w-full sm:w-auto">
                         <ArrowRight className="h-4 w-4 ml-2" />
@@ -164,7 +145,6 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-2 w-full xl:w-auto">
-                    {/* دکمه ایمپورت اکسل */}
                     {isSuperAdmin && (
                         <Button
                             variant="outline"
@@ -177,20 +157,18 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                         </Button>
                     )}
 
-                    {/* دکمه ایجاد کاربر */}
                     {canCreateUser && (
                         <Button
                             variant="primary"
                             size="md"
                             onClick={() => navigate(`/organizations/${organizationId}/create-user`)}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto shadow-lg shadow-primaryL/20"
                         >
                             <UserPlus className="h-4 w-4 ml-2" />
                             ایجاد کارمند جدید
                         </Button>
                     )}
 
-                    {/* دکمه تخصیص کاربر */}
                     {isSuperAdmin && (
                         <Button
                             variant="outline"
@@ -205,17 +183,17 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                 </div>
             </div>
 
-            {/* جدول */}
+            {/* Table */}
             <DataTable
                 table={table}
                 isLoading={isLoadingUsers}
                 notFoundMessage="هیچ کارمندی یافت نشد."
             />
 
-            {/* ✅ حالا totalRows یک عدد صحیح است و شرط به درستی کار می‌کند */}
+            {/* Pagination */}
             {totalRows > 0 && <DataTablePagination table={table} />}
 
-            {/* مودال ایمپورت */}
+            {/* Import Modal */}
             {isSuperAdmin && (
                 <UserImportModal
                     isOpen={isImportModalOpen}

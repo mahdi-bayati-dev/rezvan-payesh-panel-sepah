@@ -4,23 +4,19 @@ import { useState, useMemo } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
-    getPaginationRowModel,
+    // getPaginationRowModel, // نیازی نیست چون دستی هندل می‌کنیم
     type PaginationState,
-} from "@tanstack/react-table"; // (پکیج نود ماژول)
+} from "@tanstack/react-table";
 
-// ✅ بازگشت به استفاده از alias ها
+// ✅ استفاده از alias ها
 import { DataTable } from '@/components/ui/DataTable/index';
 import { DataTablePagination } from '@/components/ui/DataTable/DataTablePagination';
-// ✅ استفاده از alias برای ستون‌ها
 import { columns } from '@/features/User/components/userList/UserTableColumns';
 
-// --- کامپوننت‌های UI ---
-// import Input from '@/components/ui/Input'; // ✅ استفاده از alias و I بزرگ
-// import { Search } from 'lucide-react';
-
 // --- هوک‌ها و تایپ‌ها ---
-import { useUsers } from '@/features/User/hooks/hook'; // ✅ استفاده از alias
-import { type FetchUsersParams } from '@/features/User/types'; // ✅ استفاده از alias
+import { useUsers } from '@/features/User/hooks/hook';
+import { type FetchUsersParams } from '@/features/User/types';
+import { normalizePaginationValue } from '@/features/User/utils/dateHelper'; // ✅ ایمپورت تابع کمکی
 
 interface AdminListTableProps {
     role: string;
@@ -45,7 +41,7 @@ export function AdminListTable({ role, globalSearch }: AdminListTableProps) {
         per_page: pageSize,
         search: globalSearch,
         role: role,
-        // ما organization_id را ارسال نمی‌کنیم تا همه کاربران (طبق دسترسی API) بیایند
+        // organization_id ارسال نمی‌شود تا همه کاربران بیایند
     };
 
     const {
@@ -57,45 +53,57 @@ export function AdminListTable({ role, globalSearch }: AdminListTableProps) {
 
     // داده‌های کاربران (آرایه)
     const users = useMemo(() => userResponse?.data ?? [], [userResponse]);
-    // تعداد کل صفحات
-    const pageCount = useMemo(() => userResponse?.meta?.last_page ?? 0, [userResponse]);
 
-    // --- ۳. راه‌اندازی TanStack Table ---
+    // ✅ ۳. نرمال‌سازی داده‌های متا (تعداد کل صفحات و تعداد کل رکوردها)
+    const pageCount = useMemo(() => {
+        return normalizePaginationValue(userResponse?.meta?.last_page);
+    }, [userResponse]);
+
+    const totalRows = useMemo(() => {
+        return normalizePaginationValue(userResponse?.meta?.total);
+    }, [userResponse]);
+
+    // --- ۴. راه‌اندازی TanStack Table ---
     const table = useReactTable({
         data: users,
-        columns, // ✅ ستون‌های ایمپورت شده
-        pageCount: pageCount,
+        columns,
+
+        // ✅ تنظیمات حیاتی برای Pagination سمت سرور
+        pageCount: pageCount, // تعداد کل صفحات
+        rowCount: totalRows,  // تعداد کل رکوردها (خیلی مهم برای نمایش صحیح "نمایش 1 از 10")
+
         state: {
             pagination: { pageIndex, pageSize },
         },
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        manualPagination: true,
-        manualFiltering: true, // چون جستجو سمت سرور است
+        manualPagination: true, // چون جستجو و پیجینیشن سمت سرور است
+        manualFiltering: true,
     });
 
-    // مدیریت خطایابی
+    // مدیریت خطا
     if (isError) {
         return (
-            <div className="p-8 text-center text-red-600">
-                <h1>خطا در بارگذاری لیست</h1>
-                <p>{(error as any)?.message || "خطای ناشناخته"}</p>
+            <div className="p-8 text-center text-red-600 font-bold bg-red-50 rounded-lg border border-red-100">
+                <h3>خطا در بارگذاری لیست</h3>
+                <p className="text-sm mt-2">{(error as any)?.message || "خطای ناشناخته در ارتباط با سرور"}</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-4">
-            {/* کامپوننت جدول شما */}
+        <div className="space-y-4 animate-in fade-in duration-500">
+            {/* کامپوننت جدول */}
             <DataTable
                 table={table}
                 isLoading={isLoadingUsers}
-                notFoundMessage="کاربری یافت نشد."
+                notFoundMessage="کاربری با این مشخصات یافت نشد."
             />
 
-            {/* کامپوننت صفحه‌بندی شما */}
-            {pageCount > 0 && (
+            {/* ✅ شرط نمایش: اگر تعداد کل رکوردها بیشتر از 0 باشد، پیجینیشن نمایش داده شود.
+               قبلاً شرط روی pageCount بود که گاهی دقیق نیست، totalRows مطمئن‌تر است.
+            */}
+            {totalRows > 0 && (
                 <DataTablePagination table={table} />
             )}
         </div>
