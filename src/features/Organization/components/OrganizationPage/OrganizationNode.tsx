@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, memo, useCallback } from 'react';
 import { type Organization } from '@/features/Organization/types';
 import { useDeleteOrganization } from '@/features/Organization/hooks/useOrganizations';
