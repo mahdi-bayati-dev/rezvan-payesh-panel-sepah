@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'; // useEffect added for logging
+import { useState, useMemo, useEffect } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -6,7 +6,7 @@ import {
     type PaginationState,
     type ColumnDef,
 } from "@tanstack/react-table";
-import { FileCheck, RefreshCcw, Eye } from 'lucide-react'; // AlertTriangle added
+import { FileCheck, RefreshCcw, Eye } from 'lucide-react';
 
 // Hooks & Types
 import { useImageRequests } from '../hooks/useImageRequests';
@@ -37,7 +37,7 @@ export default function PendingImagesPage() {
         data,
         isLoading,
         isError,
-        error, // Added error extraction
+        error,
         refetch,
         isRefetching
     } = useImageRequests({
@@ -45,7 +45,6 @@ export default function PendingImagesPage() {
         per_page: pageSize
     });
 
-    // 🔍 LOG: لاگ وضعیت صفحه
     useEffect(() => {
         console.log("🖼️ [Page Render] Status:", {
             isLoading,
@@ -71,14 +70,14 @@ export default function PendingImagesPage() {
             header: "درخواست کننده",
             cell: ({ row }) => {
                 const emp = row.original.employee;
-                if (!emp) return <span className="text-red-500">اطلاعات ناقص</span>;
+                if (!emp) return <span className="text-destructiveL-foreground dark:text-destructiveD-foreground">اطلاعات ناقص</span>;
 
                 const fullName = `${emp.first_name} ${emp.last_name}`;
                 const imgUrl = getFullImageUrl(row.original.original_path);
 
                 return (
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100">
+                        <div className="w-10 h-10 rounded-full border border-borderL dark:border-borderD overflow-hidden bg-secondaryL dark:bg-secondaryD">
                             <img
                                 src={imgUrl}
                                 alt={fullName}
@@ -87,8 +86,8 @@ export default function PendingImagesPage() {
                             />
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-medium text-sm">{fullName}</span>
-                            <span className="text-xs text-muted-foregroundL">{emp.organization?.name || "---"}</span>
+                            <span className="font-medium text-sm text-foregroundL dark:text-foregroundD">{fullName}</span>
+                            <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD">{emp.organization?.name || "---"}</span>
                         </div>
                     </div>
                 );
@@ -96,13 +95,13 @@ export default function PendingImagesPage() {
         },
         {
             header: "نوع درخواست",
-            cell: () => <span className="text-xs font-medium px-2 py-1 bg-blue-50 text-blue-700 rounded-md">تایید عکس پروفایل</span>
+            cell: () => <span className="text-xs font-medium px-2 py-1 bg-infoL-background text-infoL-foreground dark:bg-infoD-background dark:text-infoD-foreground rounded-md border border-infoL-foreground/10">تایید عکس پروفایل</span>
         },
         {
             accessorKey: "created_at",
             header: "زمان ثبت",
             cell: ({ row }) => (
-                <span className="text-xs dir-ltr">
+                <span className="text-xs dir-ltr text-foregroundL dark:text-foregroundD">
                     {formatDateToPersian(row.original.created_at, 'with-time')}
                 </span>
             )
@@ -114,7 +113,7 @@ export default function PendingImagesPage() {
                 <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 text-xs hover:bg-primaryL hover:text-white"
+                    className="h-8 text-xs hover:bg-primaryL hover:text-primary-foregroundL dark:hover:bg-primaryD dark:hover:text-primary-foregroundD border-primaryL/30 dark:border-primaryD/30 text-primaryL dark:text-primaryD"
                     onClick={() => {
                         setSelectedRequest(row.original);
                         setIsModalOpen(true);
@@ -142,28 +141,28 @@ export default function PendingImagesPage() {
         <div className="p-4 md:p-8 space-y-6" dir="rtl">
             <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
                 <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2 dark:text-borderL">
-                        <FileCheck className="h-7 w-7 text-primaryL" />
+                    <h1 className="text-2xl font-bold flex items-center gap-2 text-foregroundL dark:text-foregroundD">
+                        <FileCheck className="h-7 w-7 text-primaryL dark:text-primaryD" />
                         کارتابل درخواست‌ها
                     </h1>
                     <p className="text-muted-foregroundL dark:text-muted-foregroundD mt-1">
                         مدیریت تصاویر و درخواست‌های ارسال شده توسط پرسنل.
                     </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isRefetching}>
+                <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isRefetching} className="text-muted-foregroundL hover:text-foregroundL dark:text-muted-foregroundD dark:hover:text-foregroundD">
                     <RefreshCcw className={`h-5 w-5 ${isRefetching ? 'animate-spin' : ''}`} />
                 </Button>
             </div>
 
             {/* نمایش ارور واضح در UI */}
             {isError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <div className="bg-destructiveL-background border border-destructiveL-foreground/20 text-destructiveL-foreground px-4 py-3 rounded-xl relative mb-4" role="alert">
                     <strong className="font-bold ml-2">خطا در دریافت اطلاعات!</strong>
                     <span className="block sm:inline">{(error as any)?.message || "ارتباط با سرور برقرار نشد."}</span>
                 </div>
             )}
 
-            <div className="bg-white dark:bg-backgroundD rounded-xl border border-borderL dark:border-borderD shadow-sm overflow-hidden">
+            <div className="bg-backgroundL-500 dark:bg-backgroundD rounded-xl border border-borderL dark:border-borderD shadow-sm overflow-hidden">
                 <DataTable
                     table={table}
                     isLoading={isLoading}

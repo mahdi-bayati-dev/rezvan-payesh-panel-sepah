@@ -1,3 +1,4 @@
+/* reports/components/reportPageDetails/LogInfoCard.tsx */
 import type { ActivityLog } from "@/features/reports/types";
 import {
     Calendar,
@@ -30,7 +31,7 @@ const InfoBox = ({
             <label className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD px-1">
                 {label}
             </label>
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-borderL dark:border-borderD bg-backgroundL-DEFAULT dark:bg-zinc-900/50 transition-colors hover:bg-secondaryL/30 dark:hover:bg-zinc-800">
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD transition-colors hover:bg-secondaryL/30 dark:hover:bg-secondaryD/20">
                 <div className="text-muted-foregroundL dark:text-muted-foregroundD opacity-80">
                     {icon}
                 </div>
@@ -63,10 +64,10 @@ export const LogInfoCard = ({ logData }: LogInfoCardProps) => {
                 value={logData.is_allowed ? "تایید شده (مجاز)" : "در انتظار بررسی"}
                 icon={
                     logData.is_allowed
-                        ? <CheckCircle2 className="w-5 h-5 text-successL dark:text-successD" />
-                        : <XCircle className="w-5 h-5 text-warningL dark:text-warningD" />
+                        ? <CheckCircle2 className="w-5 h-5 text-successL-foreground dark:text-successD-foreground" />
+                        : <XCircle className="w-5 h-5 text-warningL-foreground dark:text-warningD-foreground" />
                 }
-                valueClassName={logData.is_allowed ? "text-successL dark:text-successD" : "text-warningL dark:text-warningD"}
+                valueClassName={logData.is_allowed ? "text-successL-foreground dark:text-successD-foreground" : "text-warningL-foreground dark:text-warningD-foreground"}
             />
 
             {/* ۲. نوع فعالیت */}
@@ -76,37 +77,37 @@ export const LogInfoCard = ({ logData }: LogInfoCardProps) => {
                 icon={<Activity className="w-5 h-5" />}
             />
 
-            {/* ۳. تاریخ (قبلاً فارسی شده در مپر) */}
+            {/* ۳. تاریخ */}
             <InfoBox
                 label="تاریخ ثبت"
                 value={logData.date}
                 icon={<Calendar className="w-5 h-5" />}
             />
 
-            {/* ۴. ساعت (قبلاً فارسی شده در مپر) */}
+            {/* ۴. ساعت */}
             <InfoBox
                 label="ساعت ثبت"
                 value={logData.time}
                 icon={<Clock className="w-5 h-5" />}
             />
 
-            {/* ۵. میزان تاخیر (فارسی سازی عدد) */}
+            {/* ۵. میزان تاخیر */}
             {logData.lateness_minutes > 0 && (
                 <InfoBox
                     label="میزان تاخیر"
                     value={`${toPersianNumbers(logData.lateness_minutes)} دقیقه`}
-                    icon={<Clock className="w-5 h-5 text-destructiveL dark:text-destructiveD" />}
-                    valueClassName="text-destructiveL dark:text-destructiveD"
+                    icon={<Clock className="w-5 h-5 text-destructiveL-foreground dark:text-destructiveD-foreground" />}
+                    valueClassName="text-destructiveL-foreground dark:text-destructiveD-foreground"
                 />
             )}
 
-            {/* ۶. میزان تعجیل (فارسی سازی عدد) */}
+            {/* ۶. میزان تعجیل */}
             {logData.early_departure_minutes > 0 && (
                 <InfoBox
                     label="میزان تعجیل"
                     value={`${toPersianNumbers(logData.early_departure_minutes)} دقیقه`}
-                    icon={<AlertTriangle className="w-5 h-5 text-warningL dark:text-warningD" />}
-                    valueClassName="text-warningL dark:text-warningD"
+                    icon={<AlertTriangle className="w-5 h-5 text-warningL-foreground dark:text-warningD-foreground" />}
+                    valueClassName="text-warningL-foreground dark:text-warningD-foreground"
                 />
             )}
 

@@ -16,18 +16,17 @@ import {
     useShiftSchedulesList,
 } from "@/features/work-group/hooks/hook";
 
-// ✅ کامپوننت‌های UI اختصاصی خودت
 import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SelectBox from "@/components/ui/SelectBox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
-import { Spinner } from "@/components/ui/Spinner"; // برای لودینگ اولیه
-import { SpinnerButton } from "@/components/ui/SpinnerButton"; // برای دکمه ذخیره
+import { Spinner } from "@/components/ui/Spinner";
+import { SpinnerButton } from "@/components/ui/SpinnerButton";
 
 interface WorkGroupFormProps {
     defaultWorkGroup?: WorkGroup;
     onSuccess: () => void;
-    onCancel?: () => void; // پراپ جدید برای دکمه انصراف
+    onCancel?: () => void;
 }
 
 export const WorkGroupForm = ({
@@ -59,7 +58,6 @@ export const WorkGroupForm = ({
         },
     });
 
-    // پر کردن فرم در حالت ویرایش
     useEffect(() => {
         if (isEditMode && defaultWorkGroup) {
             reset({
@@ -124,7 +122,6 @@ export const WorkGroupForm = ({
 
     const isFormLoading = isLoadingPatterns || isLoadingSchedules;
 
-    // استفاده از Spinner خودت برای حالت لودینگ اولیه
     if (isFormLoading) {
         return (
             <Spinner
@@ -140,7 +137,7 @@ export const WorkGroupForm = ({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" dir="rtl">
 
             {errors.root?.serverError && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="bg-destructiveL-background dark:bg-destructiveD-background border-destructiveL-foreground/10 text-destructiveL-foreground">
                     <AlertTitle>خطا</AlertTitle>
                     <AlertDescription>{errors.root.serverError.message}</AlertDescription>
                 </Alert>
@@ -152,7 +149,7 @@ export const WorkGroupForm = ({
                 {...register("name")}
                 error={errors.name?.message}
                 disabled={isSubmitting}
-                className="bg-backgroundL-200 dark:bg-backgroundD-800"
+                className="bg-backgroundL-500 dark:bg-backgroundD"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -223,23 +220,19 @@ export const WorkGroupForm = ({
                 )}
             </div>
 
-            {/* فوتر فرم */}
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-borderL dark:border-borderD mt-6">
-
-                {/* دکمه انصراف */}
                 {onCancel && (
                     <Button
                         type="button"
                         variant="outline"
                         onClick={onCancel}
                         disabled={isSubmitting}
-                        className="w-full sm:w-auto dark:text-white"
+                        className="w-full sm:w-auto"
                     >
                         انصراف
                     </Button>
                 )}
 
-                {/* دکمه ذخیره با SpinnerButton خودت */}
                 <Button
                     type="submit"
                     disabled={isSubmitting || isFormLoading}

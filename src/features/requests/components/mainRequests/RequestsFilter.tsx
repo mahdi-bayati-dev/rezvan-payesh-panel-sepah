@@ -1,4 +1,5 @@
-// import { Fragment } from "react";
+// src/features/requests/components/mainRequests/RequestsFilter.tsx
+
 import { Filter, CirclePlus, Settings2 } from "lucide-react";
 import { Link } from 'react-router-dom';
 
@@ -10,7 +11,6 @@ import { type DateObject } from "react-multi-date-picker";
 
 interface RequestsFilterProps {
   currentUser: User | null;
-  // سایر پراپ‌ها...
   organization: SelectOption | null;
   onOrganizationChange: (value: SelectOption | null) => void;
   category: SelectOption | null;
@@ -43,12 +43,12 @@ const RequestsFilter = ({
 
   return (
     <div className="p-4 rounded-2xl border mb-6
-                    bg-white dark:bg-backgroundD
+                    bg-backgroundL-500 dark:bg-backgroundD
                     border-borderL dark:border-borderD
                     shadow-sm hover:shadow-md transition-all duration-300"
     >
       {/* --- هدر بخش فیلتر --- */}
-      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-borderL dark:border-borderD">
         <div className="p-1.5 bg-primaryL/10 dark:bg-primaryD/10 rounded-lg">
           <Filter className="w-4 h-4 text-primaryL dark:text-primaryD" />
         </div>
@@ -58,23 +58,21 @@ const RequestsFilter = ({
       </div>
 
       {/* --- کانتینر اصلی فیلترها و دکمه‌ها --- */}
-      <div className="flex flex-col   gap-3 flex-wrap items-center">
+      <div className="flex flex-col gap-3 flex-wrap items-center">
 
         {/* ۱. فیلتر وضعیت */}
-        {/* عرض در دسکتاپ: w-48 (حدود 192px) */}
         <div className="w-full md:w-48 lg:w-56">
           <label className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD mb-1.5 block px-1">
             وضعیت درخواست
           </label>
-          <div className="h-10"> {/* فیکس کردن ارتفاع */}
+          <div className="h-10">
             <SelectBox
-              label="" // لیبل را بیرون هندل کردیم
+              label=""
               placeholder="همه وضعیت‌ها"
               options={mockStatuses}
               value={status || null}
               onChange={onStatusChange}
-            // فرض بر این است که SelectBox شما استایل‌های کانتینر را می‌پذیرد یا خودش h-full است
-            // اگر SelectBox کلاس containerClassName دارد به آن h-10 بدهید
+              // نکته: اطمینان حاصل کنید SelectBox شما از bg-backgroundL-500 استفاده می‌کند
             />
           </div>
         </div>
@@ -90,14 +88,13 @@ const RequestsFilter = ({
               onChange={onDateChange}
               label=""
               placeholder="انتخاب تاریخ"
-              inputClassName="h-10 text-sm" // اطمینان از ارتفاع اینپوت داخلی
+              inputClassName="h-10 text-sm bg-backgroundL-500 dark:bg-backgroundD text-foregroundL dark:text-foregroundD border-borderL dark:border-borderD"
               containerClassName="w-full"
             />
           </div>
         </div>
 
         {/* ۳. دکمه‌های عملیات (ثبت درخواست و تنظیمات) */}
-        {/* استفاده از mr-auto برای هل دادن دکمه‌ها به سمت چپ (در حالت RTL) */}
         <div className="w-full md:w-auto md:mr-auto flex gap-2 mt-2 md:mt-0">
 
           {canCreateRequest && (
@@ -105,7 +102,7 @@ const RequestsFilter = ({
               to='/requests/new'
               className="flex-1 md:flex-none h-10 flex items-center justify-center gap-2 px-4 
                          rounded-xl font-medium text-xs shadow-sm whitespace-nowrap
-                         bg-primaryL text-white
+                         bg-primaryL text-primary-foregroundL
                          dark:bg-primaryD dark:text-primary-foregroundD
                          hover:bg-primaryL/90 dark:hover:bg-primaryD/90
                          transition-all duration-200"
@@ -123,7 +120,7 @@ const RequestsFilter = ({
                          bg-secondaryL text-secondary-foregroundL
                          dark:bg-secondaryD dark:text-secondary-foregroundD
                          hover:bg-secondaryL/80 dark:hover:bg-secondaryD/80
-                         transition-all duration-200"
+                         transition-all duration-200 border border-borderL/50 dark:border-borderD/50"
             >
               <Settings2 className="w-4 h-4" />
               <span>تنظیمات</span>

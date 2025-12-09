@@ -6,8 +6,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { ScheduleSlotRow } from '@/features/shift-schedule/components/ScheduleSlotRow';
 import { GeneratedShiftsList } from '@/features/shift-schedule/components/GeneratedShiftsList';
 import { GenerateShiftsForm } from '@/features/shift-schedule/components/GenerateShiftsForm';
-// ❌ حذف Dialog ایمپورت شده، چون GenerateShiftsForm حالا خودش Modal دارد
-// import { Dialog } from '@/components/ui/Dialog'; 
 import { type AvailableWorkPattern } from '@/features/shift-schedule/types';
 import { Controller, type SubmitHandler, type UseFormReturn } from 'react-hook-form';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
@@ -44,9 +42,9 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
     if (!initialSchedule) {
         return (
             <div className="p-8" dir="rtl">
-                <Alert variant="destructive">
-                    <AlertTitle>خطا در بارگذاری</AlertTitle>
-                    <AlertDescription>{generalApiError || "برنامه شیفتی یافت نشد."}</AlertDescription>
+                <Alert variant="destructive" className="bg-destructiveL-background dark:bg-destructiveD-background border-destructiveL-foreground/10">
+                    <AlertTitle className="text-destructiveL-foreground dark:text-destructiveD-foreground">خطا در بارگذاری</AlertTitle>
+                    <AlertDescription className="text-destructiveL-foreground dark:text-destructiveD-foreground">{generalApiError || "برنامه شیفتی یافت نشد."}</AlertDescription>
                 </Alert>
             </div>
         );
@@ -57,22 +55,22 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
         <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-8" dir="rtl">
 
             {/* --- هدر صفحه --- */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-borderL dark:border-gray-700 pb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-borderL dark:border-borderD pb-6">
                 <div>
                     <h1 className="text-3xl font-extrabold text-foregroundL dark:text-foregroundD flex items-center gap-3">
-                        <div className="bg-indigo-100 dark:bg-indigo-500/10 p-2 rounded-xl text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+                        <div className="bg-primaryL/10 dark:bg-primaryD/10 p-2 rounded-xl text-primaryL dark:text-primaryD border border-primaryL/20 dark:border-primaryD/20">
                             <Settings2 className="w-7 h-7" />
                         </div>
                         مدیریت برنامه شیفتی
                     </h1>
                     <p className="text-muted-foregroundL dark:text-muted-foregroundD mt-2 mr-1 text-sm font-medium">
-                        ویرایش چرخه کاری و تولید شیفت برای الگوی <span className="font-bold text-indigo-600 dark:text-indigo-400">«{initialSchedule.name}»</span>
+                        ویرایش چرخه کاری و تولید شیفت برای الگوی <span className="font-bold text-primaryL dark:text-primaryD">«{initialSchedule.name}»</span>
                     </p>
                 </div>
 
                 {/* دکمه‌های هدر */}
                 <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                    <div className="hidden md:flex flex-col items-end text-sm text-muted-foregroundL dark:text-muted-foregroundD px-4 border-l border-borderL dark:border-gray-700">
+                    <div className="hidden md:flex flex-col items-end text-sm text-muted-foregroundL dark:text-muted-foregroundD px-4 border-l border-borderL dark:border-borderD">
                         <span>طول چرخه</span>
                         <span className="font-bold text-lg text-foregroundL dark:text-foregroundD">{toPersianDigits(initialSchedule.cycle_length_days)} روز</span>
                     </div>
@@ -80,7 +78,7 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                     <Button
                         variant="outline"
                         onClick={onCancel}
-                        className="gap-2 bg-transparent dark:bg-transparent dark:text-gray-300 dark:hover:text-white hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:border-gray-600 dark:hover:border-red-800 transition-colors"
+                        className="gap-2 bg-transparent hover:bg-destructiveL-background hover:text-destructiveL-foreground hover:border-destructiveL-foreground/50 border-borderL dark:border-borderD dark:text-muted-foregroundD dark:hover:text-destructiveD-foreground transition-colors"
                     >
                         <ArrowRight className="w-4 h-4" />
                         بازگشت
@@ -94,15 +92,15 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                 <div className="xl:col-span-3 space-y-8">
 
                     {/* کارت اسلات‌ها */}
-                    <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-gray-700/50 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="p-5 border-b border-borderL dark:border-gray-700/50 bg-secondaryL/10 dark:bg-gray-900/30 flex justify-between items-center">
+                    <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-2xl shadow-sm overflow-hidden">
+                        <div className="p-5 border-b border-borderL dark:border-borderD bg-secondaryL/10 dark:bg-secondaryD/10 flex justify-between items-center">
                             <div className="flex items-center gap-2.5">
-                                <div className="bg-blue-100 dark:bg-blue-500/10 p-1.5 rounded-lg border border-blue-200 dark:border-blue-500/20">
-                                    <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                <div className="bg-infoL-background dark:bg-infoD-background p-1.5 rounded-lg border border-infoL-foreground/20 dark:border-infoD-foreground/20">
+                                    <Briefcase className="w-5 h-5 text-infoL-foreground dark:text-infoD-foreground" />
                                 </div>
                                 <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">ساختار چرخه کاری</h2>
                             </div>
-                            <span className="text-xs bg-white dark:bg-gray-900/50 border border-borderL dark:border-gray-700 px-2.5 py-1 rounded-full text-muted-foregroundL dark:text-muted-foregroundD">
+                            <span className="text-xs bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD px-2.5 py-1 rounded-full text-muted-foregroundL dark:text-muted-foregroundD">
                                 {toPersianDigits(slots.length)} روز تعریف شده
                             </span>
                         </div>
@@ -110,17 +108,17 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                         <div className="p-0">
                             {slots.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center min-h-[200px] p-8 text-center">
-                                    <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-4">
-                                        <CalendarOff className="h-8 w-8 text-gray-400" />
+                                    <div className="bg-secondaryL/20 dark:bg-secondaryD/20 p-4 rounded-full mb-4">
+                                        <CalendarOff className="h-8 w-8 text-muted-foregroundL dark:text-muted-foregroundD" />
                                     </div>
-                                    <span className="text-gray-600 dark:text-gray-300 font-medium text-lg">هنوز اسلاتی تعریف نشده است.</span>
-                                    <p className="text-gray-400 text-sm mt-1">برای شروع، لطفاً یک برنامه جدید ایجاد کنید.</p>
+                                    <span className="text-muted-foregroundL dark:text-muted-foregroundD font-medium text-lg">هنوز اسلاتی تعریف نشده است.</span>
+                                    <p className="text-muted-foregroundL/70 dark:text-muted-foregroundD/70 text-sm mt-1">برای شروع، لطفاً یک برنامه جدید ایجاد کنید.</p>
                                 </div>
                             ) : (
                                 <div className="w-full overflow-x-auto">
                                     <div className="min-w-[800px]">
                                         {/* هدر جدول */}
-                                        <div className="grid grid-cols-[80px_3fr_1.5fr_1.5fr_2fr_100px] py-3 px-4 bg-gray-50/80 dark:bg-gray-900/50 text-xs font-bold text-muted-foregroundL dark:text-muted-foregroundD border-b border-borderL dark:border-gray-700/50">
+                                        <div className="grid grid-cols-[80px_3fr_1.5fr_1.5fr_2fr_100px] py-3 px-4 bg-secondaryL/10 dark:bg-secondaryD/5 text-xs font-bold text-muted-foregroundL dark:text-muted-foregroundD border-b border-borderL dark:border-borderD">
                                             <div className="text-center">روز چرخه</div>
                                             <div className="pr-4">الگوی کاری</div>
                                             <div className="text-center">ساعت شروع</div>
@@ -130,9 +128,9 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                                         </div>
 
                                         {/* لیست اسلات‌ها */}
-                                        <div className="divide-y divide-borderL/60 dark:divide-gray-700/30">
+                                        <div className="divide-y divide-borderL/60 dark:divide-borderD/30">
                                             {slots.map((slot) => (
-                                                <div key={slot.id} className="grid grid-cols-[80px_3fr_1.5fr_1.5fr_2fr_100px] items-stretch hover:bg-secondaryL/5 dark:hover:bg-indigo-900/10 transition-colors group">
+                                                <div key={slot.id} className="grid grid-cols-[80px_3fr_1.5fr_1.5fr_2fr_100px] items-stretch hover:bg-secondaryL/5 dark:hover:bg-secondaryD/10 transition-colors group">
                                                     <ScheduleSlotRow slot={slot} shiftScheduleId={initialSchedule.id} availablePatterns={availablePatterns} />
                                                 </div>
                                             ))}
@@ -151,25 +149,25 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                 <div className="xl:col-span-1 space-y-6 xl:sticky xl:top-6 h-fit">
 
                     {/* کارت تنظیمات */}
-                    <form onSubmit={handleSubmit(onSubmit)} className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-gray-700/50 rounded-2xl shadow-lg overflow-hidden">
-                        <div className="p-4 border-b border-borderL dark:border-gray-700/50 bg-gradient-to-l from-primaryL/5 to-transparent dark:from-indigo-900/10">
+                    <form onSubmit={handleSubmit(onSubmit)} className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-2xl shadow-lg overflow-hidden">
+                        <div className="p-4 border-b border-borderL dark:border-borderD bg-gradient-to-l from-primaryL/5 to-transparent dark:from-primaryD/10">
                             <h2 className="font-bold text-foregroundL dark:text-foregroundD flex items-center gap-2">
-                                <Settings2 className="w-5 h-5 text-primaryL dark:text-indigo-400" />
+                                <Settings2 className="w-5 h-5 text-primaryL dark:text-primaryD" />
                                 تنظیمات عمومی
                             </h2>
                         </div>
 
                         <div className="p-5 space-y-5">
                             {generalApiError && !generalApiError.includes("بارگذاری") && (
-                                <Alert variant="destructive" className="py-2 text-xs"><AlertDescription>{generalApiError}</AlertDescription></Alert>
+                                <Alert variant="destructive" className="py-2 text-xs bg-destructiveL-background dark:bg-destructiveD-background text-destructiveL-foreground"><AlertDescription>{generalApiError}</AlertDescription></Alert>
                             )}
 
                             <div className="space-y-4">
-                                <div className="[&_input]:bg-white [&_input]:dark:bg-gray-900/50 [&_input]:dark:border-gray-600 [&_input]:dark:text-gray-100">
+                                <div className="[&_input]:bg-backgroundL-500 [&_input]:dark:bg-backgroundD [&_input]:border-borderL [&_input]:dark:border-borderD">
                                     <Input label="عنوان برنامه" {...register('name')} error={formErrors.name?.message} disabled={isPending} className="font-medium" />
                                 </div>
 
-                                <div className="[&_input]:bg-white [&_input]:dark:bg-gray-900/50 [&_input]:dark:border-gray-600 [&_input]:dark:text-gray-100">
+                                <div className="[&_input]:bg-backgroundL-500 [&_input]:dark:bg-backgroundD [&_input]:border-borderL [&_input]:dark:border-borderD">
                                     <Controller
                                         name="cycle_start_date"
                                         control={control}
@@ -188,8 +186,8 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                                 <div className={clsx(
                                     "flex items-start gap-3 rounded-xl p-3 text-sm border transition-all",
                                     initialSchedule.ignore_holidays
-                                        ? "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800"
-                                        : "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                                        ? "bg-warningL-background text-warningL-foreground border-warningL-foreground/20 dark:bg-warningD-background dark:text-warningD-foreground"
+                                        : "bg-successL-background text-successL-foreground border-successL-foreground/20 dark:bg-successD-background dark:text-successD-foreground"
                                 )}>
                                     {initialSchedule.ignore_holidays
                                         ? <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
@@ -209,7 +207,7 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                             </div>
 
                             {/* تنظیمات شناوری */}
-                            <div className="bg-secondaryL/30 dark:bg-gray-900/30 rounded-xl p-4 border border-borderL/50 dark:border-gray-700/50 space-y-4">
+                            <div className="bg-secondaryL/30 dark:bg-secondaryD/20 rounded-xl p-4 border border-borderL/50 dark:border-borderD/50 space-y-4">
                                 <div className="flex items-center gap-2 text-xs font-bold text-muted-foregroundL dark:text-muted-foregroundD uppercase tracking-wider">
                                     <TimerReset className="w-4 h-4" />
                                     آستانه شناوری (دقیقه)
@@ -222,7 +220,7 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                                             type="number"
                                             {...register('floating_start')}
                                             disabled={isPending}
-                                            className="text-center font-bold bg-white dark:bg-gray-800 border-borderL dark:border-gray-600 dark:text-gray-100"
+                                            className="text-center font-bold bg-backgroundL-500 dark:bg-backgroundD border-borderL dark:border-borderD"
                                             min={0}
                                         />
                                     </div>
@@ -232,7 +230,7 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                                             type="number"
                                             {...register('floating_end')}
                                             disabled={isPending}
-                                            className="text-center font-bold bg-white dark:bg-gray-800 border-borderL dark:border-gray-600 dark:text-gray-100"
+                                            className="text-center font-bold bg-backgroundL-500 dark:bg-backgroundD border-borderL dark:border-borderD"
                                             min={0}
                                         />
                                     </div>
@@ -240,31 +238,31 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                             </div>
                         </div>
 
-                        <div className="p-4 bg-gray-50 dark:bg-gray-900/30 border-t border-borderL dark:border-gray-700/50 space-y-3">
-                            <Button type="submit" className="w-full font-bold shadow-md shadow-primaryL/20 dark:shadow-none bg-primaryL hover:bg-primaryL/90 dark:bg-indigo-600 dark:hover:bg-indigo-500" disabled={!isDirty || isPending}>
+                        <div className="p-4 bg-secondaryL/10 dark:bg-secondaryD/10 border-t border-borderL dark:border-borderD space-y-3">
+                            <Button type="submit" className="w-full font-bold shadow-md shadow-primaryL/20 dark:shadow-none bg-primaryL hover:bg-primaryL/90 dark:bg-primaryD dark:hover:bg-primaryD/90 text-primary-foregroundL dark:text-primary-foregroundD" disabled={!isDirty || isPending}>
                                 {isPending ? <Loader2 className="ml-2 h-5 w-5 animate-spin" /> : <Save className="ml-2 h-5 w-5" />}
                                 ذخیره تغییرات
                             </Button>
-                            <Button type="button" variant="outline" className="w-full border-dashed dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" onClick={onCancel}>
+                            <Button type="button" variant="outline" className="w-full border-dashed border-borderL dark:border-borderD text-muted-foregroundL dark:text-muted-foregroundD hover:bg-secondaryL dark:hover:bg-secondaryD" onClick={onCancel}>
                                 <ArrowRight className="ml-2 h-4 w-4" /> بازگشت به لیست
                             </Button>
                         </div>
                     </form>
 
                     {/* کارت عملیات ویژه (تولید شیفت) */}
-                    <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800/60 dark:to-backgroundD border border-indigo-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm text-center space-y-4">
-                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-2 border border-indigo-200 dark:border-indigo-500/20">
+                    <div className="bg-gradient-to-br from-primaryL/5 to-backgroundL-500 dark:from-primaryD/5 dark:to-backgroundD border border-primaryL/10 dark:border-primaryD/10 rounded-2xl p-5 shadow-sm text-center space-y-4">
+                        <div className="w-12 h-12 bg-primaryL/10 dark:bg-primaryD/10 text-primaryL dark:text-primaryD rounded-full flex items-center justify-center mx-auto mb-2 border border-primaryL/20 dark:border-primaryD/20">
                             <CalendarClock className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-indigo-900 dark:text-gray-100">تولید خودکار شیفت ها</h3>
-                            <p className="text-xs text-indigo-600/70 dark:text-gray-400 mt-1">
+                            <h3 className="font-bold text-foregroundL dark:text-foregroundD">تولید خودکار شیفت ها</h3>
+                            <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1">
                                 اعمال این چرخه برای کارمندان در یک بازه زمانی خاص
                             </p>
                         </div>
                         <Button
                             onClick={() => setIsGenerateModalOpen(true)}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                            className="w-full bg-primaryL hover:bg-primaryL/90 dark:bg-primaryD dark:hover:bg-primaryD/90 text-primary-foregroundL dark:text-primary-foregroundD shadow-lg shadow-primaryL/20 dark:shadow-none"
                         >
                             تولید و زمان‌بندی شیفت‌ها
                         </Button>
@@ -273,8 +271,6 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                 </div>
             </div>
 
-            {/* مودال تولید شیفت */}
-            {/* ✅ فقط کامپوننت رندر می‌شود، isOpen به آن پاس داده می‌شود */}
             <GenerateShiftsForm
                 isOpen={isGenerateModalOpen}
                 shiftScheduleId={initialSchedule.id}

@@ -9,11 +9,10 @@ import {
 import { type Organization, type FlatOrgOption } from '@/features/Organization/types';
 import { useCreateOrganization, useUpdateOrganization } from '@/features/Organization/hooks/useOrganizations';
 
-// --- UI Components ---
 import { Button } from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
-import SelectBox, { type SelectOption } from '@/components/ui/SelectBox'; // کامپوننت جدید
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import { Loader2 } from 'lucide-react';
 
 interface OrganizationFormProps {
@@ -38,7 +37,7 @@ export const OrganizationForm = ({
     const {
         register,
         handleSubmit,
-        control, // اضافه شده برای مدیریت SelectBox
+        control,
         setError,
         reset,
         formState: { errors, isSubmitting },
@@ -53,7 +52,6 @@ export const OrganizationForm = ({
     const createMutation = useCreateOrganization();
     const updateMutation = useUpdateOrganization();
 
-    // بازنشانی فرم هنگام تغییر پراپ‌ها
     useEffect(() => {
         if (isEditMode && defaultOrganization) {
             reset({
@@ -98,19 +96,15 @@ export const OrganizationForm = ({
         }
     };
 
-    // ۱. فیلتر کردن لیست برای جلوگیری از چرخه (Loop)
     const validParentOptions = useMemo(() => {
         return organizationList.filter(org => !forbiddenParentIds.includes(org.id));
     }, [organizationList, forbiddenParentIds]);
 
-    // ۲. تبدیل لیست فیلتر شده به فرمت استاندارد SelectBox
     const selectBoxOptions: SelectOption[] = useMemo(() => {
-        // گزینه ریشه با ID خاص (چون SelectBox مقدار number/string میگیرد)
         const rootOption: SelectOption = { id: 'root_null', name: '● سازمان ریشه (بدون والد)' };
 
         const mappedOptions = validParentOptions.map(org => ({
             id: org.id,
-            // ساخت رشته نام با تورفتگی بصری برای نمایش سلسله مراتب در دراپ‌داون
             name: `${'\u00A0'.repeat(org.level * 4)}${org.level > 0 ? '└─ ' : ''}${org.name}`
         }));
 
@@ -120,7 +114,7 @@ export const OrganizationForm = ({
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" dir="rtl">
             {errors.root?.serverError && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="bg-destructiveL-background dark:bg-destructiveD-background text-destructiveL-foreground dark:text-destructiveD-foreground border-destructiveL-foreground/10">
                     <AlertTitle>خطا</AlertTitle>
                     <AlertDescription>
                         {errors.root.serverError.message}
@@ -128,7 +122,6 @@ export const OrganizationForm = ({
                 </Alert>
             )}
 
-            {/* کامپوننت Input سفارشی */}
             <Input
                 label="نام واحد سازمانی"
                 placeholder="مثال: واحد فنی و مهندسی"
@@ -136,10 +129,9 @@ export const OrganizationForm = ({
                 error={errors.name?.message}
                 disabled={isSubmitting}
                 autoFocus
-                className="bg-backgroundL-500 dark:bg-backgroundD" // اطمینان از رنگ پس‌زمینه صحیح
+                className="bg-backgroundL-500 dark:bg-backgroundD"
             />
 
-            {/* کامپوننت SelectBox متصل شده با Controller */}
             <div className="space-y-1">
                 <Controller
                     control={control}
@@ -149,12 +141,10 @@ export const OrganizationForm = ({
                             label="واحد بالادستی (والد)"
                             placeholder="انتخاب واحد والد..."
                             options={selectBoxOptions}
-                            // تبدیل مقدار ID فرم به آبجکت کامل گزینه برای SelectBox
                             value={selectBoxOptions.find(opt => {
                                 if (field.value === null) return opt.id === 'root_null';
                                 return opt.id === field.value;
                             }) || null}
-                            // تبدیل آبجکت انتخاب شده به ID برای فرم
                             onChange={(selected) => {
                                 const newValue = selected.id === 'root_null' ? null : Number(selected.id);
                                 field.onChange(newValue);
@@ -166,7 +156,7 @@ export const OrganizationForm = ({
                 />
 
                 {isEditMode && selectBoxOptions.length <= 1 && (
-                    <p className="text-xs text-amber-600 px-1">
+                    <p className="text-xs text-warningL-foreground dark:text-warningD-foreground px-1">
                         * امکان انتخاب والد وجود ندارد (تمام گزینه‌ها زیرمجموعه این واحد هستند).
                     </p>
                 )}

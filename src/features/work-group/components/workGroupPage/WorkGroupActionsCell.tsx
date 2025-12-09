@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Eye, Trash2, MoreHorizontal } from "lucide-react";
 
-// ایمپورت کامپوننت‌های UI شما
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
@@ -15,16 +14,12 @@ import {
     DropdownItem
 } from "@/components/ui/Dropdown";
 
-// کامپوننت نمایش عملیات (Action Cell) در جدول
 export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) => {
     const workGroup = row.original;
     const navigate = useNavigate();
 
-    // --- مدیریت حذف ---
     const deleteMutation = useDeleteWorkGroup();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-    // ✅ تغییر: استفاده از ReactNode برای امکان نمایش متن‌های فرمت‌دار
     const [deleteError, setDeleteError] = useState<React.ReactNode | null>(null);
 
     const handleDelete = async () => {
@@ -36,7 +31,6 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                 setShowDeleteConfirm(false);
             },
             onError: (error: any) => {
-                // ✅ مدیریت اختصاصی خطای ۴۰۹ طبق درخواست شما
                 if (error.response?.status === 409) {
                     setDeleteError(
                         <div className="flex flex-col gap-1 text-right">
@@ -57,13 +51,12 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
         <>
             <Dropdown>
                 <DropdownTrigger>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-backgroundL-300 dark:hover:bg-backgroundD-900 transition-colors">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondaryL dark:hover:bg-secondaryD transition-colors">
                         <span className="sr-only">باز کردن منو</span>
                         <MoreHorizontal className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD" />
                     </Button>
                 </DropdownTrigger>
 
-                {/* ✅ حل خطای TS2322: استفاده از Type Assertion (as any) برای عبور از خطای تایپ DropdownContent */}
                 <DropdownContent className="z-50 right-0 transform translate-x-1/2">
                     <DropdownItem
                         icon={<Eye className="h-4 w-4" />}
@@ -74,17 +67,16 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                     <DropdownItem
                         icon={<Trash2 className="h-4 w-4" />}
                         onClick={() => {
-                            setDeleteError(null); // ریست کردن خطا هنگام باز کردن مجدد
+                            setDeleteError(null);
                             setShowDeleteConfirm(true);
                         }}
-                        className="text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="text-destructiveL dark:text-destructiveD hover:bg-destructiveL-background dark:hover:bg-destructiveD-background"
                     >
                         حذف
                     </DropdownItem>
                 </DropdownContent>
             </Dropdown>
 
-            {/* مودال تأیید حذف */}
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
@@ -93,15 +85,14 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                 message={
                     <>
                         <p className="text-sm">
-                            آیا از حذف گروه کاری <strong className="font-bold text-red-600 dark:text-red-400">{workGroup.name}</strong> مطمئن هستید؟
+                            آیا از حذف گروه کاری <strong className="font-bold text-destructiveL dark:text-destructiveD">{workGroup.name}</strong> مطمئن هستید؟
                         </p>
                         <p className="mt-2 text-xs text-muted-foregroundL dark:text-muted-foregroundD">
                             این عمل قابل بازگشت نیست و تمامی وابستگی‌های احتمالی باید قبل از حذف بررسی شوند.
                         </p>
-                        {/* نمایش خطا داخل مودال */}
                         {deleteError && (
                             <div className="mt-4">
-                                <Alert variant="destructive">
+                                <Alert variant="destructive" className="bg-destructiveL-background dark:bg-destructiveD-background border-destructiveL-foreground/10 text-destructiveL-foreground">
                                     <AlertTitle className="flex items-center">خطا در حذف</AlertTitle>
                                     <AlertDescription className="text-sm">{deleteError}</AlertDescription>
                                 </Alert>
@@ -112,7 +103,6 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                 variant="danger"
                 confirmText={deleteMutation.isPending ? "در حال حذف..." : "حذف کن"}
                 cancelText="انصراف"
-                // غیرفعال کردن دکمه تایید اگر خطای ۴۰۹ وجود دارد (UX اختیاری، اما توصیه می‌شود)
                 isLoading={deleteMutation.isPending}
             />
         </>

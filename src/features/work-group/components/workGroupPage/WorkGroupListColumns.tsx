@@ -3,7 +3,6 @@ import type { WorkGroup } from "@/features/work-group/types/index";
 
 import { WorkGroupActionsCell } from "@/features/work-group/components/workGroupPage/WorkGroupActionsCell";
 
-// تعریف ستون‌های جدول
 export const columns: ColumnDef<WorkGroup>[] = [
     {
         accessorKey: "name",
@@ -15,11 +14,10 @@ export const columns: ColumnDef<WorkGroup>[] = [
         cell: ({ row }) => {
             const group = row.original;
             
-            // نمایش مبتنی بر الگوی کاری (Week Pattern)
             if (group.week_pattern) {
                 return (
                     <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-primaryL/10 text-primaryL rounded-full dark:bg-primaryD/10 dark:text-primaryD">
                             الگوی کاری
                         </span>
                         <span className="text-sm font-medium text-foregroundL dark:text-foregroundD mr-1">
@@ -29,11 +27,10 @@ export const columns: ColumnDef<WorkGroup>[] = [
                 );
             }
 
-            // نمایش مبتنی بر برنامه شیفتی (Shift Schedule)
             if (group.shift_schedule) {
                 return (
                     <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                         <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full dark:bg-green-900 dark:text-green-200">
+                         <span className="px-2 py-0.5 text-xs font-medium bg-successL-background text-successL-foreground rounded-full dark:bg-successD-background dark:text-successD-foreground">
                             برنامه شیفتی
                         </span>
                         <span className="text-sm font-medium text-foregroundL dark:text-foregroundD mr-1">
@@ -50,7 +47,6 @@ export const columns: ColumnDef<WorkGroup>[] = [
         accessorKey: "created_at",
         header: "تاریخ ایجاد",
         cell: ({ row }) => {
-            // TODO: توصیه می‌شود برای تبدیل تاریخ میلادی به شمسی، از یک کتابخانه مانند 'date-fns-jalali' یا 'moment-jalaali' استفاده کنید تا فرمت تاریخ دقیق‌تر باشد.
             return new Date(row.original.created_at).toLocaleDateString('fa-IR');
         }
     },

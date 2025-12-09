@@ -1,3 +1,4 @@
+/* reports/components/reportsPage/TableColumns.tsx */
 import { type ColumnDef } from '@tanstack/react-table';
 import { type ActivityLog } from "@/features/reports/types/index";
 import { ActionsMenuCell } from './ActionsMenuCell';
@@ -12,7 +13,6 @@ import {
 } from 'lucide-react';
 import { getFullImageUrl } from '../../../User/utils/imageHelper';
 
-// ✅ تابع هوشمند تبدیل دقیقه به فرمت خوانا
 const formatDuration = (minutes: number): string => {
   if (minutes < 60) {
     return `${toPersianNumbers(minutes)} دقیقه`;
@@ -137,11 +137,10 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
       if (is_allowed) {
         return (
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20 px-2 py-1 rounded-md w-fit border border-emerald-200 dark:border-emerald-800/50">
+            <div className="flex items-center gap-1.5 text-successL-foreground dark:text-successD-foreground bg-successL-background dark:bg-successD-background px-2 py-1 rounded-md w-fit border border-successL-foreground/10 dark:border-successD-foreground/10">
               <ShieldCheck className="w-4 h-4" strokeWidth={2.5} />
               <span className="text-xs font-bold">تایید شده</span>
             </div>
-            {/* اگر مغایرت داشته، با فرمت ساعت و دقیقه نمایش می‌دهیم */}
             {hasException && (
               <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD opacity-70 pr-1">
                 (شامل {lateness_minutes > 0 ? `${formatDuration(lateness_minutes)} تاخیر` : `${formatDuration(early_departure_minutes)} تعجیل`})
@@ -156,22 +155,20 @@ export const createColumns = ({ onEdit, onApprove }: CreateColumnsProps): Column
         return (
           <div className="flex flex-col gap-1.5 items-start">
             {lateness_minutes > 0 && (
-              <div className="flex items-center gap-1.5 text-destructiveL dark:text-destructiveD bg-destructiveL/5 dark:bg-destructiveD/10 px-2 py-0.5 rounded border border-destructiveL/10">
+              <div className="flex items-center gap-1.5 text-destructiveL-foreground dark:text-destructiveD-foreground bg-destructiveL-background dark:bg-destructiveD-background px-2 py-0.5 rounded border border-destructiveL-foreground/10">
                 <Clock className="w-3.5 h-3.5" />
-                {/* نمایش به صورت ساعت و دقیقه */}
                 <span className="text-xs font-medium">{formatDuration(lateness_minutes)} تاخیر</span>
               </div>
             )}
 
             {early_departure_minutes > 0 && (
-              <div className="flex items-center gap-1.5 text-warningL dark:text-warningD bg-warningL/5 dark:bg-warningD/10 px-2 py-0.5 rounded border border-warningL/10">
+              <div className="flex items-center gap-1.5 text-warningL-foreground dark:text-warningD-foreground bg-warningL-background dark:bg-warningD-background px-2 py-0.5 rounded border border-warningL-foreground/10">
                 <AlertCircle className="w-3.5 h-3.5" />
-                {/* نمایش به صورت ساعت و دقیقه */}
                 <span className="text-xs font-medium">{formatDuration(early_departure_minutes)} تعجیل</span>
               </div>
             )}
 
-            <span className="text-[10px] text-destructiveL/80 dark:text-destructiveD/80 pr-1 animate-pulse font-medium">
+            <span className="text-[10px] text-destructiveL-foreground/80 dark:text-destructiveD-foreground/80 pr-1 animate-pulse font-medium">
               نیازمند بررسی
             </span>
           </div>

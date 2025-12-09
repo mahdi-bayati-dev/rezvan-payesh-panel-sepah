@@ -74,18 +74,18 @@ export const GenerateShiftsForm: React.FC<GenerateShiftsFormProps> = ({
                 <ModalHeader onClose={onClose}>
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2 text-foregroundL dark:text-foregroundD">
-                            <CalendarClock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                            <CalendarClock className="w-5 h-5 text-primaryL dark:text-primaryD" />
                             <span className="font-bold text-lg">تولید تقویم کاری</span>
                         </div>
                         <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD font-normal mt-1">
-                            انتخاب بازه برای الگوی <span className="font-bold text-indigo-600 dark:text-indigo-400">«{shiftScheduleName}»</span>
+                            انتخاب بازه برای الگوی <span className="font-bold text-primaryL dark:text-primaryD">«{shiftScheduleName}»</span>
                         </p>
                     </div>
                 </ModalHeader>
 
                 <ModalBody>
                     {generalApiError && (
-                        <Alert variant="destructive" className="mb-6 text-xs shadow-sm"><AlertDescription>{generalApiError}</AlertDescription></Alert>
+                        <Alert variant="destructive" className="mb-6 text-xs shadow-sm bg-destructiveL-background dark:bg-destructiveD-background text-destructiveL-foreground"><AlertDescription>{generalApiError}</AlertDescription></Alert>
                     )}
 
                     <form onSubmit={handleSubmit(onFormSubmit)} noValidate dir="rtl" className="space-y-6">
@@ -128,8 +128,8 @@ export const GenerateShiftsForm: React.FC<GenerateShiftsFormProps> = ({
                         </div>
 
                         {/* باکس راهنما */}
-                        <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 p-4 rounded-xl flex gap-3 items-start text-xs text-blue-700 dark:text-blue-300 shadow-sm">
-                            <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
+                        <div className="bg-infoL-background dark:bg-infoD-background border border-infoL-foreground/20 dark:border-infoD-foreground/20 p-4 rounded-xl flex gap-3 items-start text-xs text-infoL-foreground dark:text-infoD-foreground shadow-sm">
+                            <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                             <p className="leading-6 opacity-90">
                                 سیستم به صورت هوشمند روزهای تعطیل و استراحت را بر اساس تنظیمات الگو محاسبه کرده و برای <strong>تمام پرسنل متصل</strong> شیفت ایجاد می‌کند.
                             </p>
@@ -150,7 +150,7 @@ export const GenerateShiftsForm: React.FC<GenerateShiftsFormProps> = ({
                                 type="submit"
                                 disabled={isPending}
                                 variant="primary"
-                                className="w-full sm:w-auto shadow-lg shadow-indigo-200/20 dark:shadow-none"
+                                className="w-full sm:w-auto shadow-lg shadow-primaryL/20 dark:shadow-none"
                             >
                                 {isPending ? 'در حال بررسی...' : 'بررسی و تولید'}
                             </Button>
@@ -159,7 +159,7 @@ export const GenerateShiftsForm: React.FC<GenerateShiftsFormProps> = ({
                 </ModalBody>
             </Modal>
 
-            {/* مودال تایید نهایی (از ConfirmationModal موجود استفاده می‌کند که مستقل است) */}
+            {/* مودال تایید نهایی */}
             <ConfirmationModal
                 isOpen={showConfirmation}
                 onClose={() => setShowConfirmation(false)}
@@ -168,11 +168,11 @@ export const GenerateShiftsForm: React.FC<GenerateShiftsFormProps> = ({
                 variant="danger"
                 confirmText={isPending ? 'در حال پردازش...' : 'تایید و تولید'}
                 cancelText="بازگشت"
-                icon={<AlertTriangle className="h-10 w-10 text-amber-500" />}
+                icon={<AlertTriangle className="h-10 w-10 text-warningL-foreground" />}
                 message={
                     <div className="space-y-3 text-sm leading-relaxed">
-                        <p className="font-bold text-gray-700 dark:text-gray-200">آیا از تولید شیفت برای بازه انتخابی اطمینان دارید؟</p>
-                        <ul className="list-disc list-inside text-muted-foregroundL dark:text-gray-400 space-y-1 bg-secondaryL/30 dark:bg-gray-800/50 p-3 rounded-lg border border-borderL dark:border-gray-700/50">
+                        <p className="font-bold text-foregroundL dark:text-foregroundD">آیا از تولید شیفت برای بازه انتخابی اطمینان دارید؟</p>
+                        <ul className="list-disc list-inside text-muted-foregroundL dark:text-muted-foregroundD space-y-1 bg-secondaryL/30 dark:bg-secondaryD/20 p-3 rounded-lg border border-borderL dark:border-borderD">
                             <li>شیفت‌های قبلی در این بازه <strong>بازنویسی</strong> خواهند شد.</li>
                             <li>این عملیات ممکن است چند لحظه زمان ببرد.</li>
                         </ul>

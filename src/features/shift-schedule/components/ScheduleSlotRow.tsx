@@ -15,7 +15,6 @@ import {
 } from '../types';
 import clsx from 'clsx';
 
-// --- ابزارهای کمکی ---
 const toPersianDigits = (n: number | string | null | undefined): string => {
     if (n === null || n === undefined) return "";
     const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
@@ -45,7 +44,6 @@ const calculateShiftInfo = (start: string | null | undefined, end: string | null
     return { isNextDay, duration: durationText };
 };
 
-// --- اسکیمای اعتبارسنجی ---
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 const nullableTimeSchema = z.string().nullable().transform(val => val === "" ? null : val);
 
@@ -138,7 +136,6 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
 
     const selectedPattern = availablePatterns.find(p => p.id === watchedPatternId);
 
-    // مقادیر نمایشی
     const displayStart = isEditing
         ? (watchedStartTime || selectedPattern?.start_time)
         : (slot.override_start_time || slot.work_pattern?.start_time);
@@ -154,13 +151,13 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
     return (
         <form onSubmit={handleSubmit(onSubmit)} className={clsx(
             "contents text-sm",
-            isEditing ? "bg-indigo-50/50 dark:bg-indigo-900/10" : ""
+            isEditing ? "bg-primaryL/5 dark:bg-primaryD/5" : ""
         )} noValidate>
 
             {/* ستون ۱: روز چرخه */}
             <div className="p-4 flex items-center justify-center border-l border-borderL/50 dark:border-borderD/50">
                 <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 rounded-full shadow-sm text-foregroundL dark:text-foregroundD font-bold border border-borderL dark:border-borderD">
+                    <span className="w-8 h-8 flex items-center justify-center bg-backgroundL-500 dark:bg-backgroundD rounded-full shadow-sm text-foregroundL dark:text-foregroundD font-bold border border-borderL dark:border-borderD">
                         {toPersianDigits(slot.day_in_cycle)}
                     </span>
                 </div>
@@ -195,12 +192,12 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                 ) : (
                     <div className="flex items-center gap-3">
                         <div className={clsx(
-                            "w-2.5 h-2.5 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900",
-                            slot.work_pattern_id === null ? "bg-amber-400 ring-amber-200" : "bg-indigo-500 ring-indigo-200"
+                            "w-2.5 h-2.5 rounded-full ring-2 ring-offset-2 ring-offset-backgroundL-500 dark:ring-offset-backgroundD",
+                            slot.work_pattern_id === null ? "bg-warningL-foreground ring-warningL-foreground/30" : "bg-primaryL ring-primaryL/30"
                         )} />
                         <span className={clsx(
                             "font-medium",
-                            slot.work_pattern_id === null ? 'text-amber-700 dark:text-amber-500' : 'text-foregroundL dark:text-foregroundD'
+                            slot.work_pattern_id === null ? 'text-warningL-foreground dark:text-warningD-foreground' : 'text-foregroundL dark:text-foregroundD'
                         )}>
                             {readOnlyPatternName}
                         </span>
@@ -217,14 +214,14 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                             onChange={field.onChange}
                             disabled={isSubmitting || isRestDaySelected}
                             className={clsx(
-                                "text-center dir-ltr transition-all h-9 bg-white dark:bg-black/20",
+                                "text-center dir-ltr transition-all h-9 bg-backgroundL-500 dark:bg-backgroundD",
                                 isRestDaySelected && "opacity-40 cursor-not-allowed"
                             )}
                             placeholder={selectedPattern?.start_time?.slice(0, 5) || "--:--"}
                         />
                     )} />
                 ) : (
-                    <span className={clsx(" text-base dark:text-backgroundL-500", !displayStart && "text-muted-foregroundL opacity-30")}>
+                    <span className={clsx(" text-base text-foregroundL dark:text-foregroundD", !displayStart && "text-muted-foregroundL dark:text-muted-foregroundD opacity-30")}>
                         {displayStart ? toPersianDigits(displayStart.slice(0, 5)) : '---'}
                     </span>
                 )}
@@ -240,26 +237,26 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                                 onChange={field.onChange}
                                 disabled={isSubmitting || isRestDaySelected}
                                 className={clsx(
-                                    "text-center dir-ltr transition-all h-9 bg-white dark:bg-black/20",
+                                    "text-center dir-ltr transition-all h-9 bg-backgroundL-500 dark:bg-backgroundD",
                                     isRestDaySelected && "opacity-40 cursor-not-allowed",
-                                    !isRestDaySelected && isNextDay && "border-indigo-400 ring-1 ring-indigo-100"
+                                    !isRestDaySelected && isNextDay && "border-primaryL ring-1 ring-primaryL/30"
                                 )}
                                 placeholder={selectedPattern?.end_time?.slice(0, 5) || "--:--"}
                             />
                         )} />
                         {isNextDay && !isRestDaySelected && (
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-0.5 z-10 whitespace-nowrap">
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primaryL dark:bg-primaryD text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-0.5 z-10 whitespace-nowrap">
                                 <Moon className="w-2.5 h-2.5" /> فردای کاری
                             </div>
                         )}
                     </div>
                 ) : (
                     <div className="flex items-center gap-2 relative">
-                        <span className={clsx(" text-base dark:text-backgroundL-500", !displayEnd && "text-muted-foregroundL opacity-30")}>
+                        <span className={clsx(" text-base text-foregroundL dark:text-foregroundD", !displayEnd && "text-muted-foregroundL dark:text-muted-foregroundD opacity-30")}>
                             {displayEnd ? toPersianDigits(displayEnd.slice(0, 5)) : '---'}
                         </span>
                         {isNextDay && !isRestDaySelected && (
-                            <span title="پایان در روز بعد" className="flex items-center justify-center w-5 h-5 bg-indigo-100 dark:bg-indigo-900 rounded-full text-indigo-700 dark:text-indigo-300">
+                            <span title="پایان در روز بعد" className="flex items-center justify-center w-5 h-5 bg-primaryL/10 dark:bg-primaryD/10 rounded-full text-primaryL dark:text-primaryD">
                                 <Moon className="w-3 h-3" />
                             </span>
                         )}
@@ -270,12 +267,12 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
             {/* ستون ۵: وضعیت/مدت */}
             <div className="p-3 flex items-center justify-center border-l border-borderL/50 dark:border-borderD/50">
                 {!isRestDaySelected && duration ? (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/30">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-successL-foreground dark:text-successD-foreground bg-successL-background dark:bg-successD-background px-3 py-1.5 rounded-full border border-successL-foreground/20">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{duration}</span>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-full border border-amber-200/50 dark:border-amber-800/30">
+                    <div className="flex items-center gap-1.5 text-xs text-warningL-foreground dark:text-warningD-foreground bg-warningL-background dark:bg-warningD-background px-3 py-1.5 rounded-full border border-warningL-foreground/20">
                         <Coffee className="w-3.5 h-3.5" />
                         <span>استراحت</span>
                     </div>
@@ -286,10 +283,10 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
             <div className="p-3 flex items-center justify-center gap-2">
                 {isEditing ? (
                     <>
-                        <Button type="submit" size="icon" className="h-8 w-8 rounded-full bg-emerald-600 hover:bg-emerald-700 shadow-md" disabled={!isDirty || isSubmitting}>
+                        <Button type="submit" size="icon" className="h-8 w-8 rounded-full bg-successL-foreground hover:bg-successL-foreground/90 shadow-md" disabled={!isDirty || isSubmitting}>
                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                         </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-red-500 hover:bg-red-50 hover:text-red-700" onClick={handleCancel} disabled={isSubmitting}>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructiveL-foreground hover:bg-destructiveL-background hover:text-destructiveL-foreground" onClick={handleCancel} disabled={isSubmitting}>
                             <X className="h-4 w-4" />
                         </Button>
                     </>
@@ -298,7 +295,7 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 rounded-full text-muted-foregroundL dark:text-backgroundL-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all "
+                        className="h-8 w-8 rounded-full text-muted-foregroundL dark:text-muted-foregroundD hover:text-primaryL dark:hover:text-primaryD hover:bg-primaryL/10 dark:hover:bg-primaryD/10 transition-all "
                         onClick={() => setIsEditing(true)}
                     >
                         <Edit2 className="h-4 w-4" />

@@ -1,20 +1,17 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { type User } from "@/features/User/types/index";
 import { Button } from "@/components/ui/Button";
-// ✅ اطمینان حاصل کنید که مسیر دقیقاً به CheckboxTable اشاره دارد
 import Checkbox from "@/components/ui/CheckboxTable";
 import { UserMinus, UserPlus, Loader2 } from "lucide-react";
 import { toPersianDigits } from '@/features/work-pattern/utils/persianUtils';
 
 type ActionHandler = (userId: number) => void;
 
-// ستون مشترک چک‌باکس
 const getSelectionColumn = (): ColumnDef<User> => ({
     id: "select",
     header: ({ table }) => (
         <div className="px-1">
             <Checkbox
-                // ✅ حالا که از CheckboxTable استفاده می‌کنیم، مقدار 'indeterminate' مجاز است
                 checked={
                     table.getIsAllPageRowsSelected() ||
                     (table.getIsSomePageRowsSelected() && "indeterminate")
@@ -50,7 +47,7 @@ export const getAssignedGroupColumns = (
                     <span className="text-sm font-medium text-foregroundL dark:text-foregroundD">
                         {`${row.original.employee?.first_name ?? ""} ${row.original.employee?.last_name ?? ""}`}
                     </span>
-                    <span className="text-[10px] text-muted-foregroundL truncate max-w-[150px]">
+                    <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD truncate max-w-[150px]">
                         {row.original.user_name}
                     </span>
                 </div>
@@ -60,7 +57,7 @@ export const getAssignedGroupColumns = (
             header: "کد پرسنلی",
             accessorKey: "employee.personnel_code",
             cell: ({ getValue }) => (
-                <div className="text-sm text-muted-foregroundL">
+                <div className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
                     {toPersianDigits(String(getValue() ?? "-"))}
                 </div>
             ),
@@ -77,7 +74,7 @@ export const getAssignedGroupColumns = (
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                            className="h-8 px-2 text-destructiveL hover:bg-destructiveL-background hover:text-destructiveL-foreground dark:hover:bg-destructiveD-background dark:text-destructiveD transition-colors"
                             onClick={() => onRemove(targetId)}
                             disabled={!!pendingUserId}
                             title="حذف از گروه"
@@ -104,8 +101,8 @@ export const getAvailableGroupColumns = (
                     <span className="text-sm font-medium text-foregroundL dark:text-foregroundD">
                         {`${row.original.employee?.first_name ?? ""} ${row.original.employee?.last_name ?? ""}`}
                     </span>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span className="text-[10px] text-successL-foreground dark:text-successD-foreground flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-successL-foreground"></span>
                         آزاد
                     </span>
                 </div>
@@ -115,7 +112,7 @@ export const getAvailableGroupColumns = (
             header: "کد پرسنلی",
             accessorKey: "employee.personnel_code",
             cell: ({ getValue }) => (
-                <div className="text-sm text-muted-foregroundL">
+                <div className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
                     {toPersianDigits(String(getValue() ?? "-"))}
                 </div>
             ),
@@ -132,7 +129,7 @@ export const getAvailableGroupColumns = (
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/20"
+                            className="h-8 px-2 text-successL-foreground hover:bg-successL-background hover:text-successL-foreground dark:hover:bg-successD-background dark:text-successD-foreground transition-colors"
                             onClick={() => onAdd(targetId)}
                             disabled={!!pendingUserId}
                             title="افزودن به گروه"
