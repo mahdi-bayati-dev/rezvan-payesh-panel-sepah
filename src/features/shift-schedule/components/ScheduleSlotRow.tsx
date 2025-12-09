@@ -224,7 +224,7 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                         />
                     )} />
                 ) : (
-                    <span className={clsx(" text-base", !displayStart && "text-muted-foregroundL opacity-30")}>
+                    <span className={clsx(" text-base dark:text-backgroundL-500", !displayStart && "text-muted-foregroundL opacity-30")}>
                         {displayStart ? toPersianDigits(displayStart.slice(0, 5)) : '---'}
                     </span>
                 )}
@@ -255,7 +255,7 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                     </div>
                 ) : (
                     <div className="flex items-center gap-2 relative">
-                        <span className={clsx(" text-base", !displayEnd && "text-muted-foregroundL opacity-30")}>
+                        <span className={clsx(" text-base dark:text-backgroundL-500", !displayEnd && "text-muted-foregroundL opacity-30")}>
                             {displayEnd ? toPersianDigits(displayEnd.slice(0, 5)) : '---'}
                         </span>
                         {isNextDay && !isRestDaySelected && (
@@ -298,7 +298,7 @@ export const ScheduleSlotRow: React.FC<ScheduleSlotRowProps> = ({
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 rounded-full text-muted-foregroundL hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all "
+                        className="h-8 w-8 rounded-full text-muted-foregroundL dark:text-backgroundL-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all "
                         onClick={() => setIsEditing(true)}
                     >
                         <Edit2 className="h-4 w-4" />

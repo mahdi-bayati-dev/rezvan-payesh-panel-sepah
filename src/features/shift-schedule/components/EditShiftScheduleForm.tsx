@@ -94,7 +94,7 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                 <div className="xl:col-span-3 space-y-8">
 
                     {/* کارت اسلات‌ها */}
-                    <div className="bg-backgroundL-500 dark:bg-gray-800/40 border border-borderL dark:border-gray-700/50 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-gray-700/50 rounded-2xl shadow-sm overflow-hidden">
                         <div className="p-5 border-b border-borderL dark:border-gray-700/50 bg-secondaryL/10 dark:bg-gray-900/30 flex justify-between items-center">
                             <div className="flex items-center gap-2.5">
                                 <div className="bg-blue-100 dark:bg-blue-500/10 p-1.5 rounded-lg border border-blue-200 dark:border-blue-500/20">
@@ -151,7 +151,7 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                 <div className="xl:col-span-1 space-y-6 xl:sticky xl:top-6 h-fit">
 
                     {/* کارت تنظیمات */}
-                    <form onSubmit={handleSubmit(onSubmit)} className="bg-backgroundL-500 dark:bg-gray-800/40 border border-borderL dark:border-gray-700/50 rounded-2xl shadow-lg overflow-hidden">
+                    <form onSubmit={handleSubmit(onSubmit)} className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-gray-700/50 rounded-2xl shadow-lg overflow-hidden">
                         <div className="p-4 border-b border-borderL dark:border-gray-700/50 bg-gradient-to-l from-primaryL/5 to-transparent dark:from-indigo-900/10">
                             <h2 className="font-bold text-foregroundL dark:text-foregroundD flex items-center gap-2">
                                 <Settings2 className="w-5 h-5 text-primaryL dark:text-indigo-400" />
@@ -252,12 +252,12 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                     </form>
 
                     {/* کارت عملیات ویژه (تولید شیفت) */}
-                    <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800/60 dark:to-gray-900/40 border border-indigo-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm text-center space-y-4">
+                    <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800/60 dark:to-backgroundD border border-indigo-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm text-center space-y-4">
                         <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-2 border border-indigo-200 dark:border-indigo-500/20">
                             <CalendarClock className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-indigo-900 dark:text-gray-100">تولید تقویم کاری</h3>
+                            <h3 className="font-bold text-indigo-900 dark:text-gray-100">تولید خودکار شیفت ها</h3>
                             <p className="text-xs text-indigo-600/70 dark:text-gray-400 mt-1">
                                 اعمال این چرخه برای کارمندان در یک بازه زمانی خاص
                             </p>
