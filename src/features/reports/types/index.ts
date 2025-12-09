@@ -9,7 +9,10 @@ export interface ApiEmployee {
   user_id: number;
   first_name: string;
   last_name: string;
-  avatarUrl?: string;
+  // [اصلاح استاندارد] اضافه کردن هر دو حالت نامگذاری برای پشتیبانی از سوکت و API
+  avatarUrl?: string; // فرمت معمول در ریسورس‌های API
+  avatar_url?: string; // فرمت معمول در دیتابیس/سوکت
+  
   // [اصلاح] فیلد employee_code به personnel_code تغییر کرد
   // تا با لاگ‌های واقعی API شما مطابقت داشته باشد
   personnel_code?: string;
