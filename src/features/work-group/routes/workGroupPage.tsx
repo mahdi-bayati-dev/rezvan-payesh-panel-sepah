@@ -5,23 +5,20 @@ import {
   getPaginationRowModel,
   type PaginationState,
 } from "@tanstack/react-table";
-import { Plus, Briefcase } from "lucide-react"; // ✅ استفاده از آیکون‌های استاندارد و مرتبط
+import { Plus, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
-// هوک‌ها و تایپ‌ها
 import { useWorkGroups } from "@/features/work-group/hooks/hook";
 import { columns } from "@/features/work-group/components/workGroupPage/WorkGroupListColumns";
 import type { PaginatedResponse, WorkGroup } from "@/features/work-group/types";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-// کامپوننت‌های UI
 import { DataTable } from "@/components/ui/DataTable/index";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 import { Button } from "@/components/ui/Button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { Modal, ModalHeader, ModalBody } from "@/components/ui/Modal";
 
-// کامپوننت فرم
 import { WorkGroupForm } from "@/features/work-group/components/newWorkGroup/WorkGroupForm";
 
 function WorkGroupPage() {
@@ -59,7 +56,7 @@ function WorkGroupPage() {
   if (isError) {
     return (
       <div className="p-8 max-w-4xl mx-auto" dir="rtl">
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="bg-destructiveL-background dark:bg-destructiveD-background border-destructiveL-foreground/10 text-destructiveL-foreground">
           <AlertTitle>خطا در بارگذاری داده‌ها</AlertTitle>
           <AlertDescription>
             خطا هنگام دریافت لیست گروه‌های کاری: {(error as any)?.message || "خطای ناشناخته"}
@@ -72,7 +69,6 @@ function WorkGroupPage() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6" dir="rtl">
 
-      {/* ✅ هدر صفحه بهبود یافته و استاندارد */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-borderL dark:border-borderD">
         <div className="flex items-center gap-4">
           <div className={cn(

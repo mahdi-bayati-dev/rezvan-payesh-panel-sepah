@@ -39,7 +39,6 @@ interface ServerEmployeeTableCardProps<TData> {
     bulkAction?: BulkActionProps;
 }
 
-// ✅ اصلاح: اضافه کردن `| null` به تایپ employee برای رفع خطای TS2322
 export function ServerEmployeeTableCard<TData extends { id: number; employee?: { id: number } | null }>({
     title,
     icon,
@@ -67,7 +66,6 @@ export function ServerEmployeeTableCard<TData extends { id: number; employee?: {
         onRowSelectionChange: onRowSelectionChange,
         manualPagination: true,
         getCoreRowModel: getCoreRowModel(),
-        // ✅ هندل کردن ایمن null برای employee
         getRowId: (row) => String(row.employee?.id || row.id),
         enableRowSelection: (row) => !!row.original.employee?.id,
     });
@@ -75,8 +73,8 @@ export function ServerEmployeeTableCard<TData extends { id: number; employee?: {
     const selectedCount = Object.keys(rowSelection).length;
 
     return (
-        <Card className="rounded-xl shadow-sm border border-borderL dark:border-borderD overflow-hidden flex flex-col h-full min-h-[500px] transition-all duration-200 hover:shadow-md">
-            <CardHeader className={clsx("pb-3 border-b border-borderL/50 dark:border-borderD/50", headerClassName || 'bg-secondaryL/20 dark:bg-secondaryD/10')}>
+        <Card className="rounded-xl shadow-sm border border-borderL dark:border-borderD overflow-hidden flex flex-col h-full min-h-[500px] transition-all duration-200 hover:shadow-md bg-backgroundL-500 dark:bg-backgroundD">
+            <CardHeader className={clsx("pb-3 border-b border-borderL/50 dark:border-borderD/50", headerClassName || 'bg-secondaryL/10 dark:bg-secondaryD/10')}>
                 <div className="flex flex-col gap-3">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1.5">
@@ -86,13 +84,13 @@ export function ServerEmployeeTableCard<TData extends { id: number; employee?: {
                             </CardTitle>
                             <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD leading-relaxed opacity-90">{description}</p>
                         </div>
-                        <span className="px-2.5 py-1 rounded-full bg-white dark:bg-backgroundD text-xs font-bold shadow-sm border border-borderL dark:border-borderD text-foregroundL dark:text-foregroundD">
+                        <span className="px-2.5 py-1 rounded-full bg-backgroundL-500 dark:bg-backgroundD text-xs font-bold shadow-sm border border-borderL dark:border-borderD text-foregroundL dark:text-foregroundD">
                             {toPersianDigits(count)} نفر
                         </span>
                     </div>
 
                     {selectedCount > 0 && bulkAction && (
-                        <div className="flex items-center justify-between bg-white/50 dark:bg-black/20 p-2 rounded-lg animate-in fade-in slide-in-from-top-1 border border-borderL/50 dark:border-borderD/50">
+                        <div className="flex items-center justify-between bg-backgroundL-500/50 dark:bg-black/20 p-2 rounded-lg animate-in fade-in slide-in-from-top-1 border border-borderL/50 dark:border-borderD/50">
                             <span className="text-xs font-medium text-foregroundL dark:text-foregroundD mr-1">
                                 {toPersianDigits(selectedCount)} مورد انتخاب شده
                             </span>

@@ -1,3 +1,4 @@
+/* reports/components/Export/ExportModal.tsx */
 import  { Fragment, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,10 +20,8 @@ import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
 import { Spinner } from "@/components/ui/Spinner";
 import { type DateObject } from 'react-multi-date-picker';
-
 import { useOrganizations } from "@/features/Organization/hooks/useOrganizations";
 import { type Organization } from "@/features/Organization/types";
-
 import {
   ALLOWED_EXPORT_COLUMN_KEYS,
   EXPORT_COLUMN_MAP,
@@ -34,18 +33,17 @@ import {
 } from "@/features/reports/api/api";
 import { useRequestExport } from "@/features/reports/hooks/hook";
 
-// --- کامپوننت داخلی چک‌باکس (مشابه مدال درخواست‌ها) ---
 const CheckboxItem = ({ id, label, checked, onChange }: { id: string, label: string, checked: boolean, onChange: (checked: boolean) => void }) => (
   <label
     htmlFor={id}
     className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none group h-full
       ${checked
         ? 'bg-primaryL/5 border-primaryL/50 dark:bg-primaryD/10 dark:border-primaryD/50'
-        : 'bg-transparent border-borderL dark:border-zinc-700 hover:border-primaryL/30 hover:bg-gray-50 dark:hover:bg-zinc-800'
+        : 'bg-transparent border-borderL dark:border-borderD hover:border-primaryL/30 hover:bg-secondaryL/20 dark:hover:bg-secondaryD/20'
       }`}
   >
     <div className={`relative flex items-center justify-center w-5 h-5 rounded border transition-colors flex-shrink-0
-            ${checked ? 'bg-primaryL border-primaryL dark:bg-primaryD dark:border-primaryD' : 'border-gray-400 group-hover:border-primaryL/50'}`}>
+            ${checked ? 'bg-primaryL border-primaryL dark:bg-primaryD dark:border-primaryD' : 'border-muted-foregroundL group-hover:border-primaryL/50'}`}>
       <input
         type="checkbox"
         id={id}
@@ -55,13 +53,12 @@ const CheckboxItem = ({ id, label, checked, onChange }: { id: string, label: str
       />
       {checked && <Check size={14} className="text-white" />}
     </div>
-    <span className="text-sm font-medium text-foregroundL dark:text-gray-200 truncate" title={label}>
+    <span className="text-sm font-medium text-foregroundL dark:text-foregroundD truncate" title={label}>
       {label}
     </span>
   </label>
 );
 
-// --- گزینه‌ها ---
 const columnOptions = ALLOWED_EXPORT_COLUMN_KEYS.map((key) => ({
   id: key,
   name: EXPORT_COLUMN_MAP[key],
@@ -78,7 +75,6 @@ const eventTypeOptions: SelectOption[] = [
   { id: "check_out", name: "فقط خروج" },
 ];
 
-// --- اسکیما ---
 const exportFormSchema = z.object({
   date_from: z.any().nullable().refine((val) => val !== null, {
     message: "تاریخ شروع الزامی است",
@@ -209,7 +205,6 @@ export const ExportModal = ({
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
-        {/* Backdrop */}
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -233,11 +228,11 @@ export const ExportModal = ({
               leaveFrom="opacity-100 scale-100 translate-y-0"
               leaveTo="opacity-0 scale-95 translate-y-4"
             >
-              <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-0 text-right align-middle shadow-2xl transition-all border border-borderL dark:border-zinc-800">
+              <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-backgroundL-500 dark:bg-backgroundD p-0 text-right align-middle shadow-2xl transition-all border border-borderL dark:border-borderD">
 
                 <form onSubmit={handleSubmit(onSubmit)}>
                   {/* Header */}
-                  <div className="flex justify-between items-center p-5 border-b border-borderL dark:border-zinc-800 bg-secondaryL/30 dark:bg-secondaryD/10">
+                  <div className="flex justify-between items-center p-5 border-b border-borderL dark:border-borderD bg-secondaryL/30 dark:bg-secondaryD/10">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 rounded-xl bg-primaryL/10 text-primaryL dark:bg-primaryD/20 dark:text-primaryD">
                         <FileSpreadsheet size={24} />
@@ -246,7 +241,7 @@ export const ExportModal = ({
                         <Dialog.Title as="h3" className="text-lg font-bold text-foregroundL dark:text-foregroundD">
                           درخواست خروجی اکسل
                         </Dialog.Title>
-                        <p className="text-xs text-muted-foregroundL dark:text-gray-400">
+                        <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD">
                           فیلترها و ستون‌های مورد نیاز را انتخاب کنید
                         </p>
                       </div>
@@ -254,7 +249,7 @@ export const ExportModal = ({
                     <button
                       type="button"
                       onClick={handleClose}
-                      className="text-muted-foregroundL hover:text-foregroundL dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-1"
+                      className="text-muted-foregroundL hover:text-foregroundL dark:text-muted-foregroundD dark:hover:text-foregroundD transition-colors p-1"
                     >
                       <X size={20} />
                     </button>
@@ -302,7 +297,7 @@ export const ExportModal = ({
                         فیلترهای پیشرفته
                       </h4>
 
-                      <div className="p-4 rounded-xl border border-borderL dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl border border-borderL dark:border-borderD bg-secondaryL/20 dark:bg-secondaryD/20 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Controller
                           name="organization_id"
                           control={control}
@@ -357,7 +352,7 @@ export const ExportModal = ({
                           </label>
                           <div className="flex gap-2">
                             {/* دکمه‌های جهت مرتب‌سازی */}
-                            <div className="flex bg-white dark:bg-zinc-800 rounded-lg border border-borderL dark:border-zinc-700 p-1 h-[42px] items-center">
+                            <div className="flex bg-backgroundL-500 dark:bg-backgroundD rounded-lg border border-borderL dark:border-borderD p-1 h-[42px] items-center">
                               <Controller
                                 name="sort_direction"
                                 control={control}
@@ -366,16 +361,16 @@ export const ExportModal = ({
                                     <button
                                       type="button"
                                       onClick={() => field.onChange("asc")}
-                                      className={`p-1.5 rounded-md transition-all ${field.value === 'asc' ? 'bg-primaryL/20 text-primaryL dark:text-primaryD' : 'text-gray-400 hover:text-gray-600'}`}
+                                      className={`p-1.5 rounded-md transition-all ${field.value === 'asc' ? 'bg-primaryL/20 text-primaryL dark:text-primaryD' : 'text-muted-foregroundL hover:text-foregroundL'}`}
                                       title="صعودی"
                                     >
                                       <SortAsc size={18} />
                                     </button>
-                                    <div className="w-px h-4 bg-borderL dark:bg-zinc-700 mx-1" />
+                                    <div className="w-px h-4 bg-borderL dark:bg-borderD mx-1" />
                                     <button
                                       type="button"
                                       onClick={() => field.onChange("desc")}
-                                      className={`p-1.5 rounded-md transition-all ${field.value === 'desc' ? 'bg-primaryL/20 text-primaryL dark:text-primaryD' : 'text-gray-400 hover:text-gray-600'}`}
+                                      className={`p-1.5 rounded-md transition-all ${field.value === 'desc' ? 'bg-primaryL/20 text-primaryL dark:text-primaryD' : 'text-muted-foregroundL hover:text-foregroundL'}`}
                                       title="نزولی"
                                     >
                                       <SortDesc size={18} />
@@ -404,7 +399,7 @@ export const ExportModal = ({
                     </div>
 
                     {/* ۳. انتخاب ستون‌ها */}
-                    <div className="bg-gray-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-borderL dark:border-zinc-800">
+                    <div className="bg-secondaryL/10 dark:bg-secondaryD/10 p-4 rounded-xl border border-borderL dark:border-borderD">
                       <div className="flex justify-between items-center mb-3">
                         <label className="text-sm font-bold text-foregroundL dark:text-foregroundD">
                           ستون‌های خروجی: <span className="text-primaryL dark:text-primaryD text-xs font-normal">({selectedColumns.length} انتخاب شده)</span>
@@ -433,14 +428,14 @@ export const ExportModal = ({
                         ))}
                       </div>
                       {errors.columns && (
-                        <p className="text-xs text-destructiveL dark:text-destructiveD mt-2">
+                        <p className="text-xs text-destructiveL-foreground dark:text-destructiveD-foreground mt-2">
                           {errors.columns.message}
                         </p>
                       )}
                     </div>
 
                     {/* راهنما */}
-                    <div className="flex gap-2 items-start text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <div className="flex gap-2 items-start text-xs text-infoL-foreground dark:text-infoD-foreground bg-infoL-background dark:bg-infoD-background p-3 rounded-lg border border-infoL-foreground/10">
                       <Calendar size={16} className="mt-0.5 flex-shrink-0" />
                       <p>
                         فایل خروجی در پس‌زمینه تولید می‌شود. پس از تکمیل، لینک دانلود از طریق اعلان (Notification) برای شما ارسال خواهد شد.
@@ -450,7 +445,7 @@ export const ExportModal = ({
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-end gap-3 p-5 border-t border-borderL dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30">
+                  <div className="flex items-center justify-end gap-3 p-5 border-t border-borderL dark:border-borderD bg-secondaryL/20 dark:bg-secondaryD/10">
                     <Button
                       type="button"
                       variant="ghost"

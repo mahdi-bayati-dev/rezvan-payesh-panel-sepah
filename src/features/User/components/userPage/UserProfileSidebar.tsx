@@ -3,9 +3,8 @@ import { type User } from '@/features/User/types/index';
 import { UserInfoCard, type InfoRowData } from '@/components/ui/UserInfoCard';
 import { formatDateToPersian } from '@/features/User/utils/dateHelper';
 import { getFullImageUrl } from '@/features/User/utils/imageHelper';
-import { toPersianNumber } from '@/features/User/utils/numberHelper'; // ✅ ایمپورت جدید
+import { toPersianNumber } from '@/features/User/utils/numberHelper';
 
-// تابع کمکی برای ساخت حروف اختصاری آواتار
 const getAvatarPlaceholder = (firstName?: string, lastName?: string): string => {
     const f = firstName ? firstName.charAt(0).toUpperCase() : '';
     const l = lastName ? lastName.charAt(0).toUpperCase() : '';
@@ -20,19 +19,13 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
         : user.user_name;
 
     const avatarPlaceholder = getAvatarPlaceholder(employee?.first_name, employee?.last_name);
-
-    // ✅ اصلاح و ساده‌سازی: استفاده از Optional Chaining برای دسترسی امن
-    // این خط دقیقاً همان منطق PersonalDetailsForm را دارد
     const rawPath = employee?.images?.[0]?.url;
-
     const profileImageUrl = getFullImageUrl(rawPath);
 
     const infoRows: InfoRowData[] = [
-        // ✅ تبدیل کد پرسنلی به فارسی
         { label: "کد پرسنلی", value: toPersianNumber(employee?.personnel_code) || '---' },
         { label: "سازمان", value: employee?.organization?.name || '---' },
         { label: "گروه کاری", value: employee?.work_group?.name || '---' },
-        // formatDateToPersian خودش از toPersianNumber استفاده می‌کند
         { label: "شروع همکاری", value: formatDateToPersian(employee?.starting_job, 'long') },
         { label: "تاریخ ثبت‌نام", value: formatDateToPersian(user.created_at, 'short') }
     ];
@@ -49,7 +42,7 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
 
             <div className="mt-6 flex flex-wrap gap-2 justify-center">
                 {user.roles?.map(role => (
-                    <span key={role} className="px-2 py-1 text-xs font-medium rounded-full bg-primaryL/10 text-primaryL border border-primaryL/20">
+                    <span key={role} className="px-2 py-1 text-xs font-medium rounded-full bg-primaryL/10 text-primaryL border border-primaryL/20 dark:bg-primaryD/10 dark:text-primaryD dark:border-primaryD/20">
                         {role === 'super_admin' ? 'مدیر کل' :
                             role === 'org-admin-l2' ? 'ادمین سازمان (L2)' :
                                 role === 'org-admin-l3' ? 'ادمین واحد (L3)' : 'کارمند'}

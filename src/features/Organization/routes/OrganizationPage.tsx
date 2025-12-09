@@ -6,7 +6,6 @@ import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
 import { flattenOrganizations, getAllDescendantIds } from '@/features/Organization/utils/treeUtils';
 
-// Components & UI
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { Modal, ModalHeader, ModalBody } from '@/components/ui/Modal';
@@ -14,11 +13,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/utils/cn';
 import {
     Plus,
-    Network, // آیکون مناسب برای چارت سازمانی
+    Network,
     Building2
 } from 'lucide-react';
 
-// Feature Components
 import { OrganizationForm } from '@/features/Organization/components/newOrganization/OrganizationForm';
 import { OrganizationNode } from '@/features/Organization/components/OrganizationPage/OrganizationNode';
 import { OrganizationTreeSkeleton } from '@/features/Organization/Skeleton/SkeletonNode';
@@ -29,7 +27,6 @@ function OrganizationPage() {
     const isSuperAdmin = user?.roles?.includes('super_admin') ?? false;
     const navigate = useNavigate();
 
-    // State for Modals (Unified State)
     const [modalState, setModalState] = useState<{
         type: 'create' | 'edit' | null;
         parentId?: number | null;
@@ -43,7 +40,6 @@ function OrganizationPage() {
         error,
     } = useOrganizations();
 
-    // بهینه‌سازی محاسبات سنگین تبدیل درخت به لیست مسطح با useMemo
     const flatOrganizationList = useMemo(() => {
         if (!organizationsData) return [];
         return flattenOrganizations(organizationsData);
@@ -51,7 +47,6 @@ function OrganizationPage() {
 
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
-    // استفاده از useCallback برای جلوگیری از ساخت مجدد تابع در هر رندر (جلوگیری از ری-رندر فرزندان)
     const handleToggle = useCallback((nodeId: string | number) => {
         const id = String(nodeId);
         setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -61,7 +56,6 @@ function OrganizationPage() {
         navigate(`/organizations/${nodeId}`);
     }, [navigate]);
 
-    // --- Modal Handlers ---
     const handleOpenCreateRoot = useCallback(() => {
         setModalState({ type: 'create', parentId: null });
     }, []);
@@ -78,8 +72,6 @@ function OrganizationPage() {
         setModalState({ type: null });
     }, []);
 
-    // محاسبه لیست سیاه (خودش و فرزندانش) برای دراپ‌داون والد در حالت ویرایش
-    // این کار از ایجاد سیکل (Circular Dependency) جلوگیری می‌کند
     const forbiddenParentIds = useMemo(() => {
         if (modalState.type === 'edit' && modalState.editingOrg) {
             return [modalState.editingOrg.id, ...getAllDescendantIds(modalState.editingOrg)];
@@ -111,7 +103,7 @@ function OrganizationPage() {
     if (isError) {
         return (
             <div className="p-8 max-w-4xl mx-auto" dir="rtl">
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="bg-destructiveL-background dark:bg-destructiveD-background border-destructiveL-foreground/10 text-destructiveL-foreground dark:text-destructiveD-foreground">
                     <AlertTitle>خطا در بارگذاری اطلاعات</AlertTitle>
                     <AlertDescription>
                         {(error as any)?.message || "خطای ناشناخته در دریافت چارت سازمانی"}
@@ -124,7 +116,6 @@ function OrganizationPage() {
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500" dir="rtl">
 
-            {/* ✅ هدر صفحه بهبود یافته و هماهنگ با WorkGroupPage */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-borderL dark:border-borderD">
                 <div className="flex items-center gap-4">
                     <div className={cn(
@@ -155,7 +146,6 @@ function OrganizationPage() {
                 )}
             </div>
 
-            {/* Tree Container */}
             <div className="bg-backgroundL-500 dark:bg-backgroundD p-4 rounded-lg shadow-sm border border-borderL dark:border-borderD min-h-[400px]">
                 {(organizationsData && organizationsData.length > 0) ? (
                     <div className="flex flex-col">
@@ -174,8 +164,8 @@ function OrganizationPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-80 text-muted-foregroundL dark:text-muted-foregroundD bg-gray-50/50 dark:bg-gray-900/20 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800">
-                        <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+                    <div className="flex flex-col items-center justify-center h-80 text-muted-foregroundL dark:text-muted-foregroundD bg-secondaryL/20 dark:bg-secondaryD/10 rounded-lg border-2 border-dashed border-borderL dark:border-borderD">
+                        <div className="p-4 rounded-full bg-secondaryL dark:bg-secondaryD mb-4">
                             <Building2 className="h-8 w-8 opacity-40" />
                         </div>
                         <p className="font-medium">هنوز چارت سازمانی تعریف نشده است.</p>
@@ -188,12 +178,11 @@ function OrganizationPage() {
                 )}
             </div>
 
-            {/* Combined Modal for Create/Edit */}
             <Modal isOpen={modalState.type !== null} onClose={handleCloseModal} size="lg">
                 <ModalHeader onClose={handleCloseModal}>
                     <div className="flex flex-col items-start gap-1">
                         <div className="flex items-center gap-2">
-                            {modalState.type === 'create' ? <Plus className="h-5 w-5 text-primaryL" /> : <Building2 className="h-5 w-5 text-blue-600" />}
+                            {modalState.type === 'create' ? <Plus className="h-5 w-5 text-primaryL dark:text-primaryD" /> : <Building2 className="h-5 w-5 text-primaryL dark:text-primaryD" />}
                             <span className="text-lg font-bold text-foregroundL dark:text-foregroundD">
                                 {modalState.type === 'create'
                                     ? (modalState.parentId ? "ایجاد زیرمجموعه جدید" : "ایجاد سازمان ریشه")
@@ -216,7 +205,6 @@ function OrganizationPage() {
                             organizationList={flatOrganizationList}
                             forbiddenParentIds={forbiddenParentIds}
                             onSuccess={handleCloseModal}
-                        // onCancel={handleCloseModal}
                         />
                     )}
                 </ModalBody>

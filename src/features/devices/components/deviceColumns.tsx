@@ -1,10 +1,7 @@
-// src/features/devices/components/deviceColumns.tsx
-
 import { type ColumnDef } from "@tanstack/react-table";
 import type { Device } from "../types";
 import Badge from "@/components/ui/Badge";
 import { ArrowUpDown, Wifi, WifiOff } from "lucide-react";
-// ✅ ایمپورت تابع ماژولار تبدیل اعداد فارسی
 import { toPersianNumber } from '@/features/User/utils/numberHelper';
 
 const StatusCell = ({ status }: { status: Device["status"] }) => {
@@ -13,9 +10,9 @@ const StatusCell = ({ status }: { status: Device["status"] }) => {
     return (
         <div className="flex items-center gap-2">
             {isOnline ? (
-                <Wifi className="w-4 h-4 text-emerald-500" />
+                <Wifi className="w-4 h-4 text-successL-foreground dark:text-successD-foreground" />
             ) : (
-                <WifiOff className="w-4 h-4 text-red-500" />
+                <WifiOff className="w-4 h-4 text-destructiveL-foreground dark:text-destructiveD-foreground" />
             )}
             <Badge
                 label={isOnline ? "آنلاین" : "آفلاین"}
@@ -28,12 +25,11 @@ const StatusCell = ({ status }: { status: Device["status"] }) => {
 
 export const columns: ColumnDef<Device>[] = [
     {
-        // تغییر از name به source_name چون در داکیومنت name وجود نداشت
         accessorKey: "source_name",
         header: "نام منبع / دستگاه",
         cell: ({ row }) => (
             <div className="flex flex-col">
-                <span className="font-medium text-gray-800 dark:text-gray-200">
+                <span className="font-medium text-foregroundL dark:text-foregroundD">
                     {row.getValue("source_name")}
                 </span>
             </div>
@@ -49,7 +45,7 @@ export const columns: ColumnDef<Device>[] = [
         header: ({ column }) => {
             return (
                 <button
-                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-primary transition-colors"
+                    className="flex items-center gap-1 text-xs font-semibold text-muted-foregroundL hover:text-primaryL transition-colors dark:text-muted-foregroundD dark:hover:text-primaryD"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 >
                     آخرین رویت
@@ -61,17 +57,14 @@ export const columns: ColumnDef<Device>[] = [
             const rawDate = row.getValue("last_seen") as string;
 
             if (!rawDate || rawDate === "Never") {
-                return <span className="text-gray-400 text-xs italic">هرگز دیده نشده</span>;
+                return <span className="text-muted-foregroundL/70 dark:text-muted-foregroundD/70 text-xs italic">هرگز دیده نشده</span>;
             }
 
             return (
-                <div className="text-xs text-gray-600 dark:text-gray-300" dir="ltr">
-                    {/* ✅ تبدیل رشته زمان به اعداد فارسی */}
+                <div className="text-xs text-foregroundL dark:text-foregroundD" dir="ltr">
                     {toPersianNumber(rawDate)}
                 </div>
             );
         },
     },
-    // ستون Actions حذف شد چون health_url در ریسپانس داکیومنت وجود ندارد.
-    // اگر در آینده اضافه شد، دوباره آن را برمی‌گردانیم.
 ];
