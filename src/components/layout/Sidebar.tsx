@@ -1,20 +1,17 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { SquaresExclude } from 'lucide-react';
+// import { SquaresExclude } from 'lucide-react'; // حذف شد چون دیگر استفاده نمی‌شود
 import { mainNavItems, type NavItem } from '@/constants/navigation';
-import { ThemeToggleBtn } from '@/components/ui/ThemeToggleBtn';
+// ThemeToggleBtn حذف شد
 import { UserProfile } from './UserProfile';
 import { usePermission } from '@/hook/usePermission';
 import { useAppSelector, useAppDispatch } from '@/hook/reduxHooks';
 import { fetchLicenseStatus, selectLicenseStatus } from '@/store/slices/licenseSlice';
 import { usePendingRequestsCount } from '@/features/requests/hook/usePendingRequestsCount';
-// ۱. اضافه کردن سلکتور کاربر
 import { selectUser } from '@/store/slices/authSlice';
 
 /**
- * تابع کمکی برای تبدیل اعداد انگلیسی (Western) به اعداد فارسی (Persian)
- * @param num عدد یا رشته‌ای شامل اعداد
- * @returns رشته‌ای با اعداد فارسی
+ * تابع کمکی برای تبدیل اعداد انگلیسی به فارسی
  */
 const toPersianDigits = (num: number | string): string => {
   const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -29,12 +26,10 @@ interface SidebarNavItemProps {
 const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
   const hasRoleAccess = usePermission(item.allowedRoles);
   const licenseStatus = useAppSelector(selectLicenseStatus);
-  // ۲. دریافت اطلاعات کاربر
   const user = useAppSelector(selectUser);
 
   if (!hasRoleAccess) return null;
 
-  // ۳. شرط جدید: اگر آیتم نیاز به کارمند بودن دارد ولی کاربر اطلاعات کارمندی ندارد، نمایش نده
   if (item.requiresEmployee && !user?.employee) {
     return null;
   }
@@ -45,7 +40,6 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
     }
   }
 
-  // نمایش Badge به صورت فارسی
   const displayCount = badgeCount ? toPersianDigits(badgeCount) : undefined;
   const badgeText = badgeCount && badgeCount > 99 ? toPersianDigits(99) + '+' : displayCount;
 
@@ -65,7 +59,6 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
 
         {badgeCount !== undefined && badgeCount > 0 && (
           <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-sm animate-pulse ml-auto">
-            {/* نمایش عدد تبدیل شده به فارسی */}
             {badgeText}
           </span>
         )}
@@ -84,6 +77,7 @@ export const SidebarContent = () => {
 
   return (
     <div className="flex h-full flex-col justify-between border-e border-borderL bg-backgroundL-500 transition-colors duration-300 dark:border-borderD dark:bg-backgroundD">
+      {/* بخش بالایی: منو */}
       <div className="px-4 py-6">
         <ul className="space-y-1">
           <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD px-4 mb-2 block">
@@ -100,15 +94,29 @@ export const SidebarContent = () => {
             );
           })}
         </ul>
-        <div className="mt-6 flex items-center justify-between border-t border-borderL pt-4 dark:border-borderD">
-          <span className="flex items-center gap-2 text-sm font-medium text-foregroundL dark:text-foregroundD">
-            <SquaresExclude size={20} />
-            تم صفحه:
-          </span>
-          <ThemeToggleBtn />
-        </div>
+
+        {/* ✅ بخش تغییر تم از اینجا حذف شد */}
       </div>
-      <UserProfile />
+
+      {/* بخش پایینی: پروفایل و کپی‌رایت */}
+      <div>
+        <UserProfile />
+        {/* ✅ فوتر کپی‌رایت */}
+        <div className="py-3 text-center border-t border-borderL dark:border-borderD bg-secondaryL/30 dark:bg-secondaryD/10">
+          <p className="text-[10px] font-medium text-muted-foregroundL dark:text-muted-foregroundD opacity-80">
+            توسعه داده شده توسط{" "}
+            <a
+              href="https://kr-rezvan.ir/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primaryL dark:text-primaryD font-bold hover:underline"
+            >
+              رضوان پرداز
+            </a>
+          </p>
+        </div>
+
+      </div>
     </div>
   );
 };

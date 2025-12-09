@@ -3,29 +3,25 @@ import axios, {
   type InternalAxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-import { store } from "@/store";
+// ❌ ایمپورت مستقیم store حذف شد تا چرخه وابستگی بشکند
+// import { store } from "@/store";
 import { toast } from "react-toastify";
-import { AppConfig } from "@/config"; // ✅ ایمپورت فایل کانفیگ جدید
+import { AppConfig } from "@/config";
 
-// ====================================================================
-// ⚙️ تنظیمات پایه و هوشمند (بازنویسی شده با AppConfig)
-// ====================================================================
+// تعریف متغیر برای نگهداری استور تزریق شده
+let store: any = null;
 
-// دیگر نیازی به تعریف API_BASE_URL به صورت جداگانه نیست، مستقیم از AppConfig می‌خوانیم
-// const API_BASE_URL = ... ❌ حذف شد
+// ✅ تابع تزریق استور: این تابع را در store/index.ts صدا می‌زنیم
+export const injectStore = (_store: any) => {
+  store = _store;
+};
 
-// دریافت حالت احراز هویت از کانفیگ مرکزی
-// این متغیر همچنان اکسپورت می‌شود تا اگر جای دیگری استفاده شده، کد نشکند
 export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
 
 const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
 
-/**
- * تنظیمات Axios
- * اگر مود 'cookie' باشد، withCredentials باید true باشد تا کوکی HttpOnly ارسال شود.
- */
 const axiosInstance = axios.create({
-  baseURL: AppConfig.API_URL, // ✅ استفاده از آدرس داینامیک داکر
+  baseURL: AppConfig.API_URL,
   withCredentials: AUTH_MODE === "cookie",
   headers: {
     Accept: "application/json",
@@ -34,7 +30,6 @@ const axiosInstance = axios.create({
   timeout: 20000,
 });
 
-// لاگ وضعیت برای اطمینان در محیط توسعه
 if (import.meta.env.DEV) {
   console.log(
     `%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode with URL: ${
@@ -45,23 +40,22 @@ if (import.meta.env.DEV) {
 }
 
 // ====================================================================
-// 🔓 Request Interceptor (تزریق توکن - فقط در حالت توکن)
+// 🔓 Request Interceptor
 // ====================================================================
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // فقط اگر در حالت توکن هستیم، توکن را از ریداکس می‌خوانیم و در هدر می‌گذاریم
     if (AUTH_MODE === "token") {
-      const state = store.getState();
-      const token = state.auth.accessToken;
+      // ✅ استفاده از استور تزریق شده با بررسی وجود آن
+      if (store) {
+        const state = store.getState();
+        const token = state.auth.accessToken;
 
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     }
-
-    // در حالت cookie، مرورگر خودش کوکی httpOnly را ارسال می‌کند و ما کاری نمی‌کنیم.
-
     return config;
   },
   (error) => {
@@ -70,7 +64,7 @@ axiosInstance.interceptors.request.use(
 );
 
 // ====================================================================
-// 🔒 Response Interceptor (مدیریت خطاها - مشترک)
+// 🔒 Response Interceptor
 // ====================================================================
 
 axiosInstance.interceptors.response.use(
@@ -82,7 +76,6 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const data = error.response?.data;
 
-    // 1. مدیریت خطای لایسنس (مشترک)
     if (status === 403 && data) {
       const isLicenseError =
         typeof data === "object" &&
@@ -109,12 +102,13 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // 2. مدیریت خطای احراز هویت (401)
     if (status === 401) {
       if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
         console.warn("🔒 Unauthorized (401) detected.");
-        // پاک کردن استیت ریداکس (مشترک برای هر دو حالت)
-        store.dispatch({ type: "auth/clearSession" });
+        // ✅ استفاده از استور تزریق شده برای دیسپچ
+        if (store) {
+          store.dispatch({ type: "auth/clearSession" });
+        }
       }
     }
 

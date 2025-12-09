@@ -42,13 +42,22 @@ interface ThunkConfig {
 }
 
 // ====================================================================
-// 🛠️ ابزارهای کمکی
+// 🛠️ ابزارهای کمکی (بهینه شده برای SSR)
 // ====================================================================
 
+/**
+ * دریافت توکن با چک کردن محیط اجرا (کلاینت/سرور)
+ * این کار از خطای "window is not defined" در Next.js جلوگیری می‌کند.
+ */
 const getInitialToken = (): string | null => {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") return null; // گارد برای SSR
   if (AUTH_MODE === "token") {
-    return localStorage.getItem("accessToken");
+    try {
+      return localStorage.getItem("accessToken");
+    } catch (e) {
+      console.error("Error accessing localStorage:", e);
+      return null;
+    }
   }
   return null;
 };
@@ -70,6 +79,7 @@ const initialState: AuthState = {
 export const checkAuthStatus = createAsyncThunk<User, void, ThunkConfig>(
   "auth/checkStatus",
   async (_, { rejectWithValue, getState }) => {
+    // اگر مود توکن است اما توکن نداریم، اصلاً ریکوئست نزن (بهینه‌سازی ترافیک)
     if (AUTH_MODE === "token") {
       const token = (getState() as RootState).auth.accessToken;
       if (!token) return rejectWithValue("No token found.");
@@ -80,8 +90,11 @@ export const checkAuthStatus = createAsyncThunk<User, void, ThunkConfig>(
       return response.data.data;
     } catch (error: any) {
       let errorMessage = "عدم احراز هویت";
+      // فقط اگر توکن منقضی شده بود (۴۰۱)، توکن را پاک کن
       if (error instanceof AxiosError && error.response?.status === 401) {
-        if (AUTH_MODE === "token") localStorage.removeItem("accessToken");
+        if (AUTH_MODE === "token" && typeof window !== "undefined") {
+          localStorage.removeItem("accessToken");
+        }
       }
       if (error instanceof AxiosError && error.response) {
         errorMessage = error.response.data?.message || errorMessage;
@@ -102,7 +115,11 @@ export const loginUser = createAsyncThunk<
       password: loginData.password,
     });
 
-    if (AUTH_MODE === "token" && response.data.access_token) {
+    if (
+      AUTH_MODE === "token" &&
+      response.data.access_token &&
+      typeof window !== "undefined"
+    ) {
       localStorage.setItem("accessToken", response.data.access_token);
     }
 
@@ -126,7 +143,10 @@ export const logoutUser = createAsyncThunk<void, void, ThunkConfig>(
     try {
       await axiosInstance.post("/logout");
     } catch (error) {
-      console.error("Logout API warning:", error);
+      console.warn(
+        "Logout API warning (session might be mostly cleared):",
+        error
+      );
     } finally {
       dispatch(authSlice.actions.clearSession());
     }
@@ -141,7 +161,6 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    // ✅ نام‌گذاری بهتر: این اکشن برای ریست کردن وضعیت لاگین هنگام ورود به صفحه لاگین است
     resetAuthStatus: (state) => {
       state.error = null;
       state.loginStatus = "idle";
@@ -152,7 +171,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.initialAuthCheckStatus = "failed";
       state.loginStatus = "idle";
-      if (AUTH_MODE === "token") {
+      if (AUTH_MODE === "token" && typeof window !== "undefined") {
         localStorage.removeItem("accessToken");
       }
     },
@@ -173,6 +192,7 @@ const authSlice = createSlice({
         state.initialAuthCheckStatus = "failed";
         state.user = null;
         state.isAuthenticated = false;
+        // اگر احراز هویت فیل شد، توکن را هم از استیت پاک کن تا UI درست رفتار کند
         state.accessToken = null;
       })
 
