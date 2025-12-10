@@ -5,6 +5,9 @@ WORKDIR /app
 
 # کپی پکیج جیسون و نصب دیپندنسی‌ها
 COPY package*.json ./
+
+RUN npm config set registry https://registry.npmmirror.com/
+
 RUN npm install
 
 # کپی سورس کد و بیلد گرفتن
