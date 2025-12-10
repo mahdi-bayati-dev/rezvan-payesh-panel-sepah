@@ -13,18 +13,17 @@ RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debi
 # ۲. اضافه کردن اینستالر سریع PHP
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-# ۳. نصب اکستنشن‌های اصلی (Redis را از اینجا حذف کردم)
-# نکته: اگر دانلود باینری فیلتر باشد، این مرحله کمی طول می‌کشد چون کامپایل می‌کند
+# ۳. نصب اکستنشن‌های اصلی (zip اضافه شد)
 RUN install-php-extensions \
     pdo_mysql \
     mbstring \
     exif \
     pcntl \
     bcmath \
-    gd
+    gd \
+    zip
 
-# ۴. نصب دستی Redis از طریق Git (روش مقاوم در برابر تحریم PECL)
-# ما سورس را دانلود کرده و در پوشه اکستنشن‌های PHP قرار می‌دهیم تا نصب شود
+# ۴. نصب دستی Redis از طریق Git (مقاوم در برابر تحریم)
 RUN git clone https://github.com/phpredis/phpredis.git /usr/src/php/ext/redis \
     && docker-php-ext-install redis
 
