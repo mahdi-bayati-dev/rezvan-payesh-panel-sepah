@@ -2,10 +2,6 @@ import React from 'react';
 import { Button } from '@/components/ui/Button';
 import { Edit, Save, X, Loader2 } from 'lucide-react';
 
-/**
- * کامپوننت Wrapper برای هر بخش فرم (جهت تکرار نکردن UI)
- * شامل هدر، دکمه ویرایش/ذخیره/لغو و fieldset
- */
 const FormSection: React.FC<{
     title: string;
     children: React.ReactNode;
@@ -18,9 +14,8 @@ const FormSection: React.FC<{
 }> = ({ title, children, onSubmit, isEditing, setIsEditing, onCancel, isDirty, isSubmitting }) => {
     return (
         <form onSubmit={onSubmit} className="space-y-6">
-            {/* هدر فرم و دکمه ویرایش */}
             <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
-                <h3 className="text-lg font-semibold">{title}</h3>
+                <h3 className="text-lg font-bold text-foregroundL dark:text-foregroundD">{title}</h3>
                 {!isEditing ? (
                     <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                         <Edit className="h-4 w-4 ml-2" />
@@ -32,7 +27,7 @@ const FormSection: React.FC<{
                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 ml-2" />}
                             ذخیره
                         </Button>
-                        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSubmitting}>
+                        <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSubmitting}>
                             <X className="h-4 w-4 ml-2" />
                             لغو
                         </Button>
@@ -40,11 +35,7 @@ const FormSection: React.FC<{
                 )}
             </div>
 
-            {/* فیلدهای فرم */}
-            {/* ما از fieldset استفاده می‌کنیم تا وقتی `disabled` است،
-                تمام Input ها و Select های داخل آن به صورت خودکار غیرفعال شوند.
-            */}
-            <fieldset disabled={!isEditing || isSubmitting} className="space-y-4">
+            <fieldset disabled={!isEditing || isSubmitting} className="space-y-4 disabled:opacity-80">
                 {children}
             </fieldset>
         </form>

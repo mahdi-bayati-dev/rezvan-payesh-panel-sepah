@@ -1,7 +1,7 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, type ReactNode } from 'react';
 import { AlertTriangle, Check, X } from 'lucide-react';
-import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -113,7 +113,7 @@ export const ConfirmationModal = ({
                                         disabled={isLoading}
                                     >
                                         {isLoading ? (
-                                            <Spinner size="xs" />
+                                            <SpinnerButton size="sm" />
                                         ) : (
                                             <>
                                                 <Check className="ml-1 h-4 w-4" />

@@ -17,6 +17,12 @@ export interface WorkPattern {
 
 export type WorkPatternBase = Pick<WorkPattern, "id" | "name">;
 
+// ✅ تایپ جدید برای دراپ‌داون (شامل ساعت‌ها برای نمایش Placeholder)
+export type AvailableWorkPattern = Pick<
+  WorkPattern,
+  "id" | "name" | "start_time" | "end_time"
+>;
+
 // --- ۲. اسلات برنامه شیفتی (Schedule Slot) ---
 export interface ScheduleSlotResource {
   id: number;
@@ -35,11 +41,8 @@ export interface ShiftScheduleResource {
   cycle_length_days: number;
   cycle_start_date: string; // YYYY-MM-DD
   ignore_holidays: boolean;
-
-  // ✅ اضافه شدن فیلدهای شناوری دریافتی
   floating_start: number;
   floating_end: number;
-
   slots: ScheduleSlotResource[];
 }
 
@@ -64,13 +67,11 @@ export interface NewScheduleSlotPayload {
   end_time: string | null;
 }
 
-// ✅✅✅ اصلاح کلیدی: Payload ایجاد برنامه شیفتی (همراه با شناوری)
 export interface ShiftSchedulePayload {
   name: string;
   cycle_length_days: number;
   cycle_start_date: string;
   ignore_holidays: boolean;
-  // ✅ فیلدهای جدید
   floating_start: number;
   floating_end: number;
   slots: NewScheduleSlotPayload[];
@@ -82,11 +83,9 @@ export interface SlotUpdatePayload {
   override_end_time?: string | null;
 }
 
-// ✅ Payload برای آپدیت اطلاعات عمومی (شامل شناوری)
 export interface ShiftScheduleUpdatePayload {
   name: string;
   cycle_start_date: string;
-  // ✅ فیلدهای جدید قابل ویرایش
   floating_start?: number;
   floating_end?: number;
 }
@@ -96,7 +95,7 @@ export interface GenerateShiftsPayload {
   end_date: string; // YYYY-MM-DD
 }
 
-// ... (تایپ‌های دریافت لیست شیفت‌ها - بدون تغییر)
+// ... (تایپ‌های دریافت لیست شیفت‌ها)
 export interface ShiftResource {
   id: number;
   date: string; // Y-m-d
@@ -131,7 +130,7 @@ export interface GetShiftsParams {
   employee_id?: number;
   is_off_day?: 0 | 1;
   per_page?: number;
-  page?: number; // ✅ اضافه شد برای حل مشکل Pagination
+  page?: number;
   sort_order?: "asc" | "desc";
 }
 

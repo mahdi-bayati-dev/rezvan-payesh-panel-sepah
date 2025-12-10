@@ -1,64 +1,62 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   type PaginationState,
 } from "@tanstack/react-table";
-// ✅ حل خطای TS2724: استفاده از هوک جدید useWorkGroups
+import { Plus, Briefcase } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+
 import { useWorkGroups } from "@/features/work-group/hooks/hook";
 import { columns } from "@/features/work-group/components/workGroupPage/WorkGroupListColumns";
-
 import type { PaginatedResponse, WorkGroup } from "@/features/work-group/types";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-// ایمپورت کامپوننت‌های UI شما
-import { DataTable } from "@/components/ui/DataTable";
+import { DataTable } from "@/components/ui/DataTable/index";
 import { DataTablePagination } from "@/components/ui/DataTable/DataTablePagination";
 import { Button } from "@/components/ui/Button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
-import { PlusCircle } from "lucide-react";
+import { Modal, ModalHeader, ModalBody } from "@/components/ui/Modal";
+
+import { WorkGroupForm } from "@/features/work-group/components/newWorkGroup/WorkGroupForm";
 
 function WorkGroupPage() {
-
-  const navigate = useNavigate()
-  // --- مدیریت وضعیت صفحه‌بندی ---
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0, // صفحه اول (۰-مبنا)
-    pageSize: 10, // ۱۰ آیتم در هر صفحه
+    pageIndex: 0,
+    pageSize: 10,
   });
 
-  // --- فچ کردن داده‌ها ---
   const {
     data: paginatedData,
     isLoading,
     isError,
     error,
   } = useWorkGroups(
-    pagination.pageIndex + 1, // API شما صفحه را از 1 می‌خواهد
+    pagination.pageIndex + 1,
     pagination.pageSize
   ) as UseQueryResult<PaginatedResponse<WorkGroup>, unknown>;
 
-  // --- راه‌اندازی Table Instance ---
   const table = useReactTable({
-    data: paginatedData?.data ?? [], // داده‌های جدول
-    columns, // ستون‌ها
-    pageCount: paginatedData?.meta.last_page ?? -1, // تعداد کل صفحات برای Pagination UI
-    state: {
-      pagination,
-    },
-    onPaginationChange: setPagination, // آپدیت کردن state صفحه‌بندی
+    data: paginatedData?.data ?? [],
+    columns,
+    pageCount: paginatedData?.meta.last_page ?? -1,
+    state: { pagination },
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: true, // مهم: به جدول می‌گوییم صفحه‌بندی سمت سرور است
+    manualPagination: true,
   });
 
-  // --- مدیریت حالت خطا ---
+  const handleCreateSuccess = () => {
+    setIsCreateModalOpen(false);
+  };
+
   if (isError) {
     return (
       <div className="p-8 max-w-4xl mx-auto" dir="rtl">
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="bg-destructiveL-background dark:bg-destructiveD-background border-destructiveL-foreground/10 text-destructiveL-foreground">
           <AlertTitle>خطا در بارگذاری داده‌ها</AlertTitle>
           <AlertDescription>
             خطا هنگام دریافت لیست گروه‌های کاری: {(error as any)?.message || "خطای ناشناخته"}
@@ -70,22 +68,36 @@ function WorkGroupPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6" dir="rtl">
-      {/* هدر صفحه: طراحی بهتر با حاشیه پایین */}
-      <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
-        <h1 className="text-3xl font-extrabold text-foregroundL dark:text-foregroundD">مدیریت گروه‌های کاری</h1>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-borderL dark:border-borderD">
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            "flex items-center justify-center w-10 h-10 rounded-2xl transition-colors shadow-sm",
+            "bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD"
+          )}>
+            <Briefcase className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foregroundL dark:text-foregroundD">
+              مدیریت گروه‌های کاری
+            </h1>
+            <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD mt-1">
+              لیست گروه‌های کاری و مدیریت اعضا و الگوهای شیفتی
+            </p>
+          </div>
+        </div>
+
         <Button
           variant="primary"
-          // مسیر جدید برای ایجاد گروه کاری
-          onClick={() => navigate('/work-groups/new')}
-          className="shadow-lg hover:shadow-xl transition-shadow"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="shadow-lg shadow-primaryL/20 hover:shadow-primaryL/30 transition-all"
         >
-          <PlusCircle className="h-4 w-4 ml-2" />
+          <Plus className="h-5 w-5 ml-2" />
           افزودن گروه کاری جدید
         </Button>
       </div>
 
-      {/* جدول داده‌ها */}
-      <div className="bg-backgroundL-500 dark:bg-backgroundD p-4 rounded-lg shadow-xl">
+      <div className="bg-backgroundL-500 dark:bg-backgroundD p-4 rounded-lg shadow-sm border border-borderL dark:border-borderD">
         <DataTable
           table={table}
           isLoading={isLoading}
@@ -96,6 +108,29 @@ function WorkGroupPage() {
         </div>
       </div>
 
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        size="4xl"
+      >
+        <ModalHeader onClose={() => setIsCreateModalOpen(false)}>
+          <div className="flex flex-col items-start gap-1">
+            <span className="text-lg font-bold text-foregroundL dark:text-foregroundD">
+              ایجاد گروه کاری جدید
+            </span>
+            <span className="text-sm font-normal text-muted-foregroundL dark:text-muted-foregroundD">
+              مشخصات گروه را وارد کرده و نوع زمان‌بندی آن را تعیین کنید.
+            </span>
+          </div>
+        </ModalHeader>
+
+        <ModalBody>
+          <WorkGroupForm
+            onSuccess={handleCreateSuccess}
+            onCancel={() => setIsCreateModalOpen(false)}
+          />
+        </ModalBody>
+      </Modal>
     </div>
   );
 }

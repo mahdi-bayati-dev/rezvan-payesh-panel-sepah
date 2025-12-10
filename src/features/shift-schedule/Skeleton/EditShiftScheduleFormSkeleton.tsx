@@ -1,10 +1,6 @@
 import { Skeleton } from '@/components/ui/Skeleton';
 import clsx from 'clsx';
 
-/**
- * کامپوننت اسکلت لودینگ برای صفحه ویرایش برنامه شیفتی
- * این کامپوننت ساختار EditShiftScheduleForm را شبیه‌سازی می‌کند
- */
 export const EditShiftScheduleFormSkeleton = () => {
     return (
         <div
@@ -34,7 +30,7 @@ export const EditShiftScheduleFormSkeleton = () => {
                                 <div className="min-w-[750px]">
                                     {/* هدر جدول اسکلتی */}
                                     <div
-                                        className="grid grid-cols-[80px_3fr_1.5fr_1.5fr_100px] font-medium text-sm text-center bg-gray-100 dark:bg-gray-800 border-b border-borderL dark:border-borderD text-muted-foregroundL dark:text-muted-foregroundD"
+                                        className="grid grid-cols-[80px_3fr_1.5fr_1.5fr_100px] font-medium text-sm text-center bg-secondaryL/10 dark:bg-secondaryD/10 border-b border-borderL dark:border-borderD text-muted-foregroundL dark:text-muted-foregroundD"
                                     >
                                         <div className="p-3"><Skeleton className="h-5 w-3/4 mx-auto" /></div>
                                         <div className="p-3"><Skeleton className="h-5 w-1/2" /></div>
@@ -51,7 +47,7 @@ export const EditShiftScheduleFormSkeleton = () => {
                                                 key={`skeleton-row-${index}`}
                                                 className={clsx(
                                                     'grid grid-cols-[80px_3fr_1.5fr_1.5fr_100px] items-center p-2',
-                                                    index % 2 === 1 ? "bg-secondaryL/30 dark:bg-secondaryD/20" : ""
+                                                    index % 2 === 1 ? "bg-secondaryL/5 dark:bg-secondaryD/5" : ""
                                                 )}
                                             >
                                                 {/* اسکلت روز */}

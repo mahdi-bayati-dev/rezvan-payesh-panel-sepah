@@ -1,137 +1,215 @@
 import { useEffect, useState, useRef } from "react";
-import { toast } from "react-toastify";
-import { Download, FileText, Loader2, XCircle } from "lucide-react";
-import Echo from "laravel-echo";
+import { toast, } from "react-toastify";
+import {
+    Download,
+    FileText,
+    CheckCircle2,
+    AlertCircle,
+    X,
+    RefreshCcw
+} from "lucide-react";
 
-// ✅ ایمپورت هوشمند: خودش می‌فهمد کوکی بفرستد یا هدر توکن
 import axiosInstance from "@/lib/AxiosConfig";
 import { getEcho } from "@/lib/echoService";
 import { useAppSelector } from "@/hook/reduxHooks";
 
-// ====================================================================
-// 🎨 کامپوننت محتوای نوتیفیکیشن (UI دانلود)
-// ====================================================================
+const formatBytes = (bytes: number, decimals = 2) => {
+    if (!+bytes) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+};
 
 interface DownloadToastContentProps {
     url: string;
     name: string;
     closeToast?: () => void;
-    // ✅ اصلاح: استفاده از any برای جلوگیری از خطای تایپ ناسازگار react-toastify
     toastProps?: any;
 }
 
+type DownloadStatus = 'idle' | 'downloading' | 'success' | 'error';
+
 const DownloadToastContent = ({ url, name, closeToast }: DownloadToastContentProps) => {
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [downloadError, setDownloadError] = useState<string | null>(null);
+    const [status, setStatus] = useState<DownloadStatus>('idle');
+    const [progress, setProgress] = useState(0);
+    const [totalSize, setTotalSize] = useState<number | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const handleDownload = async () => {
-        if (isDownloading) return;
-        setIsDownloading(true);
-        setDownloadError(null);
+        if (status === 'downloading') return;
+
+        setStatus('downloading');
+        setProgress(0);
+        setErrorMessage(null);
 
         try {
-            // ✅ نکته کلیدی: ما از axiosInstance استفاده می‌کنیم.
             const response = await axiosInstance.get(url, {
-                responseType: "blob", // برای دریافت فایل حیاتی است
+                responseType: "blob",
                 headers: {
                     "X-Requested-With": "XMLHttpRequest",
                     "Accept": "application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 },
+                onDownloadProgress: (progressEvent) => {
+                    const total = progressEvent.total;
+                    if (total) {
+                        setTotalSize(total);
+                        const percent = Math.round((progressEvent.loaded * 100) / total);
+                        setProgress(percent);
+                    }
+                },
             });
 
-            // ۱. تشخیص نوع فایل
-            const contentType = response.headers["content-type"] || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-            // ۲. ساخت Blob و لینک موقت
+            const contentType = response.headers["content-type"] || "application/octet-stream";
             const blob = new Blob([response.data], { type: contentType });
             const blobUrl = window.URL.createObjectURL(blob);
+
             const link = document.createElement("a");
             link.href = blobUrl;
             link.setAttribute("download", name);
             document.body.appendChild(link);
-
-            // ۳. دانلود و پاکسازی
             link.click();
+
             document.body.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
 
-            // ۴. موفقیت
-            toast.success(`✅ فایل ${name} با موفقیت دریافت شد.`, { position: "bottom-left" });
+            setStatus('success');
 
-            // بستن تست دانلود بعد از موفقیت
-            if (closeToast) closeToast();
+            setTimeout(() => {
+                if (closeToast) closeToast();
+            }, 4000);
 
         } catch (error: any) {
             console.error("Download Error:", error);
+            setStatus('error');
+
             let msg = "خطا در دانلود فایل.";
-
             if (error.response) {
-                const status = error.response.status;
-                if (status === 401) msg = "لطفاً مجدداً وارد شوید (401).";
-                else if (status === 403) msg = "دسترسی دانلود ندارید یا لینک منقضی شده.";
-                else if (status === 404) msg = "فایل روی سرور پیدا نشد.";
-                else if (status === 419) msg = "نشست کاربری منقضی شده است.";
+                const s = error.response.status;
+                if (s === 401) msg = "نیاز به ورود مجدد.";
+                else if (s === 403) msg = "دسترسی غیرمجاز.";
+                else if (s === 404) msg = "فایل یافت نشد.";
 
-                // تلاش برای خواندن متن ارور از داخل Blob
                 if (error.response.data instanceof Blob) {
                     try {
                         const text = await error.response.data.text();
                         const json = JSON.parse(text);
                         if (json.message) msg = json.message;
-                    } catch (e) { /* خطا در پارس جیسون نادیده گرفته شود */ }
+                    } catch { /* Ignore */ }
                 }
             }
-            setDownloadError(msg);
-        } finally {
-            setIsDownloading(false);
+            setErrorMessage(msg);
+        }
+    };
+
+    const renderIcon = () => {
+        switch (status) {
+            case 'downloading':
+                // text-blue-600 -> text-infoL-foreground
+                return <div className="animate-bounce text-infoL-foreground dark:text-infoD-foreground"><Download className="w-6 h-6" /></div>;
+            case 'success':
+                // text-green-500 -> text-successL-foreground
+                return <CheckCircle2 className="w-6 h-6 text-successL-foreground dark:text-successD-foreground" />;
+            case 'error':
+                // text-red-500 -> text-destructiveL-foreground
+                return <AlertCircle className="w-6 h-6 text-destructiveL-foreground dark:text-destructiveD-foreground" />;
+            default:
+                // text-gray-500 -> text-muted-foregroundL
+                return <FileText className="w-6 h-6 text-muted-foregroundL dark:text-muted-foregroundD" />;
         }
     };
 
     return (
-        <div className="flex items-start gap-3 p-1 min-w-[280px] font-sans dir-rtl bg-backgroundL-500 p-2 rounded-2xl">
-            {/* آیکون */}
-            <div className="p-2.5 bg-blue-100 dark:bg-borderD rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="w-full max-w-sm bg-backgroundL-500 dark:bg-backgroundD rounded-xl shadow-lg border border-borderL dark:border-borderD overflow-hidden font-sans dir-rtl transition-all duration-300">
+            {/* هدر کارت */}
+            <div className="p-4 flex items-start gap-3">
+                <div className={`p-2.5 rounded-xl flex-shrink-0 transition-colors duration-300
+                    ${status === 'success' ? 'bg-successL-background dark:bg-successD-background' :
+                        status === 'error' ? 'bg-destructiveL-background dark:bg-destructiveD-background' :
+                            'bg-secondaryL dark:bg-secondaryD'}`}>
+                    {renderIcon()}
+                </div>
+
+                <div className="flex-1 min-w-0 pt-0.5">
+                    <h4 className="text-sm font-bold text-foregroundL dark:text-foregroundD leading-tight">
+                        {status === 'success' ? 'دانلود موفق' :
+                            status === 'error' ? 'دانلود ناموفق' :
+                                status === 'downloading' ? 'در حال دریافت...' : 'گزارش آماده است'}
+                    </h4>
+                    <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1 truncate dir-ltr text-right" title={name}>
+                        {name}
+                    </p>
+                    {totalSize && status === 'downloading' && (
+                        <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD mt-0.5 block">
+                            حجم تقریبی: {formatBytes(totalSize)}
+                        </span>
+                    )}
+                </div>
+
+                {/* دکمه بستن */}
+                <button
+                    onClick={closeToast}
+                    className="text-muted-foregroundL hover:text-foregroundL dark:text-muted-foregroundD dark:hover:text-foregroundD transition-colors p-1"
+                >
+                    <X className="w-4 h-4" />
+                </button>
             </div>
 
-            {/* محتوا */}
-            <div className="flex flex-col flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-infoD-background leading-tight mb-1">
-                    گزارش آماده دریافت
-                </h4>
+            {/* بدنه کارت */}
+            <div className="px-4 pb-4 pt-0">
 
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate dir-ltr text-right mb-3" title={name}>
-                    {name}
-                </p>
+                {/* حالت دانلود */}
+                {status === 'downloading' && (
+                    <div className="space-y-1.5 mt-1">
+                        <div className="flex justify-between text-[10px] text-infoL-foreground dark:text-infoD-foreground font-medium px-0.5">
+                            <span>{progress}%</span>
+                            <span>در حال پردازش...</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-secondaryL dark:bg-secondaryD rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-infoL-foreground dark:bg-infoD-foreground transition-all duration-300 ease-out rounded-full"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
 
-                {/* دکمه دانلود */}
-                <button
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                    className="flex items-center justify-center gap-2 w-full px-3 py-2
-                    text-xs font-medium rounded-lg transition-all duration-200
-                    bg-blue-600 text-white hover:bg-blue-700
-                    dark:bg-blue-700 dark:hover:bg-blue-600
-                    disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
-                >
-                    {isDownloading ? (
-                        <>
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            <span>در حال دریافت...</span>
-                        </>
-                    ) : (
-                        <>
+                {/* حالت خطا */}
+                {status === 'error' && (
+                    <div className="mt-2 space-y-3">
+                        <div className="text-[11px] text-destructiveL-foreground dark:text-destructiveD-foreground bg-destructiveL-background dark:bg-destructiveD-background p-2 rounded-lg border border-destructiveL-foreground/10">
+                            {errorMessage}
+                        </div>
+                        <button
+                            onClick={handleDownload}
+                            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-white bg-destructiveL hover:bg-destructiveL/90 rounded-lg transition-colors"
+                        >
+                            <RefreshCcw className="w-3.5 h-3.5" />
+                            تلاش مجدد
+                        </button>
+                    </div>
+                )}
+
+                {/* حالت اولیه */}
+                {status === 'idle' && (
+                    <div className="mt-2 flex gap-2">
+                        <button
+                            onClick={handleDownload}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-white bg-infoL-foreground hover:bg-infoL-foreground/90 active:scale-[0.98] rounded-lg shadow-sm transition-all duration-200"
+                        >
                             <Download className="w-4 h-4" />
-                            <span>دانلود فایل</span>
-                        </>
-                    )}
-                </button>
+                            دریافت فایل
+                        </button>
+                    </div>
+                )}
 
-                {/* نمایش خطا */}
-                {downloadError && (
-                    <div className="flex items-center gap-1 mt-2 text-[11px] text-red-600 bg-red-50 dark:bg-red-900/20 p-1.5 rounded border border-red-100 dark:border-red-900/30">
-                        <XCircle className="w-3 h-3 flex-shrink-0" />
-                        <span>{downloadError}</span>
+                {/* حالت موفقیت */}
+                {status === 'success' && (
+                    <div className="mt-2">
+                        <div className="w-full py-2 text-xs font-medium text-successL-foreground bg-successL-background dark:text-successD-foreground dark:bg-successD-background rounded-lg flex items-center justify-center gap-2 border border-successL-foreground/10">
+                            فایل در دستگاه ذخیره شد
+                        </div>
                     </div>
                 )}
             </div>
@@ -139,20 +217,14 @@ const DownloadToastContent = ({ url, name, closeToast }: DownloadToastContentPro
     );
 };
 
-// ====================================================================
-// 🎧 هندلر سراسری سوکت (Global Notification Handler)
-// ====================================================================
-
 export const GlobalNotificationHandler = () => {
     const userId = useAppSelector((state) => state.auth.user?.id);
 
-    // استفاده از <any> برای رفع خطای تایپ اسکریپت
-    const [echoInstance, setEchoInstance] = useState<Echo<any> | null>(null);
-
-    // رفع خطای NodeJS.Timeout با استفاده از ReturnType
+    // ✅ رفع خطا: تغییر تایپ به any | null برای جلوگیری از خطای بیلد
+    // (چون ممکن است تایپ Echo به درستی از کتابخانه ایمپورت نشود)
+    const [echoInstance, setEchoInstance] = useState<any | null>(null);
     const checkIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // ۱. اطمینان از اتصال سوکت (Polling)
     useEffect(() => {
         if (echoInstance) return;
 
@@ -171,14 +243,13 @@ export const GlobalNotificationHandler = () => {
             if (tryGetEcho()) {
                 if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
             }
-        }, 1000);
+        }, 2000);
 
         return () => {
             if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
         };
     }, [echoInstance]);
 
-    // ۲. گوش دادن به ایونت‌ها
     useEffect(() => {
         if (!echoInstance || !userId) return;
 
@@ -189,14 +260,10 @@ export const GlobalNotificationHandler = () => {
             console.log("📥 [GlobalHandler] Export Ready:", e);
 
             const url = e.download_url;
-            const name = e.report_name || `Report-${Date.now()}.xlsx`;
+            const name = e.report_name || `Report-${new Date().toISOString().split('T')[0]}.xlsx`;
 
-            if (!url) {
-                console.error("❌ Download URL is missing.");
-                return;
-            }
+            if (!url) return;
 
-            // نمایش تست دانلود
             toast(
                 ({ closeToast, toastProps }) => (
                     <DownloadToastContent
@@ -210,10 +277,9 @@ export const GlobalNotificationHandler = () => {
                     position: "bottom-right",
                     autoClose: false,
                     closeOnClick: false,
-                    draggable: true,
-                    closeButton: true,
-                    toastId: e.request_id ? `export-${e.request_id}` : `export-${Date.now()}`,
-                    className: "!p-0 !bg-transparent !shadow-none !border-0 !min-w-[300px]",
+                    draggable: false,
+                    closeButton: false,
+                    className: "!p-0 !bg-transparent !shadow-none !border-0 !min-w-[320px] !mb-4",
                     style: { boxShadow: "none", background: "transparent" },
                 }
             );

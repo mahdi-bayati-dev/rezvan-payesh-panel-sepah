@@ -1,9 +1,8 @@
-// src/components/layout/Header.tsx
-
 import { Menu } from "lucide-react";
-import { useAppSelector } from "@/store"; // یا "@/hook/reduxHooks" اگر هوک‌ها آنجا هستند
+import { useAppSelector } from "@/store";
 import { selectUserRoles } from "@/store/slices/authSlice";
 import { ROLES } from "@/constants/roles";
+import { ThemeToggleBtn } from "@/components/ui/ThemeToggleBtn"; // ✅ اضافه شدن دکمه تم
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -29,7 +28,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
   /**
    * تابع کمکی برای پیدا کردن بالاترین نقش کاربر جهت نمایش.
-   * اولویت نمایش: سوپر ادمین > ادمین ۲ > ادمین ۳ > کاربر
    */
   const getDisplayRoleLabel = () => {
     if (!userRoles || userRoles.length === 0) return "کاربر مهمان";
@@ -39,7 +37,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     if (userRoles.includes(ROLES.ADMIN_L3)) return ROLE_LABELS[ROLES.ADMIN_L3];
     if (userRoles.includes(ROLES.USER)) return ROLE_LABELS[ROLES.USER];
 
-    return "کاربر سیستم"; // حالت پیش‌فرض اگر نقش ناشناخته بود
+    return "کاربر سیستم";
   };
 
   return (
@@ -57,18 +55,30 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             className="max-w-20 max-h-16"
             src={logoSrc}
             alt="لوگوی شهرداری کرمان"
-            loading="lazy"
-            decoding="async"
+            fetchPriority="high"
           />
           <h1 className="hidden md:block text-lg font-bold text-primaryL dark:text-primaryD">
             رضـــوان پایش
           </h1>
         </div>
-
-        {/* نمایش داینامیک نقش کاربر */}
-        <span className="rounded-full font-bold bg-secondaryL px-2.5 py-0.5 text-sm whitespace-nowrap text-secondary-foregroundL md:mr-5 dark:bg-secondaryD dark:text-secondary-foregroundD">
+        {/* نمایش نقش کاربر */}
+        <span className="rounded-full font-bold bg-secondaryL px-2.5 py-0.5 text-sm whitespace-nowrap text-secondary-foregroundL dark:bg-secondaryD dark:text-secondary-foregroundD">
           {getDisplayRoleLabel()}
         </span>
+
+      </div>
+
+      {/* بخش سمت چپ هدر */}
+      <div className="flex items-center gap-3 md:mr-5">
+
+        {/* ✅ دکمه تغییر تم به اینجا منتقل شد */}
+        <div className="flex items-center justify-center">
+          <ThemeToggleBtn />
+        </div>
+
+        {/* خط جداکننده */}
+        <div className="h-6 w-px bg-borderL dark:bg-borderD mx-1 hidden sm:block"></div>
+
       </div>
     </header>
   );

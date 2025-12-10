@@ -6,7 +6,7 @@ import {
     type ColumnDef,
     type PaginationState,
 } from "@tanstack/react-table";
-import {  UserX } from 'lucide-react'; // Trash2 پاک شد چون استفاده نمیشد
+import { UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { type User } from '@/features/User/types/index';
@@ -27,7 +27,6 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
     const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 });
     const [userToRemove, setUserToRemove] = useState<User | null>(null);
 
-    // دریافت اعضای همین گروه خاص
     const { data: userResponse, isLoading } = useUsers({
         page: pagination.pageIndex + 1,
         per_page: pagination.pageSize,
@@ -47,7 +46,7 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
                 groupId,
                 payload: {
                     employee_ids: [userToRemove.employee.id],
-                    action: 'detach' // طبق داکیومنت برای حذف
+                    action: 'detach'
                 }
             },
             {
@@ -62,7 +61,7 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
             id: "full_name",
             header: "نام کارمند",
             cell: ({ row }) => (
-                <Link to={`/organizations/users/${row.original.id}`} className="font-medium hover:text-primaryL dark:hover:text-primaryD transition-colors">
+                <Link to={`/organizations/users/${row.original.id}`} className="font-medium text-foregroundL dark:text-foregroundD hover:text-primaryL dark:hover:text-primaryD transition-colors">
                     {row.getValue('full_name') as string || row.original.user_name}
                 </Link>
             ),
@@ -71,7 +70,7 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
             accessorFn: (row) => row.employee?.personnel_code,
             id: "personnel_code",
             header: "کد پرسنلی",
-            cell: info => info.getValue() || "---",
+            cell: info => <span className="text-muted-foregroundL dark:text-muted-foregroundD">{info.getValue() as string || "---"}</span>,
         },
         {
             id: "actions",
@@ -80,7 +79,7 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="text-muted-foregroundL hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    className="text-muted-foregroundL hover:text-destructiveL hover:bg-destructiveL-background dark:hover:bg-destructiveD-background transition-colors"
                     onClick={(e) => { e.stopPropagation(); setUserToRemove(row.original); }}
                     disabled={isRemoving || !row.original.employee?.id}
                     title="حذف از گروه"
@@ -120,12 +119,9 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
                 message={
                     <>
                         <span>
-                            آیا از حذف کارمند <strong className="text-red-600">{userToRemove?.employee?.first_name} {userToRemove?.employee?.last_name}</strong> از گروه <strong>{groupName}</strong> اطمینان دارید؟
+                            آیا از حذف کارمند <strong className="text-destructiveL dark:text-destructiveD">{userToRemove?.employee?.first_name} {userToRemove?.employee?.last_name}</strong> از گروه <strong>{groupName}</strong> اطمینان دارید؟
                         </span>
-                        {/* ✅ اصلاح مهم: تغییر <p> به <span className="block"> 
-                            این کار از خطای Hydration جلوگیری می‌کند چون ConfirmationModal احتمالاً خودش پیام را در <p> می‌گذارد.
-                        */}
-                        <span className="block text-xs text-muted-foregroundL mt-2">
+                        <span className="block text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-2">
                             این کارمند پس از حذف در وضعیت "آزاد" قرار می‌گیرد.
                         </span>
                     </>

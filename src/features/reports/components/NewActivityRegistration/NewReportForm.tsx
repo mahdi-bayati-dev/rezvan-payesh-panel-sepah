@@ -1,58 +1,44 @@
+/* reports/components/NewActivityRegistration/NewReportForm.tsx */
 import { useState, useMemo } from 'react';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     newReportSchema,
     type NewReportFormData,
-} from '@/features/reports/Schema/newReportSchema'; // مسیر alias
-
-// 1. ایمپورت Combobox
+} from '@/features/reports/Schema/newReportSchema';
 import { Combobox } from '@headlessui/react';
-
-// 2. ایمپورت کامپوننت‌ها و آیکون‌های لازم
-import SelectBox, { type SelectOption } from '@/components/ui/SelectBox'; // مسیر alias
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
-import PersianDatePickerInput from '@/lib/PersianDatePickerInput'; // مسیر alias
+import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 import { Button } from '@/components/ui/Button';
 import Textarea from '@/components/ui/Textarea';
-
-// [بهینه] ایمپورت هوک جستجو
 import { useEmployeeOptionsSearch } from '@/features/reports/hooks/hook';
 
-
-// گزینه‌های نوع فعالیت
 const activityTypeOptions: SelectOption[] = [
     { id: 'check_in', name: 'ورود ' },
     { id: 'check_out', name: 'خروج ' },
 ];
 
-// گزینه‌های ساعت (00 تا 23)
 const hourOptions: SelectOption[] = Array.from({ length: 24 }, (_, i) => ({
     id: String(i).padStart(2, '0'),
     name: String(i).padStart(2, '0'),
 }));
 
-// گزینه‌های دقیقه (استفاده از بازه‌های ۵ دقیقه‌ای برای UX بهتر)
 const minuteOptions: SelectOption[] = Array.from({ length: 12 }, (_, i) => ({
     id: String(i * 5).padStart(2, '0'),
     name: String(i * 5).padStart(2, '0'),
 }));
 
-// [بهینه] پراپ‌های مربوط به کارمندان حذف شدند
 interface NewReportFormProps {
     onSubmit: (data: NewReportFormData) => void;
     onCancel: () => void;
     isSubmitting: boolean;
-    // employeeOptions: SelectOption[]; <-- حذف شد
-    // isLoadingEmployees: boolean; <-- حذف شد
 }
 
 export const NewReportForm = ({
     onSubmit,
     onCancel,
     isSubmitting,
-    // employeeOptions, <-- حذف شد
-    // isLoadingEmployees, <-- حذف شد
 }: NewReportFormProps) => {
     const {
         register,
@@ -64,26 +50,21 @@ export const NewReportForm = ({
         defaultValues: {
             employee: null,
             date: null,
-            time: '', // مقدار پیش‌فرض برای فیلد ساعت
+            time: '',
             remarks: '',
         },
     });
 
     const onFormSubmit: SubmitHandler<NewReportFormData> = (data) => {
-        console.log("====> ", data); // لاگ برای بررسی دیتای فرم
         onSubmit(data);
     };
 
-    // [بهینه] منطق جستجوی کارمندان به داخل فرم منتقل شد
     const [employeeQuery, setEmployeeQuery] = useState('');
-
-    // [بهینه] هوک جستجوی سرور-ساید فراخوانی می‌شود
     const {
         data: employeeOptions,
         isLoading: isLoadingEmployees
     } = useEmployeeOptionsSearch(employeeQuery);
 
-    // [بهینه] useMemo دیگر نیازی به فیلتر کردن ندارد
     const filteredEmployees = useMemo(() => {
         return employeeOptions || [];
     }, [employeeOptions]);
@@ -93,7 +74,7 @@ export const NewReportForm = ({
         <form onSubmit={handleSubmit(onFormSubmit)} noValidate>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
 
-                {/* --- Combobox کارمند (با دیتای سرور-ساید) --- */}
+                {/* --- Combobox کارمند --- */}
                 <div className="md:col-span-2">
                     <Controller
                         name="employee"
@@ -104,7 +85,6 @@ export const NewReportForm = ({
                                 className="relative"
                                 value={field.value}
                                 onChange={field.onChange}
-                                // [بهینه] غیرفعال کردن فقط در زمان سابمیت نهایی
                                 disabled={isSubmitting}
                             >
                                 <Combobox.Label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
@@ -112,20 +92,18 @@ export const NewReportForm = ({
                                 </Combobox.Label>
                                 <div className="relative">
                                     <Combobox.Input
-                                        className={`w-full p-3 pr-10 border rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800 transition-colors
+                                        className={`w-full p-3 pr-10 border rounded-xl bg-backgroundL-500 dark:bg-backgroundD transition-colors
                                         ${fieldState.error
-                                                ? 'border-destructiveL dark:border-destructiveD focus:ring-destructiveL'
+                                                ? 'border-destructiveL-foreground dark:border-destructiveD-foreground focus:ring-destructiveL-foreground'
                                                 : 'border-borderL dark:border-borderD focus:ring-primaryL'
                                             }
                                         focus:outline-none focus:ring-2`}
                                         onChange={(event) => setEmployeeQuery(event.target.value)}
                                         displayValue={(employee: SelectOption) => employee?.name || ''}
-                                        // [بهینه] placeholder داینامیک
                                         placeholder={isLoadingEmployees ? "در حال جستجو..." : "شروع به تایپ نام کارمند..."}
                                         autoComplete="off"
                                     />
                                     <Combobox.Button className="absolute inset-y-0 left-0 flex items-center px-3 text-muted-foregroundL dark:text-muted-foregroundD">
-                                        {/* [بهینه] لودر فقط زمان لودینگ نمایش داده می‌شود */}
                                         {isLoadingEmployees ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
@@ -135,9 +113,8 @@ export const NewReportForm = ({
                                 </div>
 
                                 <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl
-                                    bg-backgroundL-500 dark:bg-backgroundD-900 py-1 shadow-lg ring-1
-                                    ring-black/5 dark:ring-white/10 focus:outline-none">
-                                    {/* [بهینه] منطق نمایش لودینگ و نتایج */}
+                                    bg-backgroundL-500 dark:bg-backgroundD py-1 shadow-lg ring-1
+                                    ring-borderL dark:ring-borderD focus:outline-none">
                                     {isLoadingEmployees && employeeQuery.length > 1 && (
                                         <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
                                             در حال جستجو...
@@ -185,7 +162,7 @@ export const NewReportForm = ({
                                     ))}
                                 </Combobox.Options>
                                 {fieldState.error && (
-                                    <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">
+                                    <p className="text-xs text-destructiveL-foreground dark:text-destructiveD-foreground mt-1">
                                         {fieldState.error.message}
                                     </p>
                                 )}
@@ -194,7 +171,7 @@ export const NewReportForm = ({
                     />
                 </div>
 
-                {/* --- فیلد نوع فعالیت (بدون تغییر) --- */}
+                {/* --- فیلد نوع فعالیت --- */}
                 <div className="md:col-span-1">
                     <Controller
                         name="event_type"
@@ -213,7 +190,7 @@ export const NewReportForm = ({
                     />
                 </div>
 
-                {/* --- فیلد تاریخ (بدون تغییر) --- */}
+                {/* --- فیلد تاریخ --- */}
                 <div className="md:col-span-1">
                     <Controller
                         name="date"
@@ -232,7 +209,7 @@ export const NewReportForm = ({
                 </div>
 
 
-                {/* --- فیلد ساعت (بدون تغییر) --- */}
+                {/* --- فیلد ساعت --- */}
                 <div className="md:col-span-1">
                     <Controller
                         name="time"
@@ -264,8 +241,6 @@ export const NewReportForm = ({
                                         ساعت
                                     </label>
                                     <div className="flex gap-2">
-
-                                        {/* ۱. دراپ‌داون ساعت */}
                                         <SelectBox
                                             label=""
                                             options={hourOptions}
@@ -275,8 +250,6 @@ export const NewReportForm = ({
                                             disabled={isSubmitting}
                                             className="w-1/2"
                                         />
-
-                                        {/* ۲. دراپ‌داون دقیقه */}
                                         <SelectBox
                                             label=""
                                             options={minuteOptions}
@@ -287,10 +260,8 @@ export const NewReportForm = ({
                                             className="w-1/2"
                                         />
                                     </div>
-
-                                    {/* نمایش پیام خطای اعتبارسنجی Zod (فقط یک بار) */}
                                     {fieldState.error && (
-                                        <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">
+                                        <p className="text-xs text-destructiveL-foreground dark:text-destructiveD-foreground mt-1">
                                             {fieldState.error.message}
                                         </p>
                                     )}
@@ -301,7 +272,7 @@ export const NewReportForm = ({
                 </div>
 
 
-                {/* --- فیلد ملاحظات (بدون تغییر) --- */}
+                {/* --- فیلد ملاحظات --- */}
                 <div className="md:col-span-2">
                     <label htmlFor="remarks" className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">ملاحظات (دلیل ثبت دستی)</label>
                     <Textarea
@@ -310,21 +281,20 @@ export const NewReportForm = ({
                         {...register('remarks')}
                         rows={3}
                         disabled={isSubmitting}
-                        className={`w-full p-3 border rounded-xl bg-backgroundL-DEFAULT dark:bg-backgroundD-800
-                        ${errors.remarks ? 'border-destructiveL dark:border-destructiveD focus:ring-destructiveL' : 'border-borderL dark:border-borderD focus:ring-primaryL'}
+                        className={`w-full p-3 border rounded-xl bg-backgroundL-500 dark:bg-backgroundD
+                        ${errors.remarks ? 'border-destructiveL-foreground dark:border-destructiveD-foreground focus:ring-destructiveL-foreground' : 'border-borderL dark:border-borderD focus:ring-primaryL'}
                         focus:outline-none focus:ring-2 transition-colors`}
                         placeholder="مثال: فراموشی ثبت ورود در زمان مقرر"
                     />
-                    {errors.remarks && <p className="text-xs text-destructiveL dark:text-destructiveD mt-1">{errors.remarks.message}</p>}
+                    {errors.remarks && <p className="text-xs text-destructiveL-foreground dark:text-destructiveD-foreground mt-1">{errors.remarks.message}</p>}
                 </div>
             </div>
 
-            {/* --- دکمه‌ها (بدون تغییر) --- */}
+            {/* --- دکمه‌ها --- */}
             <div className="flex justify-start gap-4 mt-8 pt-6 border-t border-borderL dark:border-borderD">
                 <Button
                     variant='primary'
                     type="submit"
-                    // [بهینه] لودر کارمندان دیگر اینجا چک نمی‌شود
                     disabled={isSubmitting}
                     className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium shadow-md
                       bg-primaryL text-primary-foregroundL
@@ -339,11 +309,11 @@ export const NewReportForm = ({
                     variant='secondary'
                     type="button"
                     onClick={onCancel}
-                    disabled={isSubmitting} // [بهینه] لودر کارمندان دیگر اینجا چک نمی‌شود
+                    disabled={isSubmitting}
                     className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium
-                      bg-backgroundL-700 text-foregroundL
-                      dark:bg-backgroundD-700 dark:text-foregroundD
-                      hover:bg-backgroundL-800 dark:hover:bg-backgroundD-800
+                      bg-secondaryL text-secondary-foregroundL
+                      dark:bg-secondaryD dark:text-secondary-foregroundD
+                      hover:bg-secondaryL/80 dark:hover:bg-secondaryD/80
                       disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     لغو

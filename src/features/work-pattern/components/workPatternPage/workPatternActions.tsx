@@ -1,12 +1,12 @@
 import { Trash2, Edit, Users, Cpu, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useDeleteWeekPattern } from '@/features/work-pattern/hooks/useDeleteWeekPattern';
+import { useDeleteWeekPattern } from '@/features/work-pattern/hooks/api/useDeleteWeekPattern';
 import { useState } from 'react';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useDeleteShiftSchedule } from '@/features/shift-schedule/hooks/hook';
-import { Dialog } from '@/components/ui/Dialog';
+// ❌ حذف Dialog اضافه، چون GenerateShiftsForm خودش Modal داخلی دارد
+// import { Dialog } from '@/components/ui/Dialog';
 import { GenerateShiftsForm } from '@/features/shift-schedule/components/GenerateShiftsForm';
-// import clsx from 'clsx';
 import { Button } from '@/components/ui/Button';
 
 interface WorkPatternActionsProps {
@@ -49,6 +49,7 @@ export const WorkPatternActions = ({
       },
       onError: (error) => {
         console.error("Delete failed:", error);
+        setIsDeleteModalOpen(false);
       }
     });
   };
@@ -96,7 +97,7 @@ export const WorkPatternActions = ({
 
           {isShiftSchedule && (
             <Button
-              variant="primary" // Primary style for emphasize
+              variant="primary"
               onClick={() => setIsGenerateModalOpen(true)}
               disabled={!isPatternSelected || isDeleting}
               className="justify-start h-10 bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20 shadow-md mt-2"
@@ -134,19 +135,20 @@ export const WorkPatternActions = ({
           onConfirm={confirmDelete}
           title="حذف الگو"
           message={`آیا از حذف «${selectedPatternName}» مطمئن هستید؟ این عملیات غیرقابل بازگشت است.`}
-          confirmText={isDeleting ? '...' : 'بله، حذف کن'}
+          confirmText="بله، حذف کن"
           variant="danger"
+          isLoading={isDeleting}
         />
       )}
 
+      {/* ✅ اصلاح شده: GenerateShiftsForm مستقیماً رندر می‌شود و isOpen را دریافت می‌کند */}
       {selectedPatternId && isShiftSchedule && (
-        <Dialog open={isGenerateModalOpen} onClose={() => setIsGenerateModalOpen(false)}>
-          <GenerateShiftsForm
-            shiftScheduleId={selectedPatternId}
-            shiftScheduleName={selectedPatternName || ''}
-            onClose={() => setIsGenerateModalOpen(false)}
-          />
-        </Dialog>
+        <GenerateShiftsForm
+          isOpen={isGenerateModalOpen}
+          shiftScheduleId={selectedPatternId}
+          shiftScheduleName={selectedPatternName || ''}
+          onClose={() => setIsGenerateModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -1,84 +1,72 @@
-
-import { useParams } from 'react-router-dom';
-
-// --- کامپوننت‌های UI (اصلاح مسیر و حروف کوچک) ---
+import { useParams, useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
-
-// --- هوک‌ها (اصلاح مسیر) ---
+import { Button } from '@/components/ui/Button';
 import { useUser } from '@/features/User/hooks/hook';
-
-// --- آیکون‌ها ---
-import { Loader2, Info } from 'lucide-react';
-
-// --- ✅ کامپوننت‌های اسپلیت‌شده (اصلاح مسیر - حذف پوشه اضافی) ---
+import { Info, ArrowRight } from 'lucide-react';
 import UserProfileSidebar from './UserProfileSidebar';
 import ProfileTabs from './ProfileTabs';
+import { UserProfileSkeleton } from '@/features/User/components/userPage/UserProfileSkeleton';
 
-/**
- * کامپوننت اصلی صفحه پروفایل کاربر
- * (این کامپوننت در روت /users/:userId رندر می‌شود)
- */
 function UserProfilePage() {
+    const navigate = useNavigate();
     const { userId } = useParams<{ userId: string }>();
     const numericUserId = Number(userId);
 
-    // --- ۱. فچ کردن داده‌ها ---
-    const {
-        data: user,
-        isLoading,
-        isError,
-        error
-    } = useUser(numericUserId);
+    const { data: user, isLoading, isError, error } = useUser(numericUserId);
 
-    // --- مدیریت حالت لودینگ ---
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-screen" dir="rtl">
-                <Loader2 className="h-12 w-12 animate-spin text-primaryL" />
-                <span className="mr-3">در حال بارگذاری اطلاعات کاربر...</span>
-            </div>
-        );
-    }
+    if (isLoading) return <UserProfileSkeleton />;
 
-    // --- مدیریت حالت خطا ---
     if (isError) {
         return (
-            <div className="p-8" dir="rtl">
+            <div className="p-8 space-y-4" dir="rtl">
                 <Alert variant="destructive">
                     <Info className="h-4 w-4" />
                     <AlertTitle>خطا</AlertTitle>
-                    <AlertDescription>
-                        {(error as Error)?.message || "خطا در دریافت اطلاعات کاربر."}
-                    </AlertDescription>
+                    <AlertDescription>{(error as Error)?.message || "خطا در دریافت اطلاعات کاربر."}</AlertDescription>
                 </Alert>
+                <Button variant="outline" onClick={() => navigate(-1)}>
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                    بازگشت
+                </Button>
             </div>
         );
     }
 
-    // --- مدیریت عدم وجود کاربر ---
     if (!user) {
-        return <div className="p-8 text-center" dir="rtl">کاربری یافت نشد.</div>;
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] gap-4" dir="rtl">
+                <p className="text-muted-foregroundL dark:text-muted-foregroundD">کاربری با این شناسه یافت نشد.</p>
+                <Button variant="outline" onClick={() => navigate(-1)}>
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                    بازگشت به لیست
+                </Button>
+            </div>
+        );
     }
 
-    // --- ۲. چیدمان صفحه (Layout) ---
     return (
-        <div className="flex flex-col md:flex-row m-2  md:p-0  mx-auto  md:gap-2" dir="rtl">
+        <div className="space-y-4 m-2 md:p-0 mx-auto max-w-7xl" dir="rtl">
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD shadow-sm">
+                <div>
+                    <h1 className="text-xl font-bold text-foregroundL dark:text-foregroundD">پرونده الکترونیک کارمند</h1>
+                    <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1">مدیریت اطلاعات فردی، سازمانی و دسترسی‌ها</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="hover:bg-secondaryL dark:hover:bg-secondaryD">
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                    بازگشت
+                </Button>
+            </div>
 
-            {/* سایدبار پروفایل (سمت راست در RTL) */}
-            <aside className="w-full md:w-1/3 lg:w-1/4">
-                {/* ✅ استفاده از کامپوننت ایمپورت‌شده */}
-                <UserProfileSidebar user={user} />
-            </aside>
-
-            {/* محتوای اصلی (سمت چپ در RTL) */}
-            <main className="flex-1  p-4 rounded-lg   bg-backgroundL-500 dark:bg-backgroundD">
-                {/* ✅ استفاده از کامپوننت ایمپورت‌شده */}
-                <ProfileTabs user={user} />
-            </main>
+            <div className="flex flex-col lg:flex-row gap-4">
+                <aside className="w-full lg:w-1/4 xl:w-1/5 shrink-0">
+                    <UserProfileSidebar user={user} />
+                </aside>
+                <main className="flex-1 min-w-0 p-4 rounded-xl border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD shadow-sm">
+                    <ProfileTabs user={user} />
+                </main>
+            </div>
         </div>
     );
 }
 
 export default UserProfilePage;
-
-

@@ -13,11 +13,13 @@ interface WorkCalendarGridProps {
     activeTool: ActiveTool;
 }
 
-const CELL_SIZE = "min-w-[2rem] h-8"; // min-w برای جلوگیری از جمع شدن در موبایل
+// --- ثابت‌های ابعادی برای هماهنگی دقیق اسکلتون و محتوا ---
+const CELL_SIZE = "min-w-[2rem] h-8"; // عرض و ارتفاع ثابت سلول‌ها
 const CELL_GAP = "gap-1";
 const MONTH_NAME_WIDTH = "w-20 md:w-24";
 
-// هدر اعداد ۱ تا ۳۱
+// --- کامپوننت هدر (شماره روزها) ---
+// چون این بخش وابسته به دیتا نیست، همیشه نمایش داده می‌شود
 const DayHeader = React.memo(() => {
     return (
         <div className="flex items-center mb-3" style={{ direction: 'rtl' }}>
@@ -38,25 +40,51 @@ const DayHeader = React.memo(() => {
     );
 });
 
-// کامپوننت لودینگ (Skeleton)
-const GridSkeleton = () => (
-    <div className="animate-pulse space-y-2">
-        {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex items-center gap-2 rtl:space-x-reverse">
-                <div className="w-20 h-8 bg-gray-200 dark:bg-gray-700 rounded" />
-                <div className="flex-1 h-8 bg-gray-100 dark:bg-gray-800 rounded" />
-            </div>
-        ))}
-    </div>
-);
+// --- کامپوننت اسکلتون دقیق (Skeleton) ---
+// این کامپوننت دقیقاً جایگزین ردیف‌های ماه می‌شود
+const CalendarSkeleton = () => {
+    // آرایه‌هایی برای تولید ۱۲ ماه و ۳۱ روز فیک
+    const months = Array.from({ length: 12 });
+    const days = Array.from({ length: 31 });
+
+    return (
+        <div className="space-y-1.5" style={{ direction: 'ltr' }}>
+            {months.map((_, mIndex) => (
+                <div key={`skeleton-month-${mIndex}`} className="flex items-center animate-pulse">
+                    
+                    {/* ردیف روزهای اسکلتون - دقیقاً مشابه ساختار اصلی */}
+                    {/* از flex-row-reverse استفاده می‌کنیم تا ترتیب چیدمان با حالت واقعی یکی باشد */}
+                    <div className={`flex flex-row-reverse ${CELL_GAP} px-1`}>
+                        {days.map((_, dIndex) => (
+                            <div 
+                                key={`skeleton-day-${dIndex}`} 
+                                className={`${CELL_SIZE} rounded-md bg-secondaryL/30 dark:bg-secondaryD/20 border border-transparent`}
+                            />
+                        ))}
+                    </div>
+
+                    {/* نام ماه اسکلتون */}
+                    <div className={`${MONTH_NAME_WIDTH} shrink-0 pl-2 text-right flex justify-end`}>
+                        {/* یک باکس خاکستری به جای متن نام ماه */}
+                        <div className="h-5 w-14 bg-secondaryL/40 dark:bg-secondaryD/30 rounded-md" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 export const WorkCalendarGrid: React.FC<WorkCalendarGridProps> = ({
     jalaliYear,
     isEditing,
     activeTool
 }) => {
+    // محاسبه گرید سال (این عملیات سریع و همزمان است)
     const yearGrid = useMemo(() => generateJalaliYearGrid(jalaliYear), [jalaliYear]);
+    
+    // دریافت دیتا از API (این بخش ناهمگام است)
     const { data: holidayMap, isLoading } = useGetHolidays(jalaliYear);
+    
     const createHolidayMutation = useCreateHoliday();
     const deleteHolidayMutation = useDeleteHoliday();
 
@@ -79,7 +107,8 @@ export const WorkCalendarGrid: React.FC<WorkCalendarGridProps> = ({
         }
     };
 
-    if (isLoading) return <GridSkeleton />;
+    // نکته مهم: دیگر کل کامپوننت را با Loading جایگزین نمی‌کنیم.
+    // کانتینر اصلی همیشه رندر می‌شود تا پرش لایوت نداشته باشیم.
 
     return (
         <div className="bg-backgroundL-500 rounded-xl shadow-sm border border-borderL dark:bg-backgroundD dark:border-borderD overflow-hidden">
@@ -87,49 +116,56 @@ export const WorkCalendarGrid: React.FC<WorkCalendarGridProps> = ({
             <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ direction: 'rtl' }}>
                 <div className="min-w-max p-2 ltr">
 
-                    {/* هدر */}
+                    {/* هدر همیشه نمایش داده می‌شود */}
                     <DayHeader />
 
-                    <div className="space-y-1.5" style={{ direction: 'ltr' }}>
-                        {yearGrid.map(month => (
-                            <div key={month.name} className="flex items-center group">
+                    {isLoading ? (
+                        /* نمایش اسکلتون دقیق در زمان لودینگ */
+                        <CalendarSkeleton />
+                    ) : (
+                        /* نمایش محتوای اصلی پس از لود */
+                        <div className="space-y-1.5" style={{ direction: 'ltr' }}>
+                            {yearGrid.map(month => (
+                                <div key={month.name} className="flex items-center group">
 
-                                {/* ردیف روزها */}
-                                <div className={`flex flex-row-reverse ${CELL_GAP} px-1`}>
-                                    {month.days.map((day) => {
-                                        if (day.date !== null && day.gregorianDate) {
-                                            const holiday = holidayMap ? holidayMap[day.gregorianDate] : undefined;
-                                            return (
-                                                <DayCell
-                                                    key={day.key}
-                                                    className={CELL_SIZE}
-                                                    date={day.gregorianDate}
-                                                    holiday={holiday}
-                                                    isEditing={isEditing}
-                                                    onClick={() => handleDayClick(day.gregorianDate, day.date, holiday)}
-                                                    weekDayShort={day.weekDayShort}
-                                                    dayNumber={day.dayOfMonth}
-                                                />
-                                            );
-                                        } else {
-                                            // سلول خالی با استایل ملایم
-                                            return (
-                                                <div key={day.key} className={`${CELL_SIZE} bg-gray-50/50 dark:bg-white/5 rounded-md`} />
-                                            );
-                                        }
-                                    })}
+                                    {/* ردیف روزها */}
+                                    <div className={`flex flex-row-reverse ${CELL_GAP} px-1`}>
+                                        {month.days.map((day) => {
+                                            if (day.date !== null && day.gregorianDate) {
+                                                const holiday = holidayMap ? holidayMap[day.gregorianDate] : undefined;
+                                                return (
+                                                    <DayCell
+                                                        key={day.key}
+                                                        className={CELL_SIZE}
+                                                        date={day.gregorianDate}
+                                                        holiday={holiday}
+                                                        isEditing={isEditing}
+                                                        onClick={() => handleDayClick(day.gregorianDate, day.date, holiday)}
+                                                        weekDayShort={day.weekDayShort}
+                                                        dayNumber={day.dayOfMonth}
+                                                    />
+                                                );
+                                            } else {
+                                                // سلول خالی (Padding) انتهای ماه
+                                                return (
+                                                    <div key={day.key} className={`${CELL_SIZE} bg-gray-50/50 dark:bg-white/5 rounded-md`} />
+                                                );
+                                            }
+                                        })}
+                                    </div>
+                                    
+                                    {/* نام ماه */}
+                                    <span className={`${MONTH_NAME_WIDTH} shrink-0 text-sm font-bold text-foregroundL/80 dark:text-foregroundD/80 pl-2 text-right`}>
+                                        {month.name}
+                                    </span>
                                 </div>
-                                {/* نام ماه - چسبیده به سمت راست (در نمای LTR میشه چپ، ولی چون فلکس Reverse داریم هندل میشه) */}
-                                <span className={`${MONTH_NAME_WIDTH} shrink-0 text-sm font-bold text-foregroundL/80 dark:text-foregroundD/80 pl-2 text-right`}>
-                                    {month.name}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* راهنما برای موبایل که اسکرول کنند */}
+            {/* راهنما برای موبایل */}
             <div className="md:hidden text-center text-[10px] text-muted-foregroundL/60 py-1 bg-secondaryL/20">
                 برای مشاهده روزهای بیشتر به چپ و راست اسکرول کنید
             </div>

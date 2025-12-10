@@ -1,6 +1,7 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
-import axiosInstance, { AUTH_MODE } from "@/lib/AxiosConfig";
+import axiosInstance from "@/lib/AxiosConfig";
+import { AppConfig } from "@/config"; // ✅ ایمپورت کانفیگ مرکزی
 
 declare global {
   interface Window {
@@ -34,7 +35,7 @@ export const onEchoReady = (callback: EchoCallback) => {
  */
 const notifyListeners = (echo: Echo<any>) => {
   listeners.forEach((callback) => callback(echo));
-  listeners = []; // بعد از اطلاع‌رسانی لیست را خالی می‌کنیم (یا نگه می‌داریم بسته به نیاز)
+  listeners = [];
 };
 
 const logStyles = {
@@ -58,12 +59,15 @@ const logSocket = (level: LogLevel, message: string, data?: any) => {
 export const initEcho = (token?: string | null): Echo<any> | null => {
   if (typeof window === "undefined") return null;
 
-  if (AUTH_MODE === "token" && !token) {
+  // ✅ دریافت حالت احراز هویت از کانفیگ مرکزی
+  const authMode = AppConfig.AUTH_MODE;
+
+  if (authMode === "token" && !token) {
     logSocket("error", "تلاش برای اتصال سوکت بدون توکن (در مود token)!");
     return null;
   }
 
-  // اگر قبلا متصل شده، همان را برگردان و کانکتور را چک کن
+  // اگر قبلا متصل شده، همان را برگردان
   if (window.EchoInstance) {
     const connector = window.EchoInstance.connector as any;
     if (
@@ -72,41 +76,50 @@ export const initEcho = (token?: string | null): Echo<any> | null => {
     ) {
       connector.pusher.connect();
     }
-    // حتی اگر موجود است، شاید لیسنرهای جدید اضافه شده باشند
     notifyListeners(window.EchoInstance);
     return window.EchoInstance;
   }
 
-  logSocket("info", `🚀 در حال اتصال به سوکت (حالت: ${AUTH_MODE})...`);
+  logSocket("info", `🚀 در حال اتصال به سوکت (حالت: ${authMode})...`);
 
-  const PUSHER_KEY = import.meta.env.VITE_PUSHER_APP_KEY;
-  const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_APP_CLUSTER || "mt1";
-  const PUSHER_HOST =
-    import.meta.env.VITE_PUSHER_HOST || window.location.hostname;
-  const FORCE_TLS = import.meta.env.VITE_PUSHER_FORCE_TLS === "true";
-  const defaultPort = FORCE_TLS ? 443 : 80;
-  const PUSHER_PORT = Number(import.meta.env.VITE_PUSHER_PORT) || defaultPort;
+  // ✅ خواندن تنظیمات از AppConfig (داکر فرندلی)
+  const PUSHER_KEY = AppConfig.PUSHER.APP_KEY;
+  const PUSHER_CLUSTER = AppConfig.PUSHER.CLUSTER || "mt1";
+  const PUSHER_HOST = AppConfig.PUSHER.HOST || window.location.hostname;
 
-  const apiBaseEnv =
-    import.meta.env.VITE_API_BASE_URL || "http://payesh.eitebar.ir/api";
+  // ✅ تشخیص TLS بر اساس اسکیم (http/https) تعریف شده در کانفیگ
+  const useTls = AppConfig.PUSHER.SCHEME === "https";
+
+  const defaultPort = useTls ? 443 : 80;
+  const PUSHER_PORT = AppConfig.PUSHER.PORT || defaultPort;
+
+  // ✅ ساخت آدرس Auth با استفاده از API_URL کانفیگ
+  const apiBaseEnv = AppConfig.API_URL;
+  // حذف /api از انتهای آدرس برای رسیدن به روت، سپس اضافه کردن مسیر broadcasting
   const rootUrl = apiBaseEnv.replace(/\/api\/?$/, "");
   const authEndpointUrl = `${rootUrl}/broadcasting/auth`;
 
   const options = {
-    broadcaster: "pusher" as const,
+    broadcaster: "reverb", // یا "pusher"
     key: PUSHER_KEY,
     cluster: PUSHER_CLUSTER,
     wsHost: PUSHER_HOST,
     wsPort: PUSHER_PORT,
     wssPort: PUSHER_PORT,
-    forceTLS: FORCE_TLS,
+    forceTLS: useTls,
+    encrypted: useTls,
     disableStats: true,
-    enabledTransports: ["ws", "wss"] as any,
-    authorizer: (channel: any, _options: any) => {
+    enabledTransports: ["ws", "wss"],
+    // 🗑️ پارامتر _options حذف شد چون استفاده نمی‌شد
+    authorizer: (channel: any) => {
       return {
-        authorize: (socketId: string, callback: Function) => {
+        // 🔧 تایپ Function با یک تایپ دقیق (Error-first callback) جایگزین شد
+        authorize: (
+          socketId: string,
+          callback: (error: any, data?: any) => void
+        ) => {
           const headers: Record<string, string> = {};
-          if (AUTH_MODE === "token" && token) {
+          if (authMode === "token" && token) {
             headers["Authorization"] = `Bearer ${token}`;
           }
 
@@ -138,6 +151,7 @@ export const initEcho = (token?: string | null): Echo<any> | null => {
   };
 
   try {
+    // @ts-expect-error Echo options type mismatch with custom authorizer
     const echoInstance = new Echo(options);
     window.EchoInstance = echoInstance;
 
@@ -156,12 +170,10 @@ export const initEcho = (token?: string | null): Echo<any> | null => {
           "✅ سوکت کاملاً متصل شد.",
           `ID: ${echoInstance.socketId()}`
         );
-        // 🔥 مهم: اینجا به تمام هوک‌ها خبر می‌دهیم که سوکت آماده است
         notifyListeners(echoInstance);
       });
     }
 
-    // برای اطمینان اولیه هم نوتیفای می‌کنیم (شاید pusher هنوز وصل نشده باشد اما آبجکت ساخته شده)
     notifyListeners(echoInstance);
     return echoInstance;
   } catch (error) {
@@ -182,6 +194,6 @@ export const disconnectEcho = (): void => {
     logSocket("warning", "قطع اتصال Echo.");
     window.EchoInstance.disconnect();
     window.EchoInstance = null;
-    listeners = []; // پاکسازی لیسنرها
+    listeners = [];
   }
 };

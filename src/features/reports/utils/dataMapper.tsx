@@ -23,7 +23,7 @@ export const mapApiLogToActivityLog = (
 
     // 1. حذف Z برای جلوگیری از تغییر ساعت توسط مرورگر (Local Time Strategy)
     const rawTimestamp = apiLog.timestamp.replace('Z', '').replace('+00:00', '');
-    
+
     // 2. ساخت آبجکت تاریخ
     const timestamp = new Date(rawTimestamp);
 
@@ -32,14 +32,14 @@ export const mapApiLogToActivityLog = (
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        calendar: "persian" 
-    }).format(timestamp); 
+        calendar: "persian"
+    }).format(timestamp);
 
     // 4. استخراج ساعت
     const timeString = new Intl.DateTimeFormat("fa-IR", {
         hour: "2-digit",
         minute: "2-digit",
-        hour12: false, 
+        hour12: false,
     }).format(timestamp);
 
 
@@ -54,11 +54,15 @@ export const mapApiLogToActivityLog = (
         ? apiLog.employee.personnel_code || `ID: ${employeeIdNum}`
         : `ID: ${apiLog.employee_id}`;
 
-    // استخراج آواتار
-    let employeeAvatar = apiLog.employee?.avatarUrl;
+    // --- [شروع اصلاحیه حیاتی برای نمایش عکس در سوکت] ---
+    // منطق: اولویت با avatarUrl (استاندارد فرانت) -> سپس avatar_url (استاندارد بکند/سوکت) -> سپس آرایه images
+    let employeeAvatar = apiLog.employee?.avatarUrl || apiLog.employee?.avatar_url;
+
+    // اگر هنوز خالی بود، چک کردن آرایه تصاویر
     if (!employeeAvatar && apiLog.employee?.images && apiLog.employee.images.length > 0) {
         employeeAvatar = apiLog.employee.images[0].url;
     }
+    // --- [پایان اصلاحیه] ---
 
     const isManual = apiLog.source_type !== "auto";
     const isAllowed = apiLog.is_allowed === undefined ? true : apiLog.is_allowed;

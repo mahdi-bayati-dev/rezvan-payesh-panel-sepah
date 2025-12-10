@@ -30,7 +30,6 @@ const EditShiftScheduleFormSkeleton = lazy(() => import('../features/shift-sched
 const AddToWorkPatternPage = lazy(() => import("../features/work-pattern/routes/AddToWorkPatternPage"));
 const WorkGroupPage = lazy(() => import("../features/work-group/routes/workGroupPage"))
 const WorkGroupDetailPage = lazy(() => import("../features/work-group/routes/workGroupDetailPage"))
-const NewWorkGroupDetailPage = lazy(() => import("../features/work-group/routes/NewWorkGroupPage"))
 const WorkGroupAssignmentPage = lazy(() => import("../features/work-group/routes/WorkGroupAssignmentPage"));
 const OrganizationPage = lazy(() => import('../features/Organization/routes/OrganizationPage'))
 const OrganizationDetailPage = lazy(() => import('../features/Organization/components/OrganizationDetailPage/OrganizationDetailPage'))
@@ -202,10 +201,7 @@ export const router = createBrowserRouter([
                 path: "work-groups",
                 element: <Suspense fallback={<RouteSpinner />}><WorkGroupPage /></Suspense>,
               },
-              {
-                path: "work-groups/new",
-                element: <Suspense fallback={<RouteSpinner />}><NewWorkGroupDetailPage /></Suspense>,
-              },
+
               {
                 path: "work-groups/:id/assign",
                 element: <Suspense fallback={<RouteSpinner />}><WorkGroupAssignmentPage /></Suspense>,

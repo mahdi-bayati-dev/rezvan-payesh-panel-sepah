@@ -76,15 +76,15 @@ const LoginForm = () => {
   }, [authStatus, authError]);
 
   return (
-    <div className="w-full max-w-sm rounded-t-3xl md:rounded-t-3xl md:rounded-b-0 bg-white/40 p-4 shadow-2xl backdrop-blur-sm sm:p-8 dark:bg-black/50 animate-in fade-in zoom-in-95 duration-300">
+    <div className="w-full max-w-sm rounded-t-3xl md:rounded-t-3xl md:rounded-b-0 bg-backgroundL-500/60 p-4 shadow-2xl backdrop-blur-md sm:p-8 dark:bg-backgroundD/60 animate-in fade-in zoom-in-95 duration-300 border border-white/20 dark:border-zinc-800">
       <div className="text-center">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-white">ورود</h2>
+        <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">ورود</h2>
         <span className="my-2 flex items-center">
-          <span className="h-px flex-1 bg-borderL/50"></span>
-          <span className="shrink-0 px-2 text-sm text-borderD sm:px-4 dark:text-backgroundL-500">
+          <span className="h-px flex-1 bg-borderL/50 dark:bg-borderD/50"></span>
+          <span className="shrink-0 px-2 text-sm text-muted-foregroundL sm:px-4 dark:text-muted-foregroundD">
             خوش آمدید
           </span>
-          <span className="h-px flex-1 bg-borderL/50"></span>
+          <span className="h-px flex-1 bg-borderL/50 dark:bg-borderD/50"></span>
         </span>
         <div className="flex flex-col items-center justify-center sm:flex-row gap-2">
           <img
@@ -92,7 +92,7 @@ const LoginForm = () => {
             alt="لوگوی رضوان پایش"
             className="h-16 w-auto sm:h-20 object-contain"
           />
-          <p className="text-xl font-bold text-gray-700 sm:text-2xl dark:text-gray-200">
+          <p className="text-xl font-bold text-foregroundL sm:text-2xl dark:text-foregroundD">
             رضـــوان پایش
           </p>
         </div>
@@ -105,7 +105,7 @@ const LoginForm = () => {
           type="text"
           autoComplete="username"
           placeholder="نام کاربری خود را وارد کنید"
-          icon={<User className="h-5 w-5 text-gray-400" />}
+          icon={<User className="h-5 w-5 text-muted-foregroundL dark:text-muted-foregroundD" />}
           {...register('username')}
           error={errors.username?.message}
           disabled={isLoading}
@@ -117,14 +117,14 @@ const LoginForm = () => {
           type="password"
           autoComplete="current-password"
           placeholder="رمز عبور خود را وارد کنید"
-          icon={<Lock className="h-5 w-5 text-gray-400" />}
+          icon={<Lock className="h-5 w-5 text-muted-foregroundL dark:text-muted-foregroundD" />}
           {...register('password')}
           error={errors.password?.message}
           disabled={isLoading}
         />
 
         {authStatus === 'failed' && authError && (
-          <Alert variant="destructive" className="py-2">
+          <Alert variant="destructive" className="py-2 bg-destructiveL-background text-destructiveL-foreground border-destructiveL-foreground/10 dark:bg-destructiveD-background dark:text-destructiveD-foreground">
             <AlertDescription className="text-center font-medium">
               {authError}
             </AlertDescription>
@@ -135,7 +135,7 @@ const LoginForm = () => {
           <Button
             type="submit"
             variant="primary"
-            className="w-full shadow-lg hover:shadow-primaryL/25 dark:hover:shadow-primaryD/20"
+            className="w-full shadow-lg bg-primaryL text-primary-foregroundL hover:bg-primaryL/90 dark:bg-primaryD dark:text-primary-foregroundD shadow-primaryL/25 dark:shadow-none"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -172,7 +172,7 @@ const LoginForm = () => {
         size="md"
       >
         <ModalHeader onClose={() => setIsRegisterModalOpen(false)}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-foregroundL dark:text-foregroundD">
             <UserPlus className="h-5 w-5 text-primaryL dark:text-primaryD" />
             <span>راهنمای ایجاد حساب کاربری</span>
           </div>
@@ -200,7 +200,7 @@ const LoginForm = () => {
             </div>
 
             <Button
-              className="w-full mt-4"
+              className="w-full mt-4 bg-primaryL text-primary-foregroundL hover:bg-primaryL/90 dark:bg-primaryD dark:text-primary-foregroundD"
               onClick={() => setIsRegisterModalOpen(false)}
             >
               متوجه شدم

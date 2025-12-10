@@ -60,16 +60,16 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
     const isFormValid = status === 'approved' || (status === 'rejected' && description.trim().length > 0);
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} size="xl">
+        <Modal isOpen={isOpen} onClose={onClose} size="3xl">
             {/* --- هدر مدال --- */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-borderL dark:border-borderD">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">تایید پروفایل</h3>
-                    <span className="text-sm font-mono text-gray-400">#{request.id}</span>
+                    <h3 className="text-lg font-bold text-foregroundL dark:text-foregroundD">تایید پروفایل</h3>
+                    <span className="text-sm font-mono text-muted-foregroundL dark:text-muted-foregroundD">#{request.id}</span>
                 </div>
                 <button
                     onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    className="text-muted-foregroundL cursor-pointer hover:text-foregroundL dark:text-muted-foregroundD dark:hover:text-foregroundD transition-colors"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -78,12 +78,12 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
             <ModalBody >
                 <div className="flex flex-col md:flex-row min-h-[450px]" dir="rtl">
                     {/* --- ستون راست: مشخصات و عکس --- */}
-                    <div className="w-full md:w-3/5 p-8 bg-gray-50/80 dark:bg-black/20 flex flex-col items-center">
-                        <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-8 text-lg">مشخصات</h4>
+                    <div className="w-full md:w-3/5 p-8 bg-secondaryL/20 dark:bg-secondaryD/10 flex flex-col items-center">
+                        <h4 className="font-bold text-foregroundL dark:text-foregroundD mb-8 text-lg">مشخصات</h4>
 
                         {/* عکس پروفایل */}
                         <div className="relative mb-8 group">
-                            <div className="w-56 h-56 rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-gray-700 bg-gray-200">
+                            <div className="w-56 h-56 rounded-3xl overflow-hidden shadow-2xl border-4 border-backgroundL-500 dark:border-borderD bg-secondaryL dark:bg-secondaryD">
                                 {imageUrl ? (
                                     <img
                                         src={imageUrl}
@@ -91,13 +91,13 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                    <div className="w-full h-full flex items-center justify-center text-muted-foregroundL dark:text-muted-foregroundD">
                                         <User className="w-16 h-16" />
                                     </div>
                                 )}
                             </div>
                             {/* بج روی عکس */}
-                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap">
+                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-infoL-background text-infoL-foreground dark:bg-infoD-background dark:text-infoD-foreground px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap border border-infoL-foreground/10">
                                 {request.employee.position || "کارمند"}
                             </div>
                         </div>
@@ -105,33 +105,33 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
                         {/* اطلاعات فردی */}
                         <div className="w-full space-y-5 px-4">
                             <div className="text-center mb-6">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{fullName}</h2>
-                                <p className="text-gray-500 dark:text-gray-400 font-mono text-sm mt-1">{request.employee.personnel_code}</p>
+                                <h2 className="text-xl font-bold text-foregroundL dark:text-foregroundD">{fullName}</h2>
+                                <p className="text-muted-foregroundL dark:text-muted-foregroundD font-mono text-sm mt-1">{request.employee.personnel_code}</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm w-full max-w-sm mx-auto">
-                                <div className="text-left text-gray-500 dark:text-gray-400">نام و نام خانوادگی</div>
-                                <div className="text-right font-medium text-gray-800 dark:text-gray-200">{fullName}</div>
+                                <div className="text-left text-muted-foregroundL dark:text-muted-foregroundD">نام و نام خانوادگی</div>
+                                <div className="text-right font-medium text-foregroundL dark:text-foregroundD">{fullName}</div>
 
-                                <div className="col-span-2 border-b border-gray-200 dark:border-gray-700/50 border-dashed opacity-50"></div>
+                                <div className="col-span-2 border-b border-borderL dark:border-borderD border-dashed opacity-50"></div>
 
-                                <div className="text-left text-gray-500 dark:text-gray-400">سازمان</div>
-                                <div className="text-right font-medium text-gray-800 dark:text-gray-200 truncate" title={request.employee.organization?.name}>
+                                <div className="text-left text-muted-foregroundL dark:text-muted-foregroundD">سازمان</div>
+                                <div className="text-right font-medium text-foregroundL dark:text-foregroundD truncate" title={request.employee.organization?.name}>
                                     {request.employee.organization?.name || "---"}
                                 </div>
 
-                                <div className="col-span-2 border-b border-gray-200 dark:border-gray-700/50 border-dashed opacity-50"></div>
+                                <div className="col-span-2 border-b border-borderL dark:border-borderD border-dashed opacity-50"></div>
 
-                                <div className="text-left text-gray-500 dark:text-gray-400">گروه کاری</div>
-                                <div className="text-right font-medium text-gray-800 dark:text-gray-200">
+                                <div className="text-left text-muted-foregroundL dark:text-muted-foregroundD">گروه کاری</div>
+                                <div className="text-right font-medium text-foregroundL dark:text-foregroundD">
                                     {request.employee.work_group?.name || "---"}
                                 </div>
                             </div>
                         </div>
                     </div>
                     {/* --- ستون چپ: فرم عملیات --- */}
-                    <div className="w-full md:w-2/5  border-l border-gray-100 dark:border-gray-800 flex flex-col justify-between bg-white dark:bg-gray-900">
-                        <div className="space-y-6">
+                    <div className="w-full md:w-2/5 border-l border-borderL dark:border-borderD flex flex-col justify-between bg-backgroundL-500 dark:bg-backgroundD">
+                        <div className="space-y-6 p-6">
                             <SelectBox
                                 label="وضعیت پاسخ"
                                 placeholder="انتخاب کنید"
@@ -150,10 +150,10 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
                             />
                         </div>
 
-                        <div className="flex gap-3 mt-8 pt-4 border-t border-gray-50 dark:border-gray-800/50">
+                        <div className="flex gap-3 p-6 pt-4 border-t border-borderL dark:border-borderD bg-secondaryL/10 dark:bg-secondaryD/10">
                             <Button
                                 variant="primary"
-                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white shadow-lg shadow-slate-200 dark:shadow-none"
+                                className="flex-1 bg-primaryL hover:bg-primaryL/90 text-primary-foregroundL dark:bg-primaryD dark:text-primary-foregroundD shadow-lg shadow-primaryL/20 dark:shadow-none"
                                 onClick={handleSubmit}
                                 disabled={!isFormValid || isLoading}
                             >
@@ -161,7 +161,7 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
                             </Button>
                             <Button
                                 variant="outline"
-                                className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+                                className="flex-1 border-borderL text-muted-foregroundL hover:bg-secondaryL dark:border-borderD dark:text-muted-foregroundD dark:hover:bg-secondaryD"
                                 onClick={onClose}
                                 disabled={isLoading}
                             >
@@ -169,8 +169,6 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
                             </Button>
                         </div>
                     </div>
-
-
 
                 </div>
             </ModalBody>

@@ -7,7 +7,7 @@ import gregorian from "react-date-object/calendars/gregorian";
 import Input from '@/components/ui/Input';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
-import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 import { Button } from '@/components/ui/Button';
 
 // --- Hooks & API ---
@@ -340,12 +340,7 @@ export const ExportSettingsModal = ({ isOpen, onClose }: ExportSettingsModalProp
                                                 checked={columnsToShow.category}
                                                 onChange={handleCheckboxChange}
                                             />
-                                            <CheckboxItem
-                                                id="logo"
-                                                label="هدر رسمی (لوگو)"
-                                                checked={columnsToShow.logo}
-                                                onChange={handleCheckboxChange}
-                                            />
+
                                         </div>
                                     </div>
 
@@ -374,7 +369,7 @@ export const ExportSettingsModal = ({ isOpen, onClose }: ExportSettingsModalProp
                                     >
                                         {exportMutation.isPending ? (
                                             <>
-                                                <Spinner size="sm" className="text-white ml-2" />
+                                                <SpinnerButton size="sm" className="text-white ml-2" />
                                                 <span>در حال ثبت...</span>
                                             </>
                                         ) : (
