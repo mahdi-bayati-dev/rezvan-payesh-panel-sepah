@@ -12,6 +12,7 @@ class AttendanceLogObserver
      */
     public function created(AttendanceLog $attendanceLog): void
     {
+//        $attendanceLog->load('employee');
         AttendanceLogCreated::dispatch($attendanceLog);
     }
 
