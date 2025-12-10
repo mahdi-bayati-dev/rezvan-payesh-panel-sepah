@@ -27,7 +27,7 @@ return [
         'https://front.payesh.eitebar.ir'
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => ['*'],
 
     'allowed_headers' => ['*'],
 

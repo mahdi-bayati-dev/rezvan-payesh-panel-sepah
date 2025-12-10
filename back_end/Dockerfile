@@ -42,8 +42,13 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev --no-script
 # کپی بقیه سورس کد
 COPY . .
 
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # اجرای دستورات نهایی لاراول
 RUN composer dump-autoload --optimize
 
 # تنظیم دسترسی‌ها
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php-fpm"]
