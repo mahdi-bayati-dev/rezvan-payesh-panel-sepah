@@ -14,7 +14,7 @@ let store: any = null;
 // ✅ تابع تزریق استور: این تابع را در store/index.ts صدا می‌زنیم
 export const injectStore = (_store: any) => {
   store = _store;
-  console.log("✅ [AxiosConfig] Store injected successfully.");
+  console.log("📦 [Axios] Store Injected Successfully");
 };
 
 export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
@@ -46,37 +46,36 @@ if (import.meta.env.DEV) {
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 🔍 شروع لاگ‌گیری برای درخواست
-    console.groupCollapsed(`🚀 [Request] ${config.method?.toUpperCase()} ${config.url}`);
+    // 🕵️‍♂️ لاگ دقیق برای بررسی وضعیت توکن قبل از ارسال
+    // console.groupCollapsed(`🚀 [Request] ${config.method?.toUpperCase()} ${config.url}`);
     
     if (AUTH_MODE === "token") {
       // ✅ استفاده از استور تزریق شده با بررسی وجود آن
       if (store) {
         const state = store.getState();
+        
+        // 🔍 بررسی دقیق استور برای پیدا کردن مشکل احتمالی نام‌گذاری
+        // console.log("State Auth Snapshot:", state.auth);
+        
         const token = state.auth.accessToken;
 
         if (token) {
-            console.log("🔑 Token found in Store:", token.substring(0, 15) + "...");
+            // console.log("🔑 Token FOUND in Redux. Attaching to header...");
+            if (config.headers) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
         } else {
-            console.warn("⚠️ Token is NULL/UNDEFINED in Store.");
-        }
-
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-          console.log("✅ Authorization Header attached.");
+            console.warn("⚠️ Token is MISSING in Redux State:", state.auth);
         }
       } else {
-          console.warn("⚠️ Redux Store is NOT injected yet! Cannot retrieve token.");
+          console.warn("⚠️ Store is NOT injected yet. Request might fail.");
       }
-    } else {
-        console.log("ℹ️ Auth Mode is Cookie. No token header attached.");
     }
     
-    console.groupEnd();
+    // console.groupEnd();
     return config;
   },
   (error) => {
-    console.error("❌ Request Setup Error:", error);
     return Promise.reject(error);
   }
 );
@@ -94,13 +93,18 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const data = error.response?.data;
 
-    // 🔍 شروع لاگ‌گیری برای خطا
-    console.group(`🚨 [Response Error] ${status} ${originalRequest?.url}`);
-
-    // 🔥 بررسی ساعت سرور برای مشکل داکر
-    if (error.response?.headers && error.response.headers['date']) {
-        console.log("🌍 Server Time:", error.response.headers['date']);
-        console.log("💻 Client Time:", new Date().toUTCString());
+    // لاگ دقیق خطا برای دیباگ ۴۰۱
+    if (status === 401) {
+        console.group("🛑 [Axios] 401 Unauthorized Error");
+        console.log("Requested URL:", originalRequest?.url);
+        
+        // اگر توکن فرستاده بودیم ولی ۴۰۱ گرفتیم، یعنی سرور آن را نگرفته یا قبول نکرده
+        console.log("Request Headers Sent:", originalRequest?.headers);
+        
+        if (store) {
+            console.log("Current Token in Store:", store.getState().auth.accessToken);
+        }
+        console.groupEnd();
     }
 
     if (status === 403 && data) {
@@ -109,7 +113,7 @@ axiosInstance.interceptors.response.use(
         LICENSE_ERROR_CODES.includes(data.error_code);
 
       if (isLicenseError) {
-        console.warn(`⛔️ License Error Detected: ${data.error_code}`);
+        console.warn(`⛔️ License Error: ${data.error_code}`);
         const errorMsg =
           typeof data.message === "string"
             ? data.message
@@ -123,32 +127,26 @@ axiosInstance.interceptors.response.use(
         }
 
         if (!window.location.pathname.includes("/license")) {
-          console.log("🔀 Redirecting to /license due to license error...");
           window.location.href = "/license";
         }
-        console.groupEnd();
         return Promise.reject(error);
       }
     }
 
     if (status === 401) {
       if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
-        console.warn("🔒 Unauthorized (401) detected.");
+        console.warn("🔒 Unauthorized (401) detected. Clearing session...");
         // ✅ استفاده از استور تزریق شده برای دیسپچ
         if (store) {
-          console.log("🧹 Dispatching auth/clearSession...");
           store.dispatch({ type: "auth/clearSession" });
-        } else {
-            console.error("⚠️ Store missing. Cannot dispatch clearSession.");
         }
       }
     }
 
-    console.error(
-      `❌ API Error Message:`,
-      error.message
-    );
-    console.groupEnd();
+    // console.error(
+    //   `❌ API Error [${status}] at ${originalRequest?.url}:`,
+    //   error.message
+    // );
     return Promise.reject(error);
   }
 );
