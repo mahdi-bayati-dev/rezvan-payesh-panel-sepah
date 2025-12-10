@@ -15,7 +15,7 @@ RUN npm run build
 # --- Stage 2: Apache Web Server ---
 FROM httpd:2.4-alpine
 
-COPY ./apache/httpd-vhosts.conf /usr/local/apache2/conf/extra/httpd-vhosts.conf
+COPY ./docker/httpd-vhosts.conf /usr/local/apache2/conf/extra/httpd-vhosts.conf
 
 # کپی کردن فایل‌های بیلد شده فرانت از مرحله قبل به پوشه پابلیک آپاچی
 COPY --from=build-stage /app/dist /usr/local/apache2/htdocs/
