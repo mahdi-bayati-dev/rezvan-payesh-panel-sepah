@@ -1,16 +1,28 @@
 FROM php:8.2-fpm
 
-# استفاده از اسکریپت نصب‌کننده (برای حل مشکل نصب Redis و اکستنشن‌ها)
+# ۱. تغییر مخازن به میرِر (برای رفع کندی apt در ایران)
+RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get install -y \
+    git \
+    curl \
+    zip \
+    unzip \
+    default-mysql-client \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ۲. اضافه کردن اینستالر سریع PHP (جادوی سرعت!)
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-# نصب پکیج‌های سیستمی و اکستنشن‌های PHP با هم
-# نکته: این دستور خودش وابستگی‌های لینوکسی (مثل libpng و...) را مدیریت می‌کند
+# ۳. نصب تمام اکستنشن‌ها (هم PHP و هم Redis) با یک دستور
+# این دستور نسخه‌های کامپایل شده را نصب می‌کند و نیازی به pecl نیست
 RUN install-php-extensions \
-    pdo_mysql mbstring exif pcntl bcmath gd redis \
-    zip unzip git
-
-# نصب کلاینت MySQL (اگر برای بکاپ‌گیری یا تست لازم دارید)
-RUN apt-get update && apt-get install -y default-mysql-client && rm -rf /var/lib/apt/lists/*
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    redis
 
 # نصب Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -18,14 +30,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # تنظیم دایرکتوری کاری
 WORKDIR /var/www
 
-# کپی فایل‌های وابستگی برای استفاده از کش داکر
+# کپی فایل‌های وابستگی برای استفاده از کش لایه داکر
 COPY composer.json composer.lock ./
 
-# نصب پکیج‌های لاراول
+# نصب پکیج‌های لاراول (بدون اجرای اسکریپت‌ها در این مرحله)
 RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
 
-# کپی کردن سورس کد پروژه
+# کپی بقیه سورس کد
 COPY . .
 
-# تنظیم پرمیشن‌های پوشه‌های ذخیره‌سازی
+# اجرای دستورات نهایی لاراول
+RUN composer dump-autoload --optimize
+
+# تنظیم دسترسی‌ها
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
