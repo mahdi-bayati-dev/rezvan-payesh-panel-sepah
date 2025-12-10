@@ -75,7 +75,7 @@ services:
     restart: always
     environment:
       SOKETI_DEBUG: '0'
-      SOKETI_DEFAULT_APP_ID: rezvan_payesh
+      SOKETI_DEFAULT_APP_ID: rezvan_payesh_docker
     networks:
       - rezvan-network
 
