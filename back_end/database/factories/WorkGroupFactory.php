@@ -22,7 +22,7 @@ class WorkGroupFactory extends Factory
     {
         $hasWeekPattern = $this->faker->boolean(70);
         return [
-            'name' => 'گروه کاری ' . $this->faker->unique()->companySuffix() . ' ' . $this->faker->randomNumber(2),
+            'name' => 'گروه کاری ' . $this->faker->companySuffix() . ' ' . $this->faker->randomNumber(2),
 
              'week_pattern_id' => $hasWeekPattern
                                      ? WeekPattern::factory()
