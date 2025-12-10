@@ -55,8 +55,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             className="max-w-20 max-h-16"
             src={logoSrc}
             alt="لوگوی شهرداری کرمان"
-            loading="lazy"
-            decoding="async"
+            fetchPriority="high"
           />
           <h1 className="hidden md:block text-lg font-bold text-primaryL dark:text-primaryD">
             رضـــوان پایش
