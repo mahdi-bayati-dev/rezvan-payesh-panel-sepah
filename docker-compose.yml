@@ -79,6 +79,21 @@ services:
     networks:
       - rezvan-network
 
+  phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      container_name: rezvan_pma
+      restart: always
+      environment:
+        PMA_HOST: db             # نام سرویس دیتابیس در داکر کامپوز
+        PMA_PORT: 3306
+        PMA_USER: payesh_user    # نام کاربری دیتابیس
+        PMA_PASSWORD: ${DB_PASSWORD} # پسورد از فایل .env خوانده می‌شود
+      ports:
+        - "8081:80"              # پورت دسترسی در مرورگر
+      networks:
+        - rezvan-network
+      depends_on:
+        - db
 volumes:
   db_data: # والیوم دیتابیس
   redis_data:
