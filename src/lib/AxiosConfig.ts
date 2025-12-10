@@ -1,104 +1,154 @@
-import axios from "axios";
+import axios, {
+  AxiosError,
+  type InternalAxiosRequestConfig,
+  type AxiosResponse,
+} from "axios";
+// ❌ ایمپورت مستقیم store حذف شد تا چرخه وابستگی بشکند
+// import { store } from "@/store";
+import { toast } from "react-toastify";
 import { AppConfig } from "@/config";
 
-// ایجاد نمونه Axios با تنظیمات پایه
+// تعریف متغیر برای نگهداری استور تزریق شده
+let store: any = null;
+
+// ✅ تابع تزریق استور: این تابع را در store/index.ts صدا می‌زنیم
+export const injectStore = (_store: any) => {
+  store = _store;
+  console.log("✅ [AxiosConfig] Store injected successfully.");
+};
+
+export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
+
+const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
+
 const axiosInstance = axios.create({
   baseURL: AppConfig.API_URL,
+  withCredentials: AUTH_MODE === "cookie",
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
+    "Content-Type": "application/json",
   },
-  timeout: 20000, // افزایش تایم‌اوت به 20 ثانیه برای محیط‌های کند داکر
+  timeout: 20000,
 });
 
-// ----------------------------------------------------------------------
-// 1️⃣ Request Interceptor (بررسی درخواست قبل از ارسال)
-// ----------------------------------------------------------------------
+if (import.meta.env.DEV) {
+  console.log(
+    `%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode with URL: ${
+      AppConfig.API_URL
+    }`,
+    "background: #333; color: #bada55; padding: 4px; border-radius: 4px;"
+  );
+}
+
+// ====================================================================
+// 🔓 Request Interceptor
+// ====================================================================
+
 axiosInstance.interceptors.request.use(
-  (config) => {
-    // شروع لاگ‌گیری گروهی برای تمیزی کنسول
-    console.groupCollapsed(
-      `🚀 [API Request] ${config.method?.toUpperCase()} ${config.url}`
-    );
+  (config: InternalAxiosRequestConfig) => {
+    // 🔍 شروع لاگ‌گیری برای درخواست
+    console.groupCollapsed(`🚀 [Request] ${config.method?.toUpperCase()} ${config.url}`);
+    
+    if (AUTH_MODE === "token") {
+      // ✅ استفاده از استور تزریق شده با بررسی وجود آن
+      if (store) {
+        const state = store.getState();
+        const token = state.auth.accessToken;
 
-    // ۱. بررسی وجود توکن در حافظه
-    const token = localStorage.getItem("token");
+        if (token) {
+            console.log("🔑 Token found in Store:", token.substring(0, 15) + "...");
+        } else {
+            console.warn("⚠️ Token is NULL/UNDEFINED in Store.");
+        }
 
-    if (token) {
-      // ۲. اگر توکن هست، لاگ می‌گیریم که داریم آن را می‌فرستیم
-      console.log("✅ Token found in localStorage.");
-      // نمایش ۵ کاراکتر اول توکن برای اطمینان از درست بودن فرمت
-      console.log("🔑 Token Preview:", token.substring(0, 10) + "...");
-
-      // ۳. الحاق توکن به هدر
-      config.headers.Authorization = `Bearer ${token}`;
-
-      // ۴. بررسی نهایی هدر
-      console.log("headers being sent:", config.headers);
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log("✅ Authorization Header attached.");
+        }
+      } else {
+          console.warn("⚠️ Redux Store is NOT injected yet! Cannot retrieve token.");
+      }
     } else {
-      // ⚠ هشدار: توکن وجود ندارد
-      console.warn(
-        "⚠️ No token found in localStorage! Sending request without Auth."
-      );
+        console.log("ℹ️ Auth Mode is Cookie. No token header attached.");
     }
-
+    
     console.groupEnd();
     return config;
   },
   (error) => {
-    console.error("❌ Request Interceptor Error:", error);
+    console.error("❌ Request Setup Error:", error);
     return Promise.reject(error);
   }
 );
 
-// ----------------------------------------------------------------------
-// 2️⃣ Response Interceptor (بررسی پاسخ دریافتی)
-// ----------------------------------------------------------------------
+// ====================================================================
+// 🔒 Response Interceptor
+// ====================================================================
+
 axiosInstance.interceptors.response.use(
-  (response) => {
-    // پاسخ موفق (200-299)
-    // console.log(`✅ [API Success] ${response.config.url}`, response.status);
+  (response: AxiosResponse) => {
     return response;
   },
-  (error) => {
+  async (error: AxiosError<any>) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
+    const data = error.response?.data;
 
-    // بررسی خطای ۴۰۱ (احراز هویت)
-    if (error.response && error.response.status === 401) {
-      console.group(`🔒 [401 UNAUTHORIZED DETECTED]`);
-      console.error("URL:", originalRequest.url);
-      console.error(
-        "Message:",
-        error.response.data?.message || "Unauthenticated"
-      );
+    // 🔍 شروع لاگ‌گیری برای خطا
+    console.group(`🚨 [Response Error] ${status} ${originalRequest?.url}`);
 
-      // 🔥 تست مهم: آیا ساعتی که سرور در هدر پاسخ داده با ساعت ما یکی است؟
-      // اگر اختلاف زیاد باشد، توکن به دلیل Time Skew رد می‌شود.
-      const serverDate = error.response.headers["date"];
-      console.warn("🌍 Server Time (from header):", serverDate);
-      console.warn("💻 Client Time:", new Date().toUTCString());
-
-      console.groupEnd();
-
-      // 🛑🛑🛑 نکته مهم برای دیباگ:
-      // من خط‌های زیر را کامنت کردم تا وقتی ۴۰۱ می‌گیری، سریعاً ریدایرکت نشوی
-      // و بتوانی لاگ‌ها را بخوانی. بعد از حل مشکل، این‌ها را از کامنت در بیاور.
-
-      /*
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
-      */
-
-      console.info("ℹ️ Auto-logout logic is currently DISABLED for debugging.");
-    } else if (error.code === "ERR_NETWORK") {
-      // خطای شبکه (معمولا CORS یا آدرس اشتباه)
-      console.error(
-        "🚨 [Network Error] Possible CORS issue or Wrong Base URL."
-      );
-      console.error("Check VITE_API_BASE_URL:", AppConfig.API_URL);
+    // 🔥 بررسی ساعت سرور برای مشکل داکر
+    if (error.response?.headers && error.response.headers['date']) {
+        console.log("🌍 Server Time:", error.response.headers['date']);
+        console.log("💻 Client Time:", new Date().toUTCString());
     }
 
+    if (status === 403 && data) {
+      const isLicenseError =
+        typeof data === "object" &&
+        LICENSE_ERROR_CODES.includes(data.error_code);
+
+      if (isLicenseError) {
+        console.warn(`⛔️ License Error Detected: ${data.error_code}`);
+        const errorMsg =
+          typeof data.message === "string"
+            ? data.message
+            : "لایسنس شما منقضی شده است.";
+
+        if (!toast.isActive("license-error")) {
+          toast.error(errorMsg, {
+            toastId: "license-error",
+            autoClose: 10000,
+          });
+        }
+
+        if (!window.location.pathname.includes("/license")) {
+          console.log("🔀 Redirecting to /license due to license error...");
+          window.location.href = "/license";
+        }
+        console.groupEnd();
+        return Promise.reject(error);
+      }
+    }
+
+    if (status === 401) {
+      if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
+        console.warn("🔒 Unauthorized (401) detected.");
+        // ✅ استفاده از استور تزریق شده برای دیسپچ
+        if (store) {
+          console.log("🧹 Dispatching auth/clearSession...");
+          store.dispatch({ type: "auth/clearSession" });
+        } else {
+            console.error("⚠️ Store missing. Cannot dispatch clearSession.");
+        }
+      }
+    }
+
+    console.error(
+      `❌ API Error Message:`,
+      error.message
+    );
+    console.groupEnd();
     return Promise.reject(error);
   }
 );
