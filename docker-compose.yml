@@ -8,10 +8,6 @@ services:
       - .env
     environment:
       APP_ENV: production
-      DB_HOST: db
-      REDIS_HOST: redis
-      # اتصال به دیتابیس هوش مصنوعی (در شبکه مشترک)
-      AI_DB_HOST: mohrez_db
     volumes:
       # فقط پوشه استوریج رو نگه میداریم که اگر آپلود عکس داشتی پاک نشه
       - ./backend_storage:/var/www/storage
