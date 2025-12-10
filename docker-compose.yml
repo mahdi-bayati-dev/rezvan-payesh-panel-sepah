@@ -1,0 +1,93 @@
+services:
+  # 1. Laravel App (Backend)
+  app:
+    image: mcoder902/rezvan-backend:latest
+    container_name: rezvan_app
+    restart: always
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DB_HOST: db
+      REDIS_HOST: redis
+      # اتصال به دیتابیس هوش مصنوعی (در شبکه مشترک)
+      AI_DB_HOST: postgres_ai_container_name
+    volumes:
+      # فقط پوشه استوریج رو نگه میداریم که اگر آپلود عکس داشتی پاک نشه
+      - ./backend_storage:/var/www/storage
+    networks:
+      - rezvan-network
+      - shared-network # اتصال به شبکه هوش مصنوعی
+    depends_on:
+      - db
+      - redis
+    build:
+      context: ./back_end
+      dockerfile: Dockerfile
+
+  # 2. Apache + Frontend (Gateway)
+  webserver:
+    image: mcoder902/rezvan-webserver:latest # نام ایمیجی که خودت ساختی
+    container_name: rezvan_apache
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certs:/usr/local/apache2/conf/certs
+      - ./backend_storage:/var/www/storage
+    networks:
+      - rezvan-network
+    depends_on:
+      - app
+    build:
+      context: .
+      dockerfile: Dockerfile.webserver
+
+  # 3. Database (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: rezvan_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: rezvan_payesh
+      MYSQL_USER: payesh_user
+      MYSQL_PASSWORD: ${DB_PASSWORD} # از فایل .env میخونه
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql # این یعنی داده‌ها امن هستن و با حذف کانتینر پاک نمیشن
+    networks:
+      - rezvan-network
+
+  # 4. Redis
+  redis:
+    image: redis:alpine
+    container_name: rezvan_redis
+    restart: always
+    command: redis-server --requirepass "${REDIS_PASSWORD}"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rezvan-network
+      - shared-network
+
+  # 5. Soketi (Optional)
+  soketi:
+    image: 'quay.io/soketi/soketi:latest-16-alpine'
+    container_name: rezvan_soketi
+    restart: always
+    environment:
+      SOKETI_DEBUG: '0'
+      SOKETI_DEFAULT_APP_ID: rezvan_payesh
+    networks:
+      - rezvan-network
+
+volumes:
+  db_data: # والیوم دیتابیس
+  redis_data:
+
+networks:
+  rezvan-network:
+    driver: bridge
+  shared-network: # شبکه‌ای که قبلا ساختی
+    external: true
