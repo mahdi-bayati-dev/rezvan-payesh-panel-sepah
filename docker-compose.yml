@@ -34,6 +34,7 @@ services:
       - ./backend_storage:/var/www/storage
     networks:
       - rezvan-network
+      - shared-network
     depends_on:
       - app
     build:
