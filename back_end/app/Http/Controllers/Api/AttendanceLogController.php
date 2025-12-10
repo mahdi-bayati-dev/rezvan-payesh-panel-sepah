@@ -40,6 +40,10 @@ class AttendanceLogController extends Controller
         }
 
         $employee = Employee::where('personnel_code', $validated['personnel_code'])->first();
+        if (!$employee)
+        {
+            return response()->json(['message' => 'Invalid User personnel_code.'], 401);
+        }
 
         $logTimestamp = Carbon::parse($validated['timestamp']);
 
