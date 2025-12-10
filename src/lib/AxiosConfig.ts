@@ -3,16 +3,19 @@ import axios, {
   type InternalAxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-// import { store } from "@/store"; // حذف شد برای جلوگیری از چرخه
+// ❌ ایمپورت مستقیم store حذف شد تا چرخه وابستگی بشکند
 import { toast } from "react-toastify";
 import { AppConfig } from "@/config";
 
+// تعریف متغیر برای نگهداری استور تزریق شده
 let store: any = null;
 
 // ✅ تابع تزریق استور
 export const injectStore = (_store: any) => {
   store = _store;
-  console.log("✅ [AxiosConfig] Store injected successfully.");
+  if (import.meta.env.DEV) {
+    console.log("✅ [AxiosConfig] Store injected successfully.");
+  }
 };
 
 export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
@@ -26,50 +29,38 @@ const axiosInstance = axios.create({
     Accept: "application/json",
     "Content-Type": "application/json",
   },
-  timeout: 30000,
+  timeout: 30000, // تایم‌اوت ۳۰ ثانیه برای اطمینان
 });
 
-if (import.meta.env.DEV) {
-  console.log(
-    `%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode with URL: ${
-      AppConfig.API_URL
-    }`,
-    "background: #333; color: #bada55; padding: 4px; border-radius: 4px;"
-  );
-}
-
 // ====================================================================
-// 🔓 Request Interceptor (اصلاح شده برای Race Condition)
+// 🔓 Request Interceptor (Fix Race Condition)
 // ====================================================================
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 🔍 شروع لاگ‌گیری برای درخواست
-    console.groupCollapsed(
-      `🚀 [Request] ${config.method?.toUpperCase()} ${config.url}`
-    );
+    // فقط برای دیباگ در محیط توسعه یا اگر می‌خواهید لاگ‌ها را ببینید
+    // console.groupCollapsed(`🚀 [Request] ${config.method?.toUpperCase()} ${config.url}`);
 
     if (AUTH_MODE === "token") {
       let token: string | null = null;
 
-      // ۱. ابتدا تلاش می‌کنیم از ریداکس بخوانیم
+      // ۱. اولویت اول: تلاش برای خواندن از ریداکس
       if (store) {
         const state = store.getState();
         token = state.auth.accessToken || state.auth.token;
-        if (token) {
-          console.log("✅ Token found in Redux Store.");
+        if (token && import.meta.env.DEV) {
+          // console.log("✅ Token found in Redux Store.");
         }
       }
 
-      // ۲. 🚨 بخش حیاتی (FIX): اگر در ریداکس نبود، مستقیم از LocalStorage می‌خوانیم
-      // این همان جایی است که مشکل Race Condition را حل می‌کند.
+      // ۲. ✅✅✅ راه حل نهایی (Race Condition Fix)
+      // اگر توکن در ریداکس نبود (چون هنوز آپدیت نشده)، مستقیم از LocalStorage می‌خوانیم
       if (!token) {
-        // چک کردن هر دو نام معمول برای اطمینان
         token =
           localStorage.getItem("token") || localStorage.getItem("accessToken");
         if (token) {
           console.warn(
-            "⚠️ Token missing in Redux (Race Condition detected), reading from LocalStorage directly."
+            "⚠️ Race Condition Avoided: Token read directly from localStorage."
           );
         }
       }
@@ -77,15 +68,13 @@ axiosInstance.interceptors.request.use(
       // ۳. تزریق توکن به هدر
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log("🔑 Auth Header Attached.");
       } else {
-        console.warn(
-          "❌ No Token found in Redux OR LocalStorage. Request sent as Guest."
-        );
+        // اگر واقعاً توکنی نیست (کاربر مهمان)
+        // console.warn("ℹ️ No token found anywhere. Sending as Guest.");
       }
     }
 
-    console.groupEnd();
+    // console.groupEnd();
     return config;
   },
   (error) => {
@@ -106,20 +95,21 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const data = error.response?.data;
 
-    console.group(`🚨 [Response Error] ${status} ${originalRequest?.url}`);
-
-    // لاگ کردن ساعت سرور برای اطمینان
-    if (error.response?.headers && error.response.headers["date"]) {
-      console.log("🌍 Server Time:", error.response.headers["date"]);
+    // لاگ خطای سرور (مخصوصاً ۵۰۳ یا ۴۰۱)
+    if (status) {
+      console.group(`🚨 API Error [${status}]`);
+      console.log("URL:", originalRequest?.url);
+      console.log("Message:", error.message);
+      console.groupEnd();
     }
 
+    // ۱. هندل کردن خطای لایسنس
     if (status === 403 && data) {
       const isLicenseError =
         typeof data === "object" &&
         LICENSE_ERROR_CODES.includes(data.error_code);
 
       if (isLicenseError) {
-        console.warn(`⛔️ License Error: ${data.error_code}`);
         if (!toast.isActive("license-error")) {
           toast.error(
             typeof data.message === "string"
@@ -134,20 +124,20 @@ axiosInstance.interceptors.response.use(
         if (!window.location.pathname.includes("/license")) {
           window.location.href = "/license";
         }
-        console.groupEnd();
         return Promise.reject(error);
       }
     }
 
+    // ۲. هندل کردن خطای ۴۰۱ (فقط اگر در صفحه لاگین نیستیم)
     if (status === 401) {
       if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
-        console.warn("🔒 Unauthorized (401) detected. Executing logout...");
+        console.warn("🔒 401 Unauthorized - Session Expired / Invalid Token");
 
-        // پاک کردن توکن‌ها
+        // پاک کردن توکن‌ها برای جلوگیری از لوپ
         localStorage.removeItem("token");
         localStorage.removeItem("accessToken");
 
-        // دیسپچ کردن اکشن خروج
+        // دیسپچ خروج
         if (store) {
           store.dispatch({ type: "auth/clearSession" });
         }
@@ -159,8 +149,6 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    console.error(`❌ Error Message:`, error.message);
-    console.groupEnd();
     return Promise.reject(error);
   }
 );
