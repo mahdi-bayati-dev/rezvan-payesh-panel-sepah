@@ -81,7 +81,7 @@ services:
       SOKETI_DEFAULT_APP_KEY: ${PUSHER_APP_KEY}
       SOKETI_DEFAULT_APP_SECRET: ${PUSHER_APP_SECRET}
     ports:
-      - "6001:6001"
+      - "6002:6001"
     networks:
       - rezvan-network
 
