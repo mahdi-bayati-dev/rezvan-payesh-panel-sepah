@@ -37,3 +37,13 @@ RUN sed -i \
 
 # ساخت پوشه برای SSL
 RUN mkdir -p /usr/local/apache2/conf/certs
+COPY docker-entrypoint.sh /usr/local/bin/
+
+# ۲. دادن دسترسی اجرایی به فایل
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# ۳. تنظیم نقطه شروع برای اجرای اسکریپت
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# (اختیاری) چون در اسکریپت exec httpd-foreground دارید، این خط CMD ضروری نیست ولی بودنش بهتر است
+CMD ["httpd-foreground"]
