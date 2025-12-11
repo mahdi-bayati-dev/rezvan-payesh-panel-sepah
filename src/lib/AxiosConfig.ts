@@ -41,7 +41,7 @@ console.log(
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 🔍 شروع لاگ‌گیری (طبق درخواست شما برای نظارت)
+    // 🔍 شروع لاگ‌گیری
     console.groupCollapsed(`🚀 [Request] ${config.method?.toUpperCase()} ${config.url}`);
 
     if (AUTH_MODE === "token") {
@@ -51,12 +51,9 @@ axiosInstance.interceptors.request.use(
       if (store) {
         const state = store.getState();
         token = state.auth.accessToken || state.auth.token;
-        if (token) {
-             // console.log("✅ Token found in Redux.");
-        }
       }
 
-      // ۲. فال‌بک: خواندن از LocalStorage (رفع مشکل سرعت در داکر)
+      // ۲. فال‌بک: خواندن از LocalStorage
       if (!token) {
         token = localStorage.getItem("token") || localStorage.getItem("accessToken");
         if (token) {
@@ -95,18 +92,17 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const data = error.response?.data;
 
-    // 🔍 شروع لاگ‌گیری خطا برای نظارت
+    // 🔍 شروع لاگ‌گیری خطا
     if (status) {
         console.group(`🚨 API Error [${status}]`);
         console.log("URL:", originalRequest?.url);
         
-        // لاگ کردن ساعت سرور (برای اطمینان از سینک بودن داکر)
         if (error.response?.headers && error.response.headers['date']) {
             console.log("🌍 Server Time:", error.response.headers['date']);
         }
     }
 
-    // مدیریت خطای ۵۰۳
+    // مدیریت خطای ۵۰۳ (سرویس در دسترس نیست)
     if (status === 503) {
       console.error("🚨 503 Service Unavailable");
       if (!toast.isActive("server-error")) {
@@ -116,26 +112,35 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // مدیریت خطای لایسنس (۴۰۳)
-    if (status === 403 && data) {
-      const isLicenseError =
-        typeof data === "object" &&
-        LICENSE_ERROR_CODES.includes(data.error_code);
+    // ✅ مدیریت خطای لایسنس (۴۰۳ و ۴۹۹ طبق نظر بک‌اند)
+    // اگر ۴۹۹ آمد -> قطعا خطای لایسنس است
+    // اگر ۴۰۳ آمد -> چک میکنیم آیا کد خطا مربوط به لایسنس است یا خیر
+    const isLicenseError = 
+        status === 499 || 
+        (status === 403 && data && typeof data === "object" && LICENSE_ERROR_CODES.includes(data.error_code));
 
-      if (isLicenseError) {
-        console.warn(`⛔️ License Error: ${data.error_code}`);
-        if (!toast.isActive("license-error")) {
-          toast.error(typeof data.message === "string" ? data.message : "لایسنس منقضی شده است", {
-            toastId: "license-error",
-            autoClose: 10000,
-          });
-        }
-        if (!window.location.pathname.includes("/license")) {
-          window.location.href = "/license";
-        }
-        if (status) console.groupEnd();
-        return Promise.reject(error);
+    if (isLicenseError) {
+      console.warn(`⛔️ License Error Triggered (Status: ${status})`);
+      
+      const message = status === 499 
+          ? "لایسنس نرم‌افزار معتبر نیست یا منقضی شده است." 
+          : (data?.message || "لایسنس منقضی شده است");
+
+      if (!toast.isActive("license-error")) {
+        toast.error(message, {
+          toastId: "license-error",
+          autoClose: 10000,
+        });
       }
+
+      // اگر کاربر الان در صفحه لایسنس نیست، او را ریدایرکت کن
+      if (!window.location.pathname.includes("/license")) {
+        console.warn("🔀 Redirecting to /license page...");
+        window.location.href = "/license";
+      }
+      
+      if (status) console.groupEnd();
+      return Promise.reject(error);
     }
 
     // مدیریت خطای ۴۰۱ (خروج)
@@ -144,7 +149,6 @@ axiosInstance.interceptors.response.use(
         console.warn("🔒 Unauthorized (401). Valid Token Rejected or Expired.");
         console.warn("🔄 Executing Auto-Logout...");
         
-        // پاک کردن کامل
         localStorage.removeItem("token");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
@@ -153,7 +157,6 @@ axiosInstance.interceptors.response.use(
           store.dispatch({ type: "auth/clearSession" });
         }
         
-        // ریدایرکت
         if (!window.location.pathname.includes("/login")) {
              window.location.href = "/login";
         }

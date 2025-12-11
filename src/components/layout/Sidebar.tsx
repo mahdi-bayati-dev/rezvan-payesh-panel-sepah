@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-// import { SquaresExclude } from 'lucide-react'; // حذف شد چون دیگر استفاده نمی‌شود
 import { mainNavItems, type NavItem } from '@/constants/navigation';
-// ThemeToggleBtn حذف شد
 import { UserProfile } from './UserProfile';
 import { usePermission } from '@/hook/usePermission';
 import { useAppSelector, useAppDispatch } from '@/hook/reduxHooks';
+// ✅ ایمپورت سلکتور وضعیت لایسنس
 import { fetchLicenseStatus, selectLicenseStatus } from '@/store/slices/licenseSlice';
 import { usePendingRequestsCount } from '@/features/requests/hook/usePendingRequestsCount';
 import { selectUser } from '@/store/slices/authSlice';
@@ -25,19 +24,26 @@ interface SidebarNavItemProps {
 
 const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
   const hasRoleAccess = usePermission(item.allowedRoles);
+  // ✅ دریافت وضعیت لایسنس از ریداکس
   const licenseStatus = useAppSelector(selectLicenseStatus);
   const user = useAppSelector(selectUser);
 
+  // ۱. اگر نقش کاربر اجازه دسترسی ندارد، کلا نشان نده
   if (!hasRoleAccess) return null;
 
+  // ۲. اگر آیتم نیاز به کارمند بودن دارد و کاربر کارمند نیست
   if (item.requiresEmployee && !user?.employee) {
     return null;
   }
 
+  // ۳. ✅ لاجیک جدید لایسنس:
+  // اگر لینک آیتم مربوط به لایسنس است
   if (item.href === '/license') {
-    if (licenseStatus !== 'licensed') {
+    // اگر لایسنس "فعال" (licensed) است -> این منو را مخفی کن (چون نیازی نیست جلوی چشم باشد)
+    if (licenseStatus === 'licensed') {
       return null;
     }
+    // در غیر این صورت (یعنی expired, trial, error, tampered) -> نمایش بده تا کاربر ببیند مشکل دارد
   }
 
   const displayCount = badgeCount ? toPersianDigits(badgeCount) : undefined;
@@ -72,6 +78,7 @@ export const SidebarContent = () => {
   const { data: pendingCount = 0 } = usePendingRequestsCount();
 
   useEffect(() => {
+    // دریافت وضعیت لایسنس در هنگام لود سایدبار برای تصمیم‌گیری در مورد نمایش منو
     dispatch(fetchLicenseStatus());
   }, [dispatch]);
 
@@ -94,14 +101,11 @@ export const SidebarContent = () => {
             );
           })}
         </ul>
-
-        {/* ✅ بخش تغییر تم از اینجا حذف شد */}
       </div>
 
       {/* بخش پایینی: پروفایل و کپی‌رایت */}
       <div>
         <UserProfile />
-        {/* ✅ فوتر کپی‌رایت */}
         <div className="py-3 text-center border-t border-borderL dark:border-borderD bg-secondaryL/30 dark:bg-secondaryD/10">
           <p className="text-[10px] font-medium text-muted-foregroundL dark:text-muted-foregroundD opacity-80">
             توسعه داده شده توسط{" "}
