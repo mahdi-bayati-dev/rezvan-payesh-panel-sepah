@@ -70,7 +70,7 @@ services:
 
   # 5. Soketi (Optional)
   soketi:
-    image: 'quay.io/soketi/soketi:latest-16-alpine'
+    image: 'soketi/soketi:latest-16-alpine'
     container_name: rezvan_soketi
     restart: always
     environment:
