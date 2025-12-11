@@ -36,14 +36,15 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
     return null;
   }
 
-  // ۳. ✅ لاجیک جدید لایسنس:
-  // اگر لینک آیتم مربوط به لایسنس است
+  // ۳. ✅ لاجیک جدید لایسنس (طبق درخواست دقیق شما):
+  // "زمانی که status چیزی جز trial بود میخواهم آیتم اش در منو ساید بار نمایش داده شود"
+  // معنی: اگر trial بود -> مخفی کن.
+  // اگر licensed, expired, tampered بود -> نمایش بده.
   if (item.href === '/license') {
-    // اگر لایسنس "فعال" (licensed) است -> این منو را مخفی کن (چون نیازی نیست جلوی چشم باشد)
-    if (licenseStatus === 'licensed') {
-      return null;
+    if (licenseStatus === 'trial') {
+      return null; // در حالت آزمایشی مخفی می‌شود
     }
-    // در غیر این صورت (یعنی expired, trial, error, tampered) -> نمایش بده تا کاربر ببیند مشکل دارد
+    // در غیر این صورت (لایسنس شده، منقضی یا دستکاری شده) نمایش داده می‌شود
   }
 
   const displayCount = badgeCount ? toPersianDigits(badgeCount) : undefined;
@@ -78,7 +79,7 @@ export const SidebarContent = () => {
   const { data: pendingCount = 0 } = usePendingRequestsCount();
 
   useEffect(() => {
-    // دریافت وضعیت لایسنس در هنگام لود سایدبار برای تصمیم‌گیری در مورد نمایش منو
+    // دریافت وضعیت لایسنس در هنگام لود سایدبار
     dispatch(fetchLicenseStatus());
   }, [dispatch]);
 

@@ -5,7 +5,6 @@ import {
   UserCheck,
   Clock,
   UserX,
-  CalendarOff,
   Briefcase,
   Users,
   BarChart3,
@@ -66,7 +65,7 @@ const adminStatsConfig: StatConfig<AdminSummaryStats>[] = [
   { key: "total_present", title: "حاضرین امروز", icon: <UserCheck size={20} className="text-green-600 dark:text-green-400" />, variant: 'success' },
   { key: "total_lateness", title: "تاخیرها", icon: <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />, variant: 'warning' },
   { key: "total_early_departure", title: "تعجیل خروج", icon: <Briefcase size={20} className="text-orange-600 dark:text-orange-400" />, variant: 'danger' },
-  { key: "total_on_leave", title: "مرخصی روزانه", icon: <CalendarOff size={20} className="text-indigo-600 dark:text-indigo-400" />, variant: 'info' },
+
   { key: "total_absent", title: "غایبین / بدون شیفت", icon: <UserX size={20} className="text-red-600 dark:text-red-400" />, variant: 'danger' },
   { key: "total_employees_scoped", title: "کل پرسنل", icon: <Users size={20} className="text-blue-600 dark:text-blue-400" />, variant: 'info' },
 ];
