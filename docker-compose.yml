@@ -70,17 +70,18 @@ services:
 
   # 5. Soketi (Optional)
   soketi:
-    image: 'soketi/soketi:latest-16-alpine'
+    build:
+      context: ./soketi
+      dockerfile: Dockerfile
     container_name: rezvan_soketi
     restart: always
     environment:
-      SOKETI_DEBUG: '1' # موقتا یک کنید تا لاگ‌ها را ببینید
-      # مقادیر دقیق را اینجا ست کنید
+      SOKETI_DEBUG: '1'
       SOKETI_DEFAULT_APP_ID: rezvan_payesh_docker
       SOKETI_DEFAULT_APP_KEY: ${PUSHER_APP_KEY}
       SOKETI_DEFAULT_APP_SECRET: ${PUSHER_APP_SECRET}
     ports:
-      - "6002:6001"
+      - "6001:6001"
     networks:
       - rezvan-network
 
