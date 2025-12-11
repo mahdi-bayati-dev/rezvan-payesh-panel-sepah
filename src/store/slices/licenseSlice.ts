@@ -3,7 +3,6 @@ import {
   createAsyncThunk,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-// اصلاح مسیرها بر اساس ساختار فایل‌های آپلود شده (حذف features اگر در روت است)
 import { licenseApi } from "@/features/license/api/licenseService";
 import type {
   LicenseState,
@@ -12,7 +11,6 @@ import type {
 import type { RootState } from "@/store/index";
 import { AxiosError } from "axios";
 
-// --- تعریف اینترفیس استیت ---
 interface LicenseReduxState {
   data: LicenseState | null;
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -27,8 +25,6 @@ const initialState: LicenseReduxState = {
   error: null,
 };
 
-// --- Thunks ---
-
 export const fetchLicenseStatus = createAsyncThunk(
   "license/fetchStatus",
   async (_, { rejectWithValue }) => {
@@ -36,6 +32,13 @@ export const fetchLicenseStatus = createAsyncThunk(
       const response = await licenseApi.getStatus();
       return response;
     } catch (error: any) {
+      // ✅ هندلینگ هوشمند خطای ۴۹۹ برای لایسنس
+      // اگر سرور ۴۹۹ داد، معمولاً بادی ریسپانس حاوی اطلاعات لایسنس (مثل ID) است
+      if (error instanceof AxiosError && error.response?.status === 499 && error.response.data) {
+          // دیتای موجود در خطا را به عنوان دیتای موفق برمی‌گردانیم
+          return error.response.data as LicenseState;
+      }
+
       let errorMessage = "خطا در دریافت اطلاعات لایسنس";
       if (error instanceof AxiosError && error.response) {
         errorMessage = error.response.data?.message || errorMessage;
@@ -111,14 +114,10 @@ const licenseSlice = createSlice({
 
 export const { clearLicenseError, resetLicenseState } = licenseSlice.actions;
 
-// --- Selectors ---
 export const selectLicenseData = (state: RootState) => state.license.data;
-export const selectLicenseStatus = (state: RootState) =>
-  state.license.data?.status;
-export const selectIsLicenseLoading = (state: RootState) =>
-  state.license.status === "loading";
-export const selectIsActivating = (state: RootState) =>
-  state.license.activateStatus === "loading";
+export const selectLicenseStatus = (state: RootState) => state.license.data?.status;
+export const selectIsLicenseLoading = (state: RootState) => state.license.status === "loading";
+export const selectIsActivating = (state: RootState) => state.license.activateStatus === "loading";
 export const selectLicenseError = (state: RootState) => state.license.error;
 
 export default licenseSlice.reducer;

@@ -30,6 +30,8 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  // ✅ فیلد جدید: وضعیت قفل شدن لایسنس
+  isLicenseLocked: boolean;
   initialAuthCheckStatus: "idle" | "loading" | "succeeded" | "failed";
   loginStatus: "idle" | "loading" | "succeeded" | "failed";
   logoutStatus: "idle" | "loading" | "succeeded" | "failed";
@@ -41,16 +43,8 @@ interface ThunkConfig {
   rejectValue: string;
 }
 
-// ====================================================================
-// 🛠️ ابزارهای کمکی (بهینه شده برای SSR)
-// ====================================================================
-
-/**
- * دریافت توکن با چک کردن محیط اجرا (کلاینت/سرور)
- * این کار از خطای "window is not defined" در Next.js جلوگیری می‌کند.
- */
 const getInitialToken = (): string | null => {
-  if (typeof window === "undefined") return null; // گارد برای SSR
+  if (typeof window === "undefined") return null;
   if (AUTH_MODE === "token") {
     try {
       return localStorage.getItem("accessToken");
@@ -66,6 +60,7 @@ const initialState: AuthState = {
   user: null,
   accessToken: getInitialToken(),
   isAuthenticated: false,
+  isLicenseLocked: false, // پیش‌فرض قفل نیست
   initialAuthCheckStatus: "idle",
   loginStatus: "idle",
   logoutStatus: "idle",
@@ -79,7 +74,6 @@ const initialState: AuthState = {
 export const checkAuthStatus = createAsyncThunk<User, void, ThunkConfig>(
   "auth/checkStatus",
   async (_, { rejectWithValue, getState }) => {
-    // اگر مود توکن است اما توکن نداریم، اصلاً ریکوئست نزن (بهینه‌سازی ترافیک)
     if (AUTH_MODE === "token") {
       const token = (getState() as RootState).auth.accessToken;
       if (!token) return rejectWithValue("No token found.");
@@ -89,8 +83,14 @@ export const checkAuthStatus = createAsyncThunk<User, void, ThunkConfig>(
       const response = await axiosInstance.get<MeResponse>("/me");
       return response.data.data;
     } catch (error: any) {
+      // ✅ هندلینگ استاندارد خطای لایسنس (۴۹۹)
+      // اگر ۴۹۹ دریافت شد، یعنی توکن معتبر است اما دسترسی قفل شده.
+      if (error instanceof AxiosError && error.response?.status === 499) {
+         // ما اینجا ارور را throw می‌کنیم اما با یک پیام خاص که در reducer شناسایی شود
+         return rejectWithValue("LICENSE_LOCKED");
+      }
+
       let errorMessage = "عدم احراز هویت";
-      // فقط اگر توکن منقضی شده بود (۴۰۱)، توکن را پاک کن
       if (error instanceof AxiosError && error.response?.status === 401) {
         if (AUTH_MODE === "token" && typeof window !== "undefined") {
           localStorage.removeItem("accessToken");
@@ -125,14 +125,10 @@ export const loginUser = createAsyncThunk<
 
     return response.data;
   } catch (error: any) {
-    console.error("Login failed:", error);
     let errorMessage = "خطایی در هنگام ورود رخ داد.";
-
     if (error instanceof AxiosError && error.response) {
-      errorMessage =
-        error.response.data?.message || "نام کاربری یا رمز عبور اشتباه است.";
+      errorMessage = error.response.data?.message || "نام کاربری یا رمز عبور اشتباه است.";
     }
-
     return rejectWithValue(errorMessage);
   }
 });
@@ -143,10 +139,7 @@ export const logoutUser = createAsyncThunk<void, void, ThunkConfig>(
     try {
       await axiosInstance.post("/logout");
     } catch (error) {
-      console.warn(
-        "Logout API warning (session might be mostly cleared):",
-        error
-      );
+      console.warn("Logout API warning:", error);
     } finally {
       dispatch(authSlice.actions.clearSession());
     }
@@ -169,6 +162,7 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.user = null;
       state.isAuthenticated = false;
+      state.isLicenseLocked = false;
       state.initialAuthCheckStatus = "failed";
       state.loginStatus = "idle";
       if (AUTH_MODE === "token" && typeof window !== "undefined") {
@@ -186,14 +180,25 @@ const authSlice = createSlice({
         state.initialAuthCheckStatus = "succeeded";
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.isLicenseLocked = false; // وضعیت نرمال
         state.error = null;
       })
-      .addCase(checkAuthStatus.rejected, (state) => {
-        state.initialAuthCheckStatus = "failed";
-        state.user = null;
-        state.isAuthenticated = false;
-        // اگر احراز هویت فیل شد، توکن را هم از استیت پاک کن تا UI درست رفتار کند
-        state.accessToken = null;
+      .addCase(checkAuthStatus.rejected, (state, action) => {
+        // ✅ لاجیک حیاتی: تشخیص وضعیت قفل لایسنس
+        if (action.payload === "LICENSE_LOCKED") {
+            state.initialAuthCheckStatus = "succeeded"; // تکنیکالی موفق بودیم (سشن معتبر است)
+            state.isAuthenticated = true; // توکن داریم
+            state.isLicenseLocked = true; // اما قفل هستیم
+            state.user = null; // اطلاعات کاربر در دسترس نیست (چون بکند ۴۹۹ داده)
+            state.error = null;
+        } else {
+            // خطای واقعی (مثلاً ۴۰۱ یا قطعی شبکه)
+            state.initialAuthCheckStatus = "failed";
+            state.user = null;
+            state.isAuthenticated = false;
+            state.isLicenseLocked = false;
+            state.accessToken = null;
+        }
       })
 
       // --- Login ---
@@ -206,6 +211,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.access_token || null;
         state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.isLicenseLocked = false;
         state.initialAuthCheckStatus = "succeeded";
         state.error = null;
       })
@@ -222,15 +228,11 @@ const authSlice = createSlice({
 });
 
 export const selectUser = (state: RootState) => state.auth.user;
-export const selectUserRoles = (state: RootState) =>
-  state.auth.user?.roles || [];
-export const selectIsLoggedIn = (state: RootState) =>
-  state.auth.isAuthenticated;
+export const selectUserRoles = (state: RootState) => state.auth.user?.roles || [];
+export const selectIsLoggedIn = (state: RootState) => state.auth.isAuthenticated;
+export const selectIsLicenseLocked = (state: RootState) => state.auth.isLicenseLocked; // ✅ سلکتور جدید
 export const selectAccessToken = (state: RootState) => state.auth.accessToken;
-export const selectAuthCheckStatus = (state: RootState) =>
-  state.auth.initialAuthCheckStatus;
-export const selectLoginStatus = (state: RootState) => state.auth.loginStatus;
-export const selectAuthError = (state: RootState) => state.auth.error;
+export const selectAuthCheckStatus = (state: RootState) => state.auth.initialAuthCheckStatus;
 
 export const { resetAuthStatus, clearSession } = authSlice.actions;
 export default authSlice.reducer;
