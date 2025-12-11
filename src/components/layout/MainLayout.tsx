@@ -40,19 +40,37 @@ export const MainLayout = () => {
   useAdminImageSocket();
 
   // ✅ افکت جدید: بررسی وضعیت لایسنس و هدایت خودکار بدون لاگ‌اوت
+  // + 🛠️ اضافه شدن لاگ‌های دقیق دیباگ
   useEffect(() => {
-    // لیست وضعیت‌هایی که باید کاربر را به صفحه لایسنس هدایت کنند (همه چیز جز trial و licensed)
-    // اگر کاربر لایسنس معتبر (licensed) یا آزمایشی (trial) داشته باشد، مشکلی نیست.
-    // اما اگر expired یا tampered باشد، باید ریدایرکت شود.
-    const invalidStatuses = ['expired', 'tampered', 'trial_expired', 'license_expired'];
+    // اگر هنوز وضعیتی نداریم (اولیه)، هیچ کاری نکن
+    if (licenseStatus === undefined) return;
 
-    if (licenseStatus && invalidStatuses.includes(licenseStatus)) {
+    // شروع لاگ‌گیری گروهی برای تمیزی کنسول
+    console.groupCollapsed(`🛡️ [License Guard] Check Triggered`);
+    console.log("📍 Current Path:", location.pathname);
+    console.log("📊 License Status:", licenseStatus);
+
+    // لیست وضعیت‌هایی که باید کاربر را به صفحه لایسنس هدایت کنند
+    const invalidStatuses = ['expired', 'tampered', 'trial_expired', 'license_expired'];
+    const shouldRedirect = invalidStatuses.includes(licenseStatus);
+
+    console.log("⚠️ Should Redirect?", shouldRedirect);
+    console.log("📄 Is License Page?", isLicensePage);
+
+    if (shouldRedirect) {
         if (!isLicensePage) {
-            console.warn(`⚠️ License Status is '${licenseStatus}'. Redirecting to /license...`);
+            console.warn(`🚫 Action: REDIRECTING user to /license (Reason: ${licenseStatus})`);
             navigate('/license', { replace: true });
+        } else {
+            console.log("✅ Action: User is already on license page. No redirect needed.");
         }
+    } else {
+        console.log("✅ Action: Status is valid (trial/licensed). Access allowed.");
     }
-  }, [licenseStatus, isLicensePage, navigate]);
+    
+    console.groupEnd(); // پایان گروه لاگ
+
+  }, [licenseStatus, isLicensePage, navigate, location.pathname]);
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
