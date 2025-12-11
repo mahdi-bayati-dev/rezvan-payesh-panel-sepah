@@ -17,7 +17,7 @@ export const injectStore = (_store: any) => {
 
 export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
 
-// کدهای خطای مربوط به لایسنس که نباید باعث لاگ‌اوت شوند
+// کدهای خطای مربوط به لایسنس
 const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
 
 const axiosInstance = axios.create({
@@ -30,7 +30,7 @@ const axiosInstance = axios.create({
   timeout: 30000,
 });
 
-// نمایش مود اجرایی در کنسول جهت اطمینان
+// نمایش مود اجرایی در کنسول
 console.log(
   `%c[Axios] Mode: ${AUTH_MODE.toUpperCase()} | URL: ${AppConfig.API_URL}`,
   "background: #333; color: #bada55; padding: 4px; border-radius: 4px;"
@@ -48,13 +48,11 @@ axiosInstance.interceptors.request.use(
     if (AUTH_MODE === "token") {
       let token: string | null = null;
 
-      // ۱. تلاش برای خواندن از ریداکس
       if (store) {
         const state = store.getState();
         token = state.auth.accessToken || state.auth.token;
       }
 
-      // ۲. فال‌بک: خواندن از LocalStorage
       if (!token) {
         token = localStorage.getItem("token") || localStorage.getItem("accessToken");
         if (token) {
@@ -62,7 +60,6 @@ axiosInstance.interceptors.request.use(
         }
       }
 
-      // ۳. ست کردن هدر
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
         console.log("🔑 Auth Header Attached.");
@@ -103,7 +100,7 @@ axiosInstance.interceptors.response.use(
         }
     }
 
-    // مدیریت خطای ۵۰۳ (سرویس در دسترس نیست)
+    // مدیریت خطای ۵۰۳
     if (status === 503) {
       console.error("🚨 503 Service Unavailable");
       if (!toast.isActive("server-error")) {
@@ -113,9 +110,7 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // ✅ مدیریت دقیق خطای لایسنس
-    // شرط: اگر استاتوس ۴۹۹ بود یا (۴۰۳ بود و کد خطا جزو لیست خطاهای لایسنس بود)
-    // یا حتی اگر ۴۰۱ بود اما پیام خطا مربوط به لایسنس بود (برای جلوگیری از لاگ‌اوت اشتباه)
+    // ✅ مدیریت خطای لایسنس (۴۹۹ و ۴۰۳ خاص)
     const isLicenseError = 
         status === 499 || 
         (status === 403 && data && typeof data === "object" && LICENSE_ERROR_CODES.includes(data.error_code));
@@ -134,24 +129,32 @@ axiosInstance.interceptors.response.use(
         });
       }
 
-      // 🔴 نکته مهم: اینجا کاربر لاگ‌اوت نمی‌شود، فقط هدایت می‌شود
-      if (!window.location.pathname.includes("/license")) {
-        console.warn("🔀 Redirecting to /license page (No Logout)...");
-        window.location.href = "/license";
-      }
+      // 🔴 نکته حیاتی برای جلوگیری از لاگ‌اوت:
+      // اگر خطا لایسنس بود، ما یک پرامیس "همیشه معلق" (Pending Promise) برمی‌گردانیم.
+      // این باعث می‌شود Redux/AuthCheck در حالت Loading بمانند و وارد catch نشوند.
+      // همزمان، ما با window.location.href کاربر را جابجا می‌کنیم.
       
-      if (status) console.groupEnd();
-      // بازگرداندن پرامیس ریجکت شده تا زنجیره درخواست متوقف شود اما لاگ‌اوت رخ ندهد
-      return Promise.reject(error);
+      if (!window.location.pathname.includes("/license")) {
+        console.warn("🔀 Redirecting to /license page (Halting App Logic)...");
+        window.location.href = "/license";
+        
+        // 🛑 ترفند: بازگرداندن پرامیسی که هیچوقت reject نمی‌شود تا لاگ‌اوت اجرا نشود
+        return new Promise(() => {});
+      } else {
+        // اگر همین الان در صفحه لایسنس هستیم، باز هم نباید بگذاریم لاگ‌اوت شود
+        // چون ممکن است کاربر در صفحه لایسنس رفرش کرده باشد و /me صدا زده شده باشد
+        console.warn("🛑 License error on License Page. Halting default error handling.");
+        return new Promise(() => {});
+      }
     }
 
     // مدیریت خطای ۴۰۱ (خروج)
     if (status === 401) {
-      // یک چک امنیتی اضافه: اگر ۴۰۱ بود ولی کد خطا مربوط به لایسنس بود، لاگ‌اوت نکن
+      // یک لایه محافظتی اضافه: اگر ۴۰۱ بود اما کد خطای لایسنس داشت
       if (data && typeof data === "object" && LICENSE_ERROR_CODES.includes(data.error_code)) {
-         console.warn("🛡️ 401 received but it's a License Error. Skipping Logout.");
+         console.warn("🛡️ 401 received but it's a License Error. Redirecting instead of Logout.");
          window.location.href = "/license";
-         return Promise.reject(error);
+         return new Promise(() => {}); // اینجا هم فریز می‌کنیم
       }
 
       if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
