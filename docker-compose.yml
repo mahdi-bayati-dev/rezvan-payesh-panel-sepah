@@ -74,8 +74,11 @@ services:
     container_name: rezvan_soketi
     restart: always
     environment:
-      SOKETI_DEBUG: '0'
+      SOKETI_DEBUG: '1' # موقتا یک کنید تا لاگ‌ها را ببینید
+      # مقادیر دقیق را اینجا ست کنید
       SOKETI_DEFAULT_APP_ID: rezvan_payesh_docker
+      SOKETI_DEFAULT_APP_KEY: ${PUSHER_APP_KEY}
+      SOKETI_DEFAULT_APP_SECRET: ${PUSHER_APP_SECRET}
     networks:
       - rezvan-network
 
