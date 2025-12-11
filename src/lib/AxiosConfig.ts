@@ -17,6 +17,7 @@ export const injectStore = (_store: any) => {
 
 export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
 
+// کدهای خطای مربوط به لایسنس که نباید باعث لاگ‌اوت شوند
 const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
 
 const axiosInstance = axios.create({
@@ -112,9 +113,9 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // ✅ مدیریت خطای لایسنس (۴۰۳ و ۴۹۹ طبق نظر بک‌اند)
-    // اگر ۴۹۹ آمد -> قطعا خطای لایسنس است
-    // اگر ۴۰۳ آمد -> چک میکنیم آیا کد خطا مربوط به لایسنس است یا خیر
+    // ✅ مدیریت دقیق خطای لایسنس
+    // شرط: اگر استاتوس ۴۹۹ بود یا (۴۰۳ بود و کد خطا جزو لیست خطاهای لایسنس بود)
+    // یا حتی اگر ۴۰۱ بود اما پیام خطا مربوط به لایسنس بود (برای جلوگیری از لاگ‌اوت اشتباه)
     const isLicenseError = 
         status === 499 || 
         (status === 403 && data && typeof data === "object" && LICENSE_ERROR_CODES.includes(data.error_code));
@@ -133,18 +134,26 @@ axiosInstance.interceptors.response.use(
         });
       }
 
-      // اگر کاربر الان در صفحه لایسنس نیست، او را ریدایرکت کن
+      // 🔴 نکته مهم: اینجا کاربر لاگ‌اوت نمی‌شود، فقط هدایت می‌شود
       if (!window.location.pathname.includes("/license")) {
-        console.warn("🔀 Redirecting to /license page...");
+        console.warn("🔀 Redirecting to /license page (No Logout)...");
         window.location.href = "/license";
       }
       
       if (status) console.groupEnd();
+      // بازگرداندن پرامیس ریجکت شده تا زنجیره درخواست متوقف شود اما لاگ‌اوت رخ ندهد
       return Promise.reject(error);
     }
 
     // مدیریت خطای ۴۰۱ (خروج)
     if (status === 401) {
+      // یک چک امنیتی اضافه: اگر ۴۰۱ بود ولی کد خطا مربوط به لایسنس بود، لاگ‌اوت نکن
+      if (data && typeof data === "object" && LICENSE_ERROR_CODES.includes(data.error_code)) {
+         console.warn("🛡️ 401 received but it's a License Error. Skipping Logout.");
+         window.location.href = "/license";
+         return Promise.reject(error);
+      }
+
       if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
         console.warn("🔒 Unauthorized (401). Valid Token Rejected or Expired.");
         console.warn("🔄 Executing Auto-Logout...");

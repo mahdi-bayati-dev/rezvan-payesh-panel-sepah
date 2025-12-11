@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar, SidebarContent } from "./Sidebar";
 import { Header } from "./Header";
+import { useAppSelector } from "@/hook/reduxHooks";
+import { selectLicenseStatus } from "@/store/slices/licenseSlice";
 
 // ۱. نگهبان اتصال (عمومی - اتصال سوکت)
 import { GlobalWebSocketHandler } from './GlobalWebSocketHandler';
@@ -24,7 +26,11 @@ import { useAdminImageSocket } from '@/features/ConfirmPhotos/hooks/useAdminImag
 export const MainLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isLicensePage = location.pathname === '/license';
+  
+  // ✅ دریافت وضعیت لایسنس برای بررسی ریدایرکت سراسری
+  const licenseStatus = useAppSelector(selectLicenseStatus);
 
   // --- Socket Hooks ---
   // این هوک برای "کارمند" است (نتیجه تایید/رد عکس خودش)
@@ -32,6 +38,21 @@ export const MainLayout = () => {
 
   // ✅ اضافه شده: این هوک برای "ادمین" است (دریافت درخواست جدید)
   useAdminImageSocket();
+
+  // ✅ افکت جدید: بررسی وضعیت لایسنس و هدایت خودکار بدون لاگ‌اوت
+  useEffect(() => {
+    // لیست وضعیت‌هایی که باید کاربر را به صفحه لایسنس هدایت کنند (همه چیز جز trial و licensed)
+    // اگر کاربر لایسنس معتبر (licensed) یا آزمایشی (trial) داشته باشد، مشکلی نیست.
+    // اما اگر expired یا tampered باشد، باید ریدایرکت شود.
+    const invalidStatuses = ['expired', 'tampered', 'trial_expired', 'license_expired'];
+
+    if (licenseStatus && invalidStatuses.includes(licenseStatus)) {
+        if (!isLicensePage) {
+            console.warn(`⚠️ License Status is '${licenseStatus}'. Redirecting to /license...`);
+            navigate('/license', { replace: true });
+        }
+    }
+  }, [licenseStatus, isLicensePage, navigate]);
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
@@ -67,7 +88,7 @@ export const MainLayout = () => {
       <Header onMenuClick={() => !isLicensePage && setSidebarOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* سایدبار دسکتاپ */}
+        {/* سایدبار دسکتاپ - در صفحه لایسنس مخفی می‌شود */}
         {!isLicensePage && <Sidebar />}
 
         {/* سایدبار موبایل */}
