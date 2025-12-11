@@ -32,6 +32,7 @@ services:
     volumes:
       - ./certs:/usr/local/apache2/conf/certs
       - ./backend_storage:/var/www/storage
+      - ./back_end/public/vendor:/usr/local/apache2/htdocs/vendor
     networks:
       - rezvan-network
       - shared-network
