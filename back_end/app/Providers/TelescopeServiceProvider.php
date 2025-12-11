@@ -16,17 +16,15 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
     {
         // Telescope::night();
 
-        $this->hideSensitiveRequestDetails();
+       $this->hideSensitiveRequestDetails();
 
-        $isLocal = $this->app->environment('local');
+        Telescope::filter(function (IncomingEntry $entry) {
+            // --- تغییر مهم: همیشه true برگردانید تا همه درخواست‌ها ثبت شوند ---
+            return true;
 
-        Telescope::filter(function (IncomingEntry $entry) use ($isLocal) {
-            return $isLocal ||
-                   $entry->isReportableException() ||
-                   $entry->isFailedRequest() ||
-                   $entry->isFailedJob() ||
-                   $entry->isScheduledTask() ||
-                   $entry->hasMonitoredTag();
+            // کد قبلی که محدود می‌کرد:
+            // return $this->app->environment('local') ||
+            //       $entry->isReportableException() || ...
         });
     }
 
