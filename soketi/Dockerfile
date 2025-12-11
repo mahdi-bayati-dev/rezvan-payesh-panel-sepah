@@ -11,7 +11,7 @@ RUN apk add --no-cache python3 make g++ git
 RUN npm install -g @soketi/soketi
 
 # پورت پیش‌فرض
-EXPOSE 6001
+EXPOSE 6002
 
 # دستور اجرا
 CMD ["soketi", "start"]
