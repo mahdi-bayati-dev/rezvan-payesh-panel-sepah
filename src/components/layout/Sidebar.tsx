@@ -24,7 +24,6 @@ interface SidebarNavItemProps {
 
 const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
   const hasRoleAccess = usePermission(item.allowedRoles);
-  // ✅ دریافت وضعیت لایسنس از ریداکس
   const licenseStatus = useAppSelector(selectLicenseStatus);
   const user = useAppSelector(selectUser);
 
@@ -36,15 +35,20 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
     return null;
   }
 
-  // ۳. ✅ لاجیک جدید لایسنس (طبق درخواست دقیق شما):
-  // "زمانی که status چیزی جز trial بود میخواهم آیتم اش در منو ساید بار نمایش داده شود"
-  // معنی: اگر trial بود -> مخفی کن.
-  // اگر licensed, expired, tampered بود -> نمایش بده.
+  // ۳. ✅ اصلاح دقیق شرط نمایش لایسنس:
   if (item.href === '/license') {
-    if (licenseStatus === 'trial') {
-      return null; // در حالت آزمایشی مخفی می‌شود
+    // اگر استاتوس هنوز نیامده (!) یا ترایال است -> برگردان null
+    const shouldHide = !licenseStatus || licenseStatus === 'trial';
+
+    // 🛠️ لاگ دیباگ برای بررسی دلیل نمایش/عدم نمایش آیتم لایسنس
+    // این لاگ به شما می‌گوید در لحظه رندر، کامپوننت چه تصمیمی گرفته است
+    if (import.meta.env.DEV) {
+      // console.log(`[Sidebar Debug] License Item Check: Status='${licenseStatus}' -> ${shouldHide ? 'HIDDEN ❌' : 'VISIBLE ✅'}`);
     }
-    // در غیر این صورت (لایسنس شده، منقضی یا دستکاری شده) نمایش داده می‌شود
+
+    if (shouldHide) {
+      return null;
+    }
   }
 
   const displayCount = badgeCount ? toPersianDigits(badgeCount) : undefined;
@@ -77,11 +81,15 @@ const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
 export const SidebarContent = () => {
   const dispatch = useAppDispatch();
   const { data: pendingCount = 0 } = usePendingRequestsCount();
+  const licenseStatus = useAppSelector(selectLicenseStatus);
 
   useEffect(() => {
-    // دریافت وضعیت لایسنس در هنگام لود سایدبار
-    dispatch(fetchLicenseStatus());
-  }, [dispatch]);
+    // فقط اگر وضعیت لایسنس هنوز مشخص نشده، درخواست بده
+    // این کار از ریکوئست‌های تکراری که در لاگ دیدیم جلوگیری می‌کند
+    if (!licenseStatus) {
+      dispatch(fetchLicenseStatus());
+    }
+  }, [dispatch, licenseStatus]);
 
   return (
     <div className="flex h-full flex-col justify-between border-e border-borderL bg-backgroundL-500 transition-colors duration-300 dark:border-borderD dark:bg-backgroundD">
