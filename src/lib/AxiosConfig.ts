@@ -122,6 +122,7 @@ axiosInstance.interceptors.response.use(
           ? "لایسنس نرم‌افزار معتبر نیست یا منقضی شده است." 
           : (data?.message || "لایسنس منقضی شده است");
 
+      // نمایش پیام خطا فقط اگر قبلاً نمایش داده نشده باشد
       if (!toast.isActive("license-error")) {
         toast.error(message, {
           toastId: "license-error",
@@ -129,22 +130,56 @@ axiosInstance.interceptors.response.use(
         });
       }
 
-      // 🔴 نکته حیاتی برای جلوگیری از لاگ‌اوت:
-      // اگر خطا لایسنس بود، ما یک پرامیس "همیشه معلق" (Pending Promise) برمی‌گردانیم.
-      // این باعث می‌شود Redux/AuthCheck در حالت Loading بمانند و وارد catch نشوند.
-      // همزمان، ما با window.location.href کاربر را جابجا می‌کنیم.
-      
-      if (!window.location.pathname.includes("/license")) {
+      const onLicensePage = window.location.pathname.includes("/license");
+
+      // 🔴 سناریوی اول: کاربر در صفحه لایسنس نیست -> باید ریدایرکت شود
+      if (!onLicensePage) {
         console.warn("🔀 Redirecting to /license page (Halting App Logic)...");
         window.location.href = "/license";
-        
-        // 🛑 ترفند: بازگرداندن پرامیسی که هیچوقت reject نمی‌شود تا لاگ‌اوت اجرا نشود
+        // بازگرداندن پرامیس معلق برای جلوگیری از اجرای کدهای بعدی تا زمان رفرش صفحه
         return new Promise(() => {});
-      } else {
-        // اگر همین الان در صفحه لایسنس هستیم، باز هم نباید بگذاریم لاگ‌اوت شود
-        // چون ممکن است کاربر در صفحه لایسنس رفرش کرده باشد و /me صدا زده شده باشد
-        console.warn("🛑 License error on License Page. Halting default error handling.");
-        return new Promise(() => {});
+      } 
+      
+      // 🟢 سناریوی دوم: کاربر در صفحه لایسنس است (مثلاً رفرش کرده)
+      else {
+        console.warn("🛡️ License Error on License Page. Handling specifically to allow rendering.");
+
+        // ۱. اگر درخواست `/me` (چک لاگین) فیل شده باشد:
+        // نباید بگذاریم فیل شود، چون ProtectedRoute کاربر را به لاگین می‌فرستد.
+        // یک آبجکت کاربری موقت برمی‌گردانیم تا صفحه لود شود.
+        if (originalRequest?.url?.endsWith("/me") || originalRequest?.url?.endsWith("me")) {
+             console.log("✅ Mocking /me response to prevent logout loop.");
+             return {
+                 data: { 
+                    id: -1, 
+                    user_name: "License Locked", 
+                    email: "system@locked", 
+                    roles: [], // نقش خالی
+                    employee: null 
+                 },
+                 status: 200,
+                 statusText: "OK",
+                 headers: {},
+                 config: originalRequest!,
+             };
+        }
+
+        // ۲. اگر درخواست `/license` (دریافت اطلاعات لایسنس) ۴۹۹ داده باشد:
+        // ما نیاز داریم بادی (Body) همین ارور را به کامپوننت برسانیم (چون Installation ID داخلش است).
+        // پس ارور را تبدیل به موفقیت (200) می‌کنیم تا axios آن را throw نکند.
+        if (originalRequest?.url?.endsWith("/license")) {
+             console.log("✅ Converting /license error to success to render form data.");
+             return {
+                 data: data, // دیتای خطای سرور را به عنوان دیتای موفق پاس می‌دهیم
+                 status: 200,
+                 statusText: "OK",
+                 headers: error.response?.headers || {},
+                 config: originalRequest!,
+             };
+        }
+
+        // ۳. برای سایر درخواست‌ها در صفحه لایسنس (مثلاً نوتیفیکیشن‌ها)، می‌گذاریم فیل شوند
+        return Promise.reject(error);
       }
     }
 
@@ -154,7 +189,7 @@ axiosInstance.interceptors.response.use(
       if (data && typeof data === "object" && LICENSE_ERROR_CODES.includes(data.error_code)) {
          console.warn("🛡️ 401 received but it's a License Error. Redirecting instead of Logout.");
          window.location.href = "/license";
-         return new Promise(() => {}); // اینجا هم فریز می‌کنیم
+         return new Promise(() => {}); // فریز کردن
       }
 
       if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
