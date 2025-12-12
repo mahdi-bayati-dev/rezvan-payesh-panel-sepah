@@ -1,5 +1,3 @@
-// src/features/dashboard/routes/DashboardPage.tsx
-
 import { useState, useMemo, type ReactNode } from "react";
 import {
   UserCheck,
@@ -65,7 +63,6 @@ const adminStatsConfig: StatConfig<AdminSummaryStats>[] = [
   { key: "total_present", title: "حاضرین امروز", icon: <UserCheck size={20} className="text-green-600 dark:text-green-400" />, variant: 'success' },
   { key: "total_lateness", title: "تاخیرها", icon: <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />, variant: 'warning' },
   { key: "total_early_departure", title: "تعجیل خروج", icon: <Briefcase size={20} className="text-orange-600 dark:text-orange-400" />, variant: 'danger' },
-
   { key: "total_absent", title: "غایبین / بدون شیفت", icon: <UserX size={20} className="text-red-600 dark:text-red-400" />, variant: 'danger' },
   { key: "total_employees_scoped", title: "کل پرسنل", icon: <Users size={20} className="text-blue-600 dark:text-blue-400" />, variant: 'info' },
 ];
@@ -113,9 +110,10 @@ const DashboardPage = () => {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-36 rounded-2xl border border-borderL p-5 bg-secondaryL/20 dark:border-borderD dark:bg-secondaryD/10 flex flex-col justify-between">
+        // در حالت لودینگ هم گرید را مشابه حالت نهایی تنظیم می‌کنیم تا پرش محتوا (CLS) نداشته باشیم
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-36 rounded-2xl border border-borderL p-5 bg-secondaryL/20 dark:border-borderD dark:bg-secondaryD/10 flex flex-col justify-between animate-pulse">
               <div className="flex justify-between items-center">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-8 w-8 rounded-lg" />
@@ -129,7 +127,7 @@ const DashboardPage = () => {
 
     if (isError) {
       return (
-        <Alert variant="destructive" className="col-span-full my-4">
+        <Alert variant="destructive" className="col-span-full my-4 w-full">
           <AlertTitle>خطا در دریافت اطلاعات</AlertTitle>
           <AlertDescription>{(error as Error).message}</AlertDescription>
         </Alert>
@@ -138,13 +136,16 @@ const DashboardPage = () => {
 
     if (isAdmin && isAdminDashboard(data!)) {
       return (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* FIX: تغییر گرید از 6 ستون به 5 ستون
+            قبلا xl:grid-cols-6 بود که چون 5 تا آیتم داشتیم، باعث میشد سمت چپ خالی بماند.
+            الان با xl:grid-cols-5 کارت‌ها کل عرض را پر می‌کنند.
+          */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
             {adminStatsConfig.map((stat) => (
               <StatCard
                 key={stat.key}
                 title={stat.title}
-                // اعمال تبدیل اعداد فارسی
                 value={toPersianDigits(data.summary_stats[stat.key] ?? 0)}
                 variant={stat.variant}
                 linkText={stat.linkText}
@@ -158,7 +159,7 @@ const DashboardPage = () => {
             ))}
           </div>
 
-          <div className="mt-8 bg-backgroundL-500 dark:bg-backgroundD p-6 lg:p-8 rounded-3xl border border-borderL dark:border-borderD shadow-sm min-h-[450px] animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <div className="bg-backgroundL-500 dark:bg-backgroundD p-6 lg:p-8 rounded-3xl border border-borderL dark:border-borderD shadow-sm min-h-[450px]">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <h3 className="text-xl font-bold text-foregroundL dark:text-foregroundD flex items-center gap-3">
                 <div className="p-2 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl">
@@ -175,19 +176,17 @@ const DashboardPage = () => {
             </div>
             <AttendanceChart data={chartData} />
           </div>
-        </>
+        </div>
       );
     }
 
     if (isUser && isUserDashboard(data!)) {
       return (
-        // نکته مهم: اضافه کردن w-full برای حل مشکل چسبیدن به سایدبار
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {userStatsConfig.map((stat) => (
             <StatCard
               key={stat.key}
               title={stat.title}
-              // اعمال تبدیل اعداد فارسی
               value={toPersianDigits(data[stat.key] ?? 0)}
               variant={stat.variant}
               linkText={stat.linkText}
@@ -214,8 +213,8 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className=" flex flex-col gap-4 p-4 sm:p-4">
-      <div className="p-6 bg-backgroundL-500 dark:bg-backgroundD rounded-3xl border border-borderL dark:border-borderD shadow-sm">
+    <div className="w-full flex flex-col gap-4 p-4 sm:p-4">
+      <div className="w-full p-6 bg-backgroundL-500 dark:bg-backgroundD rounded-3xl border border-borderL dark:border-borderD shadow-sm">
         <DashboardHeader
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
