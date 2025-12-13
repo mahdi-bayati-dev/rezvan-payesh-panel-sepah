@@ -45,8 +45,11 @@ echo "✅ Database is ready and reachable!"
 if [ ! -f storage/oauth-private.key ] || [ ! -f storage/.passport_installed ]; then
     echo "✨ Fresh install detected! Rebuilding database from scratch..."
 
+    php artisan vendor:publish --tag=passport-migrations --force
     # اینجا به جای migrate معمولی، از fresh استفاده می‌کنیم تا جدول‌ها حتما ساخته شوند
     php artisan migrate:fresh --force
+
+    php artisan config:clear
 
     echo "🔑 Generating keys..."
     php artisan passport:keys --force
