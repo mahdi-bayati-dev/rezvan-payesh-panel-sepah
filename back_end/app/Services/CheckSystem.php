@@ -1,2 +1,303 @@
 <?php
- namespace App\Services; use App\Models\Status; use Exception; use Illuminate\Contracts\Filesystem\FileNotFoundException; use Illuminate\Support\Carbon; use Illuminate\Support\Facades\DB; use Illuminate\Support\Facades\File; use Illuminate\Support\Facades\Log; use Illuminate\Encryption\Encrypter; use Illuminate\Support\Str; class CheckSystem { private string $trialEncryptionKey = 'mpN3gJUJh2XMGXOlbP7BcNgOCKbFuKvZCIssgX7eJO2A320q50'; private string $trial_file1_path; private string $trial_file2_path; private string $publicKeyPath; public function __construct() { $this->trial_file1_path = storage_path('app/trial.dat'); $this->trial_file2_path = storage_path('framework/cache/data/app_trial_config.dat'); $this->publicKeyPath = storage_path('app/license/license.pubkey'); } private function getTrialEncrypter(): Encrypter { $key = substr($this->trialEncryptionKey, 0, 32); return new Encrypter($key, 'AES-256-CBC'); } public function getInstallationId(): string { $license = Status::first(); if ($license && $license->installation_id) { return $license->installation_id; } $file1Data = $this->readTrialData($this->trial_file1_path, 'file'); $file2Data = $this->readTrialData($this->trial_file2_path, 'file'); $recoveredId = null; if ($file1Data && $file1Data['installation_id'] ?? null) { $recoveredId = $file1Data['installation_id']; } elseif ($file2Data && $file2Data['installation_id'] ?? null) { $recoveredId = $file2Data['installation_id']; } if ($recoveredId) { Log::alert('LICENSE TAMPERING: LicenseKey row deleted. Recovering ID to prevent Trial Reset.', ['recovered_id' => $recoveredId]); Status::firstOrCreate( ['installation_id' => $recoveredId], [ 'status' => 'tampered', 'user_limit' => 10, ] ); return $recoveredId; } $newId = Str::uuid(); Status::firstOrCreate([], ['installation_id' => $newId, 'status' => 'trial']); return $newId; } public function getLicenseDetails(): array { $license = Status::firstOrCreate( ['installation_id' => $this->getInstallationId()], ['status' => 'trial'] ); $details = [ 'installation_id' => $license->installation_id, 'status' => $license->status, 'expires_at' => $license->expires_at ? $license->expires_at->toDateString() : null, 'user_limit' => $license->user_limit ?? 5, ]; $trialData = $this->getMasterTrialRecord(); $details['trial_days_used'] = $trialData['days_used']; $details['trial_last_run'] = $trialData['last_run_date']; return $details; } public function getMasterTrialRecord(): array { $record1 = $this->readTrialData($this->trial_file1_path, 'file'); $record2 = $this->readTrialData(null, 'db'); $record3 = $this->readTrialData($this->trial_file2_path, 'file'); $validRecords = array_filter([$record1, $record2, $record3]); if (empty($validRecords)) { return [ 'days_used' => 1, 'last_run_date' => Carbon::today()->toDateString(), 'used_tokens' => [] ]; } usort($validRecords, function ($a, $b) { $countA = count($a['used_tokens'] ?? []); $countB = count($b['used_tokens'] ?? []); if ($countA != $countB) { return $countB <=> $countA; } if (($a['days_used'] ?? 0) != ($b['days_used'] ?? 0)) { return ($b['days_used'] ?? 0) <=> ($a['days_used'] ?? 0); } return ($b['last_run_date'] ?? '') <=> ($a['last_run_date'] ?? ''); }); return $validRecords[0]; } public function syncTrialData(array $masterRecord): void { $this->writeTrialData($this->trial_file1_path, $masterRecord, 'file'); $this->writeTrialData(null, $masterRecord, 'db'); $this->writeTrialData($this->trial_file2_path, $masterRecord, 'file'); } private function readTrialData(?string $path, string $type): ?array { try { if ($type === 'file') { if (!file_exists($path)) return null; $encryptedData = file_get_contents($path); } else { $record = DB::table('license_keys')->where('installation_id', $this->getInstallationId())->first(); if (!$record || !$record->trial_payload_db) return null; $encryptedData = $record->trial_payload_db; } $decrypted = $this->getTrialEncrypter()->decryptString($encryptedData); return json_decode($decrypted, true); } catch (Exception $e) { return null; } } private function writeTrialData(?string $path, array $data, string $type): void { $data['installation_id'] = $this->getInstallationId(); $jsonData = json_encode($data); $encryptedData = $this->getTrialEncrypter()->encryptString($jsonData); if ($type === 'file') { $directory = dirname($path); if (!is_dir($directory)) mkdir($directory, 0755, true); file_put_contents($path, $encryptedData); } else { DB::table('license_keys') ->where('installation_id', $this->getInstallationId()) ->update(['trial_payload_db' => $encryptedData]); } } public function applyLicenseToken(string $token): bool { try { $payload = $this->verifyAndDecode($token); $tokenId = $payload->token_id ?? null; if ($tokenId) { $existsInDB = DB::table('license_histories')->where('token_id', $tokenId)->exists(); $masterRecord = $this->getMasterTrialRecord(); $usedTokens = $masterRecord['used_tokens'] ?? []; $existsInFile = in_array($tokenId, $usedTokens); if ($existsInDB || $existsInFile) { Log::critical('تلاش برای هک لایسنس! توکن تکراری شناسایی شد.', ['token_id' => $tokenId]); return false; } } $license = Status::where('installation_id', $this->getInstallationId())->firstOrFail(); if (!isset($payload->installation_id) || $payload->installation_id !== $license->installation_id) { return false; } $expiresAt = Carbon::parse($payload->expires_at); if ($expiresAt->isPast()) { return false; } DB::transaction(function () use ($license, $token, $expiresAt, $payload, $tokenId) { $license->license_token = $token; $license->expires_at = $expiresAt; $license->user_limit = $payload->user_limit ?? 5; $license->status = 'licensed'; $license->save(); if ($tokenId) { DB::table('license_histories')->insert([ 'license_key_id' => $license->id, 'token_id' => $tokenId, 'activated_at' => now(), 'created_at' => now(), 'updated_at' => now(), ]); $masterRecord = $this->getMasterTrialRecord(); $masterRecord['used_tokens'][] = $tokenId; $this->syncTrialData($masterRecord); } }); return true; } catch (Exception $e) { Log::error('خطا در اعمال لایسنس: ' . $e->getMessage()); return false; } } public function checkLicensedStatus(Status $license): string { if (!$license->license_token) return 'tampered'; try { $payload = $this->verifyAndDecode($license->license_token); if ($payload->installation_id !== $license->installation_id) return 'tampered'; if ($license->expires_at && Carbon::parse($payload->expires_at)->timestamp !== $license->expires_at->timestamp) return 'tampered'; if ($license->expires_at && $license->expires_at->isPast()) { $license->update(['status' => 'license_expired']); return 'license_expired'; } return 'licensed'; } catch (Exception $e) { return 'tampered'; } } public function verifyAndDecode(string $token): \stdClass { if (!File::exists($this->publicKeyPath)) throw new Exception('کلید عمومی یافت نشد.'); $parts = explode('.', $token); if (count($parts) !== 2) throw new Exception('فرمت نامعتبر'); $payload = base64_decode($parts[0]); $signature = base64_decode($parts[1]); $publicKey = openssl_pkey_get_public(File::get($this->publicKeyPath)); if (openssl_verify($payload, $signature, $publicKey, OPENSSL_ALGO_SHA256) === 1) { return json_decode($payload); } throw new \Exception('امضا نامعتبر است.'); } }
+
+namespace App\Services;
+
+use App\Models\Status;
+use Exception;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Encryption\Encrypter;
+use Illuminate\Support\Str;
+
+class CheckSystem
+{
+    private string $trialEncryptionKey = 'mpN3gJUJh2XMGXOlbP7BcNgOCKbFuKvZCIssgX7eJO2A320q50';
+    private string $trial_file1_path;
+    private string $trial_file2_path;
+
+    private string $publicKeyPath;
+
+    public function __construct()
+    {
+        $this->trial_file1_path = storage_path('app/trial.dat');
+        $this->trial_file2_path = storage_path('framework/cache/data/app_trial_config.dat');
+        $this->publicKeyPath = storage_path('app/license/license.pubkey');
+    }
+
+    private function getTrialEncrypter(): Encrypter
+    {
+        $key = substr($this->trialEncryptionKey, 0, 32);
+        return new Encrypter($key, 'AES-256-CBC');
+    }
+
+    public function getInstallationId(): string
+    {
+        $license = Status::first();
+        if ($license && $license->installation_id)
+        {
+            return $license->installation_id;
+        }
+        $file1Data = $this->readTrialData($this->trial_file1_path, 'file');
+        $file2Data = $this->readTrialData($this->trial_file2_path, 'file');
+
+        $recoveredId = null;
+        if ($file1Data && $file1Data['installation_id'] ?? null)
+        {
+            $recoveredId = $file1Data['installation_id'];
+        }
+        elseif ($file2Data && $file2Data['installation_id'] ?? null)
+        {
+            $recoveredId = $file2Data['installation_id'];
+        }
+        if ($recoveredId)
+        {
+            Log::alert('LICENSE TAMPERING: LicenseKey row deleted. Recovering ID to prevent Trial Reset.', ['recovered_id' => $recoveredId]);
+
+            Status::firstOrCreate(
+                ['installation_id' => $recoveredId],
+                [
+                    'status' => 'tampered',
+                    'user_limit' => 10,
+                ]
+            );
+            return $recoveredId;
+        }
+
+        $newId = Str::uuid();
+        Status::firstOrCreate([], ['installation_id' => $newId, 'status' => 'trial']);
+        return $newId;
+    }
+
+    public function getLicenseDetails(): array
+    {
+        $license = Status::firstOrCreate(
+            ['installation_id' => $this->getInstallationId()],
+            ['status' => 'trial']
+        );
+
+        $details = [
+            'installation_id' => $license->installation_id,
+            'status' => $license->status,
+            'expires_at' => $license->expires_at ? $license->expires_at->toDateString() : null,
+            'user_limit' => $license->user_limit ?? 5,
+        ];
+
+        $trialData = $this->getMasterTrialRecord();
+        $details['trial_days_used'] = $trialData['days_used'];
+        $details['trial_last_run'] = $trialData['last_run_date'];
+
+        return $details;
+    }
+
+    // ===================================================================
+    //  بخش ۱: مدیریت داده‌های امن (Trial & History)
+    // ===================================================================
+
+    public function getMasterTrialRecord(): array
+    {
+        $record1 = $this->readTrialData($this->trial_file1_path, 'file');
+        $record2 = $this->readTrialData(null, 'db');
+        $record3 = $this->readTrialData($this->trial_file2_path, 'file');
+
+        $validRecords = array_filter([$record1, $record2, $record3]);
+
+        if (empty($validRecords)) {
+            return [
+                'days_used' => 1,
+                'last_run_date' => Carbon::today()->toDateString(),
+                'used_tokens' => []
+            ];
+        }
+
+        usort($validRecords, function ($a, $b) {
+            $countA = count($a['used_tokens'] ?? []);
+            $countB = count($b['used_tokens'] ?? []);
+            if ($countA != $countB)
+            {
+                return $countB <=> $countA;
+            }
+            if (($a['days_used'] ?? 0) != ($b['days_used'] ?? 0))
+            {
+                return ($b['days_used'] ?? 0) <=> ($a['days_used'] ?? 0);
+            }
+            return ($b['last_run_date'] ?? '') <=> ($a['last_run_date'] ?? '');
+        });
+
+        return $validRecords[0];
+    }
+
+    public function syncTrialData(array $masterRecord): void
+    {
+        $this->writeTrialData($this->trial_file1_path, $masterRecord, 'file');
+        $this->writeTrialData(null, $masterRecord, 'db');
+        $this->writeTrialData($this->trial_file2_path, $masterRecord, 'file');
+    }
+
+    private function readTrialData(?string $path, string $type): ?array
+    {
+        try {
+            if ($type === 'file')
+            {
+                if (!file_exists($path)) return null;
+                $encryptedData = file_get_contents($path);
+            }
+            else
+            {
+                $record = DB::table('license_keys')->where('installation_id', $this->getInstallationId())->first();
+                if (!$record || !$record->trial_payload_db) return null;
+                $encryptedData = $record->trial_payload_db;
+            }
+
+            $decrypted = $this->getTrialEncrypter()->decryptString($encryptedData);
+            return json_decode($decrypted, true);
+        }
+        catch (Exception $e)
+        {
+            return null;
+        }
+    }
+
+    private function writeTrialData(?string $path, array $data, string $type): void
+    {
+        $data['installation_id'] = $this->getInstallationId();
+        $jsonData = json_encode($data);
+        $encryptedData = $this->getTrialEncrypter()->encryptString($jsonData);
+
+        if ($type === 'file')
+        {
+            $directory = dirname($path);
+            if (!is_dir($directory)) mkdir($directory, 0755, true);
+            file_put_contents($path, $encryptedData);
+        }
+        else
+        {
+            DB::table('license_keys')
+              ->where('installation_id', $this->getInstallationId())
+              ->update(['trial_payload_db' => $encryptedData]);
+        }
+    }
+
+    // ===================================================================
+    //  بخش ۲: منطق لایسنس دائمی (Licensed Logic)
+    // ===================================================================
+
+    public function applyLicenseToken(string $token): bool
+    {
+        try
+        {
+            $payload = $this->verifyAndDecode($token);
+            $tokenId = $payload->token_id ?? null;
+
+            if ($tokenId)
+            {
+
+                $existsInDB = DB::table('license_histories')->where('token_id', $tokenId)->exists();
+
+                $masterRecord = $this->getMasterTrialRecord();
+                $usedTokens = $masterRecord['used_tokens'] ?? [];
+                $existsInFile = in_array($tokenId, $usedTokens);
+
+                if ($existsInDB || $existsInFile)
+                {
+                    Log::critical('تلاش برای هک لایسنس! توکن تکراری شناسایی شد.', ['token_id' => $tokenId]);
+                    return false;
+                }
+            }
+
+            $license = Status::where('installation_id', $this->getInstallationId())->firstOrFail();
+
+            if (!isset($payload->installation_id) || $payload->installation_id !== $license->installation_id) {
+                return false;
+            }
+
+            $expiresAt = Carbon::parse($payload->expires_at);
+            if ($expiresAt->isPast()) {
+                return false;
+            }
+
+            DB::transaction(function () use ($license, $token, $expiresAt, $payload, $tokenId)
+            {
+                $license->license_token = $token;
+                $license->expires_at = $expiresAt;
+                $license->user_limit = $payload->user_limit ?? 5;
+                $license->status = 'licensed';
+                $license->save();
+
+                if ($tokenId)
+                {
+                    DB::table('license_histories')->insert([
+                        'license_key_id' => $license->id,
+                        'token_id' => $tokenId,
+                        'activated_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $masterRecord = $this->getMasterTrialRecord();
+                    $masterRecord['used_tokens'][] = $tokenId;
+                    $this->syncTrialData($masterRecord);
+                }
+            });
+
+            return true;
+
+        }
+        catch (Exception $e)
+        {
+            Log::error('خطا در اعمال لایسنس: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function checkLicensedStatus(Status $license): string
+    {
+        if (!$license->license_token) return 'tampered';
+
+        try
+        {
+            $payload = $this->verifyAndDecode($license->license_token);
+
+            if ($payload->installation_id !== $license->installation_id) return 'tampered';
+            if ($license->expires_at && Carbon::parse($payload->expires_at)->timestamp !== $license->expires_at->timestamp) return 'tampered';
+
+            if ($license->expires_at && $license->expires_at->isPast())
+            {
+                $license->update(['status' => 'license_expired']);
+                return 'license_expired';
+            }
+
+            return 'licensed';
+
+        }
+        catch (Exception $e)
+        {
+            return 'tampered';
+        }
+    }
+
+    /**
+     * @throws FileNotFoundException
+     * @throws Exception
+     */
+    public function verifyAndDecode(string $token): \stdClass
+    {
+        if (!File::exists($this->publicKeyPath)) throw new Exception('کلید عمومی یافت نشد.');
+
+        $parts = explode('.', $token);
+        if (count($parts) !== 2) throw new Exception('فرمت نامعتبر');
+
+        $payload = base64_decode($parts[0]);
+        $signature = base64_decode($parts[1]);
+        $publicKey = openssl_pkey_get_public(File::get($this->publicKeyPath));
+
+        if (openssl_verify($payload, $signature, $publicKey, OPENSSL_ALGO_SHA256) === 1)
+        {
+            return json_decode($payload);
+        }
+
+        throw new \Exception('امضا نامعتبر است.');
+    }
+}

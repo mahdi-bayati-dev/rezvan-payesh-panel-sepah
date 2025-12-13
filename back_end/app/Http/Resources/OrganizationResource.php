@@ -1,2 +1,42 @@
 <?php
- namespace App\Http\Resources; use Illuminate\Http\Request; use Illuminate\Http\Resources\Json\JsonResource; class OrganizationResource extends JsonResource { public function toArray(Request $request): array { return [ 'id' => $this->id, 'name' => $this->name, 'parent_id' => $this->parent_id, 'created_at' => $this->created_at, 'updated_at' => $this->updated_at, 'employees_count' => $this->whenCounted('employees'), 'employees' => EmployeeResource::collection($this->whenLoaded('employees')), 'children' => $this->when( property_exists($this, 'children') || $this->relationLoaded('children'), fn () => OrganizationResource::collection($this->children) ), 'descendants' => $this->when( property_exists($this, 'descendants') || $this->relationLoaded('descendants'), fn () => OrganizationResource::collection($this->descendants) ), ]; } } 
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class OrganizationResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'parent_id' => $this->parent_id,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+
+
+            'employees_count' => $this->whenCounted('employees'),
+
+
+            'employees' => EmployeeResource::collection($this->whenLoaded('employees')),
+
+
+            'children' => $this->when(
+                property_exists($this, 'children') || $this->relationLoaded('children'),
+
+                fn () => OrganizationResource::collection($this->children)
+            ),
+            'descendants' => $this->when(
+                property_exists($this, 'descendants') || $this->relationLoaded('descendants'),
+                fn () => OrganizationResource::collection($this->descendants)
+            ),
+        ];
+    }
+}

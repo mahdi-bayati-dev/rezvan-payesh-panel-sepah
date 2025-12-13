@@ -1,2 +1,175 @@
 <?php
- namespace App\Console\Commands; use App\Models\AttendanceLog; use App\Models\DailyAttendanceSummary; use App\Models\Employee; use App\Models\Holiday; use App\Models\LeaveRequest; use Illuminate\Console\Command; use Illuminate\Support\Carbon; class ProcessDailyAttendance extends Command { protected $signature = 'attendance:reconcile {--date=}'; protected $description = 'Calculates and saves the final attendance status for all employees for the previous day.'; public function handle() { $date = $this->option('date') ? Carbon::parse($this->option('date')) : Carbon::yesterday(); $this->info("Processing attendance for shifts starting on: " . $date->toDateString()); $isHoliday = Holiday::where('date', $date->toDateString())->exists(); $employees = Employee::all(); $this->info("Found " . $employees->count() . " employees..."); foreach ($employees as $employee) { if ($isHoliday) { $this->createSummary($employee, $date, 'holiday'); continue; } $schedule = $employee->getWorkScheduleFor($date); if (!$schedule) { $this->createSummary($employee, $date, 'off_day'); continue; } $floatingStart = 0; $floatingEnd = 0; if ($schedule->shiftSchedule) { $floatingStart = (int) $schedule->shiftSchedule->floating_start; $floatingEnd = (int) $schedule->shiftSchedule->floating_end; } elseif ($employee->weekPattern) { $floatingStart = (int) $employee->weekPattern->floating_start; $floatingEnd = (int) $employee->weekPattern->floating_end; } $approvedLeaves = $employee->leaveRequests() ->where('status', LeaveRequest::STATUS_APPROVED) ->where('start_time', '<', $schedule->expected_end) ->where('end_time', '>', $schedule->expected_start) ->orderBy('start_time', 'asc') ->get(); $adjustedStart = $schedule->expected_start->copy(); $adjustedEnd = $schedule->expected_end->copy(); $isFullDayLeave = false; foreach ($approvedLeaves as $leave) { if ($leave->start_time <= $schedule->expected_start && $leave->end_time >= $schedule->expected_end) { $isFullDayLeave = true; break; } if ($leave->start_time <= $adjustedStart && $leave->end_time > $adjustedStart) { $adjustedStart = $leave->end_time; } if ($leave->end_time >= $adjustedEnd && $leave->start_time < $adjustedEnd) { $adjustedEnd = $leave->start_time; } } if ($isFullDayLeave) { $this->createSummary($employee, $date, 'on_leave', $schedule, $approvedLeaves->first()); continue; } $searchStart = $schedule->expected_start->copy()->subMinutes($floatingStart + 60); $searchEnd = $schedule->expected_end->copy()->addMinutes($floatingEnd + 60); $logs = $employee->attendanceLogs() ->whereBetween('timestamp', [$searchStart, $searchEnd]) ->orderBy('timestamp', 'asc') ->get(); $firstCheckIn = $logs->firstWhere('event_type', AttendanceLog::TYPE_CHECK_IN); $lastCheckOut = $logs->lastWhere('event_type', AttendanceLog::TYPE_CHECK_OUT); if ($firstCheckIn) { $lateness = 0; $earlyDeparture = 0; if ($firstCheckIn->timestamp->gt($adjustedStart)) { $diffInMinutes = $firstCheckIn->timestamp->diffInMinutes($adjustedStart); $lateness = ($diffInMinutes <= $floatingStart) ? 0 : $diffInMinutes; } if ($lastCheckOut && $lastCheckOut->timestamp->lt($adjustedEnd)) { $diffInMinutes = $adjustedEnd->diffInMinutes($lastCheckOut->timestamp); $earlyDeparture = ($diffInMinutes <= $floatingEnd) ? 0 : $diffInMinutes; } $status = $approvedLeaves->isNotEmpty() ? 'present_with_leave' : 'present'; $this->createSummary($employee, $date, $status, $schedule, $approvedLeaves->first(), $firstCheckIn, $lastCheckOut, $lateness, $earlyDeparture); } else { $this->createSummary($employee, $date, 'absent', $schedule, $approvedLeaves->first()); } } $this->info("Attendance reconciliation complete."); return 0; } private function createSummary(Employee $employee, Carbon $date, string $status, ?object $schedule = null, ?LeaveRequest $leave = null, ?AttendanceLog $in = null, ?AttendanceLog $out = null, ?int $lateness = null, ?int $early = null) { DailyAttendanceSummary::updateOrCreate( [ 'employee_id' => $employee->id, 'date' => $date->toDateString(), ], [ 'status' => $status, 'expected_start_time' => $schedule?->expected_start->toTimeString(), 'expected_end_time' => $schedule?->expected_end->toTimeString(), 'actual_check_in' => $in?->timestamp, 'actual_check_out' => $out?->timestamp, 'lateness_minutes' => $lateness, 'early_departure_minutes' => $early, 'leave_request_id' => $leave?->id, 'remarks' => $status == 'absent' ? 'Employee did not check in on their shift.' : null, ] ); } }
+
+namespace App\Console\Commands;
+
+use App\Models\AttendanceLog;
+use App\Models\DailyAttendanceSummary;
+use App\Models\Employee;
+use App\Models\Holiday;
+use App\Models\LeaveRequest;
+use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+
+class ProcessDailyAttendance extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'attendance:reconcile {--date=}';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Calculates and saves the final attendance status for all employees for the previous day.';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle()
+    {
+        $date = $this->option('date') ? Carbon::parse($this->option('date')) : Carbon::yesterday();
+        $this->info("Processing attendance for shifts starting on: " . $date->toDateString());
+
+        $isHoliday = Holiday::where('date', $date->toDateString())->exists();
+
+        $employees = Employee::all();
+        $this->info("Found " . $employees->count() . " employees...");
+
+        foreach ($employees as $employee)
+        {
+            if ($isHoliday)
+            {
+                $this->createSummary($employee, $date, 'holiday');
+                continue;
+            }
+
+            $schedule = $employee->getWorkScheduleFor($date);
+
+            if (!$schedule)
+            {
+                $this->createSummary($employee, $date, 'off_day');
+                continue;
+            }
+
+            $floatingStart = 0;
+            $floatingEnd = 0;
+
+            if ($schedule->shiftSchedule)
+            {
+                $floatingStart = (int) $schedule->shiftSchedule->floating_start;
+                $floatingEnd = (int) $schedule->shiftSchedule->floating_end;
+            }
+            elseif ($employee->weekPattern)
+            {
+                $floatingStart = (int) $employee->weekPattern->floating_start;
+                $floatingEnd = (int) $employee->weekPattern->floating_end;
+            }
+
+
+            $approvedLeaves = $employee->leaveRequests()
+                ->where('status', LeaveRequest::STATUS_APPROVED)
+                ->where('start_time', '<', $schedule->expected_end)
+                ->where('end_time', '>', $schedule->expected_start)
+                ->orderBy('start_time', 'asc')
+                ->get();
+
+            $adjustedStart = $schedule->expected_start->copy();
+            $adjustedEnd = $schedule->expected_end->copy();
+            $isFullDayLeave = false;
+
+            foreach ($approvedLeaves as $leave)
+            {
+                if ($leave->start_time <= $schedule->expected_start && $leave->end_time >= $schedule->expected_end)
+                {
+                    $isFullDayLeave = true;
+                    break;
+                }
+
+                if ($leave->start_time <= $adjustedStart && $leave->end_time > $adjustedStart)
+                {
+                    $adjustedStart = $leave->end_time;
+                }
+
+                if ($leave->end_time >= $adjustedEnd && $leave->start_time < $adjustedEnd)
+                {
+                    $adjustedEnd = $leave->start_time;
+                }
+            }
+
+            if ($isFullDayLeave)
+            {
+                $this->createSummary($employee, $date, 'on_leave', $schedule, $approvedLeaves->first());
+                continue;
+            }
+
+            $searchStart = $schedule->expected_start->copy()->subMinutes($floatingStart + 60);
+            $searchEnd = $schedule->expected_end->copy()->addMinutes($floatingEnd + 60);
+
+            $logs = $employee->attendanceLogs()
+                ->whereBetween('timestamp', [$searchStart, $searchEnd])
+                ->orderBy('timestamp', 'asc')
+                ->get();
+
+            $firstCheckIn = $logs->firstWhere('event_type', AttendanceLog::TYPE_CHECK_IN);
+            $lastCheckOut = $logs->lastWhere('event_type', AttendanceLog::TYPE_CHECK_OUT);
+
+            if ($firstCheckIn)
+            {
+                $lateness = 0;
+                $earlyDeparture = 0;
+
+                if ($firstCheckIn->timestamp->gt($adjustedStart))
+                {
+                    $diffInMinutes = $firstCheckIn->timestamp->diffInMinutes($adjustedStart);
+
+                    $lateness = ($diffInMinutes <= $floatingStart) ? 0 : $diffInMinutes;
+                }
+
+                if ($lastCheckOut && $lastCheckOut->timestamp->lt($adjustedEnd))
+                {
+                    $diffInMinutes = $adjustedEnd->diffInMinutes($lastCheckOut->timestamp);
+                    $earlyDeparture = ($diffInMinutes <= $floatingEnd) ? 0 : $diffInMinutes;
+                }
+
+                $status = $approvedLeaves->isNotEmpty() ? 'present_with_leave' : 'present';
+
+                $this->createSummary($employee, $date, $status, $schedule, $approvedLeaves->first(), $firstCheckIn, $lastCheckOut, $lateness, $earlyDeparture);
+            }
+            else
+            {
+                $this->createSummary($employee, $date, 'absent', $schedule, $approvedLeaves->first());
+            }
+        }
+
+        $this->info("Attendance reconciliation complete.");
+        return 0;
+    }
+
+    /**
+     * متد کمکی برای ایجاد یا به‌روزرسانی رکورد خلاصه
+     */
+    private function createSummary(Employee $employee, Carbon $date, string $status, ?object $schedule = null, ?LeaveRequest $leave = null, ?AttendanceLog $in = null, ?AttendanceLog $out = null, ?int $lateness = null, ?int $early = null)
+    {
+        DailyAttendanceSummary::updateOrCreate(
+            [
+                'employee_id' => $employee->id,
+                'date' => $date->toDateString(),
+            ],
+            [
+                'status' => $status,
+                'expected_start_time' => $schedule?->expected_start->toTimeString(),
+                'expected_end_time' => $schedule?->expected_end->toTimeString(),
+                'actual_check_in' => $in?->timestamp,
+                'actual_check_out' => $out?->timestamp,
+                'lateness_minutes' => $lateness,
+                'early_departure_minutes' => $early,
+                'leave_request_id' => $leave?->id,
+                'remarks' => $status == 'absent' ? 'Employee did not check in on their shift.' : null,
+            ]
+        );
+    }
+}
