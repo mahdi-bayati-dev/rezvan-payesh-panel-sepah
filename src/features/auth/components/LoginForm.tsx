@@ -17,6 +17,9 @@ import { loginSchema, type LoginFormData } from '../schema/loginSchema';
 import { useAppDispatch, useAppSelector } from '@/store/index';
 import { loginUser, resetAuthStatus } from '@/store/slices/authSlice';
 
+// ✅ استاندارد: ایمپورت لوگوها از assets
+import logoLight from "@/assets/images/img-header/logo-1.webp";
+import logoDark from "@/assets/images/img-header/logo-2.webp";
 const LoginForm = () => {
   const theme = useAppSelector((state) => state.ui.theme);
   const dispatch = useAppDispatch();
@@ -28,9 +31,8 @@ const LoginForm = () => {
   // ✅ استیت برای مدیریت نمایش مدال ثبت نام
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  const logoSrc = theme === "dark"
-    ? "/img/img-header/logo-2.webp"
-    : "/img/img-header/logo-1.webp";
+
+  const logoSrc = theme === "dark" ? logoDark : logoLight;
 
   const {
     register,
@@ -87,11 +89,15 @@ const LoginForm = () => {
           <span className="h-px flex-1 bg-borderL/50 dark:bg-borderD/50"></span>
         </span>
         <div className="flex flex-col items-center justify-center sm:flex-row gap-2">
-          <img
-            src={logoSrc}
-            alt="لوگوی رضوان پایش"
-            className="h-16 w-auto sm:h-20 object-contain"
-          />
+          <div className="p-3 rounded-full bg-secondaryL/30 dark:bg-white/5 border border-white/10 shadow-inner">
+            <img
+              src={logoSrc}
+              alt="لوگوی رضوان پایش"
+              className="h-16 w-auto object-contain drop-shadow-sm"
+              width={64}
+              height={64}
+            />
+          </div>
           <p className="text-xl font-bold text-foregroundL sm:text-2xl dark:text-foregroundD">
             رضـــوان پایش
           </p>
