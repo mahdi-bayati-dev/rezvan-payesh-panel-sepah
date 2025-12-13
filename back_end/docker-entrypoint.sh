@@ -45,11 +45,16 @@ echo "✅ Database is ready and reachable!"
 if [ ! -f storage/oauth-private.key ] || [ ! -f storage/.passport_installed ]; then
     echo "✨ Fresh install detected! Rebuilding database from scratch..."
 
-    php artisan vendor:publish --tag=passport-migrations --force
-    # اینجا به جای migrate معمولی، از fresh استفاده می‌کنیم تا جدول‌ها حتما ساخته شوند
-    php artisan migrate:fresh --force
+    # >>> خط جدید و حیاتی: حذف مایگریشن‌های تکراری پاسپورت قبل از کپی جدید <<<
+    echo "🧹 Cleaning up old Passport migrations..."
+    rm -f database/migrations/*_create_oauth_*.php
 
+    # انتشار مجدد فایل‌های تمیز
+    php artisan vendor:publish --tag=passport-migrations --force
     php artisan config:clear
+
+    echo "📦 Running fresh migrations..."
+    php artisan migrate:fresh --force
 
     echo "🔑 Generating keys..."
     php artisan passport:keys --force
@@ -60,7 +65,6 @@ if [ ! -f storage/oauth-private.key ] || [ ! -f storage/.passport_installed ]; t
     echo "🌱 Seeding database..."
     php artisan db:seed --force
 
-    # ساخت فایل نشانه برای دفعه بعد
     touch storage/.passport_installed
 else
     # اگر نصب قبلا انجام شده، فقط تغییرات جدید را اعمال کن
