@@ -1,2 +1,35 @@
 <?php
- namespace App\Http\Controllers\Api; use App\Http\Controllers\Controller; use App\Jobs\GenerateEmployeeShifts; use App\Models\ShiftSchedule; use Illuminate\Http\JsonResponse; use Illuminate\Http\Request; use Illuminate\Support\Carbon; use Illuminate\Support\Facades\Validator; class GenerateScheduleShiftsController extends Controller { public function __invoke(Request $request, ShiftSchedule $shiftSchedule): JsonResponse { $validator = Validator::make($request->all(), [ 'start_date' => 'required|date_format:Y-m-d', 'end_date' => 'required|date_format:Y-m-d|after_or_equal:start_date', ]); if ($validator->fails()) { return response()->json(['errors' => $validator->errors()], 422); } $startDate = Carbon::parse($request->input('start_date')); $endDate = Carbon::parse($request->input('end_date')); GenerateEmployeeShifts::dispatch($shiftSchedule->id, $startDate, $endDate); return response()->json(['message' => 'درخواست تولید شیفت‌ها با موفقیت در صف قرار گرفت.'], 202); } } 
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Jobs\GenerateEmployeeShifts;
+use App\Models\ShiftSchedule;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Validator;
+
+class GenerateScheduleShiftsController extends Controller
+{
+    public function __invoke(Request $request, ShiftSchedule $shiftSchedule): JsonResponse
+    {
+        $validator = Validator::make($request->all(),
+            [
+                'start_date' => 'required|date_format:Y-m-d',
+                'end_date' => 'required|date_format:Y-m-d|after_or_equal:start_date',
+            ]);
+
+        if ($validator->fails())
+        {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $startDate = Carbon::parse($request->input('start_date'));
+        $endDate = Carbon::parse($request->input('end_date'));
+
+        GenerateEmployeeShifts::dispatch($shiftSchedule->id, $startDate, $endDate);
+
+        return response()->json(['message' => 'درخواست تولید شیفت‌ها با موفقیت در صف قرار گرفت.'], 202);
+    }
+}

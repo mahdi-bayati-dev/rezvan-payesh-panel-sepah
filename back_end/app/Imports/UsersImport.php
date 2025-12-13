@@ -1,2 +1,229 @@
 <?php
- namespace App\Imports; use App\Events\UserImportCompleted; use App\Models\User; use App\Models\Employee; use Carbon\Carbon; use Illuminate\Contracts\Queue\ShouldQueue; use Illuminate\Support\Facades\DB; use Illuminate\Support\Facades\Hash; use Illuminate\Support\Facades\Log; use Maatwebsite\Excel\Concerns\OnEachRow; use Maatwebsite\Excel\Concerns\SkipsOnError; use Maatwebsite\Excel\Concerns\SkipsOnFailure; use Maatwebsite\Excel\Concerns\WithChunkReading; use Maatwebsite\Excel\Concerns\WithEvents; use Maatwebsite\Excel\Concerns\WithHeadingRow; use Maatwebsite\Excel\Concerns\WithValidation; use Maatwebsite\Excel\Events\AfterImport; use Maatwebsite\Excel\Row; use Maatwebsite\Excel\Validators\Failure; use Morilog\Jalali\Jalalian; use Throwable; class UsersImport implements OnEachRow, WithHeadingRow, WithValidation, ShouldQueue, WithChunkReading, SkipsOnFailure, SkipsOnError, WithEvents { public function __construct(protected array $settings){} public function chunkSize(): int { return 100; } public function onRow(Row $row): void { $rowRaw = $row->toArray(); try { DB::transaction(function () use ($rowRaw) { $nationalCode = isset($rowRaw['nationality_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['nationality_code']) : null; $personnelCode = isset($rowRaw['personnel_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['personnel_code']) : null; $password = null; if($this->settings["default_password"]) { $passSource = $nationalCode ?: $personnelCode; if($passSource) { $password = Hash::make($passSource); } } elseif(!empty($rowRaw["password"])) { $password = Hash::make($rowRaw["password"]); } if(!$password) { throw new \Exception("Password generation failed (No National Code or Password provided)."); } $userName = !empty($rowRaw['user_name']) ? $rowRaw['user_name'] : ($personnelCode ?: $nationalCode); $user = User::create([ 'user_name' => $userName, 'email' => $rowRaw['email'], 'status' => 'active', 'password' => $password, ]); $orgId = !empty($rowRaw['organization_id']) ? $rowRaw['organization_id'] : $this->settings['organization_id']; $workGroupId = !empty($rowRaw['work_group_id']) ? $rowRaw['work_group_id'] : $this->settings['work_group_id']; $shiftScheduleId = !empty($rowRaw['shift_schedule_id']) ? $rowRaw['shift_schedule_id'] : ($this->settings['shift_schedule_id'] ?? null); $weekPatternId = !empty($rowRaw['week_pattern_id']) ? $rowRaw['week_pattern_id'] : null; Employee::create([ 'user_id' => $user->id, 'first_name' => $rowRaw['first_name'], 'last_name' => $rowRaw['last_name'], 'personnel_code' => $personnelCode, 'organization_id' => $orgId, 'work_group_id' => $workGroupId, 'shift_schedule_id' => $shiftScheduleId, 'week_pattern_id' => $weekPatternId, 'nationality_code' => $nationalCode, 'phone_number' => !empty($rowRaw['phone_number']) ? $this->convertPersianToEnglishNumbers($rowRaw['phone_number']) : null, 'gender' => $this->normalizeGender($rowRaw['gender'] ?? 'male'), 'is_married' => $this->transformBoolean($rowRaw['is_married'] ?? 0), 'birth_date' => $this->transformDate($rowRaw['birth_date']) ?: '1990-01-01', 'starting_job' => $this->transformDate($rowRaw['starting_job']) ?: now()->format('Y-m-d'), 'position' => !empty($rowRaw['position']) ? $rowRaw['position'] : 'کارمند', 'father_name' => !empty($rowRaw['father_name']) ? $rowRaw['father_name'] : '-', 'address' => !empty($rowRaw['address']) ? $rowRaw['address'] : '-', 'house_number' => !empty($rowRaw['house_number']) ? $rowRaw['house_number'] : '-', 'sos_number' => !empty($rowRaw['sos_number']) ? $rowRaw['sos_number'] : '-', 'education_level' => !empty($rowRaw['education_level']) ? $rowRaw['education_level'] : 'diploma', ]); $user->assignRole("user"); }); } catch (\Exception $e) { Log::error("Import Row Failed", [ 'row_index' => $row->getIndex(), 'error' => $e->getMessage(), 'data' => $rowRaw ]); } } public function registerEvents(): array { return [ AfterImport::class => function(AfterImport $event) { if (!empty($this->settings['admin_id'])) { UserImportCompleted::dispatch($this->settings['admin_id']); } }, ]; } public function onFailure(Failure ...$failures): void { foreach ($failures as $failure) { Log::warning("Import Validation Failed", [ 'row' => $failure->row(), 'attribute' => $failure->attribute(), 'errors' => $failure->errors() ]); } } public function onError(Throwable $e): void { Log::error("Import General Error: " . $e->getMessage()); } public function rules(): array { return [ 'email' => ['required', 'email', 'unique:users,email'], 'user_name' => ['nullable', 'string', 'unique:users,user_name'], 'personnel_code' => ['required', 'unique:employees,personnel_code'], 'nationality_code' => ['required', 'unique:employees,nationality_code'], 'phone_number' => ['nullable', 'unique:employees,phone_number'], 'organization_id' => ['nullable', 'integer', 'exists:organizations,id'], 'work_group_id' => ['nullable', 'integer', 'exists:work_groups,id'], 'shift_schedule_id' => ['nullable', 'integer', 'exists:shift_schedules,id'], 'week_pattern_id' => ['nullable', 'integer', 'exists:week_patterns,id'], ]; } private function transformDate($value): ?string { if (!$value) return null; $value = $this->convertPersianToEnglishNumbers($value); try { if (is_numeric($value)) { return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d'); } if (preg_match('/^(13|14)[0-9]{2}[\/\-][0-9]{1,2}[\/\-][0-9]{1,2}$/', $value)) { $cleanDate = str_replace('-', '/', $value); return Jalalian::fromFormat('Y/m/d', $cleanDate)->toCarbon()->format('Y-m-d'); } return Carbon::parse($value)->format('Y-m-d'); } catch (\Exception $e) { return null; } } private function convertPersianToEnglishNumbers($string): array|string { if (!is_string($string)) return $string; $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹']; $english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']; return str_replace($persian, $english, $string); } private function transformBoolean($value): bool { return in_array($value, [1, '1', 'true', 'yes', 'بله', 'متاهل'], true); } private function normalizeGender($value): string { if (in_array($value, ['female', 'زن', 'خانم', 'f'])) { return 'female'; } return 'male'; } }
+
+namespace App\Imports;
+
+use App\Events\UserImportCompleted;
+use App\Models\User;
+use App\Models\Employee;
+use Carbon\Carbon;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Concerns\OnEachRow;
+use Maatwebsite\Excel\Concerns\SkipsOnError;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Events\AfterImport;
+use Maatwebsite\Excel\Row;
+use Maatwebsite\Excel\Validators\Failure;
+use Morilog\Jalali\Jalalian;
+use Throwable;
+
+class UsersImport implements
+    OnEachRow,
+    WithHeadingRow,
+    WithValidation,
+    ShouldQueue,
+    WithChunkReading,
+    SkipsOnFailure,
+    SkipsOnError,
+    WithEvents
+{
+    public function __construct(protected array $settings){}
+
+    public function chunkSize(): int
+    {
+        return 100;
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function onRow(Row $row): void
+    {
+        $rowRaw = $row->toArray();
+
+        try
+        {
+            DB::transaction(function () use ($rowRaw)
+            {
+
+                $nationalCode = isset($rowRaw['nationality_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['nationality_code']) : null;
+                $personnelCode = isset($rowRaw['personnel_code']) ? $this->convertPersianToEnglishNumbers($rowRaw['personnel_code']) : null;
+
+                $password = null;
+                if($this->settings["default_password"])
+                {
+                    $passSource = $nationalCode ?: $personnelCode;
+                    if($passSource) {
+                        $password = Hash::make($passSource);
+                    }
+                } elseif(!empty($rowRaw["password"]))
+                {
+                    $password = Hash::make($rowRaw["password"]);
+                }
+
+                if(!$password)
+                {
+                    throw new \Exception("Password generation failed (No National Code or Password provided).");
+                }
+
+
+                $userName = !empty($rowRaw['user_name']) ? $rowRaw['user_name'] : ($personnelCode ?: $nationalCode);
+
+                $user = User::create([
+                    'user_name' => $userName,
+                    'email'     => $rowRaw['email'],
+                    'status'    => 'active',
+                    'password'  => $password,
+                ]);
+
+                $orgId = !empty($rowRaw['organization_id']) ? $rowRaw['organization_id'] : $this->settings['organization_id'];
+                $workGroupId = !empty($rowRaw['work_group_id']) ? $rowRaw['work_group_id'] : $this->settings['work_group_id'];
+                $shiftScheduleId = !empty($rowRaw['shift_schedule_id']) ? $rowRaw['shift_schedule_id'] : ($this->settings['shift_schedule_id'] ?? null);
+
+                $weekPatternId = !empty($rowRaw['week_pattern_id']) ? $rowRaw['week_pattern_id'] : null;
+
+                Employee::create([
+                    'user_id'           => $user->id,
+                    'first_name'        => $rowRaw['first_name'],
+                    'last_name'         => $rowRaw['last_name'],
+                    'personnel_code'    => $personnelCode,
+
+                    'organization_id'   => $orgId,
+                    'work_group_id'     => $workGroupId,
+                    'shift_schedule_id' => $shiftScheduleId,
+                    'week_pattern_id'   => $weekPatternId,
+
+                    'nationality_code'  => $nationalCode,
+                    'phone_number'      => !empty($rowRaw['phone_number']) ? $this->convertPersianToEnglishNumbers($rowRaw['phone_number']) : null,
+                    'gender'            => $this->normalizeGender($rowRaw['gender'] ?? 'male'),
+                    'is_married'        => $this->transformBoolean($rowRaw['is_married'] ?? 0),
+
+                    'birth_date'        => $this->transformDate($rowRaw['birth_date']) ?: '1990-01-01',
+                    'starting_job'      => $this->transformDate($rowRaw['starting_job']) ?: now()->format('Y-m-d'),
+
+                    'position'          => !empty($rowRaw['position']) ? $rowRaw['position'] : 'کارمند',
+                    'father_name'       => !empty($rowRaw['father_name']) ? $rowRaw['father_name'] : '-',
+                    'address'           => !empty($rowRaw['address']) ? $rowRaw['address'] : '-',
+                    'house_number'      => !empty($rowRaw['house_number']) ? $rowRaw['house_number'] : '-',
+                    'sos_number'        => !empty($rowRaw['sos_number']) ? $rowRaw['sos_number'] : '-',
+                    'education_level'   => !empty($rowRaw['education_level']) ? $rowRaw['education_level'] : 'diploma',
+                ]);
+
+                $user->assignRole("user");
+            });
+
+        } catch (\Exception $e) {
+            Log::error("Import Row Failed", [
+                'row_index' => $row->getIndex(),
+                'error' => $e->getMessage(),
+                'data' => $rowRaw
+            ]);
+        }
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function(AfterImport $event) {
+                if (!empty($this->settings['admin_id'])) {
+                    UserImportCompleted::dispatch($this->settings['admin_id']);
+                }
+            },
+        ];
+    }
+
+    /**
+     * @param Failure ...$failures
+     * @return void
+     */
+    public function onFailure(Failure ...$failures): void
+    {
+        foreach ($failures as $failure) {
+            Log::warning("Import Validation Failed", [
+                'row' => $failure->row(),
+                'attribute' => $failure->attribute(),
+                'errors' => $failure->errors()
+            ]);
+        }
+    }
+
+    /**
+     * @param Throwable $e
+     * @return void
+     */
+    public function onError(Throwable $e): void
+    {
+        Log::error("Import General Error: " . $e->getMessage());
+    }
+
+    /**
+     * قوانین اعتبارسنجی سخت‌گیرانه
+     * سطرهایی که این قوانین را پاس نکنند، کلاً وارد onRow نمی‌شوند و در onFailure لاگ می‌شوند.
+     */
+    public function rules(): array
+    {
+        return [
+            'email' => ['required', 'email', 'unique:users,email'],
+            'user_name' => ['nullable', 'string', 'unique:users,user_name'],
+
+            'personnel_code' => ['required', 'unique:employees,personnel_code'],
+            'nationality_code' => ['required', 'unique:employees,nationality_code'],
+            'phone_number' => ['nullable', 'unique:employees,phone_number'],
+
+
+            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
+            'work_group_id' => ['nullable', 'integer', 'exists:work_groups,id'],
+            'shift_schedule_id' => ['nullable', 'integer', 'exists:shift_schedules,id'],
+            'week_pattern_id' => ['nullable', 'integer', 'exists:week_patterns,id'], // اضافه شد
+        ];
+    }
+
+    private function transformDate($value): ?string
+    {
+        if (!$value) return null;
+        $value = $this->convertPersianToEnglishNumbers($value);
+        try {
+            if (is_numeric($value)) {
+                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+            }
+            if (preg_match('/^(13|14)[0-9]{2}[\/\-][0-9]{1,2}[\/\-][0-9]{1,2}$/', $value)) {
+                $cleanDate = str_replace('-', '/', $value);
+                return Jalalian::fromFormat('Y/m/d', $cleanDate)->toCarbon()->format('Y-m-d');
+            }
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private function convertPersianToEnglishNumbers($string): array|string
+    {
+        if (!is_string($string)) return $string;
+        $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        return str_replace($persian, $english, $string);
+    }
+
+    private function transformBoolean($value): bool
+    {
+        return in_array($value, [1, '1', 'true', 'yes', 'بله', 'متاهل'], true);
+    }
+
+    /**
+     * @param $value
+     * @return string
+     */
+    private function normalizeGender($value): string
+    {
+        if (in_array($value, ['female', 'زن', 'خانم', 'f'])) {
+            return 'female';
+        }
+        return 'male';
+    }
+}

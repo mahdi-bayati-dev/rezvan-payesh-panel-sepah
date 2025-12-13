@@ -1,2 +1,54 @@
 <?php
- namespace App\Events; use Illuminate\Broadcasting\Channel; use Illuminate\Broadcasting\InteractsWithSockets; use Illuminate\Broadcasting\PrivateChannel; use Illuminate\Contracts\Broadcasting\ShouldBroadcast; use Illuminate\Foundation\Events\Dispatchable; use Illuminate\Queue\SerializesModels; class ImageUploadStatusEvent implements ShouldBroadcast { use Dispatchable, InteractsWithSockets, SerializesModels; public function __construct(public int $userId,public string $status,public string $message,public ?string $reason = null,public int $count = 1) { } public function broadcastOn(): array { return [ new PrivateChannel('App.User.' . $this->userId), ]; } public function broadcastAs(): string { return 'image.status'; } public function broadcastWith(): array { return [ 'status' => $this->status, 'message' => $this->message, 'reason' => $this->reason, 'count' => $this->count, 'type' => match($this->status) { 'approved' => 'success', 'rejected' => 'error', default => 'info', }, 'timestamp' => now()->toIso8601String(), ]; } }
+
+namespace App\Events;
+
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class ImageUploadStatusEvent implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
+
+    /**
+     * Create a new event instance.
+     */
+    public function __construct(public int $userId,public  string $status,public  string $message,public  ?string $reason = null,public int $count = 1)
+    {
+    }
+
+    /**
+     * Get the channels the event should broadcast on.
+     */
+    public function broadcastOn(): array
+    {
+        return [
+            new PrivateChannel('App.User.' . $this->userId),
+        ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'image.status';
+    }
+
+    public function broadcastWith(): array
+    {
+        return [
+            'status' => $this->status,
+            'message' => $this->message,
+            'reason' => $this->reason,
+            'count' => $this->count,
+            'type' => match($this->status) {
+                'approved' => 'success',
+                'rejected' => 'error',
+                default => 'info',
+            },
+            'timestamp' => now()->toIso8601String(),
+        ];
+    }
+}

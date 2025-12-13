@@ -1,2 +1,31 @@
 <?php
- namespace App\Http\Resources; use Illuminate\Http\Request; use Illuminate\Http\Resources\Json\JsonResource; class WorkGroupResource extends JsonResource { public function toArray(Request $request): array { return [ 'id' => $this->id, 'name' => $this->name, 'week_pattern_id' => $this->week_pattern_id, 'shift_schedule_id' => $this->shift_schedule_id, 'week_pattern' => new WeekPatternResource($this->whenLoaded('weekPattern')), 'shift_schedule' => new ShiftScheduleResource($this->whenLoaded('shiftSchedule')), 'created_at' => $this->created_at, 'updated_at' => $this->updated_at, ]; } } 
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class WorkGroupResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+
+            'id' => $this->id,
+            'name' => $this->name,
+            'week_pattern_id' => $this->week_pattern_id,
+            'shift_schedule_id' => $this->shift_schedule_id,
+
+            'week_pattern' => new WeekPatternResource($this->whenLoaded('weekPattern')),
+            'shift_schedule' => new ShiftScheduleResource($this->whenLoaded('shiftSchedule')),
+
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}
