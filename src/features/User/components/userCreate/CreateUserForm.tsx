@@ -56,7 +56,7 @@ const FormSectionCard = ({
     children: React.ReactNode,
     className?: string
 }) => (
-    <div className={`bg-backgroundL-500 dark:bg-backgroundD rounded-xl border border-borderL dark:border-borderD shadow-sm mb-6 relative overflow-hidden transition-all hover:shadow-md ${className || ''}`}>
+    <div className={`bg-backgroundL-500 dark:bg-backgroundD rounded-xl border border-borderL dark:border-borderD shadow-sm mb-6 relative  transition-all hover:shadow-md ${className || ''}`}>
         <div className="bg-secondaryL/10 dark:bg-secondaryD/10 rounded-t-xl px-6 py-4 border-b border-borderL dark:border-borderD flex items-center gap-2">
             <div className="p-2 bg-backgroundL-500 dark:bg-backgroundD rounded-lg shadow-sm text-primaryL dark:text-primaryD">
                 <Icon className="w-5 h-5" />

@@ -1,18 +1,13 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-// import { SquaresExclude } from 'lucide-react'; // حذف شد چون دیگر استفاده نمی‌شود
 import { mainNavItems, type NavItem } from '@/constants/navigation';
-// ThemeToggleBtn حذف شد
 import { UserProfile } from './UserProfile';
 import { usePermission } from '@/hook/usePermission';
 import { useAppSelector, useAppDispatch } from '@/hook/reduxHooks';
 import { fetchLicenseStatus, selectLicenseStatus } from '@/store/slices/licenseSlice';
 import { usePendingRequestsCount } from '@/features/requests/hook/usePendingRequestsCount';
-import { selectUser } from '@/store/slices/authSlice';
+import { selectUser, selectIsLicenseLocked } from '@/store/slices/authSlice';
 
-/**
- * تابع کمکی برای تبدیل اعداد انگلیسی به فارسی
- */
 const toPersianDigits = (num: number | string): string => {
   const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   return String(num).replace(/[0-9]/g, (digit) => persian[parseInt(digit, 10)]);
@@ -24,60 +19,76 @@ interface SidebarNavItemProps {
 }
 
 const SidebarNavItem = ({ item, badgeCount }: SidebarNavItemProps) => {
+  // دریافت وضعیت‌ها
   const hasRoleAccess = usePermission(item.allowedRoles);
   const licenseStatus = useAppSelector(selectLicenseStatus);
+  const isLocked = useAppSelector(selectIsLicenseLocked);
   const user = useAppSelector(selectUser);
 
-  if (!hasRoleAccess) return null;
-
-  if (item.requiresEmployee && !user?.employee) {
-    return null;
-  }
-
+  // --- استثنای حیاتی برای آیتم لایسنس ---
   if (item.href === '/license') {
-    if (licenseStatus !== 'licensed') {
-      return null;
-    }
+    // ۱. اگر ترایال است -> مخفی کن
+    if (licenseStatus === 'trial') return null;
+    
+    // ۲. اگر سیستم قفل است (Locked) یا اکسپایر شده -> همیشه نمایش بده (بدون چک کردن رول/کارمند)
+    // این باعث می‌شود حتی اگر user نال باشد، این آیتم دیده شود
+    return (
+        <RenderLink item={item} badgeCount={badgeCount} />
+    );
   }
 
-  const displayCount = badgeCount ? toPersianDigits(badgeCount) : undefined;
-  const badgeText = badgeCount && badgeCount > 99 ? toPersianDigits(99) + '+' : displayCount;
+  // --- لاجیک استاندارد برای سایر آیتم‌ها ---
+  
+  // اگر سیستم قفل است، بقیه منوها را مخفی کن (اختیاری - برای امنیت بیشتر)
+  if (isLocked) return null;
 
-  return (
-    <li>
-      <NavLink
-        to={item.href}
-        className={({ isActive }) =>
-          `flex items-center gap-x-3 rounded-lg px-4 py-2 text-sm font-medium transition-transform duration-200 ease-in-out relative group ${isActive
-            ? "bg-secondaryL text-secondary-foregroundL dark:bg-secondaryD dark:text-secondary-foregroundD "
-            : "text-muted-foregroundL hover:bg-secondaryL hover:text-secondary-foregroundL dark:text-muted-foregroundD dark:hover:bg-secondaryD dark:hover:text-secondary-foregroundD hover:scale-105 hover:shadow-md"
-          }`
-        }
-      >
-        {item.icon}
-        <span className="flex-1">{item.label}</span>
+  if (!hasRoleAccess) return null;
+  if (item.requiresEmployee && !user?.employee) return null;
 
-        {badgeCount !== undefined && badgeCount > 0 && (
-          <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-sm animate-pulse ml-auto">
-            {badgeText}
-          </span>
-        )}
-      </NavLink>
-    </li>
-  );
+  return <RenderLink item={item} badgeCount={badgeCount} />;
 };
+
+// کامپوننت داخلی برای رندر لینک (جهت جلوگیری از تکرار کد)
+const RenderLink = ({ item, badgeCount }: SidebarNavItemProps) => {
+    const displayCount = badgeCount ? toPersianDigits(badgeCount) : undefined;
+    const badgeText = badgeCount && badgeCount > 99 ? toPersianDigits(99) + '+' : displayCount;
+
+    return (
+        <li>
+            <NavLink
+                to={item.href}
+                className={({ isActive }) =>
+                    `flex items-center gap-x-3 rounded-lg px-4 py-2 text-sm font-medium transition-transform duration-200 ease-in-out relative group ${isActive
+                        ? "bg-secondaryL text-secondary-foregroundL dark:bg-secondaryD dark:text-secondary-foregroundD "
+                        : "text-muted-foregroundL hover:bg-secondaryL hover:text-secondary-foregroundL dark:text-muted-foregroundD dark:hover:bg-secondaryD dark:hover:text-secondary-foregroundD hover:scale-105 hover:shadow-md"
+                    }`
+                }
+            >
+                {item.icon}
+                <span className="flex-1">{item.label}</span>
+                {badgeCount !== undefined && badgeCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-sm animate-pulse ml-auto">
+                        {badgeText}
+                    </span>
+                )}
+            </NavLink>
+        </li>
+    );
+}
 
 export const SidebarContent = () => {
   const dispatch = useAppDispatch();
   const { data: pendingCount = 0 } = usePendingRequestsCount();
+  const licenseStatus = useAppSelector(selectLicenseStatus);
 
   useEffect(() => {
-    dispatch(fetchLicenseStatus());
-  }, [dispatch]);
+    if (!licenseStatus) {
+      dispatch(fetchLicenseStatus());
+    }
+  }, [dispatch, licenseStatus]);
 
   return (
     <div className="flex h-full flex-col justify-between border-e border-borderL bg-backgroundL-500 transition-colors duration-300 dark:border-borderD dark:bg-backgroundD">
-      {/* بخش بالایی: منو */}
       <div className="px-4 py-6">
         <ul className="space-y-1">
           <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD px-4 mb-2 block">
@@ -94,14 +105,11 @@ export const SidebarContent = () => {
             );
           })}
         </ul>
-
-        {/* ✅ بخش تغییر تم از اینجا حذف شد */}
       </div>
 
-      {/* بخش پایینی: پروفایل و کپی‌رایت */}
       <div>
+        {/* وقتی سیستم قفل است (User نال است)، پروفایل را مخفی کن یا هندل کن */}
         <UserProfile />
-        {/* ✅ فوتر کپی‌رایت */}
         <div className="py-3 text-center border-t border-borderL dark:border-borderD bg-secondaryL/30 dark:bg-secondaryD/10">
           <p className="text-[10px] font-medium text-muted-foregroundL dark:text-muted-foregroundD opacity-80">
             توسعه داده شده توسط{" "}
@@ -115,7 +123,6 @@ export const SidebarContent = () => {
             </a>
           </p>
         </div>
-
       </div>
     </div>
   );

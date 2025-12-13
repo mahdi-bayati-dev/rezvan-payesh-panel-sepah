@@ -3,21 +3,20 @@ import axios, {
   type InternalAxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-// ❌ ایمپورت مستقیم store حذف شد تا چرخه وابستگی بشکند
-// import { store } from "@/store";
 import { toast } from "react-toastify";
 import { AppConfig } from "@/config";
 
-// تعریف متغیر برای نگهداری استور تزریق شده
+// متغیر برای نگهداری استور ریداکس
 let store: any = null;
 
-// ✅ تابع تزریق استور: این تابع را در store/index.ts صدا می‌زنیم
 export const injectStore = (_store: any) => {
   store = _store;
+  console.log("✅ [AxiosConfig] Store injected successfully.");
 };
 
 export const AUTH_MODE = (AppConfig.AUTH_MODE as "token" | "cookie") || "token";
 
+// کدهای خطای مربوط به لایسنس
 const LICENSE_ERROR_CODES = ["TRIAL_EXPIRED", "LICENSE_EXPIRED", "TAMPERED"];
 
 const axiosInstance = axios.create({
@@ -27,17 +26,14 @@ const axiosInstance = axios.create({
     Accept: "application/json",
     "Content-Type": "application/json",
   },
-  timeout: 20000,
+  timeout: 30000,
 });
 
-if (import.meta.env.DEV) {
-  console.log(
-    `%c[Axios] Initialized in ${AUTH_MODE.toUpperCase()} mode with URL: ${
-      AppConfig.API_URL
-    }`,
-    "background: #333; color: #bada55; padding: 4px; border-radius: 4px;"
-  );
-}
+// نمایش مود اجرایی در کنسول
+console.log(
+  `%c[Axios] Mode: ${AUTH_MODE.toUpperCase()} | URL: ${AppConfig.API_URL}`,
+  "background: #333; color: #bada55; padding: 4px; border-radius: 4px;"
+);
 
 // ====================================================================
 // 🔓 Request Interceptor
@@ -45,17 +41,30 @@ if (import.meta.env.DEV) {
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // فقط در حالت توسعه لاگ بزن (Clean Code)
+    if (import.meta.env.DEV) {
+        console.groupCollapsed(`🚀 [Request] ${config.method?.toUpperCase()} ${config.url}`);
+    }
+
     if (AUTH_MODE === "token") {
-      // ✅ استفاده از استور تزریق شده با بررسی وجود آن
+      let token: string | null = null;
+
       if (store) {
         const state = store.getState();
-        const token = state.auth.accessToken;
+        token = state.auth.accessToken || state.auth.token;
+      }
 
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+      if (!token) {
+        token = localStorage.getItem("token") || localStorage.getItem("accessToken");
+      }
+
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+        if (import.meta.env.DEV) console.log("🔑 Auth Header Attached.");
       }
     }
+    
+    if (import.meta.env.DEV) console.groupEnd();
     return config;
   },
   (error) => {
@@ -76,46 +85,60 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const data = error.response?.data;
 
-    if (status === 403 && data) {
-      const isLicenseError =
-        typeof data === "object" &&
-        LICENSE_ERROR_CODES.includes(data.error_code);
+    if (import.meta.env.DEV && status) {
+        console.group(`🚨 API Error [${status}]`);
+        console.log("URL:", originalRequest?.url);
+        console.groupEnd();
+    }
 
-      if (isLicenseError) {
-        console.warn(`⛔️ License Error: ${data.error_code}`);
-        const errorMsg =
-          typeof data.message === "string"
-            ? data.message
-            : "لایسنس شما منقضی شده است.";
+    // 1. مدیریت خطای ۵۰۳
+    if (status === 503) {
+      if (!toast.isActive("server-error")) {
+        toast.error("سرویس موقتاً در دسترس نیست.", { toastId: "server-error" });
+      }
+      return Promise.reject(error);
+    }
+
+    // 2. مدیریت خطای لایسنس (فقط نمایش Toast، لاجیک ریدایرکت در MainLayout است)
+    const isLicenseError = 
+        status === 499 || 
+        (status === 403 && data && typeof data === "object" && LICENSE_ERROR_CODES.includes(data.error_code));
+
+    if (isLicenseError) {
+        const message = status === 499 
+            ? "لایسنس نرم‌افزار معتبر نیست یا منقضی شده است." 
+            : (data?.message || "مشکل لایسنس");
 
         if (!toast.isActive("license-error")) {
-          toast.error(errorMsg, {
-            toastId: "license-error",
-            autoClose: 10000,
-          });
+            toast.error(message, { toastId: "license-error", autoClose: 7000 });
         }
-
-        if (!window.location.pathname.includes("/license")) {
-          window.location.href = "/license";
-        }
+        // خطا را رد می‌کنیم تا Redux آن را بگیرد و هندل کند
         return Promise.reject(error);
-      }
     }
 
+    // 3. مدیریت خطای ۴۰۱ (خروج)
     if (status === 401) {
+      // اگر ۴۰۱ بود اما مربوط به لایسنس بود، نباید لاگ‌اوت کنیم (Redux هندل می‌کند)
+      if (data?.error_code && LICENSE_ERROR_CODES.includes(data.error_code)) {
+         return Promise.reject(error);
+      }
+
       if (originalRequest?.url && !originalRequest.url.endsWith("/login")) {
-        console.warn("🔒 Unauthorized (401) detected.");
-        // ✅ استفاده از استور تزریق شده برای دیسپچ
+        // لاگ‌اوت واقعی و استاندارد
         if (store) {
-          store.dispatch({ type: "auth/clearSession" });
+            // دیسپچ کردن اکشن لاگ‌اوت برای پاک‌سازی ریداکس
+            store.dispatch({ type: "auth/clearSession" });
+        } else {
+            // فال‌بک
+            localStorage.removeItem("token");
+            localStorage.removeItem("accessToken");
         }
+        
+        // ریدایرکت سخت به لاگین
+        window.location.href = "/login";
       }
     }
 
-    console.error(
-      `❌ API Error [${status}] at ${originalRequest?.url}:`,
-      error.message
-    );
     return Promise.reject(error);
   }
 );

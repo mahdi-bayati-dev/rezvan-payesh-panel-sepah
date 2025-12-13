@@ -2,7 +2,10 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <script  src="./public/config.js"></script>
+
+    <!-- ✅ کانفیگ را اینجا لود می‌کنیم تا قبل از اجرای برنامه در دسترس باشد -->
+    <script src="/config.js"></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>رضوان پایش</title>
@@ -12,6 +15,29 @@
     />
 
     <meta name="theme-color" content="#ffffff" />
+
+    <!-- ✅ اسکریپت تم را در هد قرار می‌دهیم تا قبل از رندر شدن بادی اجرا شود و از پرش رنگ جلوگیری کند -->
+    <script>
+      (function () {
+        function getInitialTheme() {
+          const storedTheme = window.localStorage.getItem("theme");
+          if (storedTheme === "dark" || storedTheme === "light") {
+            return storedTheme;
+          }
+          if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            return "dark";
+          }
+          return "light";
+        }
+        const theme = getInitialTheme();
+        if (theme === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      })();
+    </script>
+
     <link
       rel="preload"
       href="/src/assets/fonts/Vazirmatn-Variable-font-face.woff2"
@@ -36,21 +62,4 @@
       کنید.</noscript
     >
   </body>
-  <script>
-    (function () {
-      // این تابع بلافاصله اجرا می‌شود تا از چشمک زدن جلوگیری کند
-      function getInitialTheme() {
-        const storedTheme = localStorage.getItem("theme");
-        if (storedTheme === "dark" || storedTheme === "light") {
-          return storedTheme;
-        }
-        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-          return "dark";
-        }
-        return "light";
-      }
-      const theme = getInitialTheme();
-      document.documentElement.classList.add(theme);
-    })();
-  </script>
 </html>

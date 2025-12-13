@@ -33,8 +33,9 @@ export const AssignmentControls = ({
     return (
         <div className="space-y-6">
             {/* بخش انتخاب الگو و جستجو */}
-            <div className="bg-backgroundL-500 dark:bg-backgroundD/50 p-4 rounded-xl border border-borderL dark:border-borderD shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            {/* بهبود: استفاده از رنگ تیره تر در دارک مود برای باکس فیلترها */}
+            <div className="bg-backgroundL-500 dark:bg-secondaryD/10 p-5 rounded-2xl border border-borderL dark:border-white/5 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
                     <div className="md:col-span-4">
                         <SelectBox
                             label="۱. انتخاب الگوی کاری یا شیفت"
@@ -43,6 +44,7 @@ export const AssignmentControls = ({
                             value={selectedPattern}
                             onChange={onPatternSelect}
                             disabled={isLoading}
+                            className="dark:bg-backgroundD"
                         />
                     </div>
                     <div className="md:col-span-8">
@@ -51,15 +53,16 @@ export const AssignmentControls = ({
                             placeholder="نام، کد پرسنلی یا عنوان..."
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
-                            icon={<Search className="h-4 w-4 text-muted-foregroundL" />}
-                            className="bg-white dark:bg-backgroundD"
+                            icon={<Search className="h-4 w-4 text-muted-foregroundL dark:text-muted-foregroundD" />}
+                            className="bg-white dark:bg-backgroundD dark:border-white/10"
                         />
                     </div>
                 </div>
             </div>
 
             {/* تب‌ها */}
-            <div className="flex space-x-1 rounded-xl bg-secondaryL/20 dark:bg-secondaryD/20 p-1 rtl:space-x-reverse">
+            {/* بهبود: استایل مدرن‌تر برای تب‌ها در دارک مود */}
+            <div className="flex space-x-1 rounded-xl bg-secondaryL/20 dark:bg-black/30 p-1.5 rtl:space-x-reverse border border-transparent dark:border-white/5">
                 <TabButton
                     isActive={activeTab === 'EMPLOYEES'}
                     onClick={() => onTabChange('EMPLOYEES')}
@@ -79,21 +82,28 @@ export const AssignmentControls = ({
     );
 };
 
-// دکمه تب داخلی
+// دکمه تب داخلی با استایل بهبود یافته
 const TabButton = ({ isActive, onClick, icon, label, count }: any) => (
     <button
         onClick={onClick}
         className={clsx(
-            "w-full rounded-lg py-3 text-sm font-medium transition-all duration-200",
+            "w-full rounded-lg py-2.5 text-sm font-medium transition-all duration-200",
             "flex items-center justify-center gap-2",
             isActive
-                ? "bg-white dark:bg-gray-700 shadow-sm text-primaryL ring-1 ring-black/5 dark:ring-white/10"
-                : "text-muted-foregroundL hover:bg-white/50 dark:hover:bg-white/5"
+                // استایل تب فعال: در دارک مود از رنگ پس‌زمینه اصلی با بوردر نازک استفاده می‌کنیم
+                ? "bg-white dark:bg-backgroundD shadow-sm text-primaryL dark:text-primaryD ring-1 ring-black/5 dark:ring-white/10 dark:shadow-none"
+                // استایل تب غیرفعال
+                : "text-muted-foregroundL dark:text-muted-foregroundD hover:bg-white/50 dark:hover:bg-white/5 hover:text-foregroundL dark:hover:text-foregroundD"
         )}
     >
         {icon}
         <span>{label}</span>
-        <span className={clsx("px-2 py-0.5 rounded-full text-xs", isActive ? "bg-primaryL/10" : "bg-black/5 dark:bg-white/10")}>
+        <span className={clsx(
+            "px-2 py-0.5 rounded-full text-[11px] font-bold min-w-[20px]", 
+            isActive 
+                ? "bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD" 
+                : "bg-black/5 text-muted-foregroundL dark:bg-white/10 dark:text-muted-foregroundD"
+        )}>
             {toPersianDigits(count)}
         </span>
     </button>
