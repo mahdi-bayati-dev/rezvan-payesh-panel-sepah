@@ -20,6 +20,8 @@ services:
     build:
       context: ./back_end
       dockerfile: Dockerfile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # 2. Apache + Frontend (Gateway)
   webserver:
