@@ -25,7 +25,7 @@ services:
 
   # 2. Apache + Frontend (Gateway)
   webserver:
-    image: mcoder902/rezvan-webserver:latest # نام ایمیجی که خودت ساختی
+    image: mcoder902/rezvaen-webserver:latest # نام ایمیجی که خودت ساختی
     container_name: rezvan_apache
     restart: always
     ports:
@@ -43,6 +43,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.webserver
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # 3. Database (MySQL)
   db:
