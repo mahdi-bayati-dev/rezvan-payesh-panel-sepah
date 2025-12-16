@@ -24,8 +24,6 @@ class DatabaseSeeder extends Seeder
             [
                 DeviceSeeder::class,
                 RoleSeeder::class,
-                OrganizationSeeder::class,
-                EmployeeWorkSeeder::class,
 
             ]);
         $user = User::where("user_name", "admin")->first();
