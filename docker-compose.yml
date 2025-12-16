@@ -30,9 +30,7 @@ services:
     restart: always
     ports:
       - "8085:80"
-      - "8445:443"
     volumes:
-      - ./certs:/usr/local/apache2/conf/certs
       - ./backend_storage:/var/www/storage
       - ./back_end/public/vendor:/usr/local/apache2/htdocs/vendor
     networks:
