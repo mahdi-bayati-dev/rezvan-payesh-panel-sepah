@@ -5,7 +5,7 @@ import type { DevicesAPIResponse } from "../types";
 // طبق مستندات جدید:
 // Endpoint: /api/cameras-status
 // Method: POST
-const API_URL = "/cameras-status";
+const API_URL = "api/cameras-status";
 
 /**
  * 💡 دریافت وضعیت لحظه‌ای تمام دوربین‌ها از سرویس AI
