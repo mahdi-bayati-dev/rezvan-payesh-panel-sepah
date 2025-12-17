@@ -33,7 +33,6 @@ services:
     volumes:
       - ./backend_storage:/var/www/storage
       - ./back_end/public/vendor:/usr/local/apache2/htdocs/vendor
-      - ./httpd-vhosts.conf:/usr/local/apache2/conf/extra/httpd-vhosts.conf
     env_file:
       - .env
     networks:
