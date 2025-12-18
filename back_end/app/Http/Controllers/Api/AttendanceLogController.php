@@ -6,14 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Device;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class AttendanceLogController extends Controller
 {
+    /**
+     * Handle attendance log request from AI devices.
+     * Calculates lateness and early departure considering approved leaves.
+     */
     public function handleAiRequest(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -24,8 +28,7 @@ class AttendanceLogController extends Controller
             'source_name'=> ['nullable', 'string'],
         ]);
 
-        if ($validator->fails())
-        {
+        if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
@@ -40,71 +43,47 @@ class AttendanceLogController extends Controller
         }
 
         $employee = Employee::where('personnel_code', $validated['personnel_code'])->first();
-        if (!$employee)
-        {
+        if (!$employee) {
             return response()->json(['message' => 'Invalid User personnel_code.'], 401);
         }
 
         $logTimestamp = Carbon::parse($validated['timestamp']);
 
-        // ---------------------------------------------------------
-        // 1. تشخیص هوشمند شیفت (امروز یا دیروز؟)
-        // ---------------------------------------------------------
-        // این بخش برای شیفت‌های شبانه (که از نیمه‌شب عبور می‌کنند) حیاتی است.
-        // ما برنامه کاری را برای "تاریخ لاگ" و "یک روز قبل از لاگ" می‌گیریم.
+        // Determine the correct shift (Today vs Yesterday for night shifts)
         $scheduleToday = $employee->getWorkScheduleFor($logTimestamp);
         $scheduleYesterday = $employee->getWorkScheduleFor($logTimestamp->copy()->subDay());
 
-        $schedule = null;
         $diffToday = 999999;
         $diffYesterday = 999999;
 
         if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN) {
-            // برای ورود، فاصله زمانی با "شروع شیفت" را مقایسه می‌کنیم
             if ($scheduleToday && $scheduleToday->expected_start) {
                 $diffToday = abs($logTimestamp->diffInMinutes($scheduleToday->expected_start));
             }
             if ($scheduleYesterday && $scheduleYesterday->expected_start) {
-                // مثلاً اگر شیفت دیشب ساعت 22 شروع شده و الان 1 بامداد است
                 $diffYesterday = abs($logTimestamp->diffInMinutes($scheduleYesterday->expected_start));
             }
         } else {
-            // برای خروج، فاصله زمانی با "پایان شیفت" را مقایسه می‌کنیم
             if ($scheduleToday && $scheduleToday->expected_end) {
                 $diffToday = abs($logTimestamp->diffInMinutes($scheduleToday->expected_end));
             }
             if ($scheduleYesterday && $scheduleYesterday->expected_end) {
-                // مثلاً اگر شیفت دیشب ساعت 4 صبح امروز تمام می‌شود و الان 03:55 است
                 $diffYesterday = abs($logTimestamp->diffInMinutes($scheduleYesterday->expected_end));
             }
         }
 
-        // انتخاب شیفتی که زمانش به زمان لاگ نزدیک‌تر است
-        // اگر تفاوت خیلی کم باشد (مثلاً زیر 12 ساعت)، اولویت با شیفتی است که فاصله کمتری دارد
-        if ($diffYesterday < $diffToday) {
-            $schedule = $scheduleYesterday;
-        } else {
-            $schedule = $scheduleToday;
-        }
+        // Assign schedule based on time proximity
+        $schedule = ($diffYesterday < $diffToday) ? $scheduleYesterday : $scheduleToday;
 
-        // ---------------------------------------------------------
-        // 2. دریافت آخرین لاگ (سراسری) برای بررسی بازگشت به کار
-        // ---------------------------------------------------------
-        // آخرین لاگ ثبت شده قبل از این زمان را می‌گیریم (فارغ از اینکه مال امروز است یا دیروز)
+        // Retrieve last log to check for re-entry logic
         $lastLog = AttendanceLog::where('employee_id', $employee->id)
             ->where('timestamp', '<', $logTimestamp)
             ->orderBy('timestamp', 'desc')
             ->first();
 
-        // تشخیص اینکه آیا این ورود اول است یا قبلاً وارد شده؟
-        // اگر آخرین لاگ "ورود" باشد، یعنی هنوز در حال کار است یا لاگ خروج فراموش شده
-        // اگر آخرین لاگ "خروج" باشد، یعنی قبلاً وارد شده و خارج شده (سناریوی بازگشت)
-        // برای سادگی، اگر آخرین لاگ وجود داشته باشد و زمانش خیلی پرت نباشد (مثلا مال 2 روز پیش نباشد)،
-        // می‌توانیم فرض کنیم قبلاً CheckIn داشته.
         $hasPriorCheckIn = false;
         if ($schedule && $schedule->expected_start) {
-             // اگر لاگی در بازه این شیفت وجود داشته باشد
-             // (مثلاً از 2 ساعت قبل از شروع شیفت تا الان)
+             // Check if there is any check-in within the current shift's window
              $hasPriorCheckIn = AttendanceLog::where('employee_id', $employee->id)
                 ->where('timestamp', '>=', $schedule->expected_start->copy()->subHours(4))
                 ->where('timestamp', '<', $logTimestamp)
@@ -115,65 +94,64 @@ class AttendanceLogController extends Controller
         $lateness_minutes = 0;
         $early_departure_minutes = 0;
 
-        if ($schedule)
-        {
+        if ($schedule) {
             $expectedStart = $schedule->expected_start;
             $expectedEnd = $schedule->expected_end;
             $floatingStart = $schedule->floating_start ?? 0;
             $floatingEnd = $schedule->floating_end ?? 0;
 
-            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN && $expectedStart)
-            {
-                // --- سناریوی ۱: بازگشت به کار (ورود مجدد پس از خروج موقت/جیم شدن) ---
-                if ($lastLog && $lastLog->event_type == AttendanceLog::TYPE_CHECK_OUT)
-                {
-                    // اگر آخرین لاگ خروج بوده و فاصله زمانی معقول است (مثلاً زیر 16 ساعت)
-                    // یعنی فرد در حال بازگشت به همان شیفت است.
-
-                    // الف: باطل کردن تعجیل لاگ قبلی (چون به کار برگشته)
+            if ($validated['event_type'] == AttendanceLog::TYPE_CHECK_IN && $expectedStart) {
+                // Scenario 1: Returning to work (Re-entry after temporary exit)
+                if ($lastLog && $lastLog->event_type == AttendanceLog::TYPE_CHECK_OUT) {
+                    // Reset previous early departure since employee returned
                     if ($lastLog->early_departure_minutes > 0) {
                         $lastLog->early_departure_minutes = 0;
                         $lastLog->save();
                     }
 
-                    // ب: محاسبه مدت زمان غیبت (فاصله خروج قبلی تا این ورود)
                     $lastExitTime = Carbon::parse($lastLog->timestamp);
                     $gapMinutes = $lastExitTime->diffInMinutes($logTimestamp);
 
-                    // ثبت مدت زمان بیرون بودن به عنوان "تاخیر" در لاگ جدید
-                    $lateness_minutes = $gapMinutes;
+                    // Deduct approved leave minutes from the gap
+                    $approvedLeaveMinutes = $this->calculateApprovedLeaveMinutes(
+                        $employee->id,
+                        $lastExitTime,
+                        $logTimestamp
+                    );
+
+                    $lateness_minutes = max(0, $gapMinutes - $approvedLeaveMinutes);
                 }
-                // --- سناریوی ۲: اولین ورود شیفت ---
-                elseif (!$hasPriorCheckIn)
-                {
-                    // اگر اولین بار است وارد می‌شود، نسبت به شروع شیفت سنجیده می‌شود
-                    if ($logTimestamp->gt($expectedStart))
-                    {
+                // Scenario 2: First check-in of the shift
+                elseif (!$hasPriorCheckIn) {
+                    if ($logTimestamp->gt($expectedStart)) {
                         $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
 
-                        // اعمال فرجه شناور (فقط برای شروع شیفت)
-                        if ($diffInMinutes > $floatingStart)
-                        {
-                            $lateness_minutes = $diffInMinutes;
+                        if ($diffInMinutes > $floatingStart) {
+                            // Deduct approved leave from the start of the shift
+                            $approvedLeaveMinutes = $this->calculateApprovedLeaveMinutes(
+                                $employee->id,
+                                $expectedStart,
+                                $logTimestamp
+                            );
+
+                            $lateness_minutes = max(0, $diffInMinutes - $approvedLeaveMinutes);
                         }
                     }
                 }
-            }
-            elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT && $expectedEnd)
-            {
-                // --- سناریوی خروج (شامل شیفت شب) ---
-                // اگر زودتر از پایان شیفت می‌رود
-                Log::info("the exit time is: " . $expectedEnd->diffInMinutes($logTimestamp));
-                if ($logTimestamp->lt($expectedEnd))
-                {
-                    Log::info("the exit time is2 : " . $expectedEnd->diffInMinutes($logTimestamp));
-                    Log::info("the expectedEnd time is: " . $expectedEnd);
-                    Log::info("the logTimestamp is: " . $logTimestamp);
+            } elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT && $expectedEnd) {
+                // Scenario 3: Early Departure
+                if ($logTimestamp->lt($expectedEnd)) {
                     $diffInMinutes = abs($expectedEnd->diffInMinutes($logTimestamp));
 
-                    if ($diffInMinutes > $floatingEnd)
-                    {
-                        $early_departure_minutes = $diffInMinutes;
+                    if ($diffInMinutes > $floatingEnd) {
+                        // Deduct approved leave from the end of the shift
+                        $approvedLeaveMinutes = $this->calculateApprovedLeaveMinutes(
+                            $employee->id,
+                            $logTimestamp,
+                            $expectedEnd
+                        );
+
+                        $early_departure_minutes = max(0, $diffInMinutes - $approvedLeaveMinutes);
                     }
                 }
             }
@@ -198,5 +176,51 @@ class AttendanceLogController extends Controller
             'calculated_early_departure' => $early_departure_minutes,
             'matched_schedule_start' => $schedule ? $schedule->expected_start->toDateTimeString() : null
         ], 201);
+    }
+
+    /**
+     * Calculates the exact minutes of approved leave overlapping with a specific time interval.
+     *
+     * @param int $employeeId
+     * @param Carbon $startInterval Start of the calculation window (e.g., shift start)
+     * @param Carbon $endInterval End of the calculation window (e.g., check-in time)
+     * @return int Minutes covered by approved leave
+     */
+    private function calculateApprovedLeaveMinutes(int $employeeId, Carbon $startInterval, Carbon $endInterval): int
+    {
+        $leaves = LeaveRequest::where('employee_id', $employeeId)
+            ->where('status', LeaveRequest::STATUS_APPROVED)
+            ->where(function ($query) use ($startInterval, $endInterval) {
+                $query->where(function ($q) use ($startInterval, $endInterval) {
+                    // Leave starts within the interval
+                    $q->where('start_time', '>=', $startInterval)
+                      ->where('start_time', '<', $endInterval);
+                })
+                ->orWhere(function ($q) use ($startInterval, $endInterval) {
+                    // Leave ends within the interval
+                    $q->where('end_time', '>', $startInterval)
+                      ->where('end_time', '<=', $endInterval);
+                })
+                ->orWhere(function ($q) use ($startInterval, $endInterval) {
+                    // Leave fully covers the interval
+                    $q->where('start_time', '<=', $startInterval)
+                      ->where('end_time', '>=', $endInterval);
+                });
+            })
+            ->get();
+
+        $totalCoveredMinutes = 0;
+
+        foreach ($leaves as $leave) {
+            // Calculate intersection
+            $effectiveStart = $startInterval->max($leave->start_time);
+            $effectiveEnd = $endInterval->min($leave->end_time);
+
+            if ($effectiveStart->lt($effectiveEnd)) {
+                $totalCoveredMinutes += $effectiveStart->diffInMinutes($effectiveEnd);
+            }
+        }
+
+        return $totalCoveredMinutes;
     }
 }
