@@ -81,7 +81,7 @@ function OrganizationPage() {
 
     if (isLoading) {
         return (
-            <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6" dir="rtl">
+            <div className="p-4 md:p-8  mx-auto space-y-6" dir="rtl">
                 <div className="flex justify-between items-center mb-6 border-b border-borderL dark:border-borderD pb-4">
                     <div className="flex items-center gap-4">
                         <Skeleton className="h-12 w-12 rounded-2xl" />
@@ -114,7 +114,7 @@ function OrganizationPage() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500" dir="rtl">
+        <div className="p-4 md:p-8  mx-auto space-y-6 animate-in fade-in duration-500" dir="rtl">
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-borderL dark:border-borderD">
                 <div className="flex items-center gap-4">

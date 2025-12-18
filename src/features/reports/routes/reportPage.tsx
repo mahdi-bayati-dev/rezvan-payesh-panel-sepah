@@ -228,7 +228,7 @@ export default function ActivityReportPage() {
                 isLoading={approveMutation.isPending}
             />
 
-            <div className="flex flex-col lg:flex-row-reverse gap-6 p-4 md:p-6 min-h-screen">
+            <div className="flex flex-col lg:flex-row-reverse gap-6 p-4 md:p-4 min-h-screen">
                 <aside className="w-full lg:w-72 lg:sticky lg:top-6 lg:self-start transition-all duration-300">
                     <ActivityFilters
                         onFilterChange={handleFilterChange}

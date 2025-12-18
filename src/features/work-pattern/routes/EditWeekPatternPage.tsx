@@ -53,7 +53,7 @@ export default function EditWeekPatternPage() {
     }
 
     return (
-        <div className="space-y-4 max-w-7xl mx-auto p-4 md:p-8" dir="rtl">
+        <div className="space-y-4  mx-auto p-4 md:p-8" dir="rtl">
 
             <NewWeekPatternForm
                 // استفاده از as any برای رفع خطای Types of 'control._options.resolver'

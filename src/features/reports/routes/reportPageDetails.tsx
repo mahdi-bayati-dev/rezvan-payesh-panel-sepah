@@ -19,30 +19,30 @@ const ReportDetailHeader = ({
 }) => (
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-borderL dark:border-borderD gap-4">
     <div className="flex items-center gap-3">
-        <button
-            onClick={onBack}
-            className="p-2.5 rounded-full bg-secondaryL/50 hover:bg-secondaryL dark:bg-secondaryD/30 dark:hover:bg-secondaryD text-muted-foregroundL dark:text-muted-foregroundD transition-all active:scale-95"
-            title="بازگشت به لیست"
-        >
-            <ArrowRight className="w-5 h-5" />
-        </button>
-        <div>
-            <h2 className="text-xl font-bold text-foregroundL dark:text-foregroundD">
-                جزئیات گزارش
-            </h2>
-            <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1">
-                مشاهده کامل اطلاعات ثبت شده توسط ادمین
-            </p>
-        </div>
+      <button
+        onClick={onBack}
+        className="p-2.5 rounded-full bg-secondaryL/50 hover:bg-secondaryL dark:bg-secondaryD/30 dark:hover:bg-secondaryD text-muted-foregroundL dark:text-muted-foregroundD transition-all active:scale-95"
+        title="بازگشت به لیست"
+      >
+        <ArrowRight className="w-5 h-5" />
+      </button>
+      <div>
+        <h2 className="text-xl font-bold text-foregroundL dark:text-foregroundD">
+          جزئیات گزارش
+        </h2>
+        <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1">
+          مشاهده کامل اطلاعات ثبت شده توسط ادمین
+        </p>
+      </div>
     </div>
 
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-backgroundL dark:bg-zinc-900 border border-borderL dark:border-zinc-800">
-        <CalendarClock size={16} className="text-primaryL dark:text-primaryD" />
-        <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">تاریخ:</span>
-        <span className="text-sm font-bold text-foregroundL dark:text-foregroundD">{date}</span>
-        <span className="mx-2 text-borderL dark:text-zinc-700">|</span>
-        <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">شناسه:</span>
-        <span className="text-sm  font-bold text-foregroundL dark:text-foregroundD">{toPersianNumbers(id)}</span>
+      <CalendarClock size={16} className="text-primaryL dark:text-primaryD" />
+      <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">تاریخ:</span>
+      <span className="text-sm font-bold text-foregroundL dark:text-foregroundD">{date}</span>
+      <span className="mx-2 text-borderL dark:text-zinc-700">|</span>
+      <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">شناسه:</span>
+      <span className="text-sm  font-bold text-foregroundL dark:text-foregroundD">{toPersianNumbers(id)}</span>
     </div>
   </div>
 );
@@ -92,7 +92,7 @@ function ReportPageDetails() {
 
   if (isLoadingLog || (log && isLoadingUser)) {
     return (
-      <div className="p-4 max-w-7xl mx-auto">
+      <div className="p-4 mx-auto">
         <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD shadow-sm">
           <LoadingCard />
         </main>
@@ -109,7 +109,7 @@ function ReportPageDetails() {
   }
 
   return (
-    <div className="p-4 max-w-7xl mx-auto">
+    <div className="p-4  mx-auto">
       <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD shadow-sm">
         <ReportDetailHeader id={log.id} date={log.date} onBack={handleGoBack} />
 
@@ -117,7 +117,7 @@ function ReportPageDetails() {
           <aside className="w-full lg:w-80 flex-shrink-0">
             <EmployeeInfoCard
               logEmployee={log.employee}
-              userEmployee={fullEmployeeProfile?.employee} 
+              userEmployee={fullEmployeeProfile?.employee}
             />
           </aside>
 

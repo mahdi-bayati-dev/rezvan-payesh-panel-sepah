@@ -34,7 +34,7 @@ function NewWorkPatternPage() {
     const handleBack = () => navigate(-1);
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6 pb-10" dir="rtl">
+        <div className=" mx-auto space-y-6 pb-10 px-2" dir="rtl">
 
             {/* --- ۱. هدر و نویگیشن (تمیز و مینیمال) --- */}
             <div className="flex items-center justify-between">

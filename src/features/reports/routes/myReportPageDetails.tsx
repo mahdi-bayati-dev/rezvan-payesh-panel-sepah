@@ -105,7 +105,7 @@ function MyReportPageDetails() {
     }
 
     return (
-        <div className="p-4 max-w-7xl mx-auto">
+        <div className="p-4  mx-auto">
             <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD shadow-sm">
                 <ReportDetailHeader id={log.id} date={log.date} onBack={handleGoBack} />
 
