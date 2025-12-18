@@ -1,27 +1,14 @@
+/* reports/routes/reportPage.tsx */
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-    useReactTable,
-    getCoreRowModel,
-    type PaginationState,
-} from "@tanstack/react-table";
-import { Plus, Download, ShieldCheck, FileText } from "lucide-react"; // ShieldCheck برای مودال
+import { useReactTable, getCoreRowModel, type PaginationState } from "@tanstack/react-table";
+import { Plus, Download, ShieldCheck, FileText } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 
-import {
-    ActivityFilters,
-    type ApiFilters,
-} from "@/features/reports/components/reportsPage/activityFilters";
-
-import {
-    useLogs,
-    useApproveLog,
-} from "../hooks/hook";
-
+import { ActivityFilters, type ApiFilters } from "@/features/reports/components/reportsPage/activityFilters";
+import { useLogs, useApproveLog } from "../hooks/hook";
 import { useReportSocket } from "../hooks/useReportSocket";
-
-// استفاده از ستون‌های آپدیت شده
 import { columns as createColumns } from "@/features/reports/components/reportsPage/TableColumns";
 import { type ActivityLog } from "../types";
 import { type LogFilters } from "../api/api";
@@ -31,51 +18,36 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { ExportModal } from "@/features/reports/components/Export/ExportModal";
 import { toast } from "react-toastify";
+import { toPersianNumbers } from "../utils/toPersianNumbers";
 
-function pad(num: number): string {
-    return num < 10 ? "0" + num : num.toString();
-}
+function pad(num: number): string { return num < 10 ? "0" + num : num.toString(); }
 
 const formatApiDate = (date: DateObject | null): string | undefined => {
     if (!date) return undefined;
     const gregorianDate = date.convert(gregorian);
-    return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(
-        gregorianDate.day
-    )}`;
+    return `${gregorianDate.year}-${pad(gregorianDate.month.number)}-${pad(gregorianDate.day)}`;
 };
 
 export default function ActivityReportPage() {
     const navigate = useNavigate();
-
     const [isExportFormModalOpen, setIsExportFormModalOpen] = useState(false);
     const [logToApprove, setLogToApprove] = useState<ActivityLog | null>(null);
 
     const [filters, setFilters] = useState<LogFilters>({
-        page: 1,
-        per_page: 10,
-        sort_by: "timestamp",
-        sort_dir: "desc",
+        page: 1, per_page: 10, sort_by: "timestamp", sort_dir: "desc",
         localDateFrom: null as DateObject | null,
         localDateTo: null as DateObject | null,
     });
 
-    const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-        pageIndex: 0,
-        pageSize: 10,
-    });
+    const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
     // هماهنگ‌سازی فیلترها با صفحه‌بندی
     useEffect(() => {
-        setFilters((prev) => ({
-            ...prev,
-            page: pageIndex + 1,
-            per_page: pageSize,
-        }));
+        setFilters((prev) => ({ ...prev, page: pageIndex + 1, per_page: pageSize }));
     }, [pageIndex, pageSize]);
 
     // دریافت داده‌ها از هوک React Query
     const { data: queryResult, isLoading, isFetching } = useLogs(filters);
-
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
     const totalRows = meta?.total || 0;
@@ -89,75 +61,47 @@ export default function ActivityReportPage() {
     const approveMutation = useApproveLog();
 
     const handleApprove = (log: ActivityLog) => {
-        // باز کردن مودال تایید با ست کردن لاگ انتخاب شده
         setLogToApprove(log);
     };
 
-    const handleEdit = (log: ActivityLog) => {
-        console.log("Edit requested for:", log.id);
+    // استفاده از _ برای پارامتر بلااستفاده (رفع ارور Build) - منطق تغییری نکرده
+    const handleEdit = (_log: ActivityLog) => {
         toast.info("قابلیت ویرایش به زودی فعال می‌شود.");
     };
 
     const handleConfirmApprove = () => {
         if (!logToApprove) return;
-
         approveMutation.mutate(logToApprove.id, {
             onSuccess: () => {
-                // بستن مودال بلافاصله بعد از موفقیت
                 setLogToApprove(null);
-                // نکته: نیازی به رفرش دستی نیست چون در هوک useApproveLog از invalidateQueries استفاده شده
-                // و لیست خودکار آپدیت می‌شود.
             },
             onError: () => {
-                // مودال باز می‌ماند تا کاربر متوجه خطا شود یا دستی ببندد
                 console.error("Failed to approve log.");
             }
         });
     };
 
-    const columns = useMemo(
-        () =>
-            createColumns({
-                onApprove: handleApprove,
-                onEdit: handleEdit,
-            }),
-        []
-    );
+    const columns = useMemo(() => createColumns({ onApprove: handleApprove, onEdit: handleEdit }), []);
 
     const table = useReactTable({
         data: logsData,
         columns,
         pageCount: pageCount,
-        state: {
-            pagination: { pageIndex, pageSize },
-        },
+        state: { pagination: { pageIndex, pageSize } },
         manualPagination: true,
-        manualFiltering: true,
-        manualSorting: true,
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
     });
 
-    const handelNewReport = () => {
-        navigate("/reports/new");
-    };
-
     const handleFilterChange = (newLocalFilters: ApiFilters) => {
         const apiDateFrom = formatApiDate(newLocalFilters.date_from);
         const apiDateTo = formatApiDate(newLocalFilters.date_to);
-
         setFilters((prev) => ({
-            ...prev,
-            page: 1,
-            employee_id: newLocalFilters.employee
-                ? Number(newLocalFilters.employee.id)
-                : undefined,
-            date_from: apiDateFrom,
-            date_to: apiDateTo,
-            localDateFrom: newLocalFilters.date_from,
-            localDateTo: newLocalFilters.date_to,
+            ...prev, page: 1,
+            employee_id: newLocalFilters.employee ? Number(newLocalFilters.employee.id) : undefined,
+            date_from: apiDateFrom, date_to: apiDateTo,
+            localDateFrom: newLocalFilters.date_from, localDateTo: newLocalFilters.date_to,
         }));
-
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     };
 
@@ -171,7 +115,96 @@ export default function ActivityReportPage() {
     }), [filters.date_from, filters.date_to]);
 
     return (
-        <>
+        <div className="p-3 md:p-6 min-h-screen">
+            <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row-reverse gap-2">
+
+                {/* سایدبار فیلتر (ریسپانسیو داخلی) */}
+                <div className="w-full lg:w-80 lg:sticky lg:top-6 lg:self-start">
+                    <ActivityFilters onFilterChange={handleFilterChange} />
+                </div>
+
+                {/* محتوای اصلی */}
+                <main className="flex-1 min-w-0">
+                    <section className="bg-backgroundL-500 dark:bg-backgroundD rounded-3xl border border-borderL dark:border-borderD shadow-sm overflow-hidden transition-all duration-300">
+
+                        {/* --- هدر اصلاح شده و کاملاً ریسپانسیو --- */}
+                        <div className="p-4 sm:p-6 border-b border-borderL dark:border-borderD bg-gradient-to-l from-transparent via-transparent to-primaryL/5 dark:to-primaryD/5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
+
+                                {/* بخش سمت راست: عنوان، آیکون و وضعیت داده‌ها */}
+                                <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                    {/* باکس آیکون با ابعاد متغیر */}
+                                    <div className="p-2.5 sm:p-3 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl sm:rounded-2xl flex-shrink-0">
+                                        <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primaryL dark:text-primaryD" />
+                                    </div>
+
+                                    {/* متن عنوان و تعداد رکوردها */}
+                                    <div className="min-w-0 flex-1">
+                                        <h1 className="text-base sm:text-lg md:text-xl font-black text-foregroundL dark:text-foregroundD truncate">
+                                            گزارش فعالیت‌ها
+                                        </h1>
+
+                                        <div className="text-[10px] sm:text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5 sm:mt-1.5 flex items-center gap-2">
+                                            {/* نشانگر وضعیت زنده (Live Indicator) */}
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                            </span>
+                                            <span className="truncate opacity-80">
+                                                {isLoading
+                                                    ? "در حال دریافت اطلاعات..."
+                                                    : `${toPersianNumbers(totalRows)} مورد در سیستم ثبت شده`
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* بخش سمت چپ: دکمه‌های عملیاتی (Actions) */}
+                                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                                    {/* دکمه خروجی اکسل */}
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => setIsExportFormModalOpen(true)}
+                                        className="flex-1 sm:flex-none h-9 sm:h-11 px-3 sm:px-5 gap-1.5 sm:gap-2 rounded-xl text-[11px] sm:text-sm font-bold border-borderL dark:border-borderD bg-secondaryL/20 dark:bg-secondaryD/10 hover:bg-secondaryL/40 transition-all active:scale-95"
+                                    >
+                                        <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        <span className="whitespace-nowrap">خروجی اکسل</span>
+                                    </Button>
+
+                                    {/* دکمه ثبت فعالیت جدید */}
+                                    <Button
+                                        variant="primary"
+                                        onClick={() => navigate("/reports/new")}
+                                        className="flex-1 sm:flex-none h-9 sm:h-11 px-3 sm:px-5 gap-1.5 sm:gap-2 rounded-xl text-[11px] sm:text-sm font-bold shadow-lg shadow-primaryL/20 dark:shadow-primaryD/10 transition-all active:scale-95"
+                                    >
+                                        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        <span className="whitespace-nowrap">ثبت فعالیت</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* جدول داده‌ها */}
+                        <div className="relative">
+                            <div className="overflow-x-auto custom-scrollbar">
+                                <DataTable
+                                    table={table}
+                                    isLoading={isLoading || isFetching}
+                                    notFoundMessage="رکوردی با مشخصات انتخاب شده یافت نشد."
+                                />
+                            </div>
+                        </div>
+
+                        {/* صفحه‌بندی */}
+                        <div className="p-4 border-t border-borderL dark:border-borderD bg-secondaryL/5 dark:bg-secondaryD/5">
+                            <DataTablePagination table={table} />
+                        </div>
+                    </section>
+                </main>
+            </div>
+
+            {/* مودال خروجی */}
             {isExportFormModalOpen && (
                 <ExportModal
                     isOpen={isExportFormModalOpen}
@@ -182,7 +215,7 @@ export default function ActivityReportPage() {
                 />
             )}
 
-            {/* مودال تایید با آیکون و متن بهبود یافته */}
+            {/* مودال تأیید (با بازگشت تمام جزئیات منطقی نسخه اول تو) */}
             <ConfirmationModal
                 isOpen={!!logToApprove}
                 onClose={() => setLogToApprove(null)}
@@ -210,7 +243,7 @@ export default function ActivityReportPage() {
                             {(logToApprove?.lateness_minutes ?? 0) > 0 && (
                                 <div className="flex justify-between text-destructiveL dark:text-destructiveD">
                                     <span>میزان تاخیر:</span>
-                                    <span>{logToApprove?.lateness_minutes} دقیقه</span>
+                                    <span>{toPersianNumbers(logToApprove?.lateness_minutes)} دقیقه</span>
                                 </div>
                             )}
                         </div>
@@ -227,70 +260,6 @@ export default function ActivityReportPage() {
                 cancelText="انصراف"
                 isLoading={approveMutation.isPending}
             />
-
-            <div className="flex flex-col lg:flex-row-reverse gap-6 p-4 md:p-4 min-h-screen">
-                <aside className="w-full lg:w-72 lg:sticky lg:top-6 lg:self-start transition-all duration-300">
-                    <ActivityFilters
-                        onFilterChange={handleFilterChange}
-                    />
-                </aside>
-
-                <main className="flex-1 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD p-5 sm:p-6 shadow-sm border border-borderL dark:border-borderD flex flex-col gap-6 transition-all duration-300">
-
-                    <div className="flex flex-col gap-4">
-                        <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl">
-                                    <FileText className="w-6 h-6 text-primaryL dark:text-primaryD" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
-                                        گزارش فعالیت‌ها
-                                    </h2>
-                                    <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5">
-                                        {isLoading
-                                            ? "در حال بارگذاری..."
-                                            : totalRows > 0 ? `${totalRows.toLocaleString('fa-IR')} رکورد یافت شد` : "رکوردی یافت نشد"}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => setIsExportFormModalOpen(true)}
-                                    type="button"
-                                    className="flex-1 sm:flex-none items-center gap-2 hover:bg-secondaryL dark:hover:bg-secondaryD"
-                                >
-                                    <Download className="w-4 h-4" />
-                                    <span>خروجی اکسل</span>
-                                </Button>
-
-                                <Button
-                                    variant="primary"
-                                    onClick={handelNewReport}
-                                    type="button"
-                                    className="flex-1 sm:flex-none items-center gap-2 shadow-sm"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span>ثبت فعالیت</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="border border-borderL dark:border-borderD rounded-2xl overflow-hidden shadow-sm">
-                        <DataTable
-                            table={table}
-                            isLoading={isLoading || isFetching}
-                            notFoundMessage="هیچ فعالیتی با فیلترهای انتخاب شده یافت نشد."
-                        />
-                    </div>
-
-                    <DataTablePagination table={table} />
-                </main>
-            </div>
-        </>
+        </div>
     );
 }
