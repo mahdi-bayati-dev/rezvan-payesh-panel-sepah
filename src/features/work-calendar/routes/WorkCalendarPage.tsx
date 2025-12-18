@@ -15,7 +15,7 @@ const YearPicker = ({ value, options, onChange }: any) => (
         <select
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
-            className="w-full h-[42px] px-3 pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+            className="w-full h-[42px] px-3 pr-8 bg-white dark:text-infoL-background dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
         >
             {options.map((opt: any) => (
                 <option key={opt.id} value={opt.id}>{opt.name}</option>
