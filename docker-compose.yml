@@ -1,38 +1,63 @@
 services:
+  # ------------------------------------
   # 1. Laravel App (Backend)
+  # ------------------------------------
   app:
-    image: mcoder902/rezvan-backend:latest
-    container_name: rezvan_app
+    container_name: door_backend
     restart: always
+    build:
+      context: ./back_end
+      dockerfile: Dockerfile
+    # این خط حیاتی است: متغیرها را از فایل .env ریشه می‌خواند و به لاراول می‌دهد
     env_file:
       - .env
     environment:
       APP_ENV: production
     volumes:
-      # فقط پوشه استوریج رو نگه میداریم که اگر آپلود عکس داشتی پاک نشه
+      # فقط پوشه استوریج را نگه می‌داریم (برای عکس‌های آپلود شده)
       - ./backend_storage:/var/www/storage
+      # نکته مهم: دیگر کل کدها را مانت نمی‌کنیم تا vendor پاک نشود!
     networks:
       - rezvan-network
-      - shared-network # اتصال به شبکه هوش مصنوعی
+      - shared-network
     depends_on:
       - db
       - redis
-    build:
-      context: ./back_end
-      dockerfile: Dockerfile
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # 2. Apache + Frontend (Gateway)
-  webserver:
-    image: mcoder902/rezvaen-webserver:latest # نام ایمیجی که خودت ساختی
-    container_name: rezvan_apache
+  # ------------------------------------
+  # 2. Flet Frontend
+  # ------------------------------------
+  frontend:
+    container_name: door_frontend
     restart: always
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    environment:
+      # اینجا هم متغیرها را از فایل .env یا مقادیر محیطی می‌گیرد
+      API_BASE_URL: ${API_BASE_URL}
+      DEBUG_MODE: ${FRONTEND_DEBUG_MODE}
+    networks:
+      - rezvan-network
+
+  # ------------------------------------
+  # 3. Gateway (Nginx)
+  # ------------------------------------
+  webserver:
+    container_name: door_gateway
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile.webserver
     ports:
-      - "8085:80"
+      - "8092:80"
     volumes:
+      # استوریج برای دسترسی به فایل‌های عمومی
       - ./backend_storage:/var/www/storage
-      - ./back_end/public/vendor:/usr/local/apache2/htdocs/vendor
+      # کانفیگ Nginx
+      - ./nginx/conf.d:/etc/nginx/conf.d
     env_file:
       - .env
     networks:
@@ -40,31 +65,33 @@ services:
       - shared-network
     depends_on:
       - app
-    build:
-      context: .
-      dockerfile: Dockerfile.webserver
+      - frontend
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # 3. Database (MySQL)
+  # ------------------------------------
+  # 4. Database
+  # ------------------------------------
   db:
     image: mysql:8.0
-    container_name: rezvan_db
+    container_name: door_db
     restart: always
     environment:
-      MYSQL_DATABASE: rezvan_payesh
-      MYSQL_USER: payesh_user
-      MYSQL_PASSWORD: ${DB_PASSWORD} # از فایل .env میخونه
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
-      - db_data:/var/lib/mysql # این یعنی داده‌ها امن هستن و با حذف کانتینر پاک نمیشن
+      - db_data:/var/lib/mysql
     networks:
       - rezvan-network
 
-  # 4. Redis
+  # ------------------------------------
+  # 5. Redis
+  # ------------------------------------
   redis:
     image: redis:alpine
-    container_name: rezvan_redis
+    container_name: door_redis
     restart: always
     command: redis-server --requirepass "${REDIS_PASSWORD}"
     volumes:
@@ -73,44 +100,31 @@ services:
       - rezvan-network
       - shared-network
 
-  # 5. Soketi (Optional)
-  soketi:
-    build:
-      context: ./soketi
-      dockerfile: Dockerfile
-    container_name: rezvan_soketi
+  # ------------------------------------
+  # 6. PHPMyAdmin
+  # ------------------------------------
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: door_pma
     restart: always
     environment:
-      SOKETI_DEBUG: '1'
-      SOKETI_DEFAULT_APP_ID: rezvan_payesh_docker
-      SOKETI_DEFAULT_APP_KEY: ${PUSHER_APP_KEY}
-      SOKETI_DEFAULT_APP_SECRET: ${PUSHER_APP_SECRET}
+      PMA_HOST: door_db
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USERNAME}
+      PMA_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "6002:6001"
+      - "8081:80"
     networks:
       - rezvan-network
+    depends_on:
+      - db
 
-  phpmyadmin:
-      image: phpmyadmin/phpmyadmin
-      container_name: rezvan_pma
-      restart: always
-      environment:
-        PMA_HOST: db             # نام سرویس دیتابیس در داکر کامپوز
-        PMA_PORT: 3306
-        PMA_USER: payesh_user    # نام کاربری دیتابیس
-        PMA_PASSWORD: ${DB_PASSWORD} # پسورد از فایل .env خوانده می‌شود
-      ports:
-        - "8081:80"              # پورت دسترسی در مرورگر
-      networks:
-        - rezvan-network
-      depends_on:
-        - db
 volumes:
-  db_data: # والیوم دیتابیس
+  db_data:
   redis_data:
 
 networks:
   rezvan-network:
     driver: bridge
-  shared-network: # شبکه‌ای که قبلا ساختی
+  shared-network:
     external: true
