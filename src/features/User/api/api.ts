@@ -8,7 +8,7 @@ import type {
   UserProfileFormData,
   CreateUserFormData,
 } from "@/features/User/Schema/userProfileFormSchema";
-
+import { AppConfig } from "@/config";
 /**
  * دریافت لیست کاربران
  */
@@ -21,7 +21,7 @@ export const fetchUsers = async (
     page: String(params.page),
     per_page: String(params.per_page),
   });
-  
+
   if (params.organization_id)
     queryParams.append("organization_id", String(params.organization_id));
 
@@ -356,9 +356,12 @@ export const importUsers = async (
 export const downloadSampleExcel = () => {
   // اگر فایل در پوشه public پروژه است:
   const link = document.createElement("a");
-  link.href = "https://payesh.eitebar.ir/storage/user_import_sample.xlsx"; // مسیر فرضی در public
+  link.href = `${AppConfig.API_URL}/storage/user_import_sample.xlsx`; // مسیر فرضی در public
   link.download = "users-import-template.xlsx";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  console.log("====================================");
+  console.log("ادرس درخواست دانلود اکسل نمونه", link.href);
+  console.log("====================================");
 };
