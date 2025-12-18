@@ -1,85 +1,104 @@
 import React from 'react';
-import type { Holiday } from '../types';
-import { HolidayType } from '../types';
+import type { Holiday } from '../types/index';
+import { HolidayType } from '../types/index';
 import { toPersianDigits } from '../utils/numberUtils';
 
 interface DayCellProps {
     date: string;
     holiday: Holiday | undefined;
     isEditing: boolean;
+    isToday?: boolean;
     onClick: (date: string, currentHoliday?: Holiday) => void;
     className?: string;
     weekDayShort: string | null;
-    dayNumber: number; // پراپرتی جدید برای نمایش عدد روز
+    dayNumber: number;
 }
 
+/**
+ * کامپوننت سلول روز با هاور بهبود یافته و حرفه‌ای
+ * استفاده انحصاری از متغیرهای oklch تعریف شده در پروژه
+ */
 export const DayCell: React.FC<DayCellProps> = React.memo(({
     date,
     holiday,
     isEditing,
+    isToday,
     onClick,
-    className = "w-8 h-8", // کمی بزرگتر برای تاچ بهتر در موبایل
+    className = "w-8 h-8",
     weekDayShort,
     dayNumber
 }) => {
+    const isFriday = weekDayShort === "ج";
 
     const getCellStyle = (): string => {
-        // بیس استایل برای همه سلول‌ها
-        const base = "transition-all duration-200 ease-in-out transform";
+        // انیمیشن‌های نرم‌تر با duration-200
+        const base = "transition-all duration-200 ease-out border relative";
 
-        if (!holiday) {
-            return `${base} bg-backgroundL-500 border border-borderL/60 dark:bg-backgroundD dark:border-borderD hover:bg-secondaryL/50 dark:hover:bg-secondaryD/50`;
+        if (holiday) {
+            if (holiday.type === HolidayType.OFFICIAL) {
+                // تعطیل رسمی
+                const fridayRing = isFriday
+                    ? "ring-2 ring-destructiveL dark:ring-destructiveD ring-offset-1"
+                    : "";
+                return `${base} bg-destructiveL dark:bg-destructiveD text-backgroundL-500 dark:text-backgroundD border-transparent font-black ${fridayRing}`;
+            }
+
+            if (holiday.type === HolidayType.AGREEMENT) {
+                // تعطیل توافقی
+                return `${base} bg-warningL-background dark:bg-warningD-background text-warningL-foreground dark:text-warningD-foreground border-warningL-foreground/30 font-bold`;
+            }
         }
 
-        switch (holiday.type) {
-            case HolidayType.OFFICIAL:
-                return `${base} bg-rose-500 text-white border-rose-600 shadow-sm scale-105 z-10`; // رنگ جذاب‌تر برای تعطیلی
-            case HolidayType.AGREEMENT:
-                return `${base} bg-amber-400 text-amber-950 border-amber-500 shadow-sm`;
-            default:
-                return `${base} bg-backgroundL-500 border border-borderL dark:bg-backgroundD dark:border-borderD`;
+        if (isFriday) {
+            // جمعه عادی
+            return `${base} bg-destructiveL-background dark:bg-destructiveD-background text-destructiveL-foreground dark:text-destructiveD-foreground border-destructiveL-foreground/10`;
         }
+
+        // روز عادی کاری
+        return `${base} bg-backgroundL-500 dark:bg-backgroundD text-foregroundL/70 dark:text-foregroundD/70 border-borderL dark:border-borderD`;
     };
-
-    const handleClick = () => {
-        if (isEditing) {
-            onClick(date, holiday);
-        }
-    };
-
-    // کلاس‌های تعاملی
-    const interactionClasses = isEditing
-        ? 'cursor-pointer hover:ring-2 hover:ring-blue-500 hover:z-20'
-        : 'cursor-default';
 
     return (
         <div
             className={`
                 ${className} 
                 ${getCellStyle()} 
-                ${interactionClasses} 
-                rounded-md flex flex-col items-center justify-center 
-                select-none relative group
+                ${isEditing ? `
+                    cursor-pointer 
+                    hover:scale-115 
+                    hover:z-50 
+                    hover:shadow-xl 
+                    hover:ring-2 
+                    hover:ring-infoL-foreground 
+                    dark:hover:ring-infoD-foreground
+                    ${!holiday ? 'hover:bg-secondaryL dark:hover:bg-secondaryD' : ''}
+                ` : 'cursor-default'}
+                ${isToday ? 'ring-2 ring-infoL-foreground dark:ring-infoD-foreground ring-offset-2 z-20' : ''}
+                rounded-lg flex flex-col items-center justify-center select-none group
             `}
-            onClick={handleClick}
+            onClick={() => isEditing && onClick(date, holiday)}
         >
-            {/* نمایش حرف روز هفته (فقط اگر وجود داشته باشد) */}
+            {/* افکت درخشش ملایم در هاور برای روزهای غیرتعطیل */}
+            {isEditing && !holiday && (
+                <div className="absolute inset-0 rounded-lg bg-infoL-foreground/0 group-hover:bg-infoL-foreground/5 dark:group-hover:bg-infoD-foreground/5 transition-colors pointer-events-none" />
+            )}
+
+            {isToday && (
+                <span className="absolute inset-0 rounded-lg bg-infoL-foreground dark:bg-infoD-foreground animate-ping opacity-20 pointer-events-none"></span>
+            )}
+
             {weekDayShort && (
-                <span className={`text-[9px] leading-none mb-0.5 opacity-70 dark:text-backgroundL-500 ${holiday ? 'font-medium' : ''}`}>
+                <span className={`text-[7px] leading-none mb-0.5 opacity-60 group-hover:opacity-100 transition-opacity ${isToday ? 'text-infoL-foreground dark:text-infoD-foreground font-bold' : ''}`}>
                     {weekDayShort}
                 </span>
             )}
 
-            {/* نمایش عدد روز به فارسی */}
-            <span className={`text-xs font-bold leading-none dark:text-backgroundL-500`}>
+            <span className={`text-xs leading-none font-bold group-hover:scale-110 transition-transform ${isToday ? 'text-infoL-foreground dark:text-infoD-foreground' : ''}`}>
                 {toPersianDigits(dayNumber)}
             </span>
 
-            {/* تولتیپ ساده برای نمایش نام تعطیلی در هاور */}
-            {holiday && (
-                <div className="absolute bottom-full mb-1 hidden group-hover:block bg-black/80 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50">
-                    {holiday.name}
-                </div>
+            {isToday && (
+                <div className="w-1 h-1 bg-infoL-foreground dark:bg-infoD-foreground rounded-full mt-0.5 animate-dot-fade"></div>
             )}
         </div>
     );
