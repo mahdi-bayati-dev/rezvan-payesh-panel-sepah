@@ -1,21 +1,17 @@
-// برای این فایل، باید `jalali-moment` را نصب کنید
-// npm install jalali-moment
 import moment from "jalali-moment";
 
-// +++ اضافه کردن آرایه‌ی حروف روزهای هفته +++
 const JALALI_WEEKDAYS_SHORT = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
 
-// ساختار خروجی برای رندر گرید
 interface DayCellData {
   key: string;
-  date: string | null; // "jYYYY/jMM/jDD" (تاریخ جلالی)
-  gregorianDate: string | null; // "YYYY-MM-DD" (برای ارسال به API)
-  dayOfMonth: number; // 1-31
-  weekDayShort: string | null; // +++ پراپرتی جدید برای "ش", "ی", "د" و ... +++
+  date: string | null;
+  gregorianDate: string | null;
+  dayOfMonth: number;
+  weekDayShort: string | null;
 }
 
 interface MonthRowData {
-  name: string; // نام ماه (فروردین)
+  name: string;
   days: DayCellData[];
 }
 
@@ -34,14 +30,8 @@ const JALALI_MONTHS = [
   "اسفند",
 ];
 
-/**
- * تابعی برای تولید ساختار گرید سالانه بر اساس تقویم جلالی
- * این تابع دقیقاً 31 سلول برای هر ماه ایجاد می‌کند (مطابق UI فیگما)
- */
 export const generateJalaliYearGrid = (jalaliYear: number): MonthRowData[] => {
   const yearGrid: MonthRowData[] = [];
-
-  // اطمینان از اینکه ورودی به صورت محلی فارسی (fa) و جلالی (j) است
   moment.locale("fa");
 
   for (let jMonth = 1; jMonth <= 12; jMonth++) {
@@ -49,40 +39,75 @@ export const generateJalaliYearGrid = (jalaliYear: number): MonthRowData[] => {
     const daysInMonth = moment.jDaysInMonth(jalaliYear, jMonth - 1);
     const monthDays: DayCellData[] = [];
 
-    // ۱. اضافه کردن روزهای واقعی ماه
     for (let jDay = 1; jDay <= daysInMonth; jDay++) {
       const dateStr = `${jalaliYear}/${jMonth}/${jDay}`;
       const m = moment(dateStr, "jYYYY/jM/jD");
-
-      // +++ محاسبه روز هفته +++
-      const weekDayIndex = m.jDay(); // 0 = شنبه, 6 = جمعه
-      const weekDayShort = JALALI_WEEKDAYS_SHORT[weekDayIndex];
+      const weekDayIndex = m.jDay();
 
       monthDays.push({
         key: dateStr,
         date: m.format("jYYYY/jMM/jDD"),
-        gregorianDate: m.format("YYYY-MM-DD"), // تاریخ میلادی برای API
+        gregorianDate: m.format("YYYY-MM-DD"),
         dayOfMonth: jDay,
-        weekDayShort: weekDayShort, // +++ پاس دادن حرف روز هفته +++
+        weekDayShort: JALALI_WEEKDAYS_SHORT[weekDayIndex],
       });
     }
 
-    // ۲. اضافه کردن سلول‌های خالی (padding) تا انتهای گرید 31 روزه
-    // (بر اساس UI فیگما که هر ماه 31 ستون دارد)
     const paddingCount = 31 - daysInMonth;
     for (let i = 0; i < paddingCount; i++) {
       const dayNum = daysInMonth + i + 1;
       monthDays.push({
         key: `pad-${jMonth}-${dayNum}`,
-        date: null, // شناسه سلول خالی
-        gregorianDate: null, // شناسه سلول خالی
+        date: null,
+        gregorianDate: null,
         dayOfMonth: dayNum,
-        weekDayShort: null, // +++ سلول خالی حرف ندارد +++
+        weekDayShort: null,
       });
     }
-
     yearGrid.push({ name: monthName, days: monthDays });
   }
-
   return yearGrid;
+};
+
+/**
+ * پیدا کردن تمام جمعه‌ها در یک بازه زمانی
+ */
+export const getFridaysInRange = (
+  startDate: moment.Moment,
+  daysCount: number
+): string[] => {
+  const fridays: string[] = [];
+  const tempDate = startDate.clone();
+
+  for (let i = 0; i < daysCount; i++) {
+    if (tempDate.jDay() === 6) {
+      fridays.push(tempDate.format("YYYY-MM-DD"));
+    }
+    tempDate.add(1, "day");
+  }
+  return fridays;
+};
+
+/**
+ * پیدا کردن تمام جمعه‌های ماه جاری جلالی
+ */
+export const getFridaysOfCurrentJalaliMonth = (): string[] => {
+  const startOfMonth = moment().startOf("jMonth");
+  const daysInMonth = moment.jDaysInMonth(
+    startOfMonth.jYear(),
+    startOfMonth.jMonth()
+  );
+  return getFridaysInRange(startOfMonth, daysInMonth);
+};
+
+/**
+ * پیدا کردن تمام جمعه‌های یک سال کامل جلالی
+ * @param year سال جلالی مورد نظر
+ */
+export const getFridaysOfJalaliYear = (year: number): string[] => {
+  // شروع از اول فروردین سال مورد نظر
+  const startOfYear = moment(`${year}/01/01`, "jYYYY/jMM/jDD");
+  // محاسبه تعداد روزهای سال (کبیسه یا عادی)
+  const daysInYear = startOfYear.clone().endOf("jYear").jDayOfYear();
+  return getFridaysInRange(startOfYear, daysInYear);
 };
