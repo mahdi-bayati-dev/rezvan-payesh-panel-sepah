@@ -13,24 +13,27 @@ interface WorkCalendarGridProps {
     activeTool: ActiveTool;
 }
 
-// --- ثابت‌های ابعادی برای هماهنگی دقیق اسکلتون و محتوا ---
-const CELL_SIZE = "min-w-[2rem] h-8"; // عرض و ارتفاع ثابت سلول‌ها
+// --- ثابت‌های ابعادی برای پایداری در تمام مانیتورها ---
+const CELL_SIZE = "min-w-[2.2rem] h-9"; // کمی بزرگتر برای خوانایی بهتر
 const CELL_GAP = "gap-1";
-const MONTH_NAME_WIDTH = "w-20 md:w-24";
+const MONTH_NAME_WIDTH = "w-24 md:w-28"; // عرض ثابت برای نام ماه جهت تراز شدن ستون‌ها
 
-// --- کامپوننت هدر (شماره روزها) ---
-// چون این بخش وابسته به دیتا نیست، همیشه نمایش داده می‌شود
+/**
+ * هدر شماره روزها (۱ تا ۳۱)
+ * به صورت کاملاً هماهنگ با ردیف‌های ماه طراحی شده است
+ */
 const DayHeader = React.memo(() => {
     return (
-        <div className="flex items-center mb-3" style={{ direction: 'rtl' }}>
-            {/* فضای خالی برای تراز شدن با نام ماه */}
+        <div className="flex items-center mb-4 sticky top-0 bg-backgroundL-500 dark:bg-backgroundD z-10 py-2">
+            {/* نام ماه (در هدر خالی می‌ماند تا ستون‌ها تراز شوند) */}
             <div className={`${MONTH_NAME_WIDTH} shrink-0`} />
 
-            <div className={`flex flex-row ${CELL_GAP} px-1`}>
+            {/* اعداد روزها */}
+            <div className={`flex items-center ${CELL_GAP} px-1`}>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(dayNum => (
                     <div
                         key={dayNum}
-                        className={`${CELL_SIZE} flex items-center justify-center text-xs text-muted-foregroundL/50 dark:text-muted-foregroundD/50`}
+                        className={`${CELL_SIZE} flex items-center justify-center text-[10px] font-bold text-muted-foregroundL/40 dark:text-muted-foregroundD/40`}
                     >
                         {toPersianDigits(dayNum)}
                     </div>
@@ -40,33 +43,27 @@ const DayHeader = React.memo(() => {
     );
 });
 
-// --- کامپوننت اسکلتون دقیق (Skeleton) ---
-// این کامپوننت دقیقاً جایگزین ردیف‌های ماه می‌شود
+/**
+ * اسکلتون لودینگ مطابق با ساختار جدید تقویم
+ */
 const CalendarSkeleton = () => {
-    // آرایه‌هایی برای تولید ۱۲ ماه و ۳۱ روز فیک
     const months = Array.from({ length: 12 });
     const days = Array.from({ length: 31 });
 
     return (
-        <div className="space-y-1.5" style={{ direction: 'ltr' }}>
+        <div className="space-y-2">
             {months.map((_, mIndex) => (
-                <div key={`skeleton-month-${mIndex}`} className="flex items-center animate-pulse">
-                    
-                    {/* ردیف روزهای اسکلتون - دقیقاً مشابه ساختار اصلی */}
-                    {/* از flex-row-reverse استفاده می‌کنیم تا ترتیب چیدمان با حالت واقعی یکی باشد */}
-                    <div className={`flex flex-row-reverse ${CELL_GAP} px-1`}>
+                <div key={`skeleton-row-${mIndex}`} className="flex items-center animate-pulse">
+                    <div className={`${MONTH_NAME_WIDTH} shrink-0 flex justify-start`}>
+                        <div className="h-5 w-16 bg-secondaryL/40 dark:bg-secondaryD/30 rounded-md" />
+                    </div>
+                    <div className={`flex ${CELL_GAP} px-1`}>
                         {days.map((_, dIndex) => (
-                            <div 
-                                key={`skeleton-day-${dIndex}`} 
-                                className={`${CELL_SIZE} rounded-md bg-secondaryL/30 dark:bg-secondaryD/20 border border-transparent`}
+                            <div
+                                key={`skeleton-cell-${dIndex}`}
+                                className={`${CELL_SIZE} rounded-md bg-secondaryL/20 dark:bg-secondaryD/10`}
                             />
                         ))}
-                    </div>
-
-                    {/* نام ماه اسکلتون */}
-                    <div className={`${MONTH_NAME_WIDTH} shrink-0 pl-2 text-right flex justify-end`}>
-                        {/* یک باکس خاکستری به جای متن نام ماه */}
-                        <div className="h-5 w-14 bg-secondaryL/40 dark:bg-secondaryD/30 rounded-md" />
                     </div>
                 </div>
             ))}
@@ -79,25 +76,30 @@ export const WorkCalendarGrid: React.FC<WorkCalendarGridProps> = ({
     isEditing,
     activeTool
 }) => {
-    // محاسبه گرید سال (این عملیات سریع و همزمان است)
+    // تولید گرید تقویم جلالی (فروردین تا اسفند)
     const yearGrid = useMemo(() => generateJalaliYearGrid(jalaliYear), [jalaliYear]);
-    
-    // دریافت دیتا از API (این بخش ناهمگام است)
+
+    // دریافت داده‌های تعطیلات از API
     const { data: holidayMap, isLoading } = useGetHolidays(jalaliYear);
-    
+
     const createHolidayMutation = useCreateHoliday();
     const deleteHolidayMutation = useDeleteHoliday();
 
-    const handleDayClick = (gregorianDate: string | null, jalaliDate: string | null, currentHoliday?: Holiday) => {
-        if (!jalaliDate || !gregorianDate) return;
+    /**
+     * مدیریت کلیک روی هر سلول روز
+     */
+    const handleDayClick = (gregorianDate: string | null, currentHoliday?: Holiday) => {
+        if (!gregorianDate) return;
 
         const isOfficial = (activeTool === HolidayType.OFFICIAL);
         const toolName = (activeTool === HolidayType.OFFICIAL) ? "تعطیلی رسمی" : "تعطیلی توافقی";
 
+        // اگر ابزار پاک‌کن انتخاب شده یا روی همان نوع تعطیلی کلیک شود، حذف کن
         if (activeTool === 'remove' || currentHoliday?.type === activeTool) {
             if (currentHoliday) deleteHolidayMutation.mutate(gregorianDate);
         }
         else {
+            // در غیر این صورت، ابتدا قبلی را پاک و جدید را ثبت کن
             if (currentHoliday) deleteHolidayMutation.mutate(gregorianDate);
             createHolidayMutation.mutate({
                 date: gregorianDate,
@@ -107,29 +109,32 @@ export const WorkCalendarGrid: React.FC<WorkCalendarGridProps> = ({
         }
     };
 
-    // نکته مهم: دیگر کل کامپوننت را با Loading جایگزین نمی‌کنیم.
-    // کانتینر اصلی همیشه رندر می‌شود تا پرش لایوت نداشته باشیم.
-
     return (
-        <div className="bg-backgroundL-500 rounded-xl shadow-sm border border-borderL dark:bg-backgroundD dark:border-borderD overflow-hidden">
-            {/* کانتینر اسکرول‌بار کاستوم */}
+        <div className="w-full bg-backgroundL-500 rounded-2xl shadow-xl border border-borderL dark:bg-backgroundD dark:border-borderD overflow-hidden transition-colors duration-300">
+            {/* کانتینر اسکرول: برای موبایل حیاتی است */}
             <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ direction: 'rtl' }}>
-                <div className="min-w-max p-2 ltr">
 
-                    {/* هدر همیشه نمایش داده می‌شود */}
+                {/* استفاده از w-fit و mx-auto باعث می‌شود تقویم در مانیتورهای بزرگ 
+                   در مرکز قرار بگیرد و از هم نپاشد
+                */}
+                <div className="min-w-max p-6 mx-auto w-fit">
+
                     <DayHeader />
 
                     {isLoading ? (
-                        /* نمایش اسکلتون دقیق در زمان لودینگ */
                         <CalendarSkeleton />
                     ) : (
-                        /* نمایش محتوای اصلی پس از لود */
-                        <div className="space-y-1.5" style={{ direction: 'ltr' }}>
+                        <div className="space-y-2">
                             {yearGrid.map(month => (
-                                <div key={month.name} className="flex items-center group">
+                                <div key={month.name} className="flex items-center group hover:bg-secondaryL/10 dark:hover:bg-secondaryD/5 rounded-lg transition-colors duration-150">
 
-                                    {/* ردیف روزها */}
-                                    <div className={`flex flex-row-reverse ${CELL_GAP} px-1`}>
+                                    {/* نام ماه در سمت راست (کاملاً تراز شده) */}
+                                    <span className={`${MONTH_NAME_WIDTH} shrink-0 text-sm font-extrabold text-foregroundL/80 dark:text-foregroundD/80 pr-2`}>
+                                        {month.name}
+                                    </span>
+
+                                    {/* ردیف روزها (از ۱ تا ۳۱ به ترتیب RTL) */}
+                                    <div className={`flex ${CELL_GAP} px-1`}>
                                         {month.days.map((day) => {
                                             if (day.date !== null && day.gregorianDate) {
                                                 const holiday = holidayMap ? holidayMap[day.gregorianDate] : undefined;
@@ -140,24 +145,19 @@ export const WorkCalendarGrid: React.FC<WorkCalendarGridProps> = ({
                                                         date={day.gregorianDate}
                                                         holiday={holiday}
                                                         isEditing={isEditing}
-                                                        onClick={() => handleDayClick(day.gregorianDate, day.date, holiday)}
+                                                        onClick={() => handleDayClick(day.gregorianDate, holiday)}
                                                         weekDayShort={day.weekDayShort}
                                                         dayNumber={day.dayOfMonth}
                                                     />
                                                 );
                                             } else {
-                                                // سلول خالی (Padding) انتهای ماه
+                                                // سلول‌های خالی برای ماه‌های ۲۹ یا ۳۰ روزه
                                                 return (
-                                                    <div key={day.key} className={`${CELL_SIZE} bg-gray-50/50 dark:bg-white/5 rounded-md`} />
+                                                    <div key={day.key} className={`${CELL_SIZE} bg-gray-50/30 dark:bg-white/5 rounded-md border border-transparent`} />
                                                 );
                                             }
                                         })}
                                     </div>
-                                    
-                                    {/* نام ماه */}
-                                    <span className={`${MONTH_NAME_WIDTH} shrink-0 text-sm font-bold text-foregroundL/80 dark:text-foregroundD/80 pl-2 text-right`}>
-                                        {month.name}
-                                    </span>
                                 </div>
                             ))}
                         </div>
@@ -165,10 +165,16 @@ export const WorkCalendarGrid: React.FC<WorkCalendarGridProps> = ({
                 </div>
             </div>
 
-            {/* راهنما برای موبایل */}
-            <div className="md:hidden text-center text-[10px] text-muted-foregroundL/60 py-1 bg-secondaryL/20">
-                برای مشاهده روزهای بیشتر به چپ و راست اسکرول کنید
+            {/* راهنمای تعاملی پایین تقویم */}
+            <div className="hidden md:flex justify-between items-center px-6 py-3 bg-secondaryL/10 dark:bg-secondaryD/10 text-[11px] text-muted-foregroundL">
+                <span>استفاده از سیستم استاندارد تقویم کاری ایران</span>
+                <div className="flex gap-4">
+                    <span className="flex items-center gap-1"><div className="w-2 h-2 bg-rose-500 rounded-full" /> رسمی</span>
+                    <span className="flex items-center gap-1"><div className="w-2 h-2 bg-amber-400 rounded-full" /> توافقی</span>
+                </div>
             </div>
         </div>
     );
 };
+
+export default WorkCalendarGrid;
