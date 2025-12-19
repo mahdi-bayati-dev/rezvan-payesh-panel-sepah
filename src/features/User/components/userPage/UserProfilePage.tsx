@@ -45,7 +45,7 @@ function UserProfilePage() {
     }
 
     return (
-        <div className="space-y-4 m-2 md:p-0 mx-auto max-w-7xl" dir="rtl">
+        <div className="space-y-4 m-2 md:p-0 mx-auto " dir="rtl">
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD shadow-sm">
                 <div>
                     <h1 className="text-xl font-bold text-foregroundL dark:text-foregroundD">پرونده الکترونیک کارمند</h1>

@@ -234,7 +234,7 @@ const TableSettingsPage = () => {
 
 
     return (
-        <div className="p-4 sm:p-6 bg-backgroundL-500 dark:bg-backgroundD rounded-2xl shadow-sm max-w-7xl mx-auto min-h-[600px]">
+        <div className="p-4 sm:p-6 bg-backgroundL-500 dark:bg-backgroundD rounded-2xl shadow-sm  mx-auto min-h-[600px]">
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-borderL dark:border-borderD">
                 <h2 className="text-xl font-bold text-right text-foregroundL dark:text-foregroundD flex items-center gap-2">
                     <Settings2 size={24} className="text-primaryL dark:text-primaryD" />

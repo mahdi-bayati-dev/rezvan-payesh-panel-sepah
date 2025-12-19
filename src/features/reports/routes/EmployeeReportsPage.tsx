@@ -18,7 +18,7 @@ import { AlertTriangle } from 'lucide-react';
 import { useEmployeeLogs } from '../hooks/hook';
 
 const EmployeeReportPageSkeleton = () => (
-    <div className="p-4 max-w-7xl mx-auto animate-pulse">
+    <div className="p-4  mx-auto animate-pulse">
         <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD">
             <div className="flex justify-between mb-6 pb-4 border-b border-borderL dark:border-borderD">
                 <Skeleton className="h-8 w-1/3 rounded-lg" />
@@ -137,7 +137,7 @@ export default function EmployeeReportPage() {
     }
 
     return (
-        <div className="p-4 max-w-7xl mx-auto animate-in fade-in duration-500">
+        <div className="p-4  mx-auto animate-in fade-in duration-500">
             <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD shadow-sm">
                 <EmployeeReportHeader employeeName={employeeInfo.name} onBack={handleGoBack} />
 
