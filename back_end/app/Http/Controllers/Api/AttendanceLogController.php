@@ -94,7 +94,8 @@ class AttendanceLogController extends Controller
         $lateness_minutes = 0;
         $early_departure_minutes = 0;
 
-        if ($schedule) {
+        if ($schedule)
+        {
             $expectedStart = $schedule->expected_start;
             $expectedEnd = $schedule->expected_end;
             $floatingStart = $schedule->floating_start ?? 0;
