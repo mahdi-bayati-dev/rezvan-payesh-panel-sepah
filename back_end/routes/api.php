@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduleSlotController;
 use App\Http\Controllers\Api\ShiftScheduleController;
 use App\Http\Controllers\Api\SystemDiagnosticsController;
+use App\Http\Controllers\Api\TimeController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeekPatternController;
 use App\Http\Controllers\Api\WorkGroupController;
@@ -115,6 +116,7 @@ Route::middleware([
     //leave-types setting
     Route::apiResource('leave-types', LeaveTypeController::class);
 
+    Route::get("/time",[TimeController::class, 'index']);
     //Holiday
     Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');
     Route::post('/holidays', [HolidayController::class, 'store'])->name('holidays.store');
