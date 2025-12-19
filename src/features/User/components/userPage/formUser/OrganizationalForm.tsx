@@ -27,6 +27,9 @@ import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 import { useAppSelector } from '@/hook/reduxHooks';
 import { selectUser } from '@/store/slices/authSlice';
 
+// گزینه پیش‌فرض برای پاک کردن انتخاب
+const NONE_OPTION: SelectOption = { id: null as any, name: "عدم انتخاب (پاک کردن)" };
+
 const toSelectOption = (item: BaseNestedItem): SelectOption => ({
     id: item.id,
     name: item.name,
@@ -39,7 +42,7 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
 
     const canEditRestrictedFields = useMemo(() => {
         if (!currentUser?.roles) return false;
-        return currentUser.roles.some(role => 
+        return currentUser.roles.some(role =>
             ['super_admin', 'org-admin-l2', 'org-admin-l3'].includes(role)
         );
     }, [currentUser]);
@@ -48,9 +51,10 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
     const { data: rawShiftSchedules, isLoading: isLoadingShiftSchedules } = useShiftSchedulesList();
     const { data: rawWorkGroups, isLoading: isLoadingWorkGroups } = useWorkGroups(1, 9999);
 
-    const workGroupOptions = useMemo(() => rawWorkGroups?.data?.map(toSelectOption) || [], [rawWorkGroups]);
-    const shiftScheduleOptions = useMemo(() => rawShiftSchedules?.map(toSelectOption) || [], [rawShiftSchedules]);
-    const workPatternOptions = useMemo(() => rawWorkPatterns?.map(toSelectOption) || [], [rawWorkPatterns]);
+    // افزودن گزینه پاک کردن به ابتدای آپشن‌ها
+    const workGroupOptions = useMemo(() => [NONE_OPTION, ...(rawWorkGroups?.data?.map(toSelectOption) || [])], [rawWorkGroups]);
+    const shiftScheduleOptions = useMemo(() => [NONE_OPTION, ...(rawShiftSchedules?.map(toSelectOption) || [])], [rawShiftSchedules]);
+    const workPatternOptions = useMemo(() => [NONE_OPTION, ...(rawWorkPatterns?.map(toSelectOption) || [])], [rawWorkPatterns]);
 
     const defaultValues = useMemo((): OrganizationalFormData => {
         if (!user.employee) return { employee: null };
@@ -101,8 +105,8 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
         currentValue: any,
         originalItem?: { id: number; name: string } | null
     ): SelectOption | null => {
-        if (!currentValue) return null;
-        const foundInList = options.find(opt => String(opt.id) === String(currentValue));
+        if (currentValue === null) return options[0]; // بازگرداندن گزینه "عدم انتخاب"
+        const foundInList = options.find(opt => opt.id !== null && String(opt.id) === String(currentValue));
         if (foundInList) return foundInList;
         if (originalItem && String(originalItem.id) === String(currentValue)) {
             return { id: originalItem.id, name: originalItem.name };
@@ -130,15 +134,17 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
             isDirty={isDirty}
             isSubmitting={updateMutation.isPending}
         >
+            {/* نمایش وضعیت بارگذاری لیست‌ها در حالت ویرایش */}
             {isEditing && isFormLoading && (
-                <div className="mb-4 p-2 bg-infoL-background text-infoL-foreground text-xs rounded flex items-center border border-infoL-foreground/20 dark:bg-infoD-background dark:text-infoD-foreground">
+                <div className="mb-4 p-2 bg-infoL-background text-infoL-foreground text-[10px] rounded flex items-center border border-infoL-foreground/20 dark:bg-infoD-background dark:text-infoD-foreground">
                     <Loader2 className="h-3 w-3 animate-spin ml-2" />
                     در حال دریافت آخرین لیست‌های سازمانی...
                 </div>
             )}
 
+            {/* هشدار عدم دسترسی برای فیلدهای خاص */}
             {isEditing && !canEditRestrictedFields && (
-                <div className="mb-4 p-2 bg-warningL-background text-warningL-foreground text-xs rounded flex items-center border border-warningL-foreground/20 dark:bg-warningD-background dark:text-warningD-foreground">
+                <div className="mb-4 p-2 bg-warningL-background text-warningL-foreground text-[10px] rounded flex items-center border border-warningL-foreground/20 dark:bg-warningD-background dark:text-warningD-foreground">
                     <Lock className="h-3 w-3 ml-2" />
                     ویرایش گروه کاری، برنامه شیفتی و الگوی کاری فقط توسط مدیران امکان‌پذیر است.
                 </div>
@@ -147,7 +153,7 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Input label="کد پرسنلی" {...register("employee.personnel_code")} error={errors.employee?.personnel_code?.message} />
                 <Input label="سمت شغلی" {...register("employee.position")} error={errors.employee?.position?.message} />
-                
+
                 <Controller
                     name="employee.starting_job"
                     control={control}
@@ -163,15 +169,15 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                 />
 
                 <Controller name="employee.work_group_id" control={control} render={({ field }) => (
-                    <SelectBox label="گروه کاری" placeholder="(انتخاب کنید)" options={workGroupOptions} value={resolveSelectedOption(workGroupOptions, field.value, user.employee?.work_group)} onChange={(option) => field.onChange(option ? Number(option.id) : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.work_group_id?.message} />
+                    <SelectBox label="گروه کاری" placeholder="(انتخاب کنید)" options={workGroupOptions} value={resolveSelectedOption(workGroupOptions, field.value, user.employee?.work_group)} onChange={(option) => field.onChange(option ? option.id : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.work_group_id?.message} />
                 )} />
 
                 <Controller name="employee.shift_schedule_id" control={control} render={({ field }) => (
-                    <SelectBox label="برنامه شیفتی" placeholder="(انتخاب کنید)" options={shiftScheduleOptions} value={resolveSelectedOption(shiftScheduleOptions, field.value, user.employee?.shift_schedule)} onChange={(option) => field.onChange(option ? Number(option.id) : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.shift_schedule_id?.message} />
+                    <SelectBox label="برنامه شیفتی" placeholder="(انتخاب کنید)" options={shiftScheduleOptions} value={resolveSelectedOption(shiftScheduleOptions, field.value, user.employee?.shift_schedule)} onChange={(option) => field.onChange(option ? option.id : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.shift_schedule_id?.message} />
                 )} />
 
                 <Controller name="employee.work_pattern_id" control={control} render={({ field }) => (
-                    <SelectBox label="الگوی کاری" placeholder="(انتخاب کنید)" options={workPatternOptions} value={resolveSelectedOption(workPatternOptions, field.value, user.employee?.week_pattern)} onChange={(option) => field.onChange(option ? Number(option.id) : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.work_pattern_id?.message} />
+                    <SelectBox label="الگوی کاری" placeholder="(انتخاب کنید)" options={workPatternOptions} value={resolveSelectedOption(workPatternOptions, field.value, user.employee?.week_pattern)} onChange={(option) => field.onChange(option ? option.id : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.work_pattern_id?.message} />
                 )} />
             </div>
         </FormSection>
