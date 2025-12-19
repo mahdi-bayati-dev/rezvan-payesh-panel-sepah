@@ -58,6 +58,16 @@ class GenerateEmployeeShifts implements ShouldQueue
             Log::error("برنامه شیفتی با ID {$this->scheduleId} تاریخ شروع چرخه ندارد.");
             return;
         }
+        try
+        {
+            EmployeeShift::where("schedule_id", $this->scheduleId)->delete();
+        }
+        catch (\Exception $e)
+        {
+
+        }
+
+
 
         $holidays = Holiday::whereBetween('date', [$this->startDate, $this->endDate])
             ->get()
