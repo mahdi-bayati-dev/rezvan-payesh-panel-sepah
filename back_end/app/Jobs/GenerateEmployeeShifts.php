@@ -60,7 +60,7 @@ class GenerateEmployeeShifts implements ShouldQueue
         }
         try
         {
-            EmployeeShift::where("schedule_id", $this->scheduleId)->delete();
+            EmployeeShift::where("shift_schedule_id", $this->scheduleId)->delete();
         }
         catch (\Exception $e)
         {
