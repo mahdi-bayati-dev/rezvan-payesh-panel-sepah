@@ -45,7 +45,20 @@ services:
       dockerfile: Dockerfile.webserver
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
+  scheduler:
+    image: mcoder902/rezvan-backend:latest
+    container_name: rezvan_scheduler
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./backend_storage:/var/www/storage
+    networks:
+      - rezvan-network
+    depends_on:
+      - db
+      - redis
+    command: php artisan schedule:work
   # 3. Database (MySQL)
   db:
     image: mysql:8.0
