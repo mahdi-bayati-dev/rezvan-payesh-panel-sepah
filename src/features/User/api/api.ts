@@ -356,12 +356,10 @@ export const importUsers = async (
 export const downloadSampleExcel = () => {
   // اگر فایل در پوشه public پروژه است:
   const link = document.createElement("a");
-  link.href = `${AppConfig.API_URL}/storage/user_import_sample.xlsx`; // مسیر فرضی در public
+  link.href = `${AppConfig.STORAGE_URL}/user_import_sample.xlsx`; // مسیر فرضی در public
   link.download = "users-import-template.xlsx";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  console.log("====================================");
-  console.log("ادرس درخواست دانلود اکسل نمونه", link.href);
-  console.log("====================================");
+
 };
