@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import { UploadCloud, Trash, } from "lucide-react";
+import { UploadCloud, Trash, AlertCircle } from "lucide-react";
 
 interface FormImageUploaderProps {
     name: string;
@@ -10,6 +10,9 @@ interface FormImageUploaderProps {
     multiple?: boolean;
 }
 
+/**
+ * کامپوننت آپلودر تصویر با پشتیبانی از React Hook Form و نمایش خطاها
+ */
 export const FormImageUploader: React.FC<FormImageUploaderProps> = ({
     name,
     label = "تصویر پروفایل",
@@ -20,11 +23,13 @@ export const FormImageUploader: React.FC<FormImageUploaderProps> = ({
     const { setValue, watch, formState: { errors } } = useFormContext();
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
+    // استخراج خطا بر اساس مسیر فیلد (مثلاً employee.images)
     const error = name.split('.').reduce((obj, key) => obj && obj[key], errors as any);
     const errorMessage = error?.message as string | undefined;
 
     const currentFiles = watch(name) || [];
 
+    // مدیریت آزادسازی حافظه برای URLهای پیش‌نمایش
     useEffect(() => {
         return () => {
             previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -35,45 +40,71 @@ export const FormImageUploader: React.FC<FormImageUploaderProps> = ({
         (e: React.ChangeEvent<HTMLInputElement>) => {
             if (e.target.files && e.target.files.length > 0) {
                 const newFiles = Array.from(e.target.files);
-                const validFiles = newFiles.filter(f => f.size <= maxSizeMB * 1024 * 1024);
                 
-                const updatedFiles = multiple ? [...currentFiles, ...validFiles] : validFiles;
-                setValue(name, updatedFiles, { shouldValidate: true, shouldDirty: true });
+                /**
+                 * تغییر مهم مهدی جان:
+                 * قبلاً اینجا فایل‌های بزرگ فیلتر می‌شدند و کلاً وارد استیت نمی‌شدند،
+                 * به همین خاطر Zod اصلاً نمی‌فهمید که فایلی با حجم زیاد انتخاب شده.
+                 * حالا اجازه می‌دهیم فایل‌ها وارد شوند تا اعتبارسنجی فرم خطا را نشان دهد.
+                 */
+                const updatedFiles = multiple ? [...currentFiles, ...newFiles] : newFiles;
+                
+                // مقداردهی در فرم
+                setValue(name, updatedFiles, { 
+                    shouldValidate: true, 
+                    shouldDirty: true,
+                    shouldTouch: true 
+                });
 
-                const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
+                // ایجاد پیش‌نمایش برای فایل‌های جدید
+                const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
                 setPreviewUrls((prev) => multiple ? [...prev, ...newPreviews] : newPreviews);
+                
+                // ریست کردن اینپوت برای انتخاب مجدد همان فایل در صورت نیاز
                 e.target.value = "";
             }
         },
-        [currentFiles, maxSizeMB, multiple, name, setValue]
+        [currentFiles, multiple, name, setValue]
     );
 
     const removeImage = useCallback(
         (index: number) => {
             const updatedFiles = currentFiles.filter((_: any, i: number) => i !== index);
             setValue(name, updatedFiles, { shouldValidate: true, shouldDirty: true });
-            URL.revokeObjectURL(previewUrls[index]);
+            
+            // پاکسازی URL پیش‌نمایش
+            if (previewUrls[index]) {
+                URL.revokeObjectURL(previewUrls[index]);
+            }
             setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
         },
         [currentFiles, name, previewUrls, setValue]
     );
 
     return (
-        <div className="mb-4">
+        <div className="mb-4 w-full">
             {label && (
-                <label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
+                <label className="block text-sm font-bold mb-2 text-foregroundL dark:text-foregroundD">
                     {label}
                 </label>
             )}
 
-            <div className="group relative border-2 border-dashed border-borderL dark:border-borderD rounded-lg p-6 flex flex-col items-center justify-center bg-secondaryL/5 dark:bg-secondaryD/5 hover:bg-secondaryL/20 dark:hover:bg-secondaryD/20 transition-colors cursor-pointer overflow-hidden">
-                <UploadCloud className="w-10 h-10 text-muted-foregroundL dark:text-muted-foregroundD mb-2 group-hover:text-primaryL dark:group-hover:text-primaryD transition-colors scale-100 group-hover:scale-110 duration-200" />
-                <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD mb-1 font-medium">
+            <div className={`
+                group relative border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center 
+                transition-all duration-200 cursor-pointer overflow-hidden
+                ${errorMessage 
+                    ? 'border-destructiveL bg-destructiveL/5 dark:border-destructiveD dark:bg-destructiveD/5' 
+                    : 'border-borderL dark:border-borderD bg-secondaryL/5 dark:bg-secondaryD/5 hover:border-primaryL dark:hover:border-primaryD'}
+            `}>
+                <UploadCloud className={`w-12 h-12 mb-3 transition-colors ${errorMessage ? 'text-destructiveL' : 'text-muted-foregroundL group-hover:text-primaryL'}`} />
+                
+                <p className="text-sm font-semibold text-foregroundL dark:text-foregroundD mb-1">
                     برای آپلود کلیک کنید یا فایل را اینجا رها کنید
                 </p>
                 <p className="text-xs text-muted-foregroundL/70 dark:text-muted-foregroundD/70">
-                    حداکثر {maxSizeMB}MB ({acceptedTypes.map(t => t.split('/')[1].toUpperCase()).join(', ')})
+                    حداکثر {maxSizeMB}MB (فرمت‌های: JPG, PNG, WEBP)
                 </p>
+                
                 <input
                     type="file"
                     accept={acceptedTypes.join(",")}
@@ -83,31 +114,34 @@ export const FormImageUploader: React.FC<FormImageUploaderProps> = ({
                 />
             </div>
 
+            {/* نمایش خطای حجم یا فرمت به صورت متحرک */}
             {errorMessage && (
-                <p className="text-destructiveL dark:text-destructiveD text-xs mt-2 font-medium animate-pulse">
-                    {errorMessage}
-                </p>
+                <div className="flex items-center gap-2 text-destructiveL dark:text-destructiveD text-xs mt-3 font-bold animate-in slide-in-from-top-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errorMessage}</span>
+                </div>
             )}
 
+            {/* پیش‌نمایش تصاویر */}
             {previewUrls.length > 0 && (
-                <div className="flex flex-wrap gap-4 mt-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex flex-wrap gap-4 mt-6 animate-in fade-in zoom-in-95 duration-300">
                     {previewUrls.map((url, index) => (
                         <div
                             key={index}
-                            className="relative w-24 h-24 rounded-lg overflow-hidden border border-borderL dark:border-borderD shadow-sm group/item"
+                            className="relative w-28 h-28 rounded-xl overflow-hidden border-2 border-borderL dark:border-borderD shadow-md group/item"
                         >
                             <img
                                 src={url}
-                                alt={`Preview ${index}`}
-                                className="w-full h-full object-cover"
+                                alt={`پیش‌نمایش ${index + 1}`}
+                                className="w-full h-full object-cover transition-transform group-hover/item:scale-110"
                             />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
                                     type="button"
                                     onClick={() => removeImage(index)}
-                                    className="bg-destructiveL text-white p-1.5 rounded-full hover:bg-destructiveL/90 transition-colors"
+                                    className="bg-destructiveL text-white p-2 rounded-full hover:bg-destructiveL/80 transform scale-75 group-hover/item:scale-100 transition-all"
                                 >
-                                    <Trash className="w-4 h-4" />
+                                    <Trash className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>
