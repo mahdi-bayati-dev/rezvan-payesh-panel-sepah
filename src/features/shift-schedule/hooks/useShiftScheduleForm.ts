@@ -24,6 +24,16 @@ interface UseShiftScheduleFormProps {
 
 const INITIAL_CYCLE_LENGTH = 7;
 
+// تابع کمکی برای دریافت تاریخ امروز به صورت محلی (YYYY-MM-DD)
+// برای جلوگیری از اختلاف ۳.۵ ساعته UTC
+const getTodayLocalDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const createDefaultSlots = (length: number): NewScheduleSlotPayload[] => {
   return Array.from({ length }).map((_, i) => ({
     day_in_cycle: i + 1,
@@ -46,12 +56,12 @@ export const useShiftScheduleForm = ({
     formState: { errors: formErrors },
     setError: setFormError,
   } = useForm<NewShiftScheduleFormData>({
-    // ✅ استفاده از as any برای جلوگیری از خطای ناسازگاری Property Names
     resolver: zodResolver(newShiftScheduleSchema) as any,
     defaultValues: {
       name: "",
       cycle_length_days: INITIAL_CYCLE_LENGTH,
-      cycle_start_date: new Date().toISOString().slice(0, 10),
+      // اصلاح شد: استفاده از تاریخ محلی به جای UTC ISO String
+      cycle_start_date: getTodayLocalDate(),
       ignore_holidays: false,
       floating_start: 0,
       floating_end: 0,

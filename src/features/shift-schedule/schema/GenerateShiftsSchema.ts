@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Regex برای فرمت YYYY-MM-DD
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -19,27 +18,15 @@ export const generateShiftsSchema = z
       .refine((val) => dateRegex.test(val), "فرمت تاریخ باید YYYY-MM-DD باشد."),
   })
   .superRefine((data, ctx) => {
-    // اعتبارسنجی cross-field برای after_or_equal
-    // این کد تنها در صورتی اجرا می‌شود که هر دو فیلد فرمت درستی داشته باشند
-    
-    try {
-      // استفاده از getTime() برای مقایسه دقیق تاریخ‌ها
-      const startTime = new Date(data.start_date).getTime();
-      const endTime = new Date(data.end_date).getTime();
-
-      if (endTime < startTime) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "تاریخ پایان باید بعد یا مساوی تاریخ شروع باشد.",
-          path: ["end_date"], // خطا را روی فیلد تاریخ پایان نشان می‌دهیم
-        });
-      }
-    } catch (e) {
-        console.log(e);
-        
-      // اگر تاریخ‌ها نامعتبر بودند، Zod قبلاً خطا داده است
+    // نکته مهم: برای جلوگیری از باگ ۳.۵ ساعته UTC، از مقایسه مستقیم رشته‌ها استفاده می‌کنیم.
+    // در JS، مقدار new Date("2023-10-20") برابر با ساعت 00:00 UTC است که در تهران 03:30 صبح محسوب می‌شود.
+    if (data.end_date && data.start_date && data.end_date < data.start_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "تاریخ پایان باید بعد یا مساوی تاریخ شروع باشد.",
+        path: ["end_date"],
+      });
     }
   });
 
-// تایپ داده‌های این فرم
 export type GenerateShiftsFormData = z.infer<typeof generateShiftsSchema>;
