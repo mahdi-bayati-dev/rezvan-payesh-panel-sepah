@@ -14,6 +14,9 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import clsx from "clsx";
 
+/**
+ * تابع تبدیل اعداد به فارسی
+ */
 const toPersianDigits = (n: number | string | null | undefined): string => {
     if (n === null || n === undefined) return "";
     return n.toString().replace(/\d/g, (x) => ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"][parseInt(x)]);
@@ -33,6 +36,9 @@ export const GeneratedShiftsList = ({ shiftScheduleId }: GeneratedShiftsListProp
         page: pagination.pageIndex + 1
     });
 
+    /**
+     * ستون‌های جدول نمایش شیفت‌ها
+     */
     const columns: ColumnDef<ShiftResource>[] = [
         {
             header: "تاریخ",
@@ -40,12 +46,60 @@ export const GeneratedShiftsList = ({ shiftScheduleId }: GeneratedShiftsListProp
             cell: ({ getValue }) => {
                 const dateStr = getValue() as string;
                 if (!dateStr) return "-";
-                const dateObj = new DateObject({ date: dateStr, calendar: gregorian, locale: gregorian_en });
-                dateObj.convert(persian, persian_fa);
+
+                // 🔍 لاگ برای عیب‌یابی (می‌تونی بعد از تست حذف کنی)
+                console.log("--- Timezone Fix Debug ---");
+                console.log("1. Raw API Date:", dateStr);
+
+                // ✅ راه حل اصلی: تبدیل رشته UTC به آبجکت Date محلی
+                // این کار باعث می‌شود 20:30 UTC تبدیل به 00:00 روز بعد (تهران) شود.
+                const localDate = new Date(dateStr);
+
+                // استخراج اجزا به وقت محلی سیستم (Local Time)
+                const y = localDate.getFullYear();
+                const m = localDate.getMonth() + 1; // در JS ماه‌ها 0-11 هستند
+                const d = localDate.getDate();
+
+                console.log(`2. Localized Parts -> Year: ${y}, Month: ${m}, Day: ${d}`);
+
+                if (isNaN(y)) {
+                    // اگر فرمت تاریخ ساده بود و ISO نبود (فال‌بک)
+                    const parts = dateStr.substring(0, 10).split("-").map(Number);
+                    const dateObj = new DateObject({
+                        year: parts[0], month: parts[1], day: parts[2],
+                        hour: 12, calendar: gregorian, locale: gregorian_en
+                    });
+                    const display = new DateObject(dateObj).convert(persian, persian_fa);
+                    return (
+                        <div className="flex flex-col">
+                            <span className="font-bold text-foregroundL dark:text-foregroundD">{toPersianDigits(display.format("YYYY/MM/DD"))}</span>
+                            <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD/70">{display.format("dddd")}</span>
+                        </div>
+                    );
+                }
+
+                // ساخت DateObject با اعداد محلی شده
+                const dateObj = new DateObject({
+                    year: y,
+                    month: m,
+                    day: d,
+                    hour: 12, // حاشیه امنیت برای تبدیل‌های بعدی
+                    calendar: gregorian,
+                    locale: gregorian_en
+                });
+
+                // تبدیل به شمسی
+                const displayDate = new DateObject(dateObj).convert(persian, persian_fa);
+                console.log("3. Final Persian Date:", displayDate.format("YYYY/MM/DD"));
+
                 return (
                     <div className="flex flex-col">
-                        <span className="font-bold text-foregroundL dark:text-foregroundD">{toPersianDigits(dateObj.format("YYYY/MM/DD"))}</span>
-                        <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD/70">{dateObj.format("dddd")}</span>
+                        <span className="font-bold text-foregroundL dark:text-foregroundD">
+                            {toPersianDigits(displayDate.format("YYYY/MM/DD"))}
+                        </span>
+                        <span className="text-xs text-muted-foregroundL dark:text-muted-foregroundD/70">
+                            {displayDate.format("dddd")}
+                        </span>
                     </div>
                 );
             }
@@ -59,8 +113,12 @@ export const GeneratedShiftsList = ({ shiftScheduleId }: GeneratedShiftsListProp
                         <UserCircle2 className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-medium text-sm text-foregroundL dark:text-foregroundD">{row.original.employee.first_name} {row.original.employee.last_name}</span>
-                        <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD/70">{toPersianDigits(row.original.employee.personnel_code)}</span>
+                        <span className="font-medium text-sm text-foregroundL dark:text-foregroundD">
+                            {row.original.employee.first_name} {row.original.employee.last_name}
+                        </span>
+                        <span className="text-[10px] text-muted-foregroundL dark:text-muted-foregroundD/70">
+                            {toPersianDigits(row.original.employee.personnel_code)}
+                        </span>
                     </div>
                 </div>
             )
@@ -76,6 +134,7 @@ export const GeneratedShiftsList = ({ shiftScheduleId }: GeneratedShiftsListProp
                         </div>
                     );
                 }
+
                 const start = row.original.work_pattern?.start_time?.slice(0, 5) || "--:--";
                 const end = row.original.work_pattern?.end_time?.slice(0, 5) || "--:--";
                 const shiftName = toPersianDigits(row.original.work_pattern?.name || 'شیفت عادی');
@@ -119,14 +178,18 @@ export const GeneratedShiftsList = ({ shiftScheduleId }: GeneratedShiftsListProp
             </h3>
 
             <div className="bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD rounded-2xl shadow-sm overflow-hidden">
-                {/* نوار ابزار و فیلتر */}
                 <div className="p-4 border-b border-borderL dark:border-borderD flex flex-col md:flex-row gap-4 justify-between items-center bg-secondaryL/5 dark:bg-secondaryD/5">
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-64 group">
                             <div className="[&_input]:pr-9 [&_input]:bg-backgroundL-500 [&_input]:dark:bg-backgroundD [&_input]:border-borderL [&_input]:dark:border-borderD">
                                 <PersianDatePickerInput
                                     label=""
-                                    value={filters.start_date ? new DateObject({ date: filters.start_date, calendar: gregorian }) : null}
+                                    value={filters.start_date ? (() => {
+                                        const [y, m, d] = filters.start_date.split("-").map(Number);
+                                        const dateObj = new DateObject({ calendar: gregorian });
+                                        dateObj.set({ year: y, month: m, day: d, hour: 12 });
+                                        return dateObj;
+                                    })() : null}
                                     placeholder="فیلتر از تاریخ..."
                                     onChange={(d) => setFilters(prev => ({ ...prev, start_date: d?.convert(gregorian, gregorian_en).format('YYYY-MM-DD') }))}
                                 />
@@ -146,7 +209,6 @@ export const GeneratedShiftsList = ({ shiftScheduleId }: GeneratedShiftsListProp
                     </Button>
                 </div>
 
-                {/* جدول داده‌ها */}
                 <div className="relative min-h-[300px]">
                     {isLoading && (
                         <div className="absolute inset-0 bg-backgroundL-500/80 dark:bg-backgroundD/80 z-20 flex flex-col items-center justify-center backdrop-blur-[2px]">
