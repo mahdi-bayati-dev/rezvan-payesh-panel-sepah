@@ -42,6 +42,10 @@ const educationLevelOptions: SelectOption[] = [
 
 const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
     const [isEditing, setIsEditing] = useState(false);
+
+    // لودینگ محلی برای مدیریت زنجیره درخواست‌ها
+    const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
+
     const updateMutation = useUpdateUserProfile();
 
     const [existingImages, setExistingImages] = useState<EmployeeImage[]>([]);
@@ -118,21 +122,52 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
         setValue('employee.delete_images', [...currentDeletedIds, imageId], { shouldDirty: true });
     };
 
-    const onSubmit = (formData: PersonalDetailsFormData) => {
-        updateMutation.mutate(
-            { userId: user.id, payload: formData },
-            {
-                onSuccess: () => {
-                    toast.success("اطلاعات ذخیره شد.");
-                    setPendingImages(prev => [...prev, ...newImagePreviews]);
-                    setIsEditing(false);
-                    setNewImagePreviews([]);
-                },
-                onError: (err) => {
-                    toast.error(`خطا: ${(err as Error).message}`);
-                }
+    /**
+     * منطق هوشمند برای ارسال درخواست‌ها
+     * ابتدا تصاویر حذفی ارسال می‌شوند و سپس بقیه اطلاعات
+     */
+    const onSubmit = async (formData: PersonalDetailsFormData) => {
+        setIsSubmittingLocal(true);
+        try {
+            const hasDeletions = formData.employee?.delete_images && formData.employee.delete_images.length > 0;
+            // const hasNewImages = formData.employee?.images && formData.employee.images.length > 0;
+
+            // ۱. فاز حذف: اگر عکسی برای پاک شدن انتخاب شده، ابتدا آن را ارسال می‌کنیم
+            if (hasDeletions) {
+                await updateMutation.mutateAsync({
+                    userId: user.id,
+                    payload: {
+                        employee: {
+                            delete_images: formData.employee!.delete_images,
+                        }
+                    } as any // فقط آرایه حذفیات ارسال می‌شود
+                });
             }
-        );
+
+            // ۲. فاز آپدیت اصلی: ارسال اطلاعات متنی و تصاویر جدید
+            const mainPayload = { ...formData };
+            if (mainPayload.employee) {
+                // پاک کردن لیست حذفیات در درخواست دوم برای جلوگیری از خطای دوباره در بک‌ند
+                mainPayload.employee.delete_images = [];
+            }
+
+            await updateMutation.mutateAsync({
+                userId: user.id,
+                payload: mainPayload
+            });
+
+            // نهایی‌سازی وضعیت فرم پس از موفقیت هر دو مرحله
+            toast.success("تغییرات با موفقیت ذخیره شد.");
+            setPendingImages(prev => [...prev, ...newImagePreviews]);
+            setIsEditing(false);
+            setNewImagePreviews([]);
+
+        } catch (err: any) {
+            const errorMessage = err?.response?.data?.message || "خطا در عملیات به‌روزرسانی.";
+            toast.error(errorMessage);
+        } finally {
+            setIsSubmittingLocal(false);
+        }
     };
 
     const handleCancel = () => {
@@ -161,7 +196,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
             setIsEditing={setIsEditing}
             onCancel={handleCancel}
             isDirty={isDirty}
-            isSubmitting={updateMutation.isPending}
+            isSubmitting={isSubmittingLocal}
         >
             <div className="mb-8 p-5 rounded-2xl border border-borderL bg-backgroundL-500 dark:bg-backgroundD dark:border-borderD shadow-sm">
                 <div className="flex items-center gap-2 mb-6 border-b border-borderL dark:border-borderD pb-4">
@@ -267,7 +302,7 @@ const PersonalDetailsForm: React.FC<{ user: User }> = ({ user }) => {
                             value={field.value}
                             onChange={(date) => handleDateChange(date, field.onChange)}
                             error={errors.employee?.birth_date?.message}
-                            disabled={!isEditing || updateMutation.isPending}
+                            disabled={!isEditing || isSubmittingLocal}
                         />
                     )}
                 />
