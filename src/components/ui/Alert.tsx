@@ -1,15 +1,14 @@
+// Alert.tsx
 import React from 'react';
 import clsx from 'clsx';
-import { AlertTriangle, Info, CheckCircle, XCircle } from 'lucide-react'; // آیکون‌ها
+import { AlertTriangle, Info, CheckCircle, XCircle } from 'lucide-react';
 
-// تعریف انواع Alert
 type AlertVariant = 'info' | 'success' | 'warning' | 'destructive';
 
 interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
     variant?: AlertVariant;
 }
 
-// مپ کردن variant به کلاس‌ها و آیکون
 const variantConfig: Record<AlertVariant, { icon: React.ReactNode; classes: string }> = {
     info: {
         icon: <Info className="h-4 w-4" />,
@@ -29,7 +28,6 @@ const variantConfig: Record<AlertVariant, { icon: React.ReactNode; classes: stri
     },
 };
 
-// کامپوننت اصلی Alert
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     ({ className, variant = 'info', children, ...props }, ref) => {
         const config = variantConfig[variant];
@@ -39,13 +37,13 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
                 role="alert"
                 className={clsx(
                     'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4',
-                    config.classes, // اعمال کلاس‌های رنگ
+                    config.classes,
                     className
                 )}
                 {...props}
             >
-                {config.icon} {/* نمایش آیکون */}
-                <div className="flex flex-col"> {/* محفظه برای Title و Description */}
+                {config.icon}
+                <div className="flex flex-col">
                     {children}
                 </div>
             </div>
@@ -54,13 +52,11 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
 );
 Alert.displayName = 'Alert';
 
-// کامپوننت AlertTitle
 const AlertTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
     ({ className, children, ...props }, ref) => (
         <h5
             ref={ref}
-            // استایل‌های عنوان: کمی پررنگ‌تر
-            className={clsx('mb-1 font-medium leading-none tracking-tight', className)}
+            className={clsx('mb-1 font-medium leading-none tracking-tight text-right', className)}
             {...props}
         >
             {children}
@@ -69,22 +65,21 @@ const AlertTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTM
 );
 AlertTitle.displayName = 'AlertTitle';
 
-// کامپوننت AlertDescription
 const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
     ({ className, children, ...props }, ref) => (
         <div
             ref={ref}
-            // استایل‌های توضیحات: کمی ریزتر
-            className={clsx('text-sm [&_p]:leading-relaxed', className)}
+            className={clsx('text-sm [&_p]:leading-relaxed text-right', className)}
             {...props}
         >
             {children}
             <br />
-                        لطفا صفحه را رفرش کنید یا شبکه ای خود را بررسی کنید
-
+            <span className="text-[10px] opacity-70">
+                لطفا صفحه را رفرش کنید یا شبکه ای خود را بررسی کنید
+            </span>
         </div>
     )
 );
 AlertDescription.displayName = 'AlertDescription';
 
-export { Alert, AlertTitle, AlertDescription }; // اکسپورت به صورت named
+export { Alert, AlertTitle, AlertDescription };

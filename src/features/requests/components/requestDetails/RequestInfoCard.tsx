@@ -31,8 +31,7 @@ import {
     type RequestInfoFormData,
 } from '../../schemas/requestInfoSchema';
 import { toast } from 'react-toastify';
-// ✅ ایمپورت تابع تبدیل اعداد
-import { toPersianNumbers } from "@/features/requests/components/mainRequests/RequestsColumnDefs";
+import { toPersianNumbers } from "../mainRequests/RequestsColumnDefs";
 
 interface RequestInfoCardProps {
     request: LeaveRequest;
@@ -52,21 +51,22 @@ const mapLeaveTypesToOptions = (types: LeaveType[], prefix = ''): SelectOption[]
     return options;
 };
 
-const isRequestFullDay = (startTime: string, endTime: string): boolean => {
+/**
+ * تابع کمکی برای استخراج ساعت و دقیقه بدون باگ UTC (زمان محلی تهران)
+ */
+const getTimeSafe = (dateStr: string): string => {
     try {
-        const startHour = parseISO(startTime).getHours();
-        const endHour = parseISO(endTime).getHours();
-        return startHour === 0 && endHour === 23;
+        // جدا کردن بخش زمان از رشته (مثلاً 2025-12-24 08:30:00)
+        const timePart = dateStr.includes("T") ? dateStr.split("T")[1] : dateStr.split(" ")[1];
+        return timePart.substring(0, 5); // خروجی: HH:mm
     } catch {
-        return false;
+        return "00:00";
     }
 };
 
-// ✅ کامپوننت ReadOnlyInput اصلاح شده برای پشتیبانی از اعداد فارسی
 const ReadOnlyInput = ({ label, value, containerClassName = 'opacity-90' }: { label: string; value: string; containerClassName?: string }) => (
     <Input
         label={label}
-        // تبدیل اعداد ولیو به فارسی
         value={toPersianNumbers(value)}
         readOnly
         disabled
@@ -101,25 +101,34 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
         const currentType = leaveTypeOptions.find(opt => opt.id === request.leave_type.id) || null;
         const currentCategory = categoryOptions.find(opt => opt.id === request.leave_type.parent_id) || null;
 
-        const isoStartDate = parseISO(request.start_time);
-        const isoEndDate = parseISO(request.end_time);
+        // ✅ اصلاح شد: تبدیل به آبجکت Date برای مدیریت منطقه زمانی
+        const startDateLocal = new Date(request.start_time);
+        const endDateLocal = new Date(request.end_time);
 
-        const isFullDay = isRequestFullDay(request.start_time, request.end_time);
-
-        const startTimePart = isFullDay ? '08:00' : format(isoStartDate, 'HH:mm');
-        const endTimePart = isFullDay ? '17:00' : format(isoEndDate, 'HH:mm');
+        const isFullDay = request.start_time.includes("00:00") && request.end_time.includes("23:59");
 
         return {
             requestType: currentType,
             category: currentCategory,
-            startDate: new DateObject({ date: isoStartDate, calendar: persian, locale: persian_fa }),
-            endDate: new DateObject({ date: isoEndDate, calendar: persian, locale: persian_fa }),
+            startDate: new DateObject({
+                year: startDateLocal.getFullYear(),
+                month: startDateLocal.getMonth() + 1,
+                day: startDateLocal.getDate(),
+                calendar: gregorian
+            }).convert(persian, persian_fa),
+            endDate: new DateObject({
+                year: endDateLocal.getFullYear(),
+                month: endDateLocal.getMonth() + 1,
+                day: endDateLocal.getDate(),
+                calendar: gregorian
+            }).convert(persian, persian_fa),
             isFullDay: isFullDay,
-            startTime: startTimePart,
-            endTime: endTimePart,
+            startTime: isFullDay ? '08:00' : getTimeSafe(request.start_time),
+            endTime: isFullDay ? '17:00' : getTimeSafe(request.end_time),
             description: request.reason || '',
         };
     }, [request, leaveTypesTree, leaveTypeOptions, categoryOptions]);
+
 
 
     const readOnlyCategoryName = useMemo(() => {
@@ -159,15 +168,14 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
     const formatToAPIPayload = (dateObj: DateObject, timeStr: string): string => {
         const gDate = dateObj.convert(gregorian);
         const [hours, minutes] = timeStr.split(':').map(Number);
-        const localDate = new Date(
-            gDate.year,
-            gDate.month.number - 1,
-            gDate.day,
-            hours,
-            minutes,
-            0
-        );
-        return localDate.toISOString().slice(0, 19).replace('T', ' ');
+
+        const year = gDate.year;
+        const month = String(gDate.month.number).padStart(2, '0');
+        const day = String(gDate.day).padStart(2, '0');
+        const h = String(hours).padStart(2, '0');
+        const m = String(minutes).padStart(2, '0');
+
+        return `${year}-${month}-${day} ${h}:${m}:00`;
     };
 
     const onSave: SubmitHandler<RequestInfoFormData> = async (data) => {
