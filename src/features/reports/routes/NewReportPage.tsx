@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { CirclePlus } from 'lucide-react';
-// مسیرهای Alias استاندارد
 import { useCreateLog } from '@/features/reports/hooks/hook';
 import { NewReportForm } from '@/features/reports/components/NewActivityRegistration/NewReportForm';
 import { type NewReportFormData } from '@/features/reports/Schema/newReportSchema';
 
-function pad(num: number): string {
-    return num < 10 ? '0' + num : num.toString();
+/**
+ * تابع کمکی برای اطمینان از دو رقمی بودن اعداد در رشته زمان
+ */
+function zeroPad(num: number): string {
+    return num.toString().padStart(2, '0');
 }
 
 export default function NewReportPage() {
@@ -14,33 +16,46 @@ export default function NewReportPage() {
     const createLogMutation = useCreateLog();
 
     const handleCreateReport = (data: NewReportFormData) => {
-        const date = data.date!; 
-        const time = data.time; // "07:00"
+        // ۱. استخراج دیتای فرم
+        const dateObj = data.date; // از PersianDatePicker (شیء DateObject)
+        const timeStr = data.time; // مثلاً "08:30"
 
-        // تبدیل تاریخ شمسی به میلادی
-        const jsDate = date.toDate(); 
+        if (!dateObj || !timeStr) {
+            console.error("❌ [NewReport] Date or Time is missing from form");
+            return;
+        }
+
+        // ۲. تبدیل تاریخ شمسی انتخاب شده به میلادی برای ارسال به دیتابیس
+        const jsDate = dateObj.toDate(); 
         const year = jsDate.getFullYear();
-        const month = pad(jsDate.getMonth() + 1); // ماه در JS از 0 شروع می‌شود
-        const day = pad(jsDate.getDate());
+        const month = zeroPad(jsDate.getMonth() + 1);
+        const day = zeroPad(jsDate.getDate());
 
-        // ✅ استراتژی جدید: ارسال دقیق همان ساعتی که کاربر وارد کرده (بدون UTC شدن)
-        // این باعث می‌شود دیتای ثبت دستی دقیقاً مشابه دیتای دوربین AI شود.
-        // مثال: کاربر 07:00 انتخاب می‌کند -> ارسال 07:00 -> ذخیره 07:00
-        const finalTimestampString = `${year}-${month}-${day} ${time}:00`;
-
-        console.log('🚀 [Local Mode] Sending Payload:', finalTimestampString);
+        // ۳. ساخت رشته نهایی (YYYY-MM-DD HH:mm:ss)
+        // ارسال به صورت Naive Local Time برای تطابق با ساعت سیستم مرکزی
+        const finalTimestamp = `${year}-${month}-${day} ${timeStr}:00`;
 
         const apiPayload = {
             employee_id: data.employee!.id,
             event_type: data.event_type,
-            timestamp: finalTimestampString,
+            timestamp: finalTimestamp,
             remarks: data.remarks,
         };
 
+        // 🚀 LOG FOR DEBUGGING
+        console.group("📝 [Manual Log Submission]");
+        console.log("Selected Date (JS):", jsDate);
+        console.log("Formatted Payload:", apiPayload);
+        console.groupEnd();
+
         createLogMutation.mutate(apiPayload, {
-            onSuccess: () => {
+            onSuccess: (response) => {
+                console.log("✅ Log created successfully:", response);
                 navigate('/reports');
             },
+            onError: (err) => {
+                console.error("🔥 Failed to create log:", err);
+            }
         });
     };
 
@@ -49,11 +64,20 @@ export default function NewReportPage() {
     };
 
     return (
-        <div className="p-6 bg-backgroundL-500 dark:bg-backgroundD rounded-2xl shadow-sm">
-            <h2 className=" flex gap-2 items-center text-xl font-bold dark:text-primaryD mb-2">
-                <CirclePlus size={20} />
-                ثبت تردد دستی
-            </h2>
+        <div className="p-6 bg-backgroundL-500 dark:bg-backgroundD rounded-2xl shadow-sm border border-borderL dark:border-borderD">
+            <header className="flex gap-2 items-center mb-6">
+                <div className="p-2 bg-primaryL/10 dark:bg-primaryD/10 rounded-lg">
+                    <CirclePlus className="text-primaryL dark:text-primaryD" size={24} />
+                </div>
+                <div>
+                    <h2 className="text-xl font-bold text-foregroundL dark:text-foregroundD">
+                        ثبت تردد دستی
+                    </h2>
+                    <p className="text-xs text-muted-foregroundL mt-1">
+                        ثبت فعالیت خارج از سیستم خودکار با ذکر دلیل متقن
+                    </p>
+                </div>
+            </header>
 
             <NewReportForm
                 onSubmit={handleCreateReport}

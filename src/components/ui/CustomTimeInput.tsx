@@ -68,15 +68,18 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
     const hourRef = useRef<HTMLInputElement>(null);
     const minuteRef = useRef<HTMLInputElement>(null);
 
-    // همگام‌سازی با پراپ value
+    // ✅ بخش اصلاح شده: همگام‌سازی هوشمند با پراپ value
     useEffect(() => {
         if (value && /^\d{2}:\d{2}$/.test(value)) {
             const [h, m] = value.split(':');
             setHour(h);
             setMinute(m);
-        } else {
-            setHour('');
-            setMinute('');
+        } else if (value === null) {
+            // اصلاح اصلی اینجاست: 
+            // اگر کاربر در حال تایپ اولین کاراکتر باشد (طول ۱)، استیت را با نالِ ورودی پاک نمی‌کنیم.
+            // این کار جلوی حذف شدن عدد اول را می‌گیرد.
+            setHour(prev => (prev.length === 1 ? prev : ''));
+            setMinute(prev => (prev.length === 1 ? prev : ''));
         }
     }, [value]);
 
@@ -91,7 +94,6 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
     // --- هندلرها ---
 
     const handleHourChange = (e: ChangeEvent<HTMLInputElement>) => {
-        // cleanInput مقدار را به انگلیسی برمی‌گرداند، حتی اگر کاربر فارسی تایپ کرده باشد
         const val = cleanInput(e.target.value, 2, 23);
         setHour(val);
 
@@ -105,7 +107,6 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
     };
 
     const handleHourBlur = () => {
-        // مقدار DOM ممکن است فارسی باشد، پس اول تمیزش می‌کنیم
         const rawValue = hourRef.current?.value || '';
         const englishValue = cleanInput(rawValue, 2, 23);
 
@@ -159,7 +160,6 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
     return (
         <div
             className={clsx(
-                // استایل‌ها
                 "flex w-full items-center justify-center py-2.5 px-3 rounded-lg text-sm transition-colors duration-200",
                 "bg-backgroundL-500 text-foregroundL border",
                 "dark:bg-backgroundD dark:text-foregroundD",
@@ -171,13 +171,12 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
                 disabled && "opacity-50 cursor-not-allowed bg-stone-100 dark:bg-stone-700",
                 className
             )}
-            dir={dir} // معمولاً برای ساعت LTR بهتر است، اما ارقام فارسی می‌شوند
+            dir={dir}
         >
             <Input
                 ref={hourRef}
                 type="text"
                 inputMode="numeric"
-                // ✅ تبدیل به فارسی فقط برای نمایش
                 value={toPersianDigits(hour)}
                 onChange={handleHourChange}
                 onBlur={handleHourBlur}
@@ -199,7 +198,6 @@ export const CustomTimeInput: React.FC<CustomTimeInputProps> = ({
                 ref={minuteRef}
                 type="text"
                 inputMode="numeric"
-                // ✅ تبدیل به فارسی فقط برای نمایش
                 value={toPersianDigits(minute)}
                 onChange={handleMinuteChange}
                 onBlur={handleMinuteBlur}
