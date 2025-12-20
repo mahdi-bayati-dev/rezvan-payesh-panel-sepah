@@ -68,7 +68,7 @@ export const organizationalFormSchema = z.object({
       position: requiredString("سمت شغلی"),
       starting_job: requiredString("تاریخ شروع به کار"),
       work_group_id: z.number().nullable().optional(),
-      work_pattern_id: z.number().nullable().optional(),
+      week_pattern_id: z.number().nullable().optional(),
       shift_schedule_id: z.number().nullable().optional(),
     })
     .nullable(),
@@ -147,7 +147,7 @@ export const createUserFormSchema = z.object({
     position: requiredString("سمت شغلی"),
     starting_job: requiredString("تاریخ شروع به کار"),
     work_group_id: z.number().nullable().optional(),
-    work_pattern_id: z.number().nullable().optional(),
+    week_pattern_id: z.number().nullable().optional(),
     shift_schedule_id: z.number().nullable().optional(),
     phone_number: z
       .string()
