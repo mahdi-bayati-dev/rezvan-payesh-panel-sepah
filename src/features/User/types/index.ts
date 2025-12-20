@@ -99,7 +99,7 @@ export interface FetchUsersParams {
   search?: string;
   organization_id?: number;
   role?: string;
-  work_pattern_id?: number;
+  week_pattern_id?: number;
   shift_schedule_id?: number;
   work_group_id?: number;
   is_not_assigned_to_group?: boolean;
