@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useReactTable, getCoreRowModel, type PaginationState } from "@tanstack/react-table";
-import { Plus, Download, ShieldCheck, FileText } from "lucide-react";
+import { Plus, Download,  FileText } from "lucide-react";
 import { type DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 
@@ -41,43 +41,27 @@ export default function ActivityReportPage() {
 
     const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
-    // هماهنگ‌سازی فیلترها با صفحه‌بندی
     useEffect(() => {
         setFilters((prev) => ({ ...prev, page: pageIndex + 1, per_page: pageSize }));
     }, [pageIndex, pageSize]);
 
-    // دریافت داده‌ها از هوک React Query
     const { data: queryResult, isLoading, isFetching } = useLogs(filters);
     const logsData = useMemo(() => queryResult?.data || [], [queryResult]);
     const meta = useMemo(() => queryResult?.meta, [queryResult]);
     const totalRows = meta?.total || 0;
 
-    // اتصال به سوکت برای آپدیت زنده
     useReportSocket(filters);
-
     const pageCount = meta?.last_page || 1;
-
-    // هوک تایید (Mutation)
     const approveMutation = useApproveLog();
 
-    const handleApprove = (log: ActivityLog) => {
-        setLogToApprove(log);
-    };
-
-    // استفاده از _ برای پارامتر بلااستفاده (رفع ارور Build) - منطق تغییری نکرده
-    const handleEdit = (_log: ActivityLog) => {
-        toast.info("قابلیت ویرایش به زودی فعال می‌شود.");
-    };
+    const handleApprove = (log: ActivityLog) => { setLogToApprove(log); };
+    const handleEdit = () => { toast.info("قابلیت ویرایش به زودی فعال می‌شود."); };
 
     const handleConfirmApprove = () => {
         if (!logToApprove) return;
         approveMutation.mutate(logToApprove.id, {
-            onSuccess: () => {
-                setLogToApprove(null);
-            },
-            onError: () => {
-                console.error("Failed to approve log.");
-            }
+            onSuccess: () => { setLogToApprove(null); },
+            onError: () => { console.error("Failed to approve log."); }
         });
     };
 
@@ -105,9 +89,7 @@ export default function ActivityReportPage() {
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     };
 
-    const handleExportFormSubmitted = () => {
-        setIsExportFormModalOpen(false);
-    };
+    const handleExportFormSubmitted = () => { setIsExportFormModalOpen(false); };
 
     const exportFilters: LogFilters = useMemo(() => ({
         date_from: filters.date_from,
@@ -115,54 +97,43 @@ export default function ActivityReportPage() {
     }), [filters.date_from, filters.date_to]);
 
     return (
-        <div className="p-3 md:p-6 min-h-screen">
-            <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row-reverse gap-2">
+        <div className="p-4 sm:p-6 min-h-screen">
+            <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row-reverse gap-6">
 
-                {/* سایدبار فیلتر (ریسپانسیو داخلی) */}
-                <div className="w-full lg:w-80 lg:sticky lg:top-6 lg:self-start">
+                {/* سایدبار فیلتر - هماهنگ با درخواست‌ها */}
+                <div className="w-full lg:w-80 lg:sticky lg:top-6 lg:self-start flex-shrink-0">
                     <ActivityFilters onFilterChange={handleFilterChange} />
                 </div>
 
-                {/* محتوای اصلی */}
+                {/* محتوای اصلی - کارت یکپارچه */}
                 <main className="flex-1 min-w-0">
                     <section className="bg-backgroundL-500 dark:bg-backgroundD rounded-3xl border border-borderL dark:border-borderD shadow-sm overflow-hidden transition-all duration-300">
 
-                        {/* --- هدر اصلاح شده و کاملاً ریسپانسیو --- */}
+                        {/* هدر یکپارچه و ریسپانسیو */}
                         <div className="p-4 sm:p-6 border-b border-borderL dark:border-borderD bg-gradient-to-l from-transparent via-transparent to-primaryL/5 dark:to-primaryD/5">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
 
-                                {/* بخش سمت راست: عنوان، آیکون و وضعیت داده‌ها */}
                                 <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                    {/* باکس آیکون با ابعاد متغیر */}
                                     <div className="p-2.5 sm:p-3 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl sm:rounded-2xl flex-shrink-0">
                                         <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primaryL dark:text-primaryD" />
                                     </div>
-
-                                    {/* متن عنوان و تعداد رکوردها */}
                                     <div className="min-w-0 flex-1">
                                         <h1 className="text-base sm:text-lg md:text-xl font-black text-foregroundL dark:text-foregroundD truncate">
                                             گزارش فعالیت‌ها
                                         </h1>
-
                                         <div className="text-[10px] sm:text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5 sm:mt-1.5 flex items-center gap-2">
-                                            {/* نشانگر وضعیت زنده (Live Indicator) */}
                                             <span className="relative flex h-2 w-2">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                             </span>
                                             <span className="truncate opacity-80">
-                                                {isLoading
-                                                    ? "در حال دریافت اطلاعات..."
-                                                    : `${toPersianNumbers(totalRows)} مورد در سیستم ثبت شده`
-                                                }
+                                                {isLoading ? "در حال دریافت..." : `${toPersianNumbers(totalRows)} مورد در سیستم ثبت شده`}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* بخش سمت چپ: دکمه‌های عملیاتی (Actions) */}
                                 <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                                    {/* دکمه خروجی اکسل */}
                                     <Button
                                         variant="secondary"
                                         onClick={() => setIsExportFormModalOpen(true)}
@@ -172,7 +143,6 @@ export default function ActivityReportPage() {
                                         <span className="whitespace-nowrap">خروجی اکسل</span>
                                     </Button>
 
-                                    {/* دکمه ثبت فعالیت جدید */}
                                     <Button
                                         variant="primary"
                                         onClick={() => navigate("/reports/new")}
@@ -185,18 +155,12 @@ export default function ActivityReportPage() {
                             </div>
                         </div>
 
-                        {/* جدول داده‌ها */}
                         <div className="relative">
                             <div className="overflow-x-auto custom-scrollbar">
-                                <DataTable
-                                    table={table}
-                                    isLoading={isLoading || isFetching}
-                                    notFoundMessage="رکوردی با مشخصات انتخاب شده یافت نشد."
-                                />
+                                <DataTable table={table} isLoading={isLoading || isFetching} />
                             </div>
                         </div>
 
-                        {/* صفحه‌بندی */}
                         <div className="p-4 border-t border-borderL dark:border-borderD bg-secondaryL/5 dark:bg-secondaryD/5">
                             <DataTablePagination table={table} />
                         </div>
@@ -204,7 +168,6 @@ export default function ActivityReportPage() {
                 </main>
             </div>
 
-            {/* مودال خروجی */}
             {isExportFormModalOpen && (
                 <ExportModal
                     isOpen={isExportFormModalOpen}
@@ -215,7 +178,6 @@ export default function ActivityReportPage() {
                 />
             )}
 
-            {/* مودال تأیید (با بازگشت تمام جزئیات منطقی نسخه اول تو) */}
             <ConfirmationModal
                 isOpen={!!logToApprove}
                 onClose={() => setLogToApprove(null)}
@@ -224,39 +186,16 @@ export default function ActivityReportPage() {
                 message={
                     <div className="text-right flex flex-col gap-3" dir="rtl">
                         <p className="leading-7">
-                            آیا از تأیید تردد مربوط به
-                            <strong className="text-foregroundL dark:text-foregroundD mx-1 bg-secondaryL/50 dark:bg-secondaryD px-1 rounded">
-                                {logToApprove?.employee.name}
-                            </strong>
-                            مطمئن هستید؟
+                            آیا از تأیید تردد مربوط به <strong className="text-foregroundL dark:text-foregroundD mx-1 bg-secondaryL/50 dark:bg-secondaryD px-1 rounded">{logToApprove?.employee.name}</strong> مطمئن هستید؟
                         </p>
-
                         <div className="text-sm bg-secondaryL/30 dark:bg-secondaryD/20 p-3 rounded-lg border border-borderL dark:border-borderD space-y-1">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foregroundL">تاریخ:</span>
-                                <span dir="ltr">{logToApprove?.date}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foregroundL">ساعت:</span>
-                                <span dir="ltr" >{logToApprove?.time}</span>
-                            </div>
-                            {(logToApprove?.lateness_minutes ?? 0) > 0 && (
-                                <div className="flex justify-between text-destructiveL dark:text-destructiveD">
-                                    <span>میزان تاخیر:</span>
-                                    <span>{toPersianNumbers(logToApprove?.lateness_minutes)} دقیقه</span>
-                                </div>
-                            )}
+                            <div className="flex justify-between"><span>تاریخ:</span><span dir="ltr">{logToApprove?.date}</span></div>
+                            <div className="flex justify-between"><span>ساعت:</span><span dir="ltr" >{logToApprove?.time}</span></div>
                         </div>
-
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" />
-                            با تایید این مورد، وضعیت آن به «مجاز» تغییر کرده و در گزارش‌ها سبز می‌شود.
-                        </p>
                     </div>
                 }
                 variant="success"
-                icon={<ShieldCheck className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />}
-                confirmText={approveMutation.isPending ? "در حال ثبت..." : "بله، تایید و مجاز شود"}
+                confirmText="بله، تایید شود"
                 cancelText="انصراف"
                 isLoading={approveMutation.isPending}
             />
