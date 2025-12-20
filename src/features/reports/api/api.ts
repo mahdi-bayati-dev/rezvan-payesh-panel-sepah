@@ -70,22 +70,18 @@ export interface ReportExportPayload {
 // --- توابع API ---
 
 export const fetchLogs = async (
-  filters: LogFilters
+  filters: any
 ): Promise<AttendanceLogCollection> => {
-  // ✅ اصلاح مهم: جدا کردن پارامترهای لوکال
-  // ما فقط apiParams را به سرور می‌فرستیم
   const { localDateFrom, localDateTo, ...apiParams } = filters;
 
-  console.log("[API Admin] Fetching logs with Clean params:", apiParams);
+  // 🔍 LOG: بررسی فیلترهای ارسالی
+  console.debug("[API] Fetching logs with params:", apiParams);
 
   const response = await axiosInstance.get<AttendanceLogCollection>(
     ADMIN_REPORTS_API_PATH,
-    {
-      params: apiParams, // فقط پارامترهای استاندارد ارسال می‌شوند
-    }
+    { params: apiParams }
   );
-  console.log(response.data);
-  
+
   return response.data;
 };
 
@@ -96,13 +92,14 @@ export const fetchLogById = async (
     `${ADMIN_REPORTS_API_PATH}/${logId}`
   );
   console.log(response.data.data);
-  
+
   return response.data.data;
 };
 
-export const createLog = async (
-  payload: CreateLogPayload
-): Promise<ApiAttendanceLog> => {
+export const createLog = async (payload: any): Promise<ApiAttendanceLog> => {
+  // 🔍 LOG: بررسی دیتای در حال ارسال برای ثبت دستی
+  console.info("[API] Creating manual log...", payload);
+
   const response = await axiosInstance.post<{ data: ApiAttendanceLog }>(
     ADMIN_REPORTS_API_PATH,
     payload
@@ -124,9 +121,10 @@ export const updateLog = async ({
   return response.data.data;
 };
 
-export const approveLog = async (
-  logId: string | number
-): Promise<ApiAttendanceLog> => {
+export const approveLog = async (logId: string | number): Promise<ApiAttendanceLog> => {
+  // در سیستم شما متد DELETE برای تایید (Approve) استفاده شده است
+  console.warn(`[API] Approving (Deleting Exception) Log ID: ${logId}`);
+  
   const response = await axiosInstance.delete<{ data: ApiAttendanceLog }>(
     `${ADMIN_REPORTS_API_PATH}/${logId}`
   );
