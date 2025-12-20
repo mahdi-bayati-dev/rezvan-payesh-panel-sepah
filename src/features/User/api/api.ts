@@ -29,8 +29,8 @@ export const fetchUsers = async (
   if (params.organization_id)
     queryParams.append("organization_id", String(params.organization_id));
   if (params.role) queryParams.append("role", params.role);
-  if (params.work_pattern_id)
-    queryParams.append("work_pattern_id", String(params.work_pattern_id));
+  if (params.week_pattern_id)
+    queryParams.append("week_pattern_id", String(params.week_pattern_id));
   if (params.shift_schedule_id)
     queryParams.append("shift_schedule_id", String(params.shift_schedule_id));
 

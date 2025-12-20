@@ -112,7 +112,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
             education_level: "diploma" as const,
             shift_schedule_id: null,
             work_group_id: null,
-            work_pattern_id: null,
+            week_pattern_id: null,
             images: [],
         }
     }), [organizationId]);
@@ -243,8 +243,8 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                         <SelectBox label="برنامه شیفتی" options={shiftScheduleOptions} value={shiftScheduleOptions.find(o => o.id === field.value) || null} onChange={(opt) => field.onChange(opt?.id ? Number(opt.id) : null)} error={errors.employee?.shift_schedule_id?.message} placeholder="انتخاب کنید (اختیاری)" />
                     )} />
 
-                    <Controller name="employee.work_pattern_id" control={control} render={({ field }) => (
-                        <SelectBox label="الگوی کاری" options={workPatternOptions} value={workPatternOptions.find(o => o.id === field.value) || null} onChange={(opt) => field.onChange(opt?.id ?? null)} error={errors.employee?.work_pattern_id?.message} placeholder="انتخاب کنید (اختیاری)" />
+                    <Controller name="employee.week_pattern_id" control={control} render={({ field }) => (
+                        <SelectBox label="الگوی کاری" options={workPatternOptions} value={workPatternOptions.find(o => o.id === field.value) || null} onChange={(opt) => field.onChange(opt?.id ?? null)} error={errors.employee?.week_pattern_id?.message} placeholder="انتخاب کنید (اختیاری)" />
                     )} />
                 </FormSectionCard>
 

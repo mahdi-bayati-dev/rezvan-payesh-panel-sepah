@@ -65,7 +65,7 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                 starting_job: user.employee.starting_job || "",
                 work_group_id: user.employee.work_group?.id ? Number(user.employee.work_group.id) : null,
                 shift_schedule_id: user.employee.shift_schedule?.id ? Number(user.employee.shift_schedule.id) : null,
-                work_pattern_id: user.employee.week_pattern?.id ? Number(user.employee.week_pattern.id) : null,
+                week_pattern_id: user.employee.week_pattern?.id ? Number(user.employee.week_pattern.id) : null,
             }
         };
     }, [user]);
@@ -176,8 +176,8 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
                     <SelectBox label="برنامه شیفتی" placeholder="(انتخاب کنید)" options={shiftScheduleOptions} value={resolveSelectedOption(shiftScheduleOptions, field.value, user.employee?.shift_schedule)} onChange={(option) => field.onChange(option ? option.id : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.shift_schedule_id?.message} />
                 )} />
 
-                <Controller name="employee.work_pattern_id" control={control} render={({ field }) => (
-                    <SelectBox label="الگوی کاری" placeholder="(انتخاب کنید)" options={workPatternOptions} value={resolveSelectedOption(workPatternOptions, field.value, user.employee?.week_pattern)} onChange={(option) => field.onChange(option ? option.id : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.work_pattern_id?.message} />
+                <Controller name="employee.week_pattern_id" control={control} render={({ field }) => (
+                    <SelectBox label="الگوی کاری" placeholder="(انتخاب کنید)" options={workPatternOptions} value={resolveSelectedOption(workPatternOptions, field.value, user.employee?.week_pattern)} onChange={(option) => field.onChange(option ? option.id : null)} disabled={!isEditing || updateMutation.isPending || !canEditRestrictedFields} error={errors.employee?.week_pattern_id?.message} />
                 )} />
             </div>
         </FormSection>
