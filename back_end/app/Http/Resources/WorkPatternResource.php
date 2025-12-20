@@ -18,8 +18,8 @@ class WorkPatternResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'type' => $this->type,
-            'start_time' => $this->start_time,
-            'end_time' => $this->end_time,
+            'start_time' => $this->start_time?->toDateTimeString(),
+            'end_time' => $this->end_time?->toDateTimeString(),
             'work_duration_minutes' => (int)$this->work_duration_minutes,
         ];
     }

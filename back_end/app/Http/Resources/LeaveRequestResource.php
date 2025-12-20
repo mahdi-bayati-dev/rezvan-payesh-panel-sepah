@@ -19,8 +19,8 @@ class LeaveRequestResource extends JsonResource
             'id' => $this->id,
             'status' => $this->status,
 
-            'start_time' => $this->start_time,
-            'end_time' => $this->end_time,
+            'start_time' => $this->start_time?->toDateTimeString(),
+            'end_time' => $this->end_time?->toDateTimeString(),
             'duration_for_humans' => $this->whenNotNull($this->duration_for_humans),
 
 
