@@ -12,7 +12,7 @@ import {
   type RowSelectionState,
   type FilterFn,
 } from "@tanstack/react-table";
-import { parseISO, isSameDay } from "date-fns";
+// import { parseISO, isSameDay } from "date-fns";
 import { DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 
@@ -38,11 +38,22 @@ import { ExportSettingsModal } from "../components/mainRequests/ExportSettingsMo
 const dateFilterFn: FilterFn<LeaveRequest> = (row, _columnId, value: DateObject | null) => {
   if (!value) return true;
   try {
-    const selectedDateGregorian = value.convert(gregorian).toDate();
-    const requestStartDate = parseISO(row.original.start_time);
-    return isSameDay(requestStartDate, selectedDateGregorian);
+    // تاریخ انتخاب شده توسط کاربر (شمسی به میلادی تبدیل شده)
+    const selected = value.convert(gregorian);
+
+    // تاریخ ردیف (استخراج دستی سال-ماه-روز)
+    const rowDatePart = row.original.start_time.substring(0, 10);
+    const [y, m, d] = rowDatePart.split("-").map(Number);
+
+    return (
+      y === selected.year &&
+      m === selected.month.number &&
+      d === selected.day
+    );
   } catch (e) {
-    console.error("خطا در فیلتر تاریخ:", e);
+    console.log('====================================');
+    console.log(e);
+    console.log('====================================');
     return false;
   }
 };
