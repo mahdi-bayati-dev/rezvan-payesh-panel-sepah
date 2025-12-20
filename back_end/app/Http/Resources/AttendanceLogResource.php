@@ -19,7 +19,7 @@ class AttendanceLogResource extends JsonResource
 
             'employee_id' => $this->employee_id,
             'event_type' => $this->event_type,
-            'timestamp' => $this->timestamp,
+            'timestamp' => $this->timestamp?->toDateTimeString()    ,
             'source_name' => $this->source_name,
             'source_type' => $this->source_type,
             'lateness_minutes' => $this->lateness_minutes,
