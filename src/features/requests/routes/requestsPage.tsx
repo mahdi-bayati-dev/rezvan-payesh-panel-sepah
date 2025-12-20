@@ -1,6 +1,7 @@
 // features/requests/routes/requestsPage.tsx
 import { useState, useMemo } from "react";
-import { Download, ListFilter } from "lucide-react";
+import { Download, ListFilter, CirclePlus } from "lucide-react";
+import { Link } from 'react-router-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -12,7 +13,7 @@ import {
   type RowSelectionState,
   type FilterFn,
 } from "@tanstack/react-table";
-// import { parseISO, isSameDay } from "date-fns";
+import { parseISO, isSameDay } from "date-fns";
 import { DateObject } from "react-multi-date-picker";
 import gregorian from "react-date-object/calendars/gregorian";
 
@@ -23,7 +24,6 @@ import { type SelectOption } from "@/components/ui/SelectBox";
 import { Button } from "@/components/ui/Button";
 
 // --- منطق ماژول Requests ---
-// ✅ ایمپورت تابع تبدیل اعداد
 import { requestsColumns, toPersianNumbers } from "../components/mainRequests/RequestsColumnDefs";
 import RequestsFilter from "../components/mainRequests/RequestsFilter";
 import { useLeaveRequests } from "../hook/useLeaveRequests";
@@ -38,22 +38,11 @@ import { ExportSettingsModal } from "../components/mainRequests/ExportSettingsMo
 const dateFilterFn: FilterFn<LeaveRequest> = (row, _columnId, value: DateObject | null) => {
   if (!value) return true;
   try {
-    // تاریخ انتخاب شده توسط کاربر (شمسی به میلادی تبدیل شده)
-    const selected = value.convert(gregorian);
-
-    // تاریخ ردیف (استخراج دستی سال-ماه-روز)
-    const rowDatePart = row.original.start_time.substring(0, 10);
-    const [y, m, d] = rowDatePart.split("-").map(Number);
-
-    return (
-      y === selected.year &&
-      m === selected.month.number &&
-      d === selected.day
-    );
+    const selectedDateGregorian = value.convert(gregorian).toDate();
+    const requestStartDate = parseISO(row.original.start_time);
+    return isSameDay(requestStartDate, selectedDateGregorian);
   } catch (e) {
-    console.log('====================================');
-    console.log(e);
-    console.log('====================================');
+    console.error("خطا در فیلتر تاریخ:", e);
     return false;
   }
 };
@@ -108,75 +97,99 @@ const RequestsPage = () => {
   );
 
   return (
-    <div className="flex flex-col md:flex-row-reverse gap-4 p-4 sm:p-4 min-h-[calc(100vh-80px)]">
+    <div className="p-4 sm:p-6 min-h-screen">
+      <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row-reverse gap-6">
 
-      <ExportSettingsModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-      />
-
-      <div className="w-full md:w-64 lg:w-72 md:sticky md:top-6 md:self-start">
-        <RequestsFilter
-          currentUser={currentUser}
-          organization={organizationFilter} onOrganizationChange={setOrganizationFilter}
-          category={categoryFilter} onCategoryChange={setCategoryFilter}
-          leaveType={leaveTypeFilter} onLeaveTypeChange={setLeaveTypeFilter}
-          status={statusFilter} onStatusChange={setStatusFilter}
-          date={dateFilter} onDateChange={setDateFilter}
+        <ExportSettingsModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
         />
-      </div>
 
-      <main className="flex-1 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD p-5 sm:p-4 shadow-sm border border-borderL dark:border-borderD flex flex-col gap-4">
-        <div className=" flex gap-4 p-4 sm:p-2">
+        {/* سایدبار فیلترها - عرض و استایل هماهنگ */}
+        <div className="w-full lg:w-80 lg:sticky lg:top-6 lg:self-start flex-shrink-0">
+          <RequestsFilter
+            currentUser={currentUser}
+            organization={organizationFilter} onOrganizationChange={setOrganizationFilter}
+            category={categoryFilter} onCategoryChange={setCategoryFilter}
+            leaveType={leaveTypeFilter} onLeaveTypeChange={setLeaveTypeFilter}
+            status={statusFilter} onStatusChange={setStatusFilter}
+            date={dateFilter} onDateChange={setDateFilter}
+          />
+        </div>
 
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl">
-                <ListFilter className="w-5 h-5 text-primaryL dark:text-primaryD" />
+        {/* محتوای اصلی - کارت با لبه‌های گرد و استایل هماهنگ */}
+        <main className="flex-1 min-w-0">
+          <section className="bg-backgroundL-500 dark:bg-backgroundD rounded-3xl border border-borderL dark:border-borderD shadow-sm overflow-hidden transition-all duration-300">
+
+            {/* هدر یکپارچه با بخش گزارش‌ها */}
+            <div className="p-4 sm:p-6 border-b border-borderL dark:border-borderD bg-gradient-to-l from-transparent via-transparent to-primaryL/5 dark:to-primaryD/5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
+
+                {/* اطلاعات و وضعیت */}
+                <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                  <div className="p-2.5 sm:p-3 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl sm:rounded-2xl flex-shrink-0">
+                    <ListFilter className="w-5 h-5 sm:w-6 sm:h-6 text-primaryL dark:text-primaryD" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-base sm:text-lg md:text-xl font-black text-foregroundL dark:text-foregroundD truncate">
+                      مدیریت درخواست‌ها
+                    </h1>
+                    <div className="text-[10px] sm:text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-0.5 sm:mt-1.5 flex items-center gap-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                      </span>
+                      <span className="truncate opacity-80">
+                        {isLoading ? "در حال دریافت..." : `${toPersianNumbers(totalRows)} درخواست ثبت شده`}
+                        {!isLoading && pendingCount > 0 && ` (${toPersianNumbers(pendingCount)} در انتظار)`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* دکمه‌های عملیاتی */}
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                  {isManager && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsExportModalOpen(true)}
+                      className="flex-1 sm:flex-none h-9 sm:h-11 px-3 sm:px-5 gap-1.5 sm:gap-2 rounded-xl text-[11px] sm:text-sm font-bold border-borderL dark:border-borderD bg-secondaryL/20 dark:bg-secondaryD/10 hover:bg-secondaryL/40 transition-all active:scale-95"
+                    >
+                      <Download size={16} />
+                      <span className="whitespace-nowrap">خروجی اکسل</span>
+                    </Button>
+                  )}
+                  <Link
+                    to="/requests/new"
+                    className="flex-1 sm:flex-none h-9 sm:h-11 px-3 sm:px-5 gap-1.5 sm:gap-2 rounded-xl text-[11px] sm:text-sm font-bold shadow-lg shadow-primaryL/20 dark:shadow-primaryD/10 bg-primaryL text-white dark:bg-primaryD dark:text-black flex items-center justify-center transition-all active:scale-95"
+                  >
+                    <CirclePlus size={16} />
+                    <span className="whitespace-nowrap">ثبت جدید</span>
+                  </Link>
+                </div>
               </div>
-              <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
-                {isLoading ? "در حال بارگذاری..." : `لیست درخواست‌ها (${toPersianNumbers(totalRows)})`}
-              </h2>
-
-              {!isLoading && pendingCount > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-sm animate-in fade-in zoom-in duration-300">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                  </span>
-                  {toPersianNumbers(pendingCount)} در انتظار
-                </span>
-              )}
             </div>
 
-            {isManager && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="flex items-center gap-2 hover:bg-secondaryL dark:hover:bg-secondaryD"
-                onClick={() => setIsExportModalOpen(true)}
-              >
-                <Download size={16} />
-                <span>خروجی اکسل</span>
-              </Button>
-            )}
-          </div>
-        </div>
+            {/* بدنه و جدول */}
+            <div className="relative">
+              {isError && (
+                <div className="m-4 text-sm text-destructiveL bg-destructiveL/10 p-3 rounded-lg border border-destructiveL/20">
+                  خطا در دریافت اطلاعات. لطفا اتصال اینترنت خود را بررسی کنید.
+                </div>
+              )}
 
-        {isError && <p className="text-sm text-destructiveL bg-destructiveL/10 p-3 rounded-lg border border-destructiveL/20">خطا در دریافت اطلاعات. لطفا اتصال اینترنت خود را بررسی کنید.</p>}
+              <div className="overflow-x-auto custom-scrollbar">
+                <DataTable table={table} isLoading={isLoading} />
+              </div>
+            </div>
 
-        {(organizationFilter || leaveTypeFilter) && (
-          <p className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-100 dark:border-amber-800">
-            (توجه: فیلتر سازمان/نوع در حال حاضر آزمایشی است)
-          </p>
-        )}
-
-        <div className="border border-borderL dark:border-borderD rounded-2xl overflow-hidden shadow-sm">
-          <DataTable table={table} isLoading={isLoading} />
-        </div>
-
-        {pageCount > 1 && <DataTablePagination table={table} />}
-      </main>
+            {/* صفحه‌بندی هماهنگ */}
+            <div className="p-4 border-t border-borderL dark:border-borderD bg-secondaryL/5 dark:bg-secondaryD/5">
+              <DataTablePagination table={table} />
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
   );
 };
