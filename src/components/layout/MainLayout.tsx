@@ -4,7 +4,7 @@ import { Sidebar, SidebarContent } from "./Sidebar";
 import { Header } from "./Header";
 import { useAppSelector } from "@/hook/reduxHooks";
 import { selectLicenseStatus } from "@/store/slices/licenseSlice";
-import { selectIsLicenseLocked } from "@/store/slices/authSlice"; // ✅ استفاده از فلگ جدید
+import { selectIsLicenseLocked, selectAuthCheckStatus } from "@/store/slices/authSlice";
 
 import { GlobalWebSocketHandler } from './GlobalWebSocketHandler';
 import { GlobalRequestSocketHandler } from './GlobalRequestSocketHandler';
@@ -13,6 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { GlobalNotificationHandler } from '@/features/reports/components/Export/DownloadToast';
 import { useImageNotificationSocket } from '@/features/ConfirmPhotos/hooks/useImageNotificationSocket';
 import { useAdminImageSocket } from '@/features/ConfirmPhotos/hooks/useAdminImageSocket';
+import { GlobalAppSkeleton } from "./GlobalAppSkeleton";
 
 export const MainLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -21,28 +22,28 @@ export const MainLayout = () => {
   const isLicensePage = location.pathname === '/license';
 
   const licenseStatus = useAppSelector(selectLicenseStatus);
-  // ✅ دریافت وضعیت قفل لایسنس از AuthSlice
   const isAuthLocked = useAppSelector(selectIsLicenseLocked);
+  const authStatus = useAppSelector(selectAuthCheckStatus); // وضعیت چک کردن توکن
 
   useImageNotificationSocket();
   useAdminImageSocket();
 
-  // ✅ افکت "نگهبان لایسنس" (License Guard) - استاندارد و متمرکز
+  // افکت لایسنس گارد
   useEffect(() => {
-    // شرط ۱: اگر AuthSlice می‌گوید سیستم قفل است (چون /me ارور ۴۹۹ داد)
-    // شرط ۲: یا اگر LicenseSlice می‌گوید وضعیت invalid است
     const invalidLicenseStatuses = ['expired', 'tampered', 'trial_expired', 'license_expired'];
     const isLicenseInvalid = licenseStatus && invalidLicenseStatuses.includes(licenseStatus);
-
     const shouldRedirect = isAuthLocked || isLicenseInvalid;
 
-    if (shouldRedirect) {
-      if (!isLicensePage) {
-        console.warn("🔒 System Locked/Expired. Redirecting to License Page.");
-        navigate('/license', { replace: true });
-      }
+    if (shouldRedirect && !isLicensePage) {
+      navigate('/license', { replace: true });
     }
   }, [isAuthLocked, licenseStatus, isLicensePage, navigate]);
+
+  // مهم: اگر اپلیکیشن هنوز در حال احراز هویت اولیه است، کل لایه را با اسکلتون بپوشان
+  // این کار باعث می‌شود دیتای ناقص به کامپوننت‌های Outlet نرسد
+  if (authStatus === 'loading' || authStatus === 'idle') {
+    return <GlobalAppSkeleton />;
+  }
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900">
@@ -53,20 +54,13 @@ export const MainLayout = () => {
       <ToastContainer
         position="bottom-right"
         autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={true}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
         theme="colored"
+        rtl={true}
       />
 
       <Header onMenuClick={() => !isLicensePage && setSidebarOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* اگر در صفحه لایسنس هستیم، سایدبار را مخفی کن تا تمرکز کاربر فقط روی فعال‌سازی باشد */}
         {!isLicensePage && <Sidebar />}
 
         {!isLicensePage && (
@@ -84,6 +78,7 @@ export const MainLayout = () => {
         )}
 
         <main className="flex-1 overflow-y-auto p-2 md:p-2">
+          {/* چون اینجا شرط authStatus === 'succeeded' برقرار است، با خیال راحت رندر می‌شود */}
           <Outlet />
         </main>
       </div>
