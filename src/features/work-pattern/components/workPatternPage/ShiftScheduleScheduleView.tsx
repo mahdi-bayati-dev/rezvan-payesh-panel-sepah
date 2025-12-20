@@ -1,14 +1,25 @@
 import { useMemo } from "react";
 import clsx from "clsx";
-import type {
-    ShiftScheduleResource,
-    ScheduleSlotResource,
-} from "@/features/shift-schedule/types";
+import type { ShiftScheduleResource, ScheduleSlotResource } from "@/features/shift-schedule/types";
+import { WorkPatternScheduleViewSkeleton } from "../../Skeleton/WorkPatternScheduleViewSkeleton";
+import { Moon, ArrowLeft, CalendarRange, TimerReset, Clock } from "lucide-react";
+import { toPersianDigits, formatTimeToPersian } from "../../utils/persianUtils";
 
-import { WorkPatternScheduleViewSkeleton } from "@/features/work-pattern/Skeleton/WorkPatternScheduleViewSkeleton";
-import { Moon, ArrowLeft, CalendarRange, TimerReset, Sun } from "lucide-react";
-// ✅ ایمپورت تابع تبدیل اعداد
-import { toPersianDigits, formatTimeToPersian } from '@/features/work-pattern/utils/persianUtils';
+/**
+ * @description تبدیل زمان به دقیقه برای محاسبات دقیق بصری
+ */
+const getMinutes = (time: string) => {
+    const [h, m] = time.split(":").map(Number);
+    return h * 60 + m;
+};
+
+/**
+ * @description محاسبه درصد افقی بر اساس شبانه‌روز (۱۴۴۰ دقیقه)
+ */
+const timeToPercentage = (time: string): number => {
+    const mins = getMinutes(time);
+    return (mins / (24 * 60)) * 100;
+};
 
 interface VisualBlock {
     id: string;
@@ -18,16 +29,6 @@ interface VisualBlock {
     slot: ScheduleSlotResource;
 }
 
-const getMinutes = (time: string) => {
-    const [h, m] = time.split(":").map(Number);
-    return h * 60 + m;
-};
-
-const timeToPercentage = (time: string): number => {
-    const mins = getMinutes(time);
-    return (mins / (24 * 60)) * 100;
-};
-
 export const ShiftScheduleScheduleView = ({
     schedule,
     isLoadingDetails,
@@ -35,8 +36,7 @@ export const ShiftScheduleScheduleView = ({
     schedule: ShiftScheduleResource | null;
     isLoadingDetails?: boolean;
 }) => {
-    // ✅ اعداد فارسی برای محور ساعت
-    const hours = Array.from({ length: 25 }, (_, i) => i);
+    const hourSlots = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
 
     const daysWithBlocks = useMemo(() => {
         if (!schedule) return [];
@@ -92,26 +92,25 @@ export const ShiftScheduleScheduleView = ({
     }, [schedule]);
 
     return (
-        <div className="p-4 rounded-xl backdrop-blur-sm dark:bg-backgroundD/60 dark:border-borderD/60 flex flex-col md:min-h-[450px]">
-            <div className="flex justify-between items-center mb-4">
+        <div className="p-4 rounded-xl backdrop-blur-sm dark:bg-backgroundD/60 dark:border-borderD/60 flex flex-col md:min-h-[450px]" dir="rtl">
+            <div className="flex justify-between items-center mb-6 px-1">
                 <h3 className="text-lg font-bold text-foregroundL dark:text-foregroundD flex items-center gap-2">
                     <CalendarRange className="w-5 h-5 text-violet-500" />
                     شماتیک چرخه شیفت
                     {schedule && (
-                        <span className="text-xs font-normal px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30">
+                        <span className="text-xs font-normal px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30">
                             {schedule.name} ({toPersianDigits(schedule.cycle_length_days)} روزه)
                         </span>
                     )}
                 </h3>
 
-                {/* نمایش اطلاعات شناوری */}
                 {schedule && (schedule.floating_start || schedule.floating_end) ? (
-                    <div className="flex items-center gap-2 text-xs font-medium px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full border border-indigo-100 dark:border-indigo-800" title="منطق آستانه فعال است">
+                    <div className="flex items-center gap-2 text-xs font-medium px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full border border-indigo-100 dark:border-indigo-800">
                         <TimerReset className="w-3.5 h-3.5" />
                         <span>شناوری:</span>
-                        {schedule.floating_start ? <span>ورود {toPersianDigits(schedule.floating_start)} دقیقه</span> : null}
-                        {schedule.floating_start && schedule.floating_end ? <span className="mx-0.5 opacity-50">|</span> : null}
-                        {schedule.floating_end ? <span>خروج {toPersianDigits(schedule.floating_end)} دقیقه</span> : null}
+                        {schedule.floating_start ? <span>ورود {toPersianDigits(schedule.floating_start)} م</span> : null}
+                        {schedule.floating_start && schedule.floating_end && <span className="opacity-30">|</span>}
+                        {schedule.floating_end ? <span>خروج {toPersianDigits(schedule.floating_end)} م</span> : null}
                     </div>
                 ) : null}
             </div>
@@ -121,102 +120,96 @@ export const ShiftScheduleScheduleView = ({
                     <WorkPatternScheduleViewSkeleton />
                 </div>
             ) : !schedule ? (
-                <div className="flex-1 flex flex-col gap-3 items-center justify-center text-muted-foregroundL dark:text-muted-foregroundD border-2 border-dashed border-borderL/60 dark:border-borderD/60 rounded-xl p-6 bg-secondaryL/10 transition-all hover:bg-secondaryL/20">
-                    <div className="p-4 rounded-full bg-secondaryL/30 dark:bg-secondaryD/30">
-                        <CalendarRange className="w-8 h-8 opacity-50" />
+                <div className="flex-1 flex flex-col gap-4 items-center justify-center text-muted-foregroundL dark:text-muted-foregroundD border-2 border-dashed border-borderL/40 dark:border-borderD/40 rounded-2xl p-8 bg-secondaryL/5">
+                    <div className="p-5 rounded-full bg-secondaryL/20 dark:bg-secondaryD/20">
+                        <CalendarRange className="w-10 h-10 opacity-40" />
                     </div>
-                    <span className="font-medium">لطفاً یک برنامه شیفتی را از لیست انتخاب کنید</span>
+                    <span className="font-medium text-sm">لطفاً یک برنامه شیفتی را انتخاب کنید</span>
                 </div>
             ) : (
-                <div className="flex-1 overflow-auto border border-borderL/70 dark:border-borderD/60 rounded-xl bg-backgroundL-500/50 dark:bg-backgroundD/50 relative shadow-inner">
+                <div className="flex-1 border border-borderL/70 dark:border-borderD/60 rounded-xl bg-white dark:bg-backgroundD shadow-inner overflow-hidden flex flex-row relative">
 
-                    {/* ستون روزها (Sticky Right) */}
-                    <div className="sticky right-0 top-0 z-20 w-[80px] float-right shadow-[0_0_15px_rgba(0,0,0,0.05)] dark:shadow-[0_0_15px_rgba(0,0,0,0.3)]">
-                        <div className="h-10 border-b border-l border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD flex items-center justify-center font-bold text-xs text-muted-foregroundL">
-                            روزهای چرخه
-                        </div>
+                    {/* ✅ ستون روزها - فیکس در سمت راست */}
+                    <div className="w-[85px] shrink-0 border-l border-borderL dark:border-borderD bg-secondaryL/10 dark:bg-secondaryD/20 z-20 sticky right-0">
+                        <div className="h-10 border-b border-borderL dark:border-borderD flex items-center justify-center font-bold text-[10px] text-muted-foregroundL dark:text-muted-foregroundD/60 uppercase bg-secondaryL/20 dark:bg-black/20">روز چرخه</div>
                         {daysWithBlocks.map((day) => (
-                            <div key={day.dayNumber} className="h-14 flex items-center justify-center text-sm font-bold border-b border-l border-borderL dark:border-borderD text-foregroundL dark:text-foregroundD bg-backgroundL-500 dark:bg-backgroundD group-hover:bg-secondaryL/10">
+                            <div key={day.dayNumber} className="h-14 flex items-center justify-center text-xs font-bold border-b border-borderL dark:border-borderD text-foregroundL dark:text-foregroundD bg-white dark:bg-backgroundD">
                                 روز {toPersianDigits(day.dayNumber)}
                             </div>
                         ))}
                     </div>
 
-                    <div className="overflow-x-auto custom-scrollbar">
-                        <div className="relative min-w-[1200px]">
+                    {/* بخش اسکرول‌شونده */}
+                    <div className="flex-1 overflow-x-auto custom-scrollbar overflow-y-hidden">
+                        <div className="relative min-w-[1000px] h-full">
 
-                            {/* هدر ساعت‌ها (Sticky Top) */}
-                            <div className="sticky top-0 z-10 flex h-10 bg-backgroundL-500/95 dark:bg-backgroundD/95 border-b border-borderL dark:border-borderD backdrop-blur-md">
-                                {hours.map((hour) => (
-                                    <div key={hour} className="flex-1 border-l border-borderL/30 dark:border-borderD/30 flex items-center justify-start px-1 relative">
-                                        <span className="absolute -right-3 top-3 text-[10px] text-muted-foregroundL dark:text-muted-foregroundD ">
-                                            {/* ✅ اصلاح شده: کل ساعت و دقیقه یکجا فارسی می‌شود */}
-                                            {toPersianDigits(`${hour.toString().padStart(2, "0")}:00`)}
+                            {/* هدر ساعت‌ها */}
+                            <div className="flex h-10 bg-secondaryL/5 dark:bg-black/20 border-b border-borderL dark:border-borderD relative sticky top-0 z-10">
+                                {hourSlots.map((hour) => (
+                                    <div key={hour} className="flex-1 border-l border-borderL/20 dark:border-borderD/20 relative">
+                                        <span className="absolute -right-3 top-2.5 text-[9px] font-medium text-muted-foregroundL dark:text-muted-foregroundD/70">
+                                            {toPersianDigits(String(hour).padStart(2, '0'))}:۰۰
                                         </span>
                                     </div>
                                 ))}
+                                <div className="flex-none w-0 relative">
+                                    <span className="absolute -right-3 top-2.5 text-[9px] font-medium text-muted-foregroundL dark:text-muted-foregroundD/70">
+                                        {toPersianDigits("۲۴")}:۰۰
+                                    </span>
+                                </div>
                             </div>
 
-                            {/* خطوط راهنما (Grid Lines) */}
-                            <div className="absolute inset-0 flex z-0 pointer-events-none">
-                                {hours.map((hour) => (
-                                    <div key={`line-${hour}`} className={clsx("flex-1 border-l min-w-[40px]", hour % 6 === 0 ? "border-borderL/40 dark:border-borderD/40 bg-foregroundL/[0.015]" : "border-borderL/10 dark:border-borderD/10")}></div>
+                            {/* خطوط عمودی گرید */}
+                            <div className="absolute inset-0 top-10 flex pointer-events-none z-0">
+                                {hourSlots.map((hour) => (
+                                    <div key={`line-${hour}`} className={clsx(
+                                        "flex-1 border-l",
+                                        hour % 6 === 0 ? "border-borderL/40 dark:border-borderD/40 bg-secondaryL/[0.02]" : "border-borderL/10 dark:border-borderD/10"
+                                    )} />
                                 ))}
+                                <div className="border-l border-borderL/10 dark:border-borderD/10" />
                             </div>
 
-                            {/* ردیف‌های داده */}
-                            {daysWithBlocks.map((day) => (
-                                <div key={day.dayNumber} className="h-14 relative border-b border-borderL/50 dark:border-borderD/50 transition-colors hover:bg-violet-50/30 dark:hover:bg-violet-900/10 group">
-                                    {day.blocks.map((block) => {
-                                        const startPct = timeToPercentage(block.start);
-                                        const endPct = block.end === "24:00" ? 100 : timeToPercentage(block.end);
-                                        const widthPct = endPct - startPct;
-                                        const isFloating = block.slot.work_pattern?.type === "floating";
-                                        const isOverflow = block.type === "overflow";
+                            {/* ردیف‌های بلاک‌های شیفت */}
+                            <div className="relative z-10">
+                                {daysWithBlocks.map((day) => (
+                                    <div key={day.dayNumber} className="h-14 relative border-b border-borderL/40 dark:border-borderD/40 transition-colors hover:bg-violet-50/10 dark:hover:bg-violet-900/10 group">
+                                        {day.blocks.map((block) => {
+                                            const startPct = timeToPercentage(block.start);
+                                            const endPct = block.end === "24:00" ? 100 : timeToPercentage(block.end);
+                                            const widthPct = endPct - startPct;
+                                            const isFloating = block.slot.work_pattern?.type === "floating";
+                                            const isOverflow = block.type === "overflow";
 
-                                        return (
-                                            <div
-                                                key={block.id}
-                                                className={clsx(
-                                                    "absolute top-2.5 bottom-2.5 rounded-lg shadow-sm flex items-center justify-center overflow-hidden whitespace-nowrap transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-help z-10",
-                                                    "border text-white ring-1 ring-white/20",
-                                                    isFloating
-                                                        ? "bg-gradient-to-r from-sky-500 to-sky-400 border-sky-600 shadow-sky-500/20"
-                                                        : "bg-gradient-to-r from-violet-500 to-violet-400 border-violet-600 shadow-violet-500/20",
-                                                    isOverflow && "opacity-90 border-dashed border-2 from-violet-400/80 to-violet-300/80 pattern-diagonal-lines"
-                                                )}
-                                                style={{
-                                                    right: `${startPct}%`,
-                                                    width: `${widthPct}%`,
-                                                }}
-                                            >
-                                                <div className="flex items-center gap-1 px-2 w-full justify-center text-[11px] font-bold drop-shadow-md">
-                                                    {isOverflow && <ArrowLeft className="w-3 h-3 shrink-0" />}
-                                                    <span className="truncate dir-ltr  tracking-tight">
-                                                        {formatTimeToPersian(block.start)} - {formatTimeToPersian(block.end)}
-                                                    </span>
-                                                    {block.end === "24:00" && <Moon className="w-3 h-3 shrink-0 ml-1 fill-yellow-200 text-yellow-200" />}
-                                                </div>
-
-                                                {/* Tooltip سفارشی */}
-                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max px-3 py-2 bg-gray-900/95 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-xl pointer-events-none z-30 flex flex-col items-center gap-1 backdrop-blur-sm border border-white/10">
-                                                    <span className="font-bold text-violet-200">روز {toPersianDigits(day.dayNumber)}</span>
-                                                    <div className="flex items-center gap-1.5 bg-white/10 px-2 py-0.5 rounded">
-                                                        <Sun className="w-3 h-3 text-orange-400" />
-                                                        <span className=" dir-ltr">
+                                            return (
+                                                <div
+                                                    key={block.id}
+                                                    className={clsx(
+                                                        "absolute top-2.5 bottom-2.5 rounded-lg shadow-sm flex items-center justify-center overflow-hidden whitespace-nowrap transition-all z-10 hover:shadow-md hover:scale-[1.005] border text-white ring-1 ring-white/10",
+                                                        isFloating
+                                                            ? "bg-gradient-to-r from-sky-500 to-sky-400 border-sky-600 dark:from-sky-600 dark:to-sky-500"
+                                                            : "bg-gradient-to-r from-violet-500 to-violet-400 border-violet-600 dark:from-violet-600 dark:to-violet-500",
+                                                        isOverflow && "opacity-90 border-dashed border-2 from-violet-400 to-violet-300"
+                                                    )}
+                                                    style={{
+                                                        right: `${startPct.toFixed(4)}%`,
+                                                        width: `${widthPct.toFixed(4)}%`,
+                                                    }}
+                                                >
+                                                    <div className="flex items-center gap-1.5 px-2 w-full justify-center text-[10px] font-bold drop-shadow-sm">
+                                                        {isOverflow && <ArrowLeft className="w-3 h-3 shrink-0" />}
+                                                        <Clock className="w-3 h-3 opacity-80 shrink-0" />
+                                                        <span className="dir-ltr tracking-tight">
                                                             {formatTimeToPersian(block.start)} - {formatTimeToPersian(block.end)}
                                                         </span>
+                                                        {block.end === "24:00" && <Moon className="w-2.5 h-2.5 shrink-0 ml-1 fill-yellow-200 text-yellow-200" />}
                                                     </div>
-                                                    <span className="text-[10px] opacity-80">
-                                                        ({block.slot.work_pattern?.name || 'شیفت عادی'})
-                                                    </span>
-                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900/95"></div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>

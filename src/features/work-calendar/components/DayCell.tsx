@@ -15,8 +15,8 @@ interface DayCellProps {
 }
 
 /**
- * کامپوننت سلول روز با هاور بهبود یافته و حرفه‌ای
- * استفاده انحصاری از متغیرهای oklch تعریف شده در پروژه
+ * کامپوننت ارتقایافته سلول روز با انیمیشن اختصاصی برای "امروز"
+ * @author Mehdi Bayati Design Pattern
  */
 export const DayCell: React.FC<DayCellProps> = React.memo(({
     date,
@@ -31,75 +31,99 @@ export const DayCell: React.FC<DayCellProps> = React.memo(({
     const isFriday = weekDayShort === "ج";
 
     const getCellStyle = (): string => {
-        // انیمیشن‌های نرم‌تر با duration-200
-        const base = "transition-all duration-200 ease-out border relative";
+        const base = "transition-all duration-300 ease-in-out border relative overflow-hidden";
+
+        // استایل برای روز امروز (Today)
+        if (isToday) {
+            return `${base} bg-infoL-foreground/10 dark:bg-infoD-foreground/20 border-infoL-foreground dark:border-infoD-foreground z-20 shadow-[0_0_15px_rgba(var(--info-rgb),0.3)]`;
+        }
 
         if (holiday) {
             if (holiday.type === HolidayType.OFFICIAL) {
-                // تعطیل رسمی
-                const fridayRing = isFriday
-                    ? "ring-2 ring-destructiveL dark:ring-destructiveD ring-offset-1"
-                    : "";
-                return `${base} bg-destructiveL dark:bg-destructiveD text-backgroundL-500 dark:text-backgroundD border-transparent font-black ${fridayRing}`;
+                const fridayRing = isFriday ? "ring-1 ring-destructiveL dark:ring-destructiveD ring-offset-1" : "";
+                return `${base} bg-destructiveL dark:bg-destructiveD text-white dark:text-backgroundD border-transparent font-black ${fridayRing}`;
             }
 
             if (holiday.type === HolidayType.AGREEMENT) {
-                // تعطیل توافقی
                 return `${base} bg-warningL-background dark:bg-warningD-background text-warningL-foreground dark:text-warningD-foreground border-warningL-foreground/30 font-bold`;
             }
         }
 
         if (isFriday) {
-            // جمعه عادی
             return `${base} bg-destructiveL-background dark:bg-destructiveD-background text-destructiveL-foreground dark:text-destructiveD-foreground border-destructiveL-foreground/10`;
         }
 
-        // روز عادی کاری
         return `${base} bg-backgroundL-500 dark:bg-backgroundD text-foregroundL/70 dark:text-foregroundD/70 border-borderL dark:border-borderD`;
     };
 
     return (
-        <div
-            className={`
-                ${className} 
-                ${getCellStyle()} 
-                ${isEditing ? `
-                    cursor-pointer 
-                    hover:scale-115 
-                    hover:z-50 
-                    hover:shadow-xl 
-                    hover:ring-2 
-                    hover:ring-infoL-foreground 
-                    dark:hover:ring-infoD-foreground
-                    ${!holiday ? 'hover:bg-secondaryL dark:hover:bg-secondaryD' : ''}
-                ` : 'cursor-default'}
-                ${isToday ? 'ring-2 ring-infoL-foreground dark:ring-infoD-foreground ring-offset-2 z-20' : ''}
-                rounded-lg flex flex-col items-center justify-center select-none group
-            `}
-            onClick={() => isEditing && onClick(date, holiday)}
-        >
-            {/* افکت درخشش ملایم در هاور برای روزهای غیرتعطیل */}
-            {isEditing && !holiday && (
-                <div className="absolute inset-0 rounded-lg bg-infoL-foreground/0 group-hover:bg-infoL-foreground/5 dark:group-hover:bg-infoD-foreground/5 transition-colors pointer-events-none" />
-            )}
+        <>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes soft-pulse {
+                    0%, 100% { transform: scale(1); opacity: 0.4; }
+                    50% { transform: scale(1.15); opacity: 0.1; }
+                }
+                @keyframes today-dot {
+                    0%, 100% { transform: translateY(0) scale(1); }
+                    50% { transform: translateY(-2px) scale(1.2); }
+                }
+            `}} />
 
-            {isToday && (
-                <span className="absolute inset-0 rounded-lg bg-infoL-foreground dark:bg-infoD-foreground animate-ping opacity-20 pointer-events-none"></span>
-            )}
+            <div
+                className={`
+                    ${className} 
+                    ${getCellStyle()} 
+                    ${isEditing ? `
+                        cursor-pointer 
+                        hover:scale-110 
+                        hover:z-50 
+                        hover:shadow-2xl 
+                        hover:ring-2 
+                        hover:ring-infoL-foreground/50
+                        ${!holiday && !isToday ? 'hover:bg-secondaryL dark:hover:bg-secondaryD' : ''}
+                    ` : 'cursor-default'}
+                    rounded-xl flex flex-col items-center justify-center select-none group
+                `}
+                onClick={() => isEditing && onClick(date, holiday)}
+            >
+                {/* انیمیشن پس‌زمینه برای امروز (Pulse Effect) */}
+                {isToday && (
+                    <div
+                        className="absolute inset-0 rounded-xl bg-infoL-foreground dark:bg-infoD-foreground pointer-events-none"
+                        style={{ animation: 'soft-pulse 3s infinite ease-in-out' }}
+                    />
+                )}
 
-            {weekDayShort && (
-                <span className={`text-[7px] leading-none mb-0.5 opacity-60 group-hover:opacity-100 transition-opacity ${isToday ? 'text-infoL-foreground dark:text-infoD-foreground font-bold' : ''}`}>
-                    {weekDayShort}
+                {/* نام روز هفته (کوتاه) */}
+                {weekDayShort && (
+                    <span className={`text-[8px] leading-none mb-0.5 transition-all duration-300 ${isToday
+                            ? 'text-infoL-foreground dark:text-infoD-foreground font-black'
+                            : 'opacity-50 group-hover:opacity-100'
+                        }`}>
+                        {weekDayShort}
+                    </span>
+                )}
+
+                {/* شماره روز */}
+                <span className={`text-xs leading-none font-bold transition-transform duration-300 group-hover:scale-110 ${isToday ? 'text-infoL-foreground dark:text-infoD-foreground scale-110' : ''
+                    }`}>
+                    {toPersianDigits(dayNumber)}
                 </span>
-            )}
 
-            <span className={`text-xs leading-none font-bold group-hover:scale-110 transition-transform ${isToday ? 'text-infoL-foreground dark:text-infoD-foreground' : ''}`}>
-                {toPersianDigits(dayNumber)}
-            </span>
+                {/* نشانگر نقطه‌ای متحرک برای امروز */}
+                {isToday && (
+                    <div
+                        className="absolute bottom-1 w-1 h-1 bg-infoL-foreground dark:bg-infoD-foreground rounded-full"
+                        style={{ animation: 'today-dot 2s infinite ease-in-out' }}
+                    />
+                )}
 
-            {isToday && (
-                <div className="w-1 h-1 bg-infoL-foreground dark:bg-infoD-foreground rounded-full mt-0.5 animate-dot-fade"></div>
-            )}
-        </div>
+                {/* افکت درخشش در حالت هاور برای ادیت */}
+                {isEditing && (
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                )}
+            </div>
+        </>
     );
 });

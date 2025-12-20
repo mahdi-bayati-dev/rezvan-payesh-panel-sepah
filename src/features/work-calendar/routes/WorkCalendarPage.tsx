@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { WorkCalendarGrid } from '../components/WorkCalendarGrid';
 import { HolidayType } from '../types';
 import type { ActiveTool } from '../types';
-// دریافت هوک دریافت داده‌ها در سطح صفحه برای مدیریت بهتر Bulk Action
 import { useGetHolidays, useBulkCreateHolidays, useBulkDeleteHolidays } from '../hooks/useWorkCalendar';
 import { getFridaysOfCurrentJalaliMonth, getFridaysInRange, getFridaysOfJalaliYear } from '../utils/calendarUtils';
 import moment from 'jalali-moment';
@@ -10,6 +9,9 @@ import {
     CalendarCheck, Check, Eraser, Flag, Handshake, SquarePen, Zap, CalendarDays, ChevronDown, Trash2
 } from 'lucide-react';
 
+/**
+ * کامپوننت انتخاب سال
+ */
 const YearPicker = ({ value, options, onChange }: any) => (
     <div className="relative w-full">
         <select
@@ -26,11 +28,25 @@ const YearPicker = ({ value, options, onChange }: any) => (
 );
 
 export const WorkCalendarPage = () => {
-    const [selectedJalaliYear, setSelectedJalaliYear] = useState(1404);
+    const currentJalaliYear = moment().jYear();
+
+    // تنظیم سال انتخابی به صورت پیش‌فرض روی سال جاری
+    const [selectedJalaliYear, setSelectedJalaliYear] = useState(currentJalaliYear);
     const [isEditing, setIsEditing] = useState(false);
     const [activeTool, setActiveTool] = useState<ActiveTool>(HolidayType.OFFICIAL);
 
-    // دریافت داده‌ها در سطح Page برای اشتراک‌گذاری بین Header و Grid
+    // تولید داینامیک لیست سال‌ها از 1403 تا 1410
+    // این روش بسیار بهینه‌تر از تعریف دستی آرایه است
+    const generateYearOptions = (start: number, end: number) => {
+        const years = [];
+        for (let year = start; year <= end; year++) {
+            years.push({ id: year, name: year.toString() });
+        }
+        return years;
+    };
+
+    const yearOptions = generateYearOptions(1403, 1410);
+
     const { data: holidayMap, isLoading } = useGetHolidays(selectedJalaliYear);
 
     return (
@@ -42,14 +58,15 @@ export const WorkCalendarPage = () => {
                 onIsEditingChange={setIsEditing}
                 activeTool={activeTool}
                 onActiveToolChange={setActiveTool}
-                holidayMap={holidayMap} // ارسال نقشه تعطیلات برای فیلتر هوشمند حذف
+                holidayMap={holidayMap}
+                yearOptions={yearOptions}
             />
             <main className="flex-1 w-full animate-fadeIn">
                 <WorkCalendarGrid
                     jalaliYear={selectedJalaliYear}
                     isEditing={isEditing}
                     activeTool={activeTool}
-                    holidayMap={holidayMap} // ارسال داده‌ها به گرید
+                    holidayMap={holidayMap}
                     isLoading={isLoading}
                 />
             </main>
@@ -64,14 +81,14 @@ const WorkCalendarHeader: React.FC<any> = ({
     onIsEditingChange,
     activeTool,
     onActiveToolChange,
-    holidayMap
+    holidayMap,
+    yearOptions
 }) => {
     const bulkCreate = useBulkCreateHolidays();
     const bulkDelete = useBulkDeleteHolidays();
     const [bulkMode, setBulkMode] = useState<'add' | 'remove'>('add');
 
     const handleBulkFridays = (type: string) => {
-        // ۱. تولید لیست جمعه‌های مورد نظر (به فرمت میلادی برای محاسبات)
         let targetGregorianDates: string[] = [];
         if (type === 'month') targetGregorianDates = getFridaysOfCurrentJalaliMonth();
         else if (type === '15') targetGregorianDates = getFridaysInRange(moment(), 15);
@@ -80,29 +97,21 @@ const WorkCalendarHeader: React.FC<any> = ({
         if (targetGregorianDates.length === 0) return;
 
         if (bulkMode === 'add') {
-            // ثبت دسته‌جمعی: ارسال تاریخ‌های میلادی
             bulkCreate.mutate(targetGregorianDates);
         } else {
-            /**
-             * ۲. فیلتر هوشمند برای جلوگیری از خطای 404:
-             * فقط تاریخ‌هایی را برای حذف می‌فرستیم که در حال حاضر در holidayMap وجود دارند.
-             */
             const existingJalaliDatesToDelete = targetGregorianDates
-                .filter(gregDate => !!holidayMap?.[gregDate]) // فقط اگر در مپ موجود بود
-                .map(gregDate => holidayMap[gregDate].date); // استخراج رشته تاریخ جلالی اصلی از دیتابیس
+                .filter(gregDate => !!holidayMap?.[gregDate])
+                .map(gregDate => holidayMap[gregDate].date);
 
             if (existingJalaliDatesToDelete.length > 0) {
                 bulkDelete.mutate(existingJalaliDatesToDelete);
-            } else {
-                // نمایش پیام یا لاگ در صورتی که هیچ جمعه‌ای برای حذف وجود نداشت
-                console.log("هیچ موردی برای حذف در این بازه یافت نشد.");
             }
         }
     };
 
     return (
         <div className="sticky top-4 z-40 flex flex-col gap-4">
-            <div className="bg-white  dark:bg-backgroundD rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white dark:bg-backgroundD rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-600">
                         <CalendarCheck className="w-6 h-6" />
@@ -115,7 +124,7 @@ const WorkCalendarHeader: React.FC<any> = ({
                 <div className="flex items-center gap-3">
                     <div className="w-32">
                         <YearPicker
-                            options={[{ id: 1403, name: "۱۴۰۳" }, { id: 1404, name: "۱۴۰۴" }, { id: 1405, name: "۱۴۰۵" }]}
+                            options={yearOptions}
                             value={selectedYear}
                             onChange={onYearChange}
                         />
