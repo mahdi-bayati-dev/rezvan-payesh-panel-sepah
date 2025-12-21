@@ -10,7 +10,7 @@ Broadcast::channel('App.User.{id}', function ($user, $id)
 
 Broadcast::channel('l3-channel.{organizationId}', function (User $user, $organizationId)
 {
-        $orgIdInt = (int) $organizationId;
+    $orgIdInt = (int) $organizationId;
 
     $userOrgId = $user->employee?->organization_id;
 
