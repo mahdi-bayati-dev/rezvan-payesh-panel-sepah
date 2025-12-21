@@ -125,7 +125,7 @@ class AttendanceLogController extends Controller
                 // Scenario 2: First check-in of the shift
                 elseif (!$hasPriorCheckIn) {
                     if ($logTimestamp->gt($expectedStart)) {
-                        $diffInMinutes = $expectedStart->diffInMinutes($logTimestamp);
+                        $diffInMinutes = (int) $expectedStart->diffInMinutes($logTimestamp);
 
                         if ($diffInMinutes > $floatingStart) {
                             // Deduct approved leave from the start of the shift
@@ -142,7 +142,7 @@ class AttendanceLogController extends Controller
             } elseif ($validated['event_type'] == AttendanceLog::TYPE_CHECK_OUT && $expectedEnd) {
                 // Scenario 3: Early Departure
                 if ($logTimestamp->lt($expectedEnd)) {
-                    $diffInMinutes = abs($expectedEnd->diffInMinutes($logTimestamp));
+                    $diffInMinutes = (int) abs($expectedEnd->diffInMinutes($logTimestamp));
 
                     if ($diffInMinutes > $floatingEnd) {
                         // Deduct approved leave from the end of the shift

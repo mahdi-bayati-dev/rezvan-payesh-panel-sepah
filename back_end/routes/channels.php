@@ -5,14 +5,19 @@ use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('App.User.{id}', function ($user, $id)
 {
-    \Log::info("Broadcast Auth Check: User {$user->id} trying to access {$id}");
     return (int) $user->id === (int) $id;
 });
 
 Broadcast::channel('l3-channel.{organizationId}', function (User $user, $organizationId)
 {
-    return $user->hasRole('org-admin-l3') &&
-           (int) $user->employee?->organization_id === $organizationId;
+    $orgIdInt = (int) $organizationId;
+
+    $userOrgId = $user->employee?->organization_id;
+
+    $hasRole = $user->hasRole('org-admin-l3');
+
+
+    return $hasRole && $userOrgId && ((int)$userOrgId === $orgIdInt);
 });
 
 Broadcast::channel('l2-channel.{organizationId}', function (User $user, $organizationId)
@@ -23,12 +28,6 @@ Broadcast::channel('l2-channel.{organizationId}', function (User $user, $organiz
 
     $hasRole = $user->hasRole('org-admin-l2');
 
-    \Log::info("Broadcast Auth L2:", [
-        'user_id' => $user->id,
-        'has_role' => $hasRole ? 'YES' : 'NO',
-        'user_org_from_employee' => $userOrgId,
-        'requested_org' => $orgIdInt,
-    ]);
 
     return $hasRole && $userOrgId && ((int)$userOrgId === $orgIdInt);
 
