@@ -22,3 +22,4 @@ interface Window {
     VITE_AUTH_MODE?: string;
   };
 }
+declare const __APP_VERSION__: string;

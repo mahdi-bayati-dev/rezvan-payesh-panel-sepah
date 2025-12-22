@@ -3,6 +3,8 @@ import { useAppSelector } from "@/store";
 import { selectUserRoles } from "@/store/slices/authSlice";
 import { ROLES } from "@/constants/roles";
 import { ThemeToggleBtn } from "@/components/ui/ThemeToggleBtn";
+import { AppVersionBadge } from "@/components/ui/AppVersionBadge";
+
 
 // ✅ اصلاح ایمپورت: مستقیماً از هوک استفاده می‌کنیم نه از فایل کامپوننت
 import { useOnboarding } from '@/features/Onboarding/useOnboarding';
@@ -69,19 +71,23 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
       </div>
 
       <div className="flex items-center gap-3 md:mr-5">
+
+
         <button
-          onClick={() => startTour(true)} // ✅ پارامتر true برای اجرای دستی (Force)
+          onClick={() => startTour(true)}
           className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all flex items-center gap-2 group border border-transparent hover:border-blue-200"
           title="راهنمای این صفحه"
         >
           <HelpCircle className="w-5 h-5 group-hover:animate-bounce" />
           <span className="text-sm font-bold hidden md:inline">راهنما</span>
         </button>
-        <div className="flex items-center justify-center">
-          <ThemeToggleBtn />
-        </div>
+
+        <ThemeToggleBtn />
+
         <div className="h-6 w-px bg-borderL dark:bg-borderD mx-1 hidden sm:block"></div>
+        <AppVersionBadge />
       </div>
+
     </header>
   );
 };
