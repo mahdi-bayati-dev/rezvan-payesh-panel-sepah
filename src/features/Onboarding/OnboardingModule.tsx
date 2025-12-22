@@ -1,161 +1,177 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useOnboarding } from './useOnboarding';
 import "driver.js/dist/driver.css";
 
-
-const OnboardingSystem: React.FC = () => {
+const OnboardingSystem = () => {
     const { startTour, driverInstance, currentPath } = useOnboarding();
 
     useEffect(() => {
+        /**
+         * منطق ترجمه متون داخلی driver.js
+         * تبدیل "1 of 5" به "گام ۱ از ۵"
+         */
+        const translateTourElements = () => {
+            // کست کردن به HTMLElement برای دسترسی به innerText و dataset
+            const progressText = document.querySelector<HTMLElement>('.driver-popover-progress-text');
+
+            if (progressText && !progressText.dataset.translated) {
+                let text = progressText.innerText;
+
+                // استفاده از _ برای متغیرهایی که استفاده نمی‌شوند و تایپ‌دهی صریح به پارامترها
+                text = text.replace(/(\d+)\s+of\s+(\d+)/, (_match: string, current: string, total: string) => {
+                    return `گام ${current} از ${total}`;
+                });
+
+                progressText.innerText = text;
+                progressText.dataset.translated = "true"; // جلوگیری از تکرار در هر تیک Mutation
+            }
+        };
+
+        // حذف آرگومان mutations چون از آن استفاده نمی‌کنیم (رفع خطای TS6133)
+        const observer = new MutationObserver(() => {
+            translateTourElements();
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
         const timer = setTimeout(() => {
             startTour(false);
         }, 1500);
 
         return () => {
             clearTimeout(timer);
+            observer.disconnect(); // پاکسازی observer برای جلوگیری از Memory Leak
             if (driverInstance.current) {
                 driverInstance.current.destroy();
             }
         };
-    }, [startTour, currentPath]);
+    }, [startTour, currentPath, driverInstance]);
 
     return (
         <style>{`
-            /* قانون کلی و قوی برای اعمال فونت به تمام اجزای popover */
+            /* تنظیمات فونت و راست‌چین کردن */
             .driver-popover,
             .driver-popover * {
                 font-family: 'Vazirmatn', sans-serif !important;
                 direction: rtl !important;
+                font-feature-settings: "ss01" !important; 
             }
 
-            /* محفظه اصلی پاپ‌اور */
-            .rezvan-onboarding-popover,
-            .driver-popover {
-                background: rgba(255, 255, 255, 0.95) !important;
-                backdrop-filter: blur(10px) !important;
-                border-radius: 24px !important;
-                padding: 28px !important;
-                border: 1px solid rgba(255, 255, 255, 0.3) !important;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-                max-width: 800px !important;
-                animation: rezvan-fade-in 0.3s ease-out !important;
+            /* استایل‌های Glassmorphism و سفارشی‌سازی */
+            .rezvan-onboarding-popover.driver-popover {
+                background: rgba(255, 255, 255, 0.98) !important;
+                backdrop-filter: blur(12px) !important;
+                border-radius: 20px !important;
+                padding: 30px 25px 22px 25px !important;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1) !important;
+                border: 1px solid rgba(226, 232, 240, 0.8) !important;
+                max-width: 500px !important;
             }
 
-            .dark .rezvan-onboarding-popover,
-            .dark .driver-popover {
-                background: rgba(15, 23, 42, 0.9) !important;
+            .dark .rezvan-onboarding-popover.driver-popover {
+                background: #1e293b !important;
+                border-color: #334155 !important;
                 color: #f8fafc !important;
-                border: 1px solid rgba(51, 65, 85, 0.5) !important;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-            }
-
-            @keyframes rezvan-fade-in {
-                from { opacity: 0; transform: translateY(10px) scale(0.95); }
-                to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-
-            /* عنوان */
-            .driver-popover-title {
-                font-size: 1.25rem !important;
-                font-weight: 800 !important;
-                color: #1e40af !important;
-                margin-bottom: 14px !important;
-                text-align: right !important;
-                display: flex !important;
-                align-items: center !important;
-                gap: 8px !important;
-            }
-            .dark .driver-popover-title {
-                color: #60a5fa !important;
-            }
-
-            /* توضیحات */
-            .driver-popover-description {
-                font-size: 0.95rem !important;
-                line-height: 1.8 !important;
-                color: #475569 !important;
-                text-align: justify !important;
-                margin-bottom: 20px !important;
-            }
-            .dark .driver-popover-description {
-                color: #cbd5e1 !important;
-            }
-
-            /* پیشرفت */
-            .driver-popover-progress-text {
-                font-size: 0.8rem !important;
-                font-weight: 500 !important;
-                color: #94a3b8 !important;
-                flex-grow: 1 !important;
-            }
-
-            /* فوتر و دکمه‌ها */
-            .driver-popover-footer {
-                margin-top: 15px !important;
-                border-top: 1px solid rgba(0,0,0,0.05) !important;
-                padding-top: 15px !important;
-                display: flex !important;
-                align-items: center !important;
-            }
-            .dark .driver-popover-footer {
-                border-color: rgba(255,255,255,0.05) !important;
-            }
-
-            .driver-popover-navigation-btns {
-                display: flex !important;
-                gap: 8px !important;
-                flex-direction: row-reverse !important;
-            }
-
-            .driver-popover-next-btn,
-            .driver-popover-prev-btn {
-                border-radius: 12px !important;
-                padding: 8px 18px !important;
-                font-weight: 600 !important;
-                font-size: 0.85rem !important;
-                transition: all 0.2s ease !important;
-                border: none !important;
-                cursor: pointer !important;
-            }
-
-            .driver-popover-next-btn {
-                background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-                color: white !important;
-                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
-            }
-            .driver-popover-next-btn:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4) !important;
-            }
-
-            .driver-popover-prev-btn {
-                background: #f1f5f9 !important;
-                color: #64748b !important;
-            }
-            .dark .driver-popover-prev-btn {
-                background: #1e293b !important;
-                color: #94a3b8 !important;
-            }
-
-            /* المان هایلایت شده */
-            .driver-active-element {
-                box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.4) !important;
-                transition: all 0.3s ease !important;
-                background: white !important;
-                z-index: 100000 !important;
-            }
-            .dark .driver-active-element {
-                background: #1e293b !important;
             }
 
             /* دکمه بستن */
             .driver-popover-close-btn {
-                color: #94a3b8 !important;
-                transition: color 0.2s !important;
+                top: 15px !important;
+                right: 15px !important;
+                left: auto !important;
+                width: 30px !important;
+                height: 30px !important;
+                background: #f1f5f9 !important;
+                border-radius: 50% !important;
+                color: #64748b !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                border: none !important;
+                font-size: 20px !important;
             }
+
             .driver-popover-close-btn:hover {
+                background: #fee2e2 !important;
                 color: #ef4444 !important;
+                transform: rotate(90deg) !important;
             }
+
+            .dark .driver-popover-close-btn {
+                background: #334155 !important;
+                color: #94a3b8 !important;
+            }
+
+            /* نشانگر پیشرفت */
+            .driver-popover-progress-text {
+                font-size: 12px !important;
+                font-weight: 800 !important;
+                color: #2563eb !important;
+                background: #eff6ff !important;
+                padding: 6px 14px !important;
+                border-radius: 100px !important;
+                border: 1px solid #dbeafe !important;
+            }
+
+            .dark .driver-popover-progress-text {
+                background: rgba(37, 99, 235, 0.1) !important;
+                color: #60a5fa !important;
+                border-color: rgba(37, 99, 235, 0.2) !important;
+            }
+
+            /* فوتر و دکمه‌های ناوبری */
+            .driver-popover-footer {
+                margin-top: 25px !important;
+                padding-top: 15px !important;
+                border-top: 1px solid #f1f5f9 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+            }
+
+            .dark .driver-popover-footer { border-top-color: #334155 !important; }
+
+            .driver-popover-next-btn, 
+            .driver-popover-prev-btn {
+                border-radius: 12px !important;
+                padding: 10px 20px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                transition: all 0.2s !important;
+                border: none !important;
+            }
+
+            .driver-popover-next-btn {
+                background: #2563eb !important;
+                color: white !important;
+                box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2) !important;
+            }
+
+            .driver-popover-prev-btn {
+                background: #f1f5f9 !important;
+                color: #475569 !important;
+            }
+
+            .dark .driver-popover-prev-btn {
+                background: #334155 !important;
+                color: #cbd5e1 !important;
+            }
+
+            .driver-popover-title {
+                font-weight: 900 !important;
+                font-size: 1.2rem !important;
+                color: #0f172a !important;
+                margin-top:1rem;
+            }
+
+            .driver-popover-description {
+                font-size: 0.95rem !important;
+                color: #475569 !important;
+                line-height: 1.8 !important;
+            }
+            
+            .dark .driver-popover-description { color: #94a3b8 !important; }
         `}</style>
     );
 };

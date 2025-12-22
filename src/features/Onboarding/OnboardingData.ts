@@ -8,76 +8,71 @@ import { type DriveStep } from "driver.js";
 
 export const TOUR_STEPS: Record<string, DriveStep[]> = {
   "/dashboard": [
-    // تنظیمات راهنمای بخش پیشخوان (Dashboard Tour)
     {
-      element: "#stats-cards-area",
+      element: "#help-guide-trigger", // دکمه راهنما در گوشه سمت چپ
       popover: {
-        title: "📊 تحلیل وضعیت لحظه‌ای نیروی انسانی",
+        title: "💡 دکمه راهنمای هوشمند و سریع",
         description: `
-      <div class="space-y-4 text-justify leading-relaxed">
-        <p>در این بخش، <b>دید ۳۶۰ درجه</b> از وضعیت حضور و غیاب پرسنل در لحظه حاضر را مشاهده می‌کنید:</p>
-        
-        <ul class="list-none p-0 space-y-2 text-sm">
-          <li class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-green-500"></span>
-            <b>حاضرین امروز:</b> تعداد افرادی که ورود آن‌ها در سامانه ثبت شده است.
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-            <b>تاخیرها و تعجیل‌ها:</b> شناسایی دقیق افرادی که خارج از بازه استاندارد تردد داشته‌اند.
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-red-500"></span>
-            <b>غایبین / بدون شیفت:</b> افرادی که وضعیت تردد آن‌ها با برنامه کاری مطابقت ندارد.
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-            <b>کل پرسنل:</b> مجموع ظرفیت نیروی انسانی تحت مدیریت شما.
-          </li>
-        </ul>
-
-        <hr class="border-gray-200 my-2" />
-
-        <div class="bg-blue-50 p-2 rounded-md border-r-4 border-blue-400">
-          <p class="text-xs text-blue-800">
-             <b>💡 نکته مدیریتی:</b> با استفاده از دکمه <span class="font-bold">"بروزرسانی نمودار"</span>، می‌توانید آخرین داده‌های دریافتی از دستگاه‌های حضور و غیاب را بدون نیاز به رفرش صفحه، در نمودار زیرین همگام‌سازی کنید.
-          </p>
-        </div>
-      </div>
-    `,
+          <div class="space-y-4 text-justify leading-relaxed">
+            <div class="flex justify-start">
+              <span class="p-2 px-3 text-blue-600 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2 shadow-sm transition-all hover:scale-105">
+                
+                <span class="text-sm font-bold">راهنما</span>
+              </span>
+            </div>
+            <p class="text-sm text-gray-700">قبل از شروع، این ابزار حیاتی را بشناسید! در هر صفحه‌ای از اپلیکیشن که باشید، با کلیک روی این دکمه در <b>گوشه سمت چپ</b> (مشابه تصویر بالا)، راهنمای اختصاصی همان بخش برای شما باز می‌شود.</p>
+            <div class="p-2 bg-blue-50 border-r-4 border-blue-500 rounded text-[11px] text-blue-800 font-medium leading-5">
+              هدف ما این است که شما بدون نیاز به آموزش حضوری، به تمام قابلیت‌های سامانه مسلط شوید.
+            </div>
+          </div>
+        `,
         side: "bottom",
         align: "start",
       },
     },
-    // تحلیل بصری و نمودار آماری
     {
-      element: "#main-attendance-chart",
+      element: "#stats-overview-area", // محفظه کارت‌های آمار (StatCards)
       popover: {
-        title: "📈 تحلیل استراتژیک و پایش روندها",
+        title: "📊 کارت‌های آمار وضعیت لحظه‌ای",
         description: `
-      <div class="space-y-3 text-justify">
-        <p>این نمودار، <b>تفسیر بصری داده‌های خام</b> است. شما در اینجا می‌توانید نوسانات حضور و غیاب را در بازه‌های زمانی مختلف رصد کنید.</p>
-        
-        <div class="grid grid-cols-1 gap-2 mt-3">
-          <div class="flex items-start gap-2 text-sm">
-            <span class="mt-1 text-blue-600">●</span>
-            <span><b>شناسایی الگوها:</b> تشخیص زمان‌های اوج ورود و خروج برای مدیریت بهتر ترافیک انسانی.</span>
+          <div class="space-y-3 text-justify leading-relaxed text-gray-700">
+            <p class="text-sm">در این بخش، وضعیت حضور و غیاب کل سازمان را در همین لحظه مشاهده می‌کنید. آمار به چهار دسته اصلی تقسیم شده است:</p>
+            <ul class="list-none pr-4 space-y-2 text-[11px]">
+              <li><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 ml-2"></span><b>حاضرین:</b> افرادی که ورودشان ثبت شده است.</li>
+              <li><span class="inline-block w-2 h-2 rounded-full bg-amber-500 ml-2"></span><b>تاخیرها:</b> افرادی که خارج از بازه مجاز وارد شده‌اند.</li>
+              <li><span class="inline-block w-2 h-2 rounded-full bg-rose-500 ml-2"></span><b>غایبین:</b> افرادی که طبق شیفت باید حاضر می‌بودند اما ترددی ندارند.</li>
+            </ul>
           </div>
-          <div class="flex items-start gap-2 text-sm">
-            <span class="mt-1 text-blue-600">●</span>
-            <span><b>پایش لحظه‌ای:</b> همگام‌سازی مستقیم با خروجی دستگاه‌های ثبت تردد.</span>
+        `,
+        side: "bottom",
+        align: "center",
+      },
+    },
+    {
+      element: "#attendance-trend-chart", // بخش AttendanceChart
+      popover: {
+        title: "📈 نمودار تحلیلی روند ترددها",
+        description: `
+          <div class="space-y-3 text-justify">
+            <p class="text-sm text-gray-700 leading-6 text-justify">این نمودار، <b>تفسیر بصری داده‌های حجیم</b> سازمان شماست. شما می‌توانید نوسانات حضور پرسنل را در بازه‌های زمانی مختلف تحلیل کنید.</p>
+            <div class="p-2 bg-indigo-50 border border-indigo-100 rounded text-[11px] text-indigo-700 italic">
+              <b>مثال کاربردی:</b> اگر در روزهای سه‌شنبه نمودار غیبت‌ها اوج می‌گیرد، می‌توانید برای آن روز سیاست‌های تشویقی یا مدیریتی خاصی وضع کنید.
+            </div>
           </div>
-        </div>
-
-        <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <p class="text-xs text-gray-600">
-            <i class="opacity-70">نکته:</i> اگر نمودار خالی است، از دکمه <b>"بروزرسانی نمودار"</b> در سمت چپ استفاده کنید
-          </p>
-        </div>
-      </div>
-    `,
+        `,
         side: "top",
         align: "center",
+      },
+    },
+    {
+      element: "#dashboard-refresh-data", // دکمه آپدیت در هدر
+      popover: {
+        title: "🔄 دکمه بروزرسانی آنی داده‌ها",
+        description: `
+          <p class="text-sm text-gray-700 leading-6">داده‌های پیشخوان به صورت هوشمند کش می‌شوند. با استفاده از این دکمه، می‌توانید در لحظه آخرین ترددهای ثبت شده توسط دوربین‌ها را با داشبورد همگام‌سازی کنید.</p>
+        `,
+        side: "bottom",
+        align: "end",
       },
     },
   ],
@@ -97,206 +92,18 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
   ],
 
   // تنظیمات راهنمای بخش مدیریت درخواست‌ها
+  // ۲. لیست اصلی درخواست‌ها
   "/requests": [
-    // مرحله اول: پنل فیلترینگ و تنظیمات پایه
     {
-      element: "#filter-sidebar",
+      element: "#requests-filter-card",
       popover: {
-        title: "🔍 جستجو و مدیریت دسته‌بندی‌ها",
-        description: `
-        <div class="space-y-3 text-justify leading-relaxed text-gray-700">
-          <p>در این بخش می‌توانید با فیلترهای هوشمند، سریع‌تر به درخواست مورد نظر برسید. امکان تفکیک بر اساس <b>وضعیت</b> و <b>بازه زمانی</b> فراهم شده است.</p>
-          
-          <div class="bg-blue-50 border-r-4 border-blue-500 p-3 rounded-l-lg shadow-sm">
-            <div class="flex items-center gap-2 mb-1 text-blue-800 font-bold text-sm">
-              <span>⚙️ تنظیمات پیشرفته:</span>
-            </div>
-            <p class="text-xs text-blue-700 leading-5">
-              با کلیک روی دکمه <b>"تنظیمات"</b>، ساختار اصلی درخواست‌ها شامل گروه‌ها و زیرمجموعه‌ها را تعریف یا ویرایش کنید.
-            </p>
-          </div>
-        </div>
-      `,
-        side: "right",
-        align: "start",
-      },
-    },
-
-    // مرحله دوم: کارت اصلی و مدیریت لیست
-    {
-      element: "#requests-main-card",
-      popover: {
-        title: "📋 پایش هوشمند درخواست‌ها",
-        description: `
-        <div class="space-y-4">
-          <p class="text-gray-600 text-sm leading-6">تمامی درخواست‌های ثبت شده توسط کاربران در این جدول قابل مشاهده هستند. برای درک بهتر وضعیت، به رنگ‌ها توجه کنید:</p>
-          
-          <div class="grid grid-cols-2 gap-2 text-xs font-medium">
-            <div class="flex items-center gap-2 p-2 bg-amber-50 text-amber-700 rounded border border-amber-100">
-              <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              در انتظار بررسی
-            </div>
-            <div class="flex items-center gap-2 p-2 bg-rose-50 text-rose-700 rounded border border-rose-100">
-              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-              رد شده
-            </div>
-          </div>
-
-          <div class="flex items-start gap-2 bg-gray-50 p-2 rounded text-xs text-gray-500">
-            <span class="mt-0.5">💡</span>
-            <span>با کلیک روی سرستون‌ها، می‌توانید لیست را بر اساس اولویت خود مرتب‌سازی کنید.</span>
-          </div>
-        </div>
-      `,
-        side: "bottom",
-        align: "center",
-      },
-    },
-
-    // مرحله سوم: خروجی گرفتن و گزارش‌دهی (بر اساس تصویر دکمه اکسل بالای جدول)
-    {
-      element: "#export-excel-btn",
-      popover: {
-        title: "📊 خروجی هوشمند اکسل",
-        description: `
-        <div class="space-y-3 text-gray-700">
-          <p class="text-sm leading-relaxed">با استفاده از این قابلیت، می‌توانید یک گزارش دقیق و طبقه‌بندی شده از تمامی درخواست‌های موجود در جدول (بر اساس فیلترهای اعمال شده) دریافت کنید.</p>
-          
-          <div class="flex items-center gap-2 p-2 bg-green-50 border border-green-100 rounded text-xs text-green-700 font-medium">
-            <span class="text-lg">📥</span>
-            <span>خروجی شامل تمامی فیلدها، وضعیت‌ها و زمان ثبت درخواست است.</span>
-          </div>
-          
-          <p class="text-[11px] text-gray-400 italic font-light">نکته: فایل اکسل دریافتی مستقیماً برای نرم‌افزارهای حسابداری و آفیس بهینه شده است.</p>
-        </div>
-      `,
-        side: "bottom",
-        align: "end",
-      },
-    },
-
-    // مرحله چهارم: عملیات تکی بر روی هر درخواست
-    {
-      element: ".action-menu-trigger",
-      popover: {
-        title: "🛠 مدیریت و پاسخگویی",
-        description: `
-        <div class="space-y-3">
-          <p class="text-sm leading-6">در انتهای هر ردیف با کلیک روی منوی <b class="text-lg">⋮</b> می‌توانید:</p>
-          <ul class="space-y-2 text-xs">
-            <li class="flex items-center gap-2 text-gray-700">
-              <span class="p-1 bg-blue-100 text-blue-600 rounded">👁️</span> 
-              <b>مشاهده جزئیات:</b> بررسی متن کامل و پیوست‌ها.
-            </li>
-            <li class="flex items-center gap-2 text-gray-700">
-              <span class="p-1 bg-emerald-100 text-emerald-600 rounded">✔️</span> 
-              <b>تایید یا رد:</b> تعیین وضعیت نهایی درخواست.
-            </li>
-            <li class="flex items-center gap-2 text-gray-700">
-              <span class="p-1 bg-rose-100 text-rose-600 rounded">🗑️</span> 
-              <b>حذف:</b> پاک کردن رکوردهای اضافی.
-            </li>
-          </ul>
-        </div>
-      `,
-        side: "left",
-        align: "center",
-      },
-    },
-  ],
-  "/requests/:id": [
-    // گام اول: خلاصه وضعیت و اطلاعات پایه
-    {
-      element: "#request-header-card", // آیدی کارت بالایی شامل نام کاربر و نوع درخواست
-      popover: {
-        title: "👤 شناسنامه درخواست",
-        description: `
-        <div class="space-y-3 text-gray-700">
-          <p class="text-sm leading-6">در این بخش، مشخصات فردی متقاضی، <b>نوع درخواست</b> (مرخصی، ماموریت و ...) و اولویت آن را مشاهده می‌کنید.</p>
-          <div class="flex items-center gap-2 text-xs bg-blue-50 p-2 rounded border border-blue-100 text-blue-800 font-medium">
-            <span>ℹ️</span>
-            <span>همه جزییات در خواست و درخواست کننده رو میتوانید ببینید در اینجا</span>
-          </div>
-        </div>
-      `,
-        side: "bottom",
-        align: "start",
-      },
-    },
-
-    // گام دوم: شرح و مستندات
-    {
-      element: "#request-content-area", // بخش توضیحات متنی درخواست
-      popover: {
-        title: "📝 جزئیات و دلایل",
-        description: `
-        <div class="space-y-3">
-          <p class="text-sm text-gray-600">علت ثبت درخواست و توضیحات تکمیلی کاربر در  قسمت </b><b> توضیحات درج شده است</p>
-        </div>
-      `,
-        side: "top",
-        align: "center",
-      },
-    },
-
-    // گام سوم: خط زمان و جریان تایید (Timeline)
-    {
-      element: "#request-timeline", // بخشی که نشان می‌دهد درخواست دست چه کسانی بوده
-      popover: {
-        title: "⏳ گردش کار (Workflow)",
-        description: `
-        <div class="space-y-3">
-          <p class="text-sm text-gray-700 leading-relaxed">درخواست‌ها در سازمان شما یک مسیر تایید را طی می‌کنند. اینجا می‌توانید ببینید درخواست در چه مرحله‌ای است:</p>
-          <ul class="space-y-2 text-[11px]">
-            <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> تایید شده توسط مدیر مستقیم</li>
-            <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> در انتظار بررسی منابع انسانی</li>
-          </ul>
-        </div>
-      `,
-        side: "right",
-        align: "start",
-      },
-    },
-
-    // گام چهارم: پنل عملیات نهایی
-    {
-      element: "#request-actions-panel", // دکمه‌های تایید، رد و ثبت نظر
-      popover: {
-        title: "⚖️ تصمیم‌گیری نهایی",
-        description: `
-        <div class="space-y-4">
-          <p class="text-sm text-gray-700">اکنون نوبت شماست! می‌توانید با استفاده از دکمه‌های زیر عمل کنید:</p>
-          
-          <div class="grid grid-cols-1 gap-2">
-            <div class="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded text-xs">
-              <b>✅ تایید:</b> تایید درخواست و ارجاع به مرحله بعد.
-            </div>
-            <div class="flex items-center gap-2 p-2 bg-rose-50 text-rose-700 rounded text-xs">
-              <b>❌ رد درخواست:</b> رد کردن با امکان درج دلیل (جهت اطلاع کاربر).
-            </div>
-          </div>
-
-          <div class="p-2 bg-gray-100 rounded text-[11px] text-gray-500 italic">
-            نکته: پس از ثبت نظر، سیستم به صورت خودکار از طریق نوتیفیکیشن یا پیامک به کاربر اطلاع‌رسانی می‌کند.
-          </div>
-        </div>
-      `,
-        side: "left",
-        align: "center",
-      },
-    },
-  ],
-  // --- بخش جدید: تنظیمات ساختار درخواست‌ها ---
-  "/requests/settings-table": [
-    {
-      element: "#settings-table-container",
-      popover: {
-        title: "⚙️ پیکربندی زیرساخت درخواست‌ها",
+        title: "🔍 پنل فیلترینگ پیشرفته",
         description: `
           <div class="space-y-3 text-justify leading-relaxed">
-            <p>این صفحه قلب تپنده بخش درخواست‌هاست. شما در اینجا <b>منطق و انواع مرخصی‌ها یا ماموریت‌های</b> مجاز در سازمان را تعریف می‌کنید.</p>
-            <div class="p-2 bg-amber-50 border-r-4 border-amber-400 text-xs text-amber-800">
-              تغییر در این بخش مستقیماً روی فرم‌های ثبت درخواست تمامی پرسنل تاثیر می‌گذارد.
+            <p class="text-sm text-gray-700 font-medium text-justify">برای مدیریت انبوه درخواست‌ها، از این پنل استفاده کنید. شما می‌توانید بر اساس <b>وضعیت</b> (در انتظار، تایید شده، رد شده) و <b>نوع درخواست</b> لیست را محدود کنید.</p>
+            <div class="flex items-center gap-2 p-2 bg-blue-50 border border-blue-100 rounded text-[11px] text-blue-800">
+              <span>💡</span>
+              <span>مثال: فقط درخواست‌های "مرخصی استحقاقی" که "در انتظار" هستند را مشاهده کنید.</span>
             </div>
           </div>
         `,
@@ -305,13 +112,18 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
       },
     },
     {
-      element: "#add-new-category-btn",
+      element: "#export-requests-btn",
       popover: {
-        title: "➕ افزودن ریشه جدید",
+        title: "📥 دکمه خروجی اکسل و گزارش‌گیری",
         description: `
-          <div class="space-y-2 text-sm text-gray-700">
-            <p>برای ایجاد یک دسته اصلی (مثلاً <b>"مرخصی"</b> یا <b>"خدمات فنی"</b>) از این دکمه استفاده کنید.</p>
-            <p class="text-xs text-blue-600 italic">پس از ایجاد، می‌توانید بی‌نهایت زیرمجموعه برای آن تعریف کنید.</p>
+          <div class="space-y-4 text-justify leading-relaxed">
+            <div class="flex justify-start">
+              <span class="p-2 px-3 text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 shadow-sm">
+                <span class="text-base">📊</span>
+                <span class="text-sm font-bold">خروجی اکسل</span>
+              </span>
+            </div>
+            <p class="text-sm text-gray-700 leading-6">نیاز به گزارش چاپی دارید؟ با این دکمه، لیست فیلتر شده را در قالب فایل اکسل برای امور اداری و حسابداری دریافت کنید.</p>
           </div>
         `,
         side: "bottom",
@@ -319,48 +131,85 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
       },
     },
     {
-      element: ".main-category-row", // کلاسی برای سطرهای اصلی جدول
+      element: "#requests-table-settings-btn",
       popover: {
-        title: "📂 مدیریت دسته‌بندی‌های اصلی",
+        title: "⚙️ دکمه تنظیمات پایه درخواست‌ها",
         description: `
-          <p class="text-sm leading-6">هر سطر نمایانگر یک گروه اصلی است. شما می‌توانید تعداد <b>زیرمجموعه‌های فعال</b> و وضعیت نمایش آن‌ها را در یک نگاه بررسی کنید.</p>
+          <div class="space-y-3">
+             <p class="text-sm text-gray-700 leading-6 text-justify">قبل از هر چیز، باید انواع درخواست‌های مجاز در سازمان را تعریف کنید. با کلیک بر روی این دکمه به صفحه <b>مدیریت دسته‌بندی‌ها</b> منتقل می‌شوید.</p>
+          </div>
         `,
-        side: "top",
+        side: "bottom",
         align: "start",
       },
     },
+  ],
+
+  // ۳. جزئیات یک درخواست خاص
+  "/requests/:id": [
     {
-      element: ".manage-sub-items-btn", // دکمه مدیریت زیرمجموعه‌ها در هر سطر
+      element: "#request-info-card",
       popover: {
-        title: "🔗 هر ایتم ریشه مثل (استعلاجی)",
+        title: "📄 شناسنامه کامل درخواست",
         description: `
-          <div class="space-y-3">
-            <p class="text-sm text-gray-700 leading-6">با کلیک روی هر ایتم، وارد لایه دوم تنظیمات می‌شوید تا مواردی مثل <b>"استحقاقی"</b>، <b>"استعلاجی"</b> یا <b>"بدون حقوق"</b> را ذیل عنوان اصلی تعریف کنید.</p>
-            <div class="flex items-center gap-2 p-2 bg-indigo-50 rounded text-[11px] text-indigo-700 border border-indigo-100">
-              <span>💡</span>
-              <span>دقت کنید که تنظیمات قوانین (مثل سقف مجاز) در سطح زیرمجموعه‌ها اعمال می‌شود.</span>
-            </div>
+          <div class="space-y-3 text-justify leading-relaxed text-gray-700">
+            <p class="text-sm">در این بخش، تمام جزئیات شامل <b>زمان شروع و پایان</b>، <b>مدت زمان کارکرد/غیبت</b> و علت ثبت درخواست را مشاهده می‌کنید.</p>
           </div>
         `,
-        side: "right",
+        side: "bottom",
         align: "center",
       },
     },
     {
-      element: ".settings-action-group", // گروه دکمه‌های ویرایش و حذف
+      element: "#request-actions-panel",
       popover: {
-        title: "🛠 عملیات ویرایشی",
+        title: "⚖️ پنل تصمیم‌گیری و تایید نهایی",
+        description: `
+          <div class="space-y-4 text-justify leading-relaxed">
+            <p class="text-sm text-gray-700 font-bold text-justify">نوبت شماست! سرنوشت این درخواست را با دو دکمه زیر تعیین کنید:</p>
+            <div class="flex flex-col gap-2">
+               <div class="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100">
+                  <span class="font-bold">✅ تایید:</span> تایید نهایی و اعمال در کارکرد پرسنل.
+               </div>
+               <div class="flex items-center gap-2 p-2 bg-rose-50 text-rose-700 rounded-lg border border-rose-100">
+                  <span class="font-bold">❌ رد درخواست:</span> ابطال درخواست (با امکان درج دلیل رد).
+               </div>
+            </div>
+          </div>
+        `,
+        side: "left",
+        align: "center",
+      },
+    },
+  ],
+
+  // ۴. تنظیمات انواع درخواست (Table Settings)
+  "/requests/settings-table": [
+    {
+      element: "#add-leave-type-btn",
+      popover: {
+        title: "➕ دکمه تعریف نوع درخواست جدید",
+        description: `
+          <div class="space-y-4 text-justify leading-relaxed">
+            <div class="flex justify-start">
+              <span class="p-2 px-3 text-white bg-blue-900 rounded-lg flex items-center gap-2 shadow-md">
+                <span class="text-sm font-bold">افزودن ریشه جدید</span>
+              </span>
+            </div>
+            <p class="text-sm text-gray-700 text-justify">در این بخش می‌توانید انواع مرخصی‌ها (استحقاقی، استعلاجی، بدون حقوق) یا ماموریت‌ها را به سامانه معرفی کنید.</p>
+          </div>
+        `,
+        side: "bottom",
+        align: "end",
+      },
+    },
+    {
+      element: ".leave-type-row-actions",
+      popover: {
+        title: "🛠️ مدیریت و ویرایش دسته‌ها",
         description: `
           <div class="space-y-3">
-            <p class="text-sm text-gray-700">کنترل کامل روی عناوین در دستان شماست:</p>
-            <ul class="space-y-2 text-xs">
-              <li class="flex items-center gap-2 text-blue-600 font-bold">
-                <span>✏️</span> ویرایش: تغییر نام یا اصلاح تنظیمات سیستمی.
-              </li>
-              <li class="flex items-center gap-2 text-rose-600 font-bold">
-                <span>🗑️</span> حذف: پاک کردن دسته (تنها در صورتی که درخواستی با این عنوان ثبت نشده باشد).
-              </li>
-            </ul>
+            <p class="text-sm text-gray-700 leading-6 text-justify">شما می‌توانید در هر زمان، قوانین مربوط به هر نوع درخواست را ویرایش کرده یا دسته‌های قدیمی که دیگر استفاده نمی‌شوند را حذف نمایید.</p>
           </div>
         `,
         side: "left",
@@ -385,28 +234,15 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
 
   "/reports": [
     {
-      element: "#report-filter-sidebar",
+      element: "#reports-activity-filters",
       popover: {
         title: "🎯 شخصی‌سازی هوشمند گزارش",
         description: `
           <div class="space-y-3 text-justify leading-relaxed">
-            <p class="text-sm text-gray-700">برای رسیدن به دیتای دقیق، ابتدا باید محدوده خود را مشخص کنید. شما می‌توانید بر اساس ، <b>شخص خاص</b> یا <b>بازه زمانی</b> (روز، ماه، سال) لیست را محدود کنید.</p>
+            <p class="text-sm text-gray-700">برای استخراج دیتای دقیق، از فیلترهای ترکیبی استفاده کنید. شما می‌توانید گزارش را بر اساس <b>بازه زمانی</b>، <b>واحد سازمانی</b> یا <b>فرد خاص</b> شخصی‌سازی کنید.</p>
             <div class="p-2 bg-blue-50 border-r-4 border-blue-500 rounded text-[11px] text-blue-800">
-              <b>نکته:</b> فیلتر کردن   به شما در شناسایی سریع ناهماهنگی‌ها کمک می‌کند.
+              <b>مثال:</b> مشاهده تمام ترددهای "واحد فنی" در "هفته گذشته" برای بررسی اضافه‌کاری‌ها.
             </div>
-          </div>
-        `,
-        side: "right",
-        align: "start",
-      },
-    },
-    {
-      element: "#report-summary-widgets", // آیدی مربوط به باکس‌های خلاصه بالای گزارش (اگر وجود دارد)
-      popover: {
-        title: "📊 پیش‌نمایش آماری",
-        description: `
-          <div class="space-y-2">
-            <p class="text-sm text-gray-600 font-medium">قبل از بررسی تک‌تک رکوردها، در این بخش مجموع <b>ساعات کارکرد</b>، <b>اضافه‌کاری</b> و <b>تاخیرات</b> کل بازه انتخابی را به صورت یکجا مشاهده می‌کنید.</p>
           </div>
         `,
         side: "bottom",
@@ -414,155 +250,73 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
       },
     },
     {
-      element: "#attendance-main-table",
+      element: "#export-reports-trigger",
       popover: {
-        title: "📑 جدول پایش دقیق تردد",
-        description: `
-          <div class="space-y-4">
-            <p class="text-sm text-gray-700 leading-6">در این جدول، جزئی‌ترین اطلاعات هر تردد ثبت شده است. به ستون‌های زیر توجه ویژه داشته باشید:</p>
-            <div class="grid grid-cols-1 gap-2 text-xs">
-              <div class="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 dark:text-backgroundD">
-                <span class="text-indigo-500 font-bold">⏱️ ورود و خروج:</span> ثبت شده توسط دستگاه یا اپلیکیشن.
-              </div>
-              <div class="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 dark:text-backgroundD">
-                <span class="text-rose-500 font-bold">🚨 تاخیر/تعجیل:</span> محاسبات خودکار بر اساس شیفت کاری تعریف شده.
-              </div>
-              <div class="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 dark:text-backgroundD">
-                <span class="text-emerald-500 font-bold">💼 کارکرد خالص:</span> مجموع حضور مفید پرسنل در سازمان.
-              </div>
-            </div>
-          </div>
-        `,
-        side: "top",
-        align: "center",
-      },
-    },
-    {
-      element: ".status-cell-highlight",
-      popover: {
-        title: "💡 مدیریت و موجه‌سازی ترددهای خاص",
+        title: "📥 دکمه خروجی  اکسل",
         description: `
           <div class="space-y-4 text-justify leading-relaxed">
-            <p class="text-sm text-gray-700 italic">سیستم به صورت هوشمند ترددهای ناقص یا دارای تاخیر را با رنگ‌های متمایز نشان می‌دهد.</p>
-            
-            <div class="bg-emerald-50 border-r-4 border-emerald-500 p-3 rounded-l-lg shadow-sm">
-              <div class="flex items-center gap-2 mb-1 text-emerald-800 font-bold text-xs">
-                <span>✅ تایید و موجه‌سازی:</span>
-              </div>
-              <p class="text-[11px] text-emerald-700 leading-5">
-                شما می‌توانید با کلیک روی <b>دکمه تایید</b> یا از طریق <b>منوی سه نقطه (⋮)</b>، تاخیر یا تعجیل‌های ثبت شده را <b>موجه</b> کنید. 
-              </p>
+            <div class="flex justify-start">
+              <span class="p-2 px-3 text-bray-200 bg-indigo-100 rounded-lg flex items-center gap-2 shadow-md">
+                <span class="text-base">📤</span>
+                <span class="text-sm font-bold">خروجی اکسل</span>
+              </span>
             </div>
-
-            <div class="flex items-start gap-2 bg-indigo-50 p-2 rounded text-[11px] text-indigo-700 border border-indigo-100">
-              <span>💎</span>
-              <span>با انجام این کار، در گزارش نهایی برای فرد "تأخیر" محاسبه نمی‌شود و وضعیت تردد به "تأیید شده" تغییر می‌یابد.</span>
-            </div>
-          </div>
-        `,
-        side: "left",
-        align: "center",
-      },
-    },
-    {
-      element: "#export-report-btn",
-      popover: {
-        title: "📥 خروجی (اکسل)",
-        description: `
-          <div class="space-y-3">
-            <p class="text-sm text-gray-700">گزارش شما آماده است! با کلیک روی این دکمه، فایل اکسل حاوی تمامی محاسبات را برای <b>سیستم حسابداری</b> یا <b>بایگانی اداری</b> دریافت کنید.</p>
-            <div class="bg-emerald-50 p-2 rounded border border-emerald-100 text-[11px] text-emerald-700">
-               خروجی اکسل دقیقاً مطابق با فیلترهای اعمال شده در مرحله اول تولید می‌شود.
-            </div>
+            <p class="text-sm text-gray-700">گزارش نهایی خود را در قالب <b>Excel</b>  دریافت کنید. این فایل‌ها کاملاً استاندارد و آماده ارائه به بخش حسابداری هستند.</p>
           </div>
         `,
         side: "bottom",
         align: "end",
       },
     },
+    {
+      element: "#add-manual-report-btn",
+      popover: {
+        title: "➕ دکمه ثبت فعالیت دستی",
+        description: `
+          <div class="space-y-4 text-justify leading-relaxed">
+            <div class="flex justify-start">
+              <span class="p-2 px-3 text-white border border-indigo-200 bg-borderD rounded-lg flex items-center gap-2 shadow-sm">
+                <span class="text-base">📝</span>
+                <span class="text-sm font-bold">ثبت فعالیت جدید</span>
+              </span>
+            </div>
+            <p class="text-sm text-gray-700 leading-6 text-justify">اگر فعالیتی توسط دوربین‌ها ثبت نشده (مثلاً ماموریت خارج از سازمان)، از این بخش می‌توانید به صورت دستی رکورد جدیدی برای کارمند ایجاد کنید.</p>
+          </div>
+        `,
+        side: "bottom",
+        align: "start",
+      },
+    },
+    {
+      element: "#reports-main-table",
+      popover: {
+        title: "📑 جدول پایش فعالیت‌ها",
+        description: `
+          <div class="space-y-3 text-sm text-gray-700">
+            <p>در این جدول، جزئیات هر فعالیت (زمان، نوع، و وضعیت تایید) نمایش داده می‌شود. با کلیک بر روی هر ردیف، می‌توانید اطلاعات تکمیلی آن رکورد را مشاهده کنید.</p>
+          </div>
+        `,
+        side: "top",
+        align: "center",
+      },
+    },
   ],
-  "/reports/new": [
+
+  // ۴. جزئیات یک گزارش یا لاگ خاص
+  "/reports/:id": [
     {
-      element: "#manual-entry-form-container",
+      element: "#log-info-card",
       popover: {
-        title: "✍️ ثبت دستی و اصلاح تردد",
+        title: "🔍 بررسی دقیق فعالیت",
         description: `
-          <div class="space-y-3 text-justify leading-relaxed">
-            <p class="text-sm text-gray-700">ممکن است کارمندی فراموش کند تردد خود را ثبت کند یا دستگاه دچار اختلال شود. در این صفحه، شما می‌توانید به عنوان <b>مدیر سیستم</b>، رکوردهای حضور و غیاب را به صورت دستی اضافه یا اصلاح کنید.</p>
-            <div class="p-2 bg-rose-50 border-r-4 border-rose-500 rounded text-[11px] text-rose-800 font-medium">
-              <b>توجه:</b> تمام ترددهای ثبت شده در این بخش، با برچسب "ثبت توسط مدیر" در گزارش‌ها متمایز می‌شوند.
+          <div class="space-y-3 text-justify text-gray-700">
+            <p class="text-sm">در این صفحه، شناسنامه کامل یک فعالیت شامل <b>موقعیت جغرافیایی</b>، <b>ساعت دقیق</b> و <b>تصویر ثبت شده</b> توسط دوربین را مشاهده می‌کنید.</p>
+            <div class="p-2 bg-amber-50 border-r-4 border-amber-500 rounded text-[11px] text-amber-800">
+              این بخش برای رفع ابهام در ترددهای مشکوک بسیار کاربردی است.
             </div>
           </div>
         `,
         side: "bottom",
-        align: "center",
-      },
-    },
-    {
-      element: "#employee-select-field",
-      popover: {
-        title: "👤 انتخاب کارمند",
-        description: `
-          <div class="space-y-2">
-            <p class="text-sm text-gray-700">ابتدا فرد مورد نظر را از لیست پرسنل انتخاب کنید. می‌توانید از قابلیت <b>جستجوی سریع</b> بر اساس نام یا کد پرسنلی استفاده کنید.</p>
-          </div>
-        `,
-        side: "right",
-        align: "start",
-      },
-    },
-    {
-      element: "#attendance-datetime-picker",
-      popover: {
-        title: "⏰ تعیین دقیق زمان",
-        description: `
-          <div class="space-y-3">
-            <p class="text-sm text-gray-700 leading-relaxed">تاریخ و ساعت دقیق تردد را مشخص کنید. دقت در این بخش بسیار حیاتی است، زیرا مستقیماً در محاسبات <b>تاخیر، تعجیل و اضافه‌کاری</b> تاثیر می‌گذارد.</p>
-          </div>
-        `,
-        side: "bottom",
-        align: "center",
-      },
-    },
-    {
-      element: "#entry-type-toggle", // بخش انتخاب ورود یا خروج
-      popover: {
-        title: "🔄 نوع تردد",
-        description: `
-          <div class="space-y-3">
-            <p class="text-sm text-gray-700">مشخص کنید که این رکورد مربوط به <b>ورود</b> است یا <b>خروج</b>. انتخاب اشتباه در این بخش باعث ایجاد اختلال در تراز کارکرد روزانه می‌شود.</p>
-          </div>
-        `,
-        side: "top",
-        align: "center",
-      },
-    },
-    {
-      element: "#entry-reason-textarea",
-      popover: {
-        title: "📝 درج دلیل و مستندات",
-        description: `
-          <div class="space-y-2 text-sm text-gray-700">
-            <p>علت ثبت دستی تردد را بنویسید (مثلاً: خرابی دستگاه، ماموریت خارج از شرکت). این توضیحات در <b>حسابرسی‌های اداری</b> بسیار کاربردی خواهد بود.</p>
-          </div>
-        `,
-        side: "left",
-        align: "start",
-      },
-    },
-    {
-      element: "#submit-manual-entry-btn",
-      popover: {
-        title: "🚀 نهایی‌سازی و ثبت",
-        description: `
-          <div class="space-y-3">
-            <p class="text-sm text-gray-700 font-bold">پس از بررسی نهایی اطلاعات، دکمه ثبت را بزنید.</p>
-            <div class="bg-indigo-50 p-2 rounded border border-indigo-100 text-[11px] text-indigo-700 italic leading-5">
-              رکورد بلافاصله در کارت تردد کارمند اعمال شده و محاسبات کارکرد ماهانه به‌روزرسانی می‌گردد.
-            </div>
-          </div>
-        `,
-        side: "top",
         align: "center",
       },
     },
@@ -574,13 +328,13 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
     {
       element: "#work-patterns-list-container",
       popover: {
-        title: "📋 لیست الگوهای کاری و برنامه‌های شیفتی",
+        title: "📋 لیست الگوهای کاری موجود",
         description: `
           <div class="space-y-3 text-justify leading-relaxed">
-            <p>در این بخش، تمام <b>الگوهای ثابت هفتگی</b> و <b>برنامه‌های شیفتی (چرخشی)</b> تعریف شده در سازمان را مشاهده می‌کنید.</p>
-            <div class="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded text-xs border border-blue-100 font-medium">
-              <span>💡</span>
-              <span>الگوهای ثابت با آیکون تقویم و برنامه‌های شیفتی با آیکون چرخش متمایز شده‌اند.</span>
+            <p class="text-sm text-gray-700">این سایدبار شامل تمام <b>الگوهای ثابت (Weekly)</b> و <b>شیفت‌های چرخشی (Shift)</b> است. با انتخاب هر الگو، مشخصات فنی آن در مرکز صفحه نمایش داده می‌شود.</p>
+            <div class="flex items-center gap-2 p-2 bg-indigo-50 text-indigo-700 rounded text-[11px] border border-indigo-100">
+              <span>📅</span>
+              <span>الگوهای آبی رنگ نشان‌دهنده ساعات کاری ثابت هفتگی هستند.</span>
             </div>
           </div>
         `,
@@ -589,34 +343,16 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
       },
     },
     {
-      element: "#add-pattern-btn",
-      popover: {
-        title: "➕ دکمه ایجاد الگوی جدید",
-        description: `
-          <p class="text-sm leading-6">برای تعریف یک ساختار زمانی جدید (مثلاً شیفت نگهبانی، پرستاری یا ساعات اداری)، از این دکمه شروع کنید.</p>
-        `,
-        side: "bottom",
-        align: "end",
-      },
-    },
-    {
-      element: "#assign-bulk-btn",
-      popover: {
-        title: "👥 دکمه تخصیص به کاربران",
-        description: `
-          <p class="text-sm leading-6 text-justify">نیاز دارید یک الگو را به <b>ده‌ها کارمند</b> یا یک <b>گروه کاری</b> به صورت همزمان متصل کنید؟ این دکمه میانبر شما برای مدیریت انبوه است.</p>
-        `,
-        side: "bottom",
-        align: "end",
-      },
-    },
-    {
       element: "#work-pattern-visual-view",
       popover: {
-        title: "🎨 شماتیک گرافیکی الگو",
+        title: "🎨 شماتیک گرافیکی و خط زمان",
         description: `
           <div class="space-y-3 text-justify">
-            <p class="text-sm text-gray-700 leading-6">این بخش <b>تفسیر بصری</b> الگوی انتخابی شماست. قبل از تخصیص به پرسنل، می‌توانید توالی روزهای کاری، تعطیلات و هم‌پوشانی ساعات را روی خط زمان رصد کنید.</p>
+            <p class="text-sm text-gray-700 leading-6">این بخش <b>قلب محاسباتی</b> الگو است. شما می‌توانید توالی روزهای کاری و استراحت را به صورت گرافیکی ببینید.</p>
+            <div class="grid grid-cols-2 gap-2 text-[10px]">
+              <div class="flex items-center gap-1 p-1 bg-blue-100 text-blue-700 rounded">🔵 بازه حضور اجباری</div>
+              <div class="flex items-center gap-1 p-1 bg-amber-100 text-amber-700 rounded">🟡 بازه شناوری (Floating)</div>
+            </div>
           </div>
         `,
         side: "top",
@@ -626,14 +362,20 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
     {
       element: "#pattern-actions-sidebar",
       popover: {
-        title: "🛠️ پنل عملیات مدیریت",
+        title: "🛠️ پنل مدیریت و عملیات الگو",
         description: `
-          <div class="space-y-3">
-            <p class="text-sm text-gray-700 font-medium">ابزارهای مدیریتی الگو در اینجا متمرکز شده‌اند:</p>
-            <div class="grid grid-cols-1 gap-2 text-[11px]">
-              <div class="p-2 bg-gray-50 rounded"><b>✏️ ویرایش الگو:</b> اصلاح زمان‌بندی و تنظیمات سیستمی.</div>
-              <div class="p-2 bg-gray-50 rounded"><b>👥 مدیریت کارمندان:</b> پایش لیست دقیق پرسنل متصل به این الگو.</div>
-              <div class="p-2 bg-gray-50 rounded"><b>❌ حذف الگو</b> اگر ان الکو که قصد حذف ان را دارید کارمندانی داشته باشد باید ابتدا ان ها را منتقل کنید و سپس ان الگو را حذف کنید</div>
+          <div class="space-y-4 text-justify leading-relaxed">
+            <p class="text-sm text-gray-700 font-bold">برای مدیریت الگو از این دکمه‌ها استفاده کنید:</p>
+            <div class="space-y-2">
+               <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 text-xs">
+                  <span class="text-blue-600">✏️</span> <b>ویرایش الگو:</b> تغییر ساعات یا بازه‌های شناوری.
+               </div>
+               <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 text-xs">
+                  <span class="text-emerald-600">👥</span> <b>مدیریت کارمندان:</b> مشاهده و تخصیص افراد به این الگو.
+               </div>
+               <div class="flex items-center gap-2 p-2 bg-rose-50 rounded-lg border border-rose-100 text-xs text-rose-700">
+                  <span>🗑️</span> <b>حذف:</b> پاک کردن الگو (در صورت عدم وجود کارمند فعال).
+               </div>
             </div>
           </div>
         `,
@@ -641,45 +383,71 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
         align: "center",
       },
     },
-    // گام جدید اضافه شده برای تولید اتوماتیک شیفت
     {
-      element: ".generate-shifts-btn-wrapper", // فرض بر اینکه دکمه تولید شیفت این کلاس را دارد یا از آیدی مرتبط استفاده شده
+      element: "#add-pattern-btn",
       popover: {
-        title: "⚙️ دکمه تولید اتوماتیک شیفت‌ها",
+        title: "➕ دکمه تعریف ساختار زمانی جدید",
         description: `
-          <div class="space-y-3 text-justify">
-            <p class="text-sm text-gray-700 leading-6">یک قابلیت استراتژیک! اگر الگوی انتخابی شما از نوع <b>«برنامه شیفتی»</b> باشد، این گزینه ظاهر می‌شود.</p>
-            <div class="p-3 bg-amber-50 border-r-4 border-amber-500 rounded text-xs text-amber-900 leading-5">
-              با کلیک روی این دکمه، می‌توانید برای یک <b>بازه زمانی مشخص</b> (مثلاً یک ماه آینده)، تقویم کاری تمام کارمندانی که به این شیفت متصل هستند را به صورت خودکار تولید و رزرو کنید.
-            </div>
-          </div>
+          <p class="text-sm text-gray-700 leading-6 text-justify text-justify">اگر نیاز به تعریف یک شیفت جدید (مثلاً شیفت ۲۴-۴۸ نگهبانی یا ساعات اداری ماه رمضان) دارید، از این دکمه شروع کنید.</p>
         `,
-        side: "left",
-        align: "center",
+        side: "bottom",
+        align: "end",
       },
     },
   ],
 
-  // ۲. صفحه انتخاب نوع الگو
+  // ۳. انتخاب نوع الگو (Selector)
   "/work-patterns/new-work-patterns": [
     {
       element: "#pattern-type-selector",
       popover: {
-        title: "🎭 انتخاب نوع ساختار زمانی",
+        title: "🎭 انتخاب مدل کاری سازمان",
         description: `
-          <div class="space-y-3 text-justify">
-            <p class="text-sm leading-7">سازمان شما از چه نوع نظمی پیروی می‌کند؟</p>
+          <div class="space-y-3">
+            <p class="text-sm text-gray-700 leading-7">بسیار مهم: قبل از شروع، مدل الگو را انتخاب کنید:</p>
             <div class="space-y-2">
-              <div class="p-3 border rounded-xl border-blue-200 bg-blue-50 text-xs text-blue-800">
-                <b>۱. الگوی هفتگی ثابت:</b> برای پرسنلی که روزهای کاری و تعطیل آن‌ها در هفته تکرار می‌شود (مثل بخش اداری).
-              </div>
-              <div class="p-3 border rounded-xl border-purple-200 bg-purple-50 text-xs text-purple-800">
-                <b>۲. برنامه شیفتی چرخشی:</b> برای شیفت‌های پیچیده مثل ۱۲-۲۴، ۲۴-۴۸ یا چرخه‌های چند هفته‌ای (مثل نگهبانی و پرستاری).
-              </div>
+               <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs">
+                  <b>۱. الگوهای هفتگی (Weekly):</b> برای روزهای ثابت (مثلاً شنبه تا چهارشنبه ۸ تا ۱۶).
+               </div>
+               <div class="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs">
+                  <b>۲. برنامه‌های شیفتی (Shift):</b> برای چرخه‌های تکرار شونده (مثلاً ۲ روز کار، ۱ روز استراحت).
+               </div>
             </div>
           </div>
         `,
         side: "bottom",
+        align: "center",
+      },
+    },
+    {
+      element: "#daily-schedule-rows",
+      popover: {
+        title: "📅 تنظیم دقیق ساعات و شناوری",
+        description: `
+          <div class="space-y-3 text-justify leading-relaxed">
+            <p class="text-sm text-gray-700">برای هر روز، بازه <b>ورود و خروج</b> را مشخص کنید. سیستم به صورت خودکار <b>مدت زمان خالص کارکرد</b> را محاسبه می‌کند.</p>
+            <div class="p-2 bg-amber-50 border-r-4 border-amber-500 rounded text-[11px] text-amber-900 leading-5">
+              <b>مثال شناوری:</b> اگر ورود را ۸:۰۰ و "شناوری ورود" را ۳۰ دقیقه بگذارید، فرد تا ۸:۳۰ بدون تاخیر مجاز به ورود است.
+            </div>
+          </div>
+        `,
+        side: "right",
+        align: "start",
+      },
+    },
+    {
+      element: "#floating-settings-card",
+      popover: {
+        title: "⏱️ مدیریت انعطاف‌پذیری (ساعات شناور)",
+        description: `
+          <div class="space-y-3 text-justify">
+            <p class="text-sm text-gray-700 leading-6">یکی از قوی‌ترین فیچرهای سامانه! شما می‌توانید تعیین کنید کارمند تا چند دقیقه مجاز به <b>تاخیر در ورود</b> یا <b>تعجیل در خروج</b> است.</p>
+            <div class="bg-amber-50 p-2 rounded border border-amber-200 text-[10px] text-amber-800 italic">
+              مثال: اگر ورود را ۸:۰۰ و شناوری را ۳۰ دقیقه بگذارید، فردی که ۸:۲۰ وارد شود "تاخیری" نخواهد بود.
+            </div>
+          </div>
+        `,
+        side: "top",
         align: "center",
       },
     },
@@ -762,15 +530,16 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
       },
     },
   ],
+  // ۴. فرم ایجاد و تنظیمات دقیق روزانه
 
-  // ۴. مدیریت کارمندان یک الگو (روت داینامیک)
-  "/work-patterns/employees/:type/:id": [
+  // ۵. مدیریت کارمندان (Employees Assignment)
+  "/work-patterns/employees/pattern/:id": [
     {
       element: "#assigned-employees-table",
       popover: {
-        title: "✅ لیست کارمندان متصل",
+        title: "✅ لیست پرسنل تحت پوشش",
         description: `
-          <p class="text-sm leading-7 text-justify">در این جدول، افرادی را می‌بینید که هم‌اکنون از این الگو استفاده می‌کنند. محاسبات حضور و غیاب این افراد دقیقاً طبق قوانین این الگو انجام می‌شود.</p>
+          <p class="text-sm text-gray-700 leading-7 text-justify">در این جدول، افرادی را می‌بینید که هم‌اکنون طبق این الگو فعالیت می‌کنند. هرگونه تغییر در ساعات این الگو، بلافاصله در کارت تردد این افراد اعمال خواهد شد.</p>
         `,
         side: "right",
         align: "start",
@@ -779,9 +548,11 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
     {
       element: "#available-employees-table",
       popover: {
-        title: "➕ افزودن کارمند جدید",
+        title: "➕ دکمه افزودن کارمند به الگو",
         description: `
-          <p class="text-sm leading-7 text-justify">سایر پرسنل سازمان در اینجا هستند. می‌توانید با جستجوی نام یا کد پرسنلی، آن‌ها را یافته و با یک کلیک به این الگوی کاری متصل کنید.</p>
+          <div class="space-y-3">
+             <p class="text-sm text-gray-700 leading-6 text-justify">سایر پرسنل سازمان را در اینجا جستجو کنید و با زدن دکمه <b>"افزودن"</b>، آن‌ها را به این نظم کاری متصل نمایید.</p>
+          </div>
         `,
         side: "left",
         align: "start",
@@ -789,22 +560,17 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
     },
   ],
 
-  // ۵. تخصیص گروهی (Bulk Assignment)
+  // ۶. تخصیص گروهی (Bulk Assign)
   "/work-patterns/assign": [
-    {
-      element: "#pattern-selector-dropdown",
-      popover: {
-        title: "۱. انتخاب الگوی هدف",
-        description: `<p class="text-sm">ابتدا مشخص کنید قصد دارید افراد یا گروه‌ها را به کدام الگو متصل کنید.</p>`,
-        side: "bottom",
-        align: "start",
-      },
-    },
     {
       element: "#assignment-tabs",
       popover: {
-        title: "۲. تعیین نوع تخصیص",
-        description: `<p class="text-sm leading-6">بین <b>کارمندان (انفرادی)</b> یا <b>گروه‌های کاری (دپارتمانی)</b> جابجا شوید و موارد مورد نظر را انتخاب کنید.</p>`,
+        title: "👥 تخصیص هوشمند و دسته‌جمعی",
+        description: `
+          <div class="space-y-3 text-justify">
+            <p class="text-sm text-gray-700">نیاز دارید کل <b>"واحد فنی"</b> را به یک الگو متصل کنید؟ از تب گروه‌های کاری استفاده کنید تا صدها نفر را با یک کلیک مدیریت نمایید.</p>
+          </div>
+        `,
         side: "bottom",
         align: "center",
       },
@@ -812,9 +578,12 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
     {
       element: "#finalize-assignment-btn",
       popover: {
-        title: "🚀 دکمه ثبت و تخصیص نهایی",
+        title: "🚀 دکمه ثبت و اعمال نهایی",
         description: `
-          <p class="text-sm font-bold text-justify">با کلیک روی این دکمه، تمامی افراد انتخاب شده به الگوی جدید متصل می‌شوند. سیستم به صورت خودکار تداخل‌های احتمالی با الگوهای قبلی را مدیریت می‌کند.</p>
+          <div class="space-y-2">
+             <p class="text-sm font-bold text-emerald-700">عملیات را نهایی کنید!</p>
+             <p class="text-xs text-gray-600 leading-5 text-justify">با کلیک روی این دکمه، تمام پرسنل انتخاب شده از تاریخ مشخص شده، تحت پوشش الگوی جدید قرار می‌گیرند.</p>
+          </div>
         `,
         side: "top",
         align: "end",
@@ -1085,7 +854,7 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
       },
     },
   ],
-    // ۴. بخش تقویم کاری سالانه (Work Calendar)
+  // ۴. بخش تقویم کاری سالانه (Work Calendar)
   "/work-calender": [
     {
       element: "#calendar-view-container",
@@ -1229,17 +998,64 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
         align: "end",
       },
     },
-
   ],
   "/device-management": [
     {
-      element: "#devices-grid",
+      element: "#devices-page-container",
       popover: {
-        title: "📱 پایش سخت‌افزارها",
+        title: "🖥️ مرکز پایش و مدیریت سخت‌افزارها",
         description: `
-          <p>وضعیت اتصال و سلامت دستگاه‌های حضور و غیاب را به صورت <b>Real-time</b> چک کنید. در صورت قطع شدن دستگاه، سیستم بلافاصله هشدار صادر می‌کند.</p>
+          <div class="space-y-3 text-justify leading-relaxed text-gray-700">
+            <p>به بخش مدیریت دستگاه‌ها خوش آمدید. در این صفحه، تمام <b>دوربین‌های تشخیص چهره</b> و سخت‌افزارهای ثبت تردد سازمان را کنترل می‌کنید.</p>
+            <div class="p-3 bg-blue-50 border-r-4 border-blue-500 rounded text-xs text-blue-900 leading-5">
+               <b>اهمیت این بخش:</b> پایداری کل سیستم احراز هویت به وضعیت "آنلاین" بودن دستگاه‌های این لیست بستگی دارد.
+            </div>
+          </div>
+        `,
+        side: "bottom",
+        align: "center",
+      },
+    },
+
+    {
+      element: "#devices-list-table",
+      popover: {
+        title: "📊 جدول وضعیت لحظه‌ای (Real-time Monitoring)",
+        description: `
+          <div class="space-y-4">
+            <p class="text-sm text-gray-700 leading-6 text-justify">در این جدول، مشخصات فنی و وضعیت اتصال هر دوربین نمایش داده می‌شود. به ستون‌های زیر توجه ویژه داشته باشید:</p>
+            <div class="grid grid-cols-1 gap-2 text-[11px]">
+              <div class="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100">
+                <span class="text-indigo-500 font-bold">🌐 آدرس IP:</span> نشانی دستگاه در شبکه داخلی شرکت.
+              </div>
+              <div class="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100">
+                <span class="text-amber-500 font-bold">📍 محل استقرار:</span> تعیین دقیق موقعیت (مثلاً طبقه اول، پارکینگ).
+              </div>
+            </div>
+          </div>
         `,
         side: "top",
+        align: "center",
+      },
+    },
+    {
+      element: ".device-status-badge", // کلاس مربوط به نشانگر وضعیت در ستون‌های جدول
+      popover: {
+        title: "💡 راهنمای نشانگر سلامت دستگاه",
+        description: `
+          <div class="space-y-3 text-justify">
+            <p class="text-sm text-gray-700">وضعیت اتصال دستگاه با رنگ‌ها مشخص می‌شود:</p>
+            <div class="flex items-center gap-3 p-2 bg-emerald-50 rounded border border-emerald-100">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-[11px] text-emerald-800"><b>سبز (Online):</b> دستگاه متصل است و تصاویر را برای پردازش ارسال می‌کند.</span>
+            </div>
+            <div class="flex items-center gap-3 p-2 bg-rose-50 rounded border border-rose-100">
+              <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+              <span class="text-[11px] text-rose-800"><b>قرمز (Offline):</b> اتصال قطع شده است. در این حالت ترددها ثبت نخواهند شد!</span>
+            </div>
+          </div>
+        `,
+        side: "right",
         align: "center",
       },
     },
@@ -1261,19 +1077,95 @@ export const TOUR_STEPS: Record<string, DriveStep[]> = {
 
   "/confirm-photos/pending-images": [
     {
-      element: "#pending-photos-grid",
+      element: "#pending-images-page-container",
       popover: {
-        title: "📸 بازبینی هوش مصنوعی",
+        title: "📸 واحد نظارت بر تصاویر و هویت بصری",
         description: `
-          <p>تصاویری که توسط الگوریتم‌های تشخیص چهره با درصد خطای بالا ثبت شده‌اند، جهت <b>تایید نهایی توسط اپراتور</b> در این صف قرار می‌گیرند.</p>
+          <div class="space-y-3 text-justify leading-relaxed text-gray-700">
+            <p>به بخش مدیریت تصاویر معلق خوش آمدید. این صفحه <b>فیلتر نهایی</b> برای تضمین کیفیت و صحت تصاویر سامانه است.</p>
+            <div class="p-3 bg-blue-50 border-r-4 border-blue-500 rounded text-xs text-blue-900 leading-5">
+               <b>منابع تصاویر این لیست:</b>
+               <ul class="list-disc pr-4 mt-1 space-y-1">
+                 <li>تصاویری که هوش مصنوعی در تشخیص آن‌ها شک داشته است.</li>
+                 <li><b>تصاویری که کارمند شخصاً در پروفایل خود آپلود کرده است.</b></li>
+               </ul>
+            </div>
+            <p class="text-xs text-gray-500 italic mt-2">وظیفه شما در اینجا تایید این است که عکس بارگذاری شده واقعاً متعلق به همان کارمند بوده و از کیفیت کافی برخوردار باشد.</p>
+          </div>
+        `,
+        side: "bottom",
+        align: "center",
+      },
+    },
+    {
+      element: ".image-request-card",
+      popover: {
+        title: "🖼️ کارت درخواست بررسی هویت",
+        description: `
+          <div class="space-y-3 text-justify leading-relaxed text-gray-700">
+            <p class="text-sm text-gray-700 leading-6">در هر کارت، تصویر جدید ثبت شده (توسط دوربین یا آپلود کارمند) در کنار نام فرد نمایش داده می‌شود.</p>
+            <div class="p-2 bg-amber-50 border border-amber-100 rounded text-[10px] text-amber-800 font-medium">
+              <b>مثال:</b> اگر کارمندی عکس غیررسمی یا اشتباهی از خود در پروفایلش بگذارد، شما در اینجا با "رد کردن" آن، از ورود داده‌های غلط به دیتابیس هوش مصنوعی جلوگیری می‌کنید.
+            </div>
+          </div>
+        `,
+        side: "right",
+        align: "start",
+      },
+    },
+    {
+      element: "#image-comparison-area",
+      popover: {
+        title: "🔍 پنل مقایسه و اعتبارسنجی بصری",
+        description: `
+          <div class="space-y-4">
+            <p class="text-sm text-gray-700 leading-6 text-justify">در این بخش، <b>تصویر مرجع</b> (عکسی که قبلاً تایید شده) را با <b>تصویر جدید</b> مقایسه کنید تا از صحت هویت کارمند مطمئن شوید.</p>
+          </div>
         `,
         side: "top",
         align: "center",
       },
     },
+    {
+      element: "#approve-image-btn",
+      popover: {
+        title: "✅ دکمه تایید و ثبت نهایی تصویر",
+        description: `
+          <div class="space-y-3">
+            <p class="text-sm text-gray-700 leading-6 text-justify">با تایید شما، این تصویر به عنوان یک منبع معتبر در پروفایل کارمند ذخیره شده و دوربین‌ها از این پس با استفاده از آن، فرد را با دقت بیشتری شناسایی می‌کنند.</p>
+          </div>
+        `,
+        side: "bottom",
+        align: "center",
+      },
+    },
+    {
+      element: "#reject-image-btn",
+      popover: {
+        title: "❌ دکمه رد تصویر (عدم احراز هویت)",
+        description: `
+          <div class="space-y-3 text-sm text-gray-700">
+            <p class="text-justify leading-6">اگر تصویر متعلق به فرد دیگری است، کیفیت پایینی دارد و یا توسط کارمند به اشتباه آپلود شده، آن را رد کنید تا امنیت سامانه حفظ شود.</p>
+          </div>
+        `,
+        side: "bottom",
+        align: "center",
+      },
+    },
+    {
+      element: "#socket-notification-indicator",
+      popover: {
+        title: "🔔 سیستم اطلاع‌رسانی لحظه‌ای (Real-time)",
+        description: `
+          <div class="space-y-2 text-sm text-gray-700">
+            <p>به محض اینکه کارمندی عکس جدیدی آپلود کند یا دوربین تصویری را برای بررسی بفرستد، شما به صورت آنی مطلع خواهید شد.</p>
+          </div>
+        `,
+        side: "left",
+        align: "center",
+      },
+    },
   ],
-
-
   "/license": [
     {
       element: "#license-status-card",
