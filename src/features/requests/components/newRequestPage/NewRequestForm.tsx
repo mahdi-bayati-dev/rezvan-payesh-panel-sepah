@@ -18,7 +18,7 @@ import Input from '@/components/ui/Input';
 import SelectBox from '@/components/ui/SelectBox';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 import Textarea from '@/components/ui/Textarea';
-import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 import { CustomTimeInput } from '@/components/ui/CustomTimeInput';
 
 interface NewRequestFormProps {
@@ -312,7 +312,7 @@ export const NewRequestForm = ({
                 >
                     {isSubmitting ? (
                         <>
-                            <Spinner size="sm" />
+                            <SpinnerButton size="sm" />
                             <span>در حال ارسال...</span>
                         </>
                     ) : (

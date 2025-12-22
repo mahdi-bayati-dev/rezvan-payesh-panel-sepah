@@ -3,7 +3,7 @@ import { Edit, Trash2 } from 'lucide-react';
 // ✅ ۱. اصلاح مسیرهای ایمپورت بر اساس ساختار واقعی پروژه شما
 import { type LeaveType } from '@/features/requests/api/api-type';
 import { useDeleteLeaveType } from '@/features/requests/hook/useLeaveTypes';
-import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'; // (این مسیر درست بود)
 import { useState } from 'react';
 import { toast } from 'react-toastify'; // برای نمایش پیام‌های حذف
@@ -75,7 +75,7 @@ export const LeaveTypeRow = ({
                 <div className="flex gap-2 flex-shrink-0">
                     {/* ✅ مدیریت لودینگ در خود ردیف */}
                     {deleteMutation.isPending && deleteMutation.variables === leaveType.id ? (
-                        <Spinner size="sm" />
+                        <SpinnerButton size="sm" />
                     ) : (
                         <>
                             {/* دکمه ویرایش (اضافی، اما برای UX بهتر حفظ می‌شود) */}

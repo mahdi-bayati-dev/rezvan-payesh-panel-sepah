@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import onboardingReducer from "./slices/onboardingSlice"; // اضافه شد
 import {
   useDispatch,
   useSelector,
@@ -18,6 +19,7 @@ export const store = configureStore({
     ui: themeReducer,
     auth: authReducer,
     license: licenseReducer,
+    onboarding: onboardingReducer, // اضافه شد
   },
 });
 

@@ -14,7 +14,7 @@ import { GlobalNotificationHandler } from '@/features/reports/components/Export/
 import { useImageNotificationSocket } from '@/features/ConfirmPhotos/hooks/useImageNotificationSocket';
 import { useAdminImageSocket } from '@/features/ConfirmPhotos/hooks/useAdminImageSocket';
 import { GlobalAppSkeleton } from "./GlobalAppSkeleton";
-
+import OnboardingSystem from '../../features/Onboarding/OnboardingModule';
 export const MainLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -78,6 +78,7 @@ export const MainLayout = () => {
 
         <main className="flex-1 overflow-y-auto p-3 md:p-4">
           <Outlet />
+          <OnboardingSystem /> {/* سیستم آموزشی هوشمند در اینجا قرار می‌گیرد */}
         </main>
       </div>
     </div>

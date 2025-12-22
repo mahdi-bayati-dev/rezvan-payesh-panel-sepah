@@ -18,7 +18,7 @@ import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import { Button } from '@/components/ui/Button';
-import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 
 interface LeaveTypeFormProps {
     selectedLeaveType: LeaveType | null;
@@ -190,7 +190,7 @@ export const LeaveTypeForm = ({
             <div className="flex justify-start gap-4 mt-4">
                 <Button type="submit" disabled={isLoading} variant="primary" size="md">
                     {isLoading ? (
-                        <Spinner size="sm" />
+                        <SpinnerButton size="sm" />
                     ) : selectedLeaveType && selectedLeaveType.id !== -1 ? (
                         'ذخیره تغییرات'
                     ) : (

@@ -1,7 +1,7 @@
 // features/requests/routes/requestsPage.tsx
 import { useState, useMemo } from "react";
-import { Download, ListFilter, CirclePlus } from "lucide-react";
-import { Link } from 'react-router-dom';
+import { Download, ListFilter,  } from "lucide-react";
+
 import {
   useReactTable,
   getCoreRowModel,
@@ -153,19 +153,13 @@ const RequestsPage = () => {
                     <Button
                       variant="secondary"
                       onClick={() => setIsExportModalOpen(true)}
-                      className="flex-1 sm:flex-none h-9 sm:h-11 px-3 sm:px-5 gap-1.5 sm:gap-2 rounded-xl text-[11px] sm:text-sm font-bold border-borderL dark:border-borderD bg-secondaryL/20 dark:bg-secondaryD/10 hover:bg-secondaryL/40 transition-all active:scale-95"
+                      className="flex-1 sm:flex-none h-9 sm:h-11 px-3 sm:px-5 gap-1.5 sm:gap-2 rounded-xl text-[11px] sm:text-sm font-bold border-borderL dark:border-borderD hover:bg-secondaryL/20 dark:bg-secondaryD/10 bg-secondaryL/40 transition-all active:scale-95"
                     >
                       <Download size={16} />
                       <span className="whitespace-nowrap">خروجی اکسل</span>
                     </Button>
                   )}
-                  <Link
-                    to="/requests/new"
-                    className="flex-1 sm:flex-none h-9 sm:h-11 px-3 sm:px-5 gap-1.5 sm:gap-2 rounded-xl text-[11px] sm:text-sm font-bold shadow-lg shadow-primaryL/20 dark:shadow-primaryD/10 bg-primaryL text-white dark:bg-primaryD dark:text-black flex items-center justify-center transition-all active:scale-95"
-                  >
-                    <CirclePlus size={16} />
-                    <span className="whitespace-nowrap">ثبت جدید</span>
-                  </Link>
+
                 </div>
               </div>
             </div>

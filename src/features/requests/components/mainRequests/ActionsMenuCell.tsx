@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 // ۲. ایمپورت هوک حذف و مدال تایید
 import { useDeleteLeaveRequest } from "@/features/requests/hook/useLeaveRequests";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
-import { Spinner } from "@/components/ui/Spinner";
+import { SpinnerButton } from "@/components/ui/SpinnerButton";
 
 interface ActionsMenuCellProps {
     // ۳. آیدی عددی است
@@ -45,7 +45,7 @@ const ActionsMenuCell = ({ requestId }: ActionsMenuCellProps) => {
     };
 
     if (deleteMutation.isPending) {
-        return <Spinner size="sm" />
+        return <SpinnerButton size="sm" />
     }
 
     return (

@@ -21,6 +21,7 @@
     "date-fns": "^4.1.0",
     "date-fns-jalali": "^4.1.0-0",
     "date-fns-tz": "^3.2.0",
+    "driver.js": "^1.4.0",
     "jalali-moment": "^3.3.11",
     "laravel-echo": "^2.2.6",
     "lucide-react": "^0.545.0",
