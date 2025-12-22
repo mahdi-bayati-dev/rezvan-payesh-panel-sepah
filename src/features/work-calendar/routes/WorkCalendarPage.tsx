@@ -1,51 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { WorkCalendarGrid } from '../components/WorkCalendarGrid';
 import { HolidayType } from '../types';
 import type { ActiveTool } from '../types';
 import { useGetHolidays, useBulkCreateHolidays, useBulkDeleteHolidays } from '../hooks/useWorkCalendar';
 import { getFridaysOfCurrentJalaliMonth, getFridaysInRange, getFridaysOfJalaliYear } from '../utils/calendarUtils';
 import moment from 'jalali-moment';
+import { useAppSelector } from '@/hook/reduxHooks';
+import { selectUserRoles } from '@/store/slices/authSlice';
+// ✅ ایمپورت کامپوننت سلکت باکس سفارشی و تایپ آن
+import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import {
-    CalendarCheck, Check, Eraser, Flag, Handshake, SquarePen, Zap, CalendarDays, ChevronDown, Trash2
+    CalendarCheck, Check, Eraser, Flag, Handshake, SquarePen, Zap, CalendarDays, Trash2
 } from 'lucide-react';
-
-/**
- * کامپوننت انتخاب سال
- */
-const YearPicker = ({ value, options, onChange }: any) => (
-    <div className="relative w-full">
-        <select
-            value={value}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className="w-full h-[42px] px-3 pr-8 bg-white dark:text-infoL-background dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-        >
-            {options.map((opt: any) => (
-                <option key={opt.id} value={opt.id}>{opt.name}</option>
-            ))}
-        </select>
-        <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-    </div>
-);
 
 export const WorkCalendarPage = () => {
     const currentJalaliYear = moment().jYear();
 
-    // تنظیم سال انتخابی به صورت پیش‌فرض روی سال جاری
+    const userRoles = useAppSelector(selectUserRoles);
+    const isSuperAdmin = useMemo(() => userRoles.includes('super_admin'), [userRoles]);
+
     const [selectedJalaliYear, setSelectedJalaliYear] = useState(currentJalaliYear);
     const [isEditing, setIsEditing] = useState(false);
     const [activeTool, setActiveTool] = useState<ActiveTool>(HolidayType.OFFICIAL);
 
-    // تولید داینامیک لیست سال‌ها از 1403 تا 1410
-    // این روش بسیار بهینه‌تر از تعریف دستی آرایه است
-    const generateYearOptions = (start: number, end: number) => {
+    // تولید لیست سال‌ها برای گزینه‌های سلکت باکس
+    const yearOptions: SelectOption[] = useMemo(() => {
         const years = [];
-        for (let year = start; year <= end; year++) {
+        for (let year = 1403; year <= 1410; year++) {
             years.push({ id: year, name: year.toString() });
         }
         return years;
-    };
-
-    const yearOptions = generateYearOptions(1403, 1410);
+    }, []);
 
     const { data: holidayMap, isLoading } = useGetHolidays(selectedJalaliYear);
 
@@ -60,11 +45,12 @@ export const WorkCalendarPage = () => {
                 onActiveToolChange={setActiveTool}
                 holidayMap={holidayMap}
                 yearOptions={yearOptions}
+                canEdit={isSuperAdmin}
             />
             <main className="flex-1 w-full animate-fadeIn">
                 <WorkCalendarGrid
                     jalaliYear={selectedJalaliYear}
-                    isEditing={isEditing}
+                    isEditing={isEditing && isSuperAdmin}
                     activeTool={activeTool}
                     holidayMap={holidayMap}
                     isLoading={isLoading}
@@ -82,13 +68,21 @@ const WorkCalendarHeader: React.FC<any> = ({
     activeTool,
     onActiveToolChange,
     holidayMap,
-    yearOptions
+    yearOptions,
+    canEdit
 }) => {
     const bulkCreate = useBulkCreateHolidays();
     const bulkDelete = useBulkDeleteHolidays();
     const [bulkMode, setBulkMode] = useState<'add' | 'remove'>('add');
 
+    // پیدا کردن آپشن انتخاب شده فعلی برای پاس دادن به SelectBox
+    const currentYearOption = useMemo(() =>
+        yearOptions.find((opt: SelectOption) => opt.id === selectedYear) || null
+        , [selectedYear, yearOptions]);
+
     const handleBulkFridays = (type: string) => {
+        if (!canEdit) return;
+
         let targetGregorianDates: string[] = [];
         if (type === 'month') targetGregorianDates = getFridaysOfCurrentJalaliMonth();
         else if (type === '15') targetGregorianDates = getFridaysInRange(moment(), 15);
@@ -121,48 +115,58 @@ const WorkCalendarHeader: React.FC<any> = ({
                         <p className="text-xs text-slate-500">مدیریت هوشمند روزهای تعطیل</p>
                     </div>
                 </div>
+
                 <div className="flex items-center gap-3">
-                    <div className="w-32">
-                        <YearPicker
+                    {/* ✅ استفاده از کامپوننت SelectBox سفارشی پروژه */}
+                    <div className="w-40">
+                        <SelectBox
+                            label=""
+                            placeholder="انتخاب سال"
                             options={yearOptions}
-                            value={selectedYear}
-                            onChange={onYearChange}
+                            value={currentYearOption}
+                            onChange={(option: SelectOption) => onYearChange(Number(option.id))}
+                            className="text-right"
                         />
                     </div>
-                    <button
-                        onClick={() => onIsEditingChange(!isEditing)}
-                        className={`h-[42px] px-6 rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-sm ${isEditing ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-blue-600 text-white shadow-blue-200'
-                            }`}
-                    >
-                        {isEditing ? <><Check className="w-4 h-4" /> پایان ویرایش</> : <><SquarePen className="w-4 h-4" /> ویرایش تقویم</>}
-                    </button>
+
+                    {canEdit && (
+                        <button
+                            onClick={() => onIsEditingChange(!isEditing)}
+                            className={`h-[42px] px-6 rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-sm ${isEditing ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-blue-600 text-white shadow-blue-200'
+                                }`}
+                        >
+                            {isEditing ? <><Check className="w-4 h-4" /> پایان ویرایش</> : <><SquarePen className="w-4 h-4" /> ویرایش تقویم</>}
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div className={`grid grid-cols-1 xl:grid-cols-12 gap-4 transition-all duration-500 ease-in-out ${isEditing ? 'max-h-96 opacity-100 translate-y-0' : 'max-h-0 opacity-0 invisible -translate-y-4'}`}>
-                <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2 flex items-center gap-2 overflow-x-auto custom-scrollbar">
-                    <span className="text-[10px] font-bold text-slate-400 px-2 uppercase whitespace-nowrap">ابزار دستی:</span>
-                    <ToolButton isActive={activeTool === HolidayType.OFFICIAL} onClick={() => onActiveToolChange(HolidayType.OFFICIAL)} activeClass="bg-rose-500 text-white" Icon={Flag} label="رسمی" />
-                    <ToolButton isActive={activeTool === HolidayType.AGREEMENT} onClick={() => onActiveToolChange(HolidayType.AGREEMENT)} activeClass="bg-amber-400 text-slate-900" Icon={Handshake} label="توافقی" />
-                    <ToolButton isActive={activeTool === 'remove'} onClick={() => onActiveToolChange('remove')} activeClass="bg-slate-700 text-white" Icon={Eraser} label="پاک‌کن" />
-                </div>
-
-                <div className={`xl:col-span-7 rounded-xl p-2 flex items-center gap-2 shadow-lg transition-colors duration-300 ${bulkMode === 'add' ? 'bg-blue-600' : 'bg-rose-600'}`}>
-                    <div className="flex bg-black/20 rounded-lg p-1 shrink-0">
-                        <button onClick={() => setBulkMode('add')} className={`p-1.5 rounded-md transition-all ${bulkMode === 'add' ? 'bg-white text-blue-600 shadow-sm' : 'text-white/60'}`}><Zap className="w-4 h-4" /></button>
-                        <button onClick={() => setBulkMode('remove')} className={`p-1.5 rounded-md transition-all ${bulkMode === 'remove' ? 'bg-white text-rose-600 shadow-sm' : 'text-white/60'}`}><Trash2 className="w-4 h-4" /></button>
+            {canEdit && (
+                <div className={`grid grid-cols-1 xl:grid-cols-12 gap-4 transition-all duration-500 ease-in-out ${isEditing ? 'max-h-96 opacity-100 translate-y-0' : 'max-h-0 opacity-0 invisible -translate-y-4'}`}>
+                    <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                        <span className="text-[10px] font-bold text-slate-400 px-2 uppercase whitespace-nowrap">ابزار دستی:</span>
+                        <ToolButton isActive={activeTool === HolidayType.OFFICIAL} onClick={() => onActiveToolChange(HolidayType.OFFICIAL)} activeClass="bg-rose-500 text-white" Icon={Flag} label="رسمی" />
+                        <ToolButton isActive={activeTool === HolidayType.AGREEMENT} onClick={() => onActiveToolChange(HolidayType.AGREEMENT)} activeClass="bg-amber-400 text-slate-900" Icon={Handshake} label="توافقی" />
+                        <ToolButton isActive={activeTool === 'remove'} onClick={() => onActiveToolChange('remove')} activeClass="bg-slate-700 text-white" Icon={Eraser} label="پاک‌کن" />
                     </div>
 
-                    <span className="text-[10px] font-bold text-white shrink-0 ml-1">
-                        {bulkMode === 'add' ? 'ثبت جمعه‌ها:' : 'حذف جمعه‌ها:'}
-                    </span>
-                    <div className="flex gap-1 flex-1 overflow-x-auto no-scrollbar">
-                        <QuickActionButton onClick={() => handleBulkFridays('month')} label="این ماه" />
-                        <QuickActionButton onClick={() => handleBulkFridays('15')} label="۱۵ روز آینده" />
-                        <QuickActionButton onClick={() => handleBulkFridays('year')} label={`کل سال ${selectedYear}`} />
+                    <div className={`xl:col-span-7 rounded-xl p-2 flex items-center gap-2 shadow-lg transition-colors duration-300 ${bulkMode === 'add' ? 'bg-blue-600' : 'bg-rose-600'}`}>
+                        <div className="flex bg-black/20 rounded-lg p-1 shrink-0">
+                            <button onClick={() => setBulkMode('add')} className={`p-1.5 rounded-md transition-all ${bulkMode === 'add' ? 'bg-white text-blue-600 shadow-sm' : 'text-white/60'}`}><Zap className="w-4 h-4" /></button>
+                            <button onClick={() => setBulkMode('remove')} className={`p-1.5 rounded-md transition-all ${bulkMode === 'remove' ? 'bg-white text-rose-600 shadow-sm' : 'text-white/60'}`}><Trash2 className="w-4 h-4" /></button>
+                        </div>
+
+                        <span className="text-[10px] font-bold text-white shrink-0 ml-1">
+                            {bulkMode === 'add' ? 'ثبت جمعه‌ها:' : 'حذف جمعه‌ها:'}
+                        </span>
+                        <div className="flex gap-1 flex-1 overflow-x-auto no-scrollbar">
+                            <QuickActionButton onClick={() => handleBulkFridays('month')} label="این ماه" />
+                            <QuickActionButton onClick={() => handleBulkFridays('15')} label="۱۵ روز آینده" />
+                            <QuickActionButton onClick={() => handleBulkFridays('year')} label={`کل سال ${selectedYear}`} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

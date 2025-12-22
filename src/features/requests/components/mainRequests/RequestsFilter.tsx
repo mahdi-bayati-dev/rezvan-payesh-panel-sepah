@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 // کامپوننت‌های UI و تایپ‌ها
 import SelectBox, { type SelectOption } from "@/components/ui/SelectBox";
 import type { User } from '../../types';
-import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
+// import PersianDatePickerInput from "@/lib/PersianDatePickerInput";
 import { type DateObject } from "react-multi-date-picker";
 
 interface RequestsFilterProps {
@@ -33,8 +33,8 @@ const RequestsFilter = ({
   currentUser,
   status,
   onStatusChange,
-  date,
-  onDateChange,
+  // date,
+  // onDateChange,
 }: RequestsFilterProps) => {
 
   // --- تعیین دسترسی‌ها ---
@@ -72,17 +72,17 @@ const RequestsFilter = ({
               options={mockStatuses}
               value={status || null}
               onChange={onStatusChange}
-              // نکته: اطمینان حاصل کنید SelectBox شما از bg-backgroundL-500 استفاده می‌کند
+            // نکته: اطمینان حاصل کنید SelectBox شما از bg-backgroundL-500 استفاده می‌کند
             />
           </div>
         </div>
 
         {/* ۲. فیلتر تاریخ */}
-        <div className="">
+        {/* <div className="">
           <label className="text-xs font-medium text-muted-foregroundL dark:text-muted-foregroundD mb-1.5 block px-1">
             تاریخ درخواست
           </label>
-          <div className="h-10">
+           <div className="h-10">
             <PersianDatePickerInput
               value={date}
               onChange={onDateChange}
@@ -91,11 +91,11 @@ const RequestsFilter = ({
               inputClassName="h-10 text-sm bg-backgroundL-500 dark:bg-backgroundD text-foregroundL dark:text-foregroundD border-borderL dark:border-borderD"
               containerClassName="w-full"
             />
-          </div>
-        </div>
+          </div> 
+        </div> */}
 
         {/* ۳. دکمه‌های عملیات (ثبت درخواست و تنظیمات) */}
-        <div className="w-full md:w-auto md:mr-auto flex gap-2 mt-2 md:mt-0">
+        <div className="w-full md:w-auto md:mr-auto flex gap-2 mt-2 md:mt-5">
 
           {canCreateRequest && (
             <Link
@@ -115,7 +115,7 @@ const RequestsFilter = ({
           {isSuperAdmin && (
             <Link
               to='/requests/settings-table'
-              className="flex-1 md:flex-none h-10 flex items-center justify-center gap-2 px-4 
+              className="flex-1  md:flex-none h-10 flex items-center justify-center gap-2 px-4 
                          rounded-xl font-medium text-xs shadow-sm whitespace-nowrap
                          bg-secondaryL text-secondary-foregroundL
                          dark:bg-secondaryD dark:text-secondary-foregroundD
@@ -123,7 +123,7 @@ const RequestsFilter = ({
                          transition-all duration-200 border border-borderL/50 dark:border-borderD/50"
             >
               <Settings2 className="w-4 h-4" />
-              <span>تنظیمات</span>
+              <span>تنظیمات در خواست ها</span>
             </Link>
           )}
         </div>
