@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Response as ResponseFacade;
 class CheckStatus
 {
 
-    private int $max_trial_days_allowed = 5;
+    private int $max_trial_days_allowed = 4;
 
     public function __construct(protected CheckSystem $licenseService)
     {
