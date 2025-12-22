@@ -10,6 +10,7 @@ import { type LeaveType } from '../api/api-type';
 import { LeaveTypeModal } from '../components/TableSettingsPage/LeaveTypeModal';
 import { LeaveTypeRow } from '../components/TableSettingsPage/LeaveTypeRow';
 import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useAppSelector } from '@/hook/reduxHooks';
@@ -20,7 +21,7 @@ import { Button } from '@/components/ui/Button';
 
 const TableSettingsPage = () => {
     const navigate = useNavigate();
-    
+
     // --- State Management ---
     const [selectedRoot, setSelectedRoot] = useState<LeaveType | null>(null);
     const [selectedItemForModal, setSelectedItemForModal] = useState<LeaveType | null>(null);
@@ -32,9 +33,9 @@ const TableSettingsPage = () => {
 
     // --- Hooks ---
     // ✅ نکته مهم: تمام هوک‌ها باید در بالاترین سطح و قبل از هرگونه return اجرا شوند.
-    
+
     const currentUser = useAppSelector(selectUser) as User | null;
-    
+
     // می‌توانیم فچ کردن را شرطی کنیم (اختیاری)، اما فراخوانی هوک باید بماند
     // اگر هوک شما آپشن enabled دارد: useLeaveTypes({ enabled: isSuperAdmin })
     const { data: requestTypes, isLoading, isError, error } = useLeaveTypes();
@@ -70,7 +71,7 @@ const TableSettingsPage = () => {
 
 
     // --- Event Handlers (توابع معمولی مشکلی با ترتیب ندارند) ---
-    
+
     const handleSelectRoot = (root: LeaveType) => {
         setSelectedRoot(root);
         setSelectedItemForModal(null);
@@ -88,7 +89,7 @@ const TableSettingsPage = () => {
 
     const handleDeleteRootClick = (e: React.MouseEvent, root: LeaveType) => {
         e.stopPropagation();
-        
+
         if (root.children && root.children.length > 0) {
             toast.warn("برای حذف این دسته‌بندی، ابتدا باید تمام زیرمجموعه‌های آن را حذف کنید.");
             return;
@@ -176,7 +177,7 @@ const TableSettingsPage = () => {
                     }
                 >
                     <span className="truncate">{rootType.name}</span>
-                    
+
                     <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                         <Button
                             onClick={(e) => { e.stopPropagation(); handleEditItem(rootType); }}
@@ -189,15 +190,15 @@ const TableSettingsPage = () => {
                         </Button>
 
                         {deleteMutation.isPending && deleteMutation.variables === rootType.id ? (
-                            <Spinner size="sm" />
+                            <SpinnerButton size="sm" />
                         ) : (
                             <Button
                                 onClick={(e) => handleDeleteRootClick(e, rootType)}
                                 variant="ghost"
                                 size="icon"
                                 className={`h-7 w-7 rounded-full transition-colors
-                                    ${hasChildren 
-                                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' 
+                                    ${hasChildren
+                                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                         : 'hover:bg-red-100 text-red-500 dark:hover:bg-red-900/30 dark:text-red-400'
                                     }`}
                                 disabled={hasChildren}
@@ -261,7 +262,7 @@ const TableSettingsPage = () => {
                             {requestTypes?.filter(t => !t.parent_id).length || 0} مورد
                         </span>
                     </div>
-                    
+
                     <Button
                         onClick={handleAddRootClick}
                         variant="primary"
@@ -271,7 +272,7 @@ const TableSettingsPage = () => {
                         <Plus size={16} />
                         افزودن ریشه جدید
                     </Button>
-                    
+
                     <div className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
                         {renderRootTypesList()}
                     </div>

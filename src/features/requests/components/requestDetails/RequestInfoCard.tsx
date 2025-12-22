@@ -23,6 +23,7 @@ import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import PersianDatePickerInput from '@/lib/PersianDatePickerInput';
 import Textarea from '@/components/ui/Textarea';
 import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { CustomTimeInput } from '@/components/ui/CustomTimeInput';
 import Checkbox from '@/components/ui/Checkbox';
@@ -465,7 +466,7 @@ export const RequestInfoCard = ({ request }: RequestInfoCardProps) => {
                                 disabled={isSubmitting}
                                 className="flex justify-center items-center hover:bg-primaryL/90 cursor-pointer gap-2 bg-primaryL text-primary-foregroundL dark:bg-primaryD dark:text-primary-foregroundD px-6 py-2 rounded-xl text-sm font-medium disabled:opacity-50 shadow-sm shadow-primaryL/20 transition-all"
                             >
-                                {isSubmitting ? <Spinner size="sm" className="text-white" /> : <Save size={18} />}
+                                {isSubmitting ? <SpinnerButton size="sm" className="text-white" /> : <Save size={18} />}
                                 {isSubmitting ? "در حال ذخیره..." : "ذخیره تغییرات"}
                             </button>
                         </div>

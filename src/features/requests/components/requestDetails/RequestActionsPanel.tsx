@@ -4,7 +4,7 @@ import type { LeaveRequest } from "@/features/requests/types";
 import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import Textarea from '@/components/ui/Textarea';
 import { X, Check } from 'lucide-react';
-import { Spinner } from '@/components/ui/Spinner';
+import { SpinnerButton } from '@/components/ui/SpinnerButton';
 
 const statusOptions: SelectOption[] = [
     { id: 'approved', name: 'تایید شده' },
@@ -79,7 +79,7 @@ export const RequestActionsPanel = ({
                         className="flex-1 flex items-center cursor-pointer justify-center gap-2 bg-primaryL text-white hover:bg-successD-foreground px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:bg-gray-400"
                     >
                         {isSubmitting ? (
-                            <Spinner size="sm" />
+                            <SpinnerButton size="sm" />
                         ) : (
                             <>
                                 <Check size={18} />
