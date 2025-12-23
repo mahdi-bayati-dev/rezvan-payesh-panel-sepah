@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
-import onboardingReducer from "./slices/onboardingSlice"; // اضافه شد
+import onboardingReducer from "./slices/onboardingSlice";
+import { systemCheckReducer } from "./slices/systemCheckSlice";
 import {
   useDispatch,
   useSelector,
@@ -20,6 +21,7 @@ export const store = configureStore({
     auth: authReducer,
     license: licenseReducer,
     onboarding: onboardingReducer, // اضافه شد
+    systemCheck: systemCheckReducer,
   },
 });
 
