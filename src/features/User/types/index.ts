@@ -9,7 +9,7 @@ export interface OrganizationSmall {
   parent_id: number | null;
 }
 
-// ✅ تایپ جدید برای تصاویر کارمند (طبق داکیومنت جدید)
+// ✅ تایپ جدید برای تصاویر سرباز (طبق داکیومنت جدید)
 // فایل: User/types/index.ts
 
 export interface EmployeeImage {
@@ -21,7 +21,7 @@ export interface EmployeeImage {
   size: number;
   created_at?: string;
 }
-// تایپ آبجکت کارمند (employee)
+// تایپ آبجکت سرباز (employee)
 export interface Employee {
   id: number;
   user_id: number;
@@ -52,7 +52,7 @@ export interface Employee {
   week_pattern: BaseNestedItem | null;
   shift_schedule: BaseNestedItem | null;
 
-  // ✅ اضافه شدن آرایه تصاویر به کارمند
+  // ✅ اضافه شدن آرایه تصاویر به سرباز
   images?: EmployeeImage[];
 }
 

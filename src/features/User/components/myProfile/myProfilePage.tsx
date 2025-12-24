@@ -46,8 +46,8 @@ const MyProfilePage: React.FC = () => {
                 <div className="bg-warningL-background dark:bg-warningD-background p-6 rounded-full mb-4">
                     <UserX className="h-12 w-12 text-warningL-foreground dark:text-warningD-foreground" />
                 </div>
-                <h2 className="text-xl font-bold text-foregroundL dark:text-foregroundD mb-2">اطلاعات کارمندی یافت نشد</h2>
-                <p className="text-muted-foregroundL dark:text-muted-foregroundD max-w-md">حساب کاربری شما هنوز به هیچ پروفایل کارمندی متصل نشده است. لطفاً با مدیر سیستم تماس بگیرید.</p>
+                <h2 className="text-xl font-bold text-foregroundL dark:text-foregroundD mb-2">اطلاعات سربازی یافت نشد</h2>
+                <p className="text-muted-foregroundL dark:text-muted-foregroundD max-w-md">حساب کاربری شما هنوز به هیچ پروفایل سربازی متصل نشده است. لطفاً با مدیر سیستم تماس بگیرید.</p>
             </div>
         );
     }

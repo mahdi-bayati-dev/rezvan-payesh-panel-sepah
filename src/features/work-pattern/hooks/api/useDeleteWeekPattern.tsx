@@ -29,7 +29,7 @@ export const useDeleteWeekPattern = () => {
             console.error("useDeleteWeekPattern (DELETE) onError:", error);
 
             // ✅ مدیریت اختصاصی خطای 409 (Conflict)
-            // این خطا زمانی رخ می‌دهد که الگو به کارمند یا گروهی متصل باشد
+            // این خطا زمانی رخ می‌دهد که الگو به سرباز یا گروهی متصل باشد
             if (error.response?.status === 409) {
                 toast.error(
                     <div className="text-right text-sm font-vazir" dir="rtl">
@@ -37,10 +37,10 @@ export const useDeleteWeekPattern = () => {
                             ⛔ حذف غیرمجاز
                         </div>
                         <p className="leading-6">
-                            این الگو به تعدادی از کارمندان اختصاص داده شده است و قابل حذف نیست.
+                            این الگو به تعدادی از سربازان اختصاص داده شده است و قابل حذف نیست.
                         </p>
                         <p className="mt-2 text-xs opacity-90 border-t border-white/20 pt-1">
-                            لطفاً ابتدا کارمندان را مدیریت کنید، سپس اقدام به حذف نمایید.
+                            لطفاً ابتدا سربازان را مدیریت کنید، سپس اقدام به حذف نمایید.
                         </p>
                     </div>,
                     {

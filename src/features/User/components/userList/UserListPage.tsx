@@ -80,10 +80,10 @@ export function UserListPage({ organizationId }: UserListPageProps) {
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold dark:text-borderL flex items-center gap-2">
-                        {isLoadingOrg ? <Loader2 className="h-6 w-6 animate-spin" /> : `کارمندان: ${organization?.name}`}
+                        {isLoadingOrg ? <Loader2 className="h-6 w-6 animate-spin" /> : `سربازان: ${organization?.name}`}
                     </h1>
                     <p className="text-muted-foregroundL dark:text-muted-foregroundD mt-1">
-                        لیست کارمندان تخصیص‌یافته به این واحد سازمانی.
+                        لیست سربازان تخصیص‌یافته به این واحد سازمانی.
                     </p>
                 </div>
             </div>
@@ -110,19 +110,19 @@ export function UserListPage({ organizationId }: UserListPageProps) {
                     {canCreateUser && (
                         <Button variant="primary" size="md" onClick={() => navigate(`/organizations/${organizationId}/create-user`)} className="w-full sm:w-auto shadow-lg shadow-primaryL/20">
                             <UserPlus className="h-4 w-4 ml-2" />
-                            ایجاد کارمند جدید
+                            ایجاد سرباز جدید
                         </Button>
                     )}
                     {isSuperAdmin && (
                         <Button variant="outline" size="md" onClick={() => navigate(`/organizations/${organizationId}/assign-user`)} className="w-full sm:w-auto">
                             <UserPlus className="h-4 w-4 ml-2" />
-                            تخصیص کارمند
+                            تخصیص سرباز
                         </Button>
                     )}
                 </div>
             </div>
 
-            <DataTable table={table} isLoading={isLoadingUsers} notFoundMessage="هیچ کارمندی یافت نشد." />
+            <DataTable table={table} isLoading={isLoadingUsers} notFoundMessage="هیچ سربازی یافت نشد." />
             {totalRows > 0 && <DataTablePagination table={table} />}
             {isSuperAdmin && <UserImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} organizationId={organizationId} organizationName={organization?.name} />}
         </div>

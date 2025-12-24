@@ -11,7 +11,7 @@ import ReportsPageSkeleton from "../Skeleton/SkeletonRepotrs"; // اسکلت ل�
  * این کامپوننت "هوشمند" به عنوان ورودی اصلی /reports عمل می‌کند.
  * نقش کاربر را از Redux بررسی می‌کند و تصمیم می‌گیرد
  * کدام صفحه گزارش را رندر کند:
- * - ادمین: ActivityReportPage (گزارش کامل با فیلتر کارمندان)
+ * - ادمین: ActivityReportPage (گزارش کامل با فیلتر سربازان)
  * - کاربر: MyReportsPage (فقط گزارش‌های خود کاربر)
  */
 export default function ReportsIndexPage() {
@@ -25,7 +25,7 @@ export default function ReportsIndexPage() {
       return null; // وضعیت نامشخص
     }
     // (این منطق را بر اساس سیستم رول خودتان تنظیم کنید)
-    return roles.includes("admin") || roles.includes("super_admin"); 
+    return roles.includes("admin") || roles.includes("super_admin");
   }, [roles]);
 
   // اگر وضعیت احراز هویت هنوز مشخص نیست، اسکلت لودینگ را نشان بده

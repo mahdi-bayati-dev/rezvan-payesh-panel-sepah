@@ -59,7 +59,7 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
         {
             accessorFn: (row) => `${row.employee?.first_name || ''} ${row.employee?.last_name || ''}`,
             id: "full_name",
-            header: "نام کارمند",
+            header: "نام سرباز",
             cell: ({ row }) => (
                 <Link to={`/organizations/users/${row.original.id}`} className="font-medium text-foregroundL dark:text-foregroundD hover:text-primaryL dark:hover:text-primaryD transition-colors">
                     {row.getValue('full_name') as string || row.original.user_name}
@@ -106,7 +106,7 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
             <DataTable
                 table={table}
                 isLoading={isLoading}
-                notFoundMessage={`هیچ کارمندی در گروه "${groupName}" عضو نیست.`}
+                notFoundMessage={`هیچ سربازی در گروه "${groupName}" عضو نیست.`}
             />
 
             {pageCount > 1 && <div className="mt-4"><DataTablePagination table={table} /></div>}
@@ -115,14 +115,14 @@ export default function AssignedEmployeesTable({ groupId, groupName }: AssignedE
                 isOpen={!!userToRemove}
                 onClose={() => setUserToRemove(null)}
                 onConfirm={handleConfirmRemove}
-                title="حذف کارمند از گروه"
+                title="حذف سرباز از گروه"
                 message={
                     <>
                         <span>
-                            آیا از حذف کارمند <strong className="text-destructiveL dark:text-destructiveD">{userToRemove?.employee?.first_name} {userToRemove?.employee?.last_name}</strong> از گروه <strong>{groupName}</strong> اطمینان دارید؟
+                            آیا از حذف سرباز <strong className="text-destructiveL dark:text-destructiveD">{userToRemove?.employee?.first_name} {userToRemove?.employee?.last_name}</strong> از گروه <strong>{groupName}</strong> اطمینان دارید؟
                         </span>
                         <span className="block text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-2">
-                            این کارمند پس از حذف در وضعیت "آزاد" قرار می‌گیرد.
+                            این سرباز پس از حذف در وضعیت "آزاد" قرار می‌گیرد.
                         </span>
                     </>
                 }

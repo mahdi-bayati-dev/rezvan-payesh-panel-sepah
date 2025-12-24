@@ -119,7 +119,7 @@ const OrganizationalForm: React.FC<{ user: User }> = ({ user }) => {
     if (!user.employee) {
         return (
             <div className="p-4 rounded-lg border border-warningL-foreground/20 bg-warningL-background text-warningL-foreground dark:bg-warningD-background dark:text-warningD-foreground">
-                این کاربر فاقد پروفایل کارمندی است.
+                این کاربر فاقد پروفایل سربازی است.
             </div>
         );
     }

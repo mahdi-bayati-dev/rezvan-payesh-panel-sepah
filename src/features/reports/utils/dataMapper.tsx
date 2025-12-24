@@ -61,7 +61,7 @@ export const mapApiLogToActivityLog = (
             hour12: false,
         }).format(timestamp);
 
-        // 4. مدیریت اطلاعات کارمند و آواتار (با پشتیبانی از سوکت و API)
+        // 4. مدیریت اطلاعات سرباز و آواتار (با پشتیبانی از سوکت و API)
         const employeeName = apiLog.employee
             ? `${apiLog.employee.first_name} ${apiLog.employee.last_name}`
             : "کاربر نامشخص";

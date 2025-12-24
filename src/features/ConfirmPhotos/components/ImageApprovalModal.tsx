@@ -98,7 +98,7 @@ export const ImageApprovalModal: React.FC<ImageApprovalModalProps> = ({
                             </div>
                             {/* بج روی عکس */}
                             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-infoL-background text-infoL-foreground dark:bg-infoD-background dark:text-infoD-foreground px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap border border-infoL-foreground/10">
-                                {request.employee.position || "کارمند"}
+                                {request.employee.position || "سرباز"}
                             </div>
                         </div>
 

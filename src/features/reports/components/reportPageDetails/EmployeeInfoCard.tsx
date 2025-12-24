@@ -50,12 +50,12 @@ export const EmployeeInfoCard = ({
   return (
     <div className="flex flex-col gap-4">
       <UserInfoCard
-        title="مشخصات کارمند"
+        title="مشخصات سرباز"
         name={name}
         avatarUrl={fullAvatarUrl || undefined}
         avatarPlaceholder={avatarPlaceholder}
         infoRows={infoRows}
-        // className="border border-borderL dark:border-borderD shadow-sm"
+      // className="border border-borderL dark:border-borderD shadow-sm"
       />
     </div>
   );

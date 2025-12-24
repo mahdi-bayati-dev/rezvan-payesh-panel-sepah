@@ -48,7 +48,7 @@ function UserProfilePage() {
         <div className="space-y-4 m-2 md:p-0 mx-auto " dir="rtl">
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-borderL dark:border-borderD bg-backgroundL-500 dark:bg-backgroundD shadow-sm">
                 <div>
-                    <h1 className="text-xl font-bold text-foregroundL dark:text-foregroundD">پرونده الکترونیک کارمند</h1>
+                    <h1 className="text-xl font-bold text-foregroundL dark:text-foregroundD">پرونده الکترونیک سرباز</h1>
                     <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1">مدیریت اطلاعات فردی، سازمانی و دسترسی‌ها</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="hover:bg-secondaryL dark:hover:bg-secondaryD">

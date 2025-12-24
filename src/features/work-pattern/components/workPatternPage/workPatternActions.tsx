@@ -92,7 +92,7 @@ export const WorkPatternActions = ({
             className="justify-start h-10 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
           >
             <Users className="w-4 h-4 ml-2 " />
-            مدیریت کارمندان
+            مدیریت سربازان
           </Button>
 
           {isShiftSchedule && (

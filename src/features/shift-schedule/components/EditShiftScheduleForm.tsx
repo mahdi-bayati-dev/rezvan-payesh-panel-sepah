@@ -257,7 +257,7 @@ export const EditShiftScheduleForm: React.FC<EditShiftScheduleFormProps> = ({
                         <div>
                             <h3 className="font-bold text-foregroundL dark:text-foregroundD">تولید خودکار شیفت ها</h3>
                             <p className="text-xs text-muted-foregroundL dark:text-muted-foregroundD mt-1">
-                                اعمال این چرخه برای کارمندان در یک بازه زمانی خاص
+                                اعمال این چرخه برای سربازان در یک بازه زمانی خاص
                             </p>
                         </div>
                         <Button

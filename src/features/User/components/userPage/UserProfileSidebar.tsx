@@ -45,7 +45,7 @@ const UserProfileSidebar: React.FC<{ user: User }> = ({ user }) => {
                     <span key={role} className="px-2 py-1 text-xs font-medium rounded-full bg-primaryL/10 text-primaryL border border-primaryL/20 dark:bg-primaryD/10 dark:text-primaryD dark:border-primaryD/20">
                         {role === 'super_admin' ? 'مدیر کل' :
                             role === 'org-admin-l2' ? 'ادمین سازمان (L2)' :
-                                role === 'org-admin-l3' ? 'ادمین واحد (L3)' : 'کارمند'}
+                                role === 'org-admin-l3' ? 'ادمین واحد (L3)' : 'سرباز'}
                     </span>
                 ))}
             </div>

@@ -145,14 +145,14 @@ export default function WorkGroupAssignmentPage() {
 
                 {/* کارت ۲: اعضای قابل افزودن (با قابلیت افزودن گروهی) */}
                 <ServerEmployeeTableCard
-                    title="کارمندان آزاد"
+                    title="سربازان آزاد"
                     icon={<UserPlus className="h-5 w-5 text-successL-foreground dark:text-successD-foreground" />}
                     count={availableTotal}
-                    description="کارمندانی که در هیچ گروهی عضو نیستند و می‌توانند اضافه شوند."
+                    description="سربازانی که در هیچ گروهی عضو نیستند و می‌توانند اضافه شوند."
                     data={availableUsers}
                     columns={availableColumns}
                     isLoading={isLoading}
-                    emptyMessage="کارمند آزادی یافت نشد."
+                    emptyMessage="سرباز آزادی یافت نشد."
                     // اصلاح رنگ هدر: استفاده از successL با opacity کم
                     headerClassName="bg-successL-background/50 dark:bg-successD-background/10 border-b border-successL-foreground/10 dark:border-successD-foreground/10"
                     pageCount={availablePageCount}

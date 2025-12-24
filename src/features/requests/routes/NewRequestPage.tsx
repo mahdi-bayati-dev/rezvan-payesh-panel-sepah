@@ -108,7 +108,7 @@ const NewRequestPage = () => {
         return (
             <Alert variant="destructive" className="m-4">
                 <AlertTitle>خطای دسترسی</AlertTitle>
-                <AlertDescription>اطلاعات کارمندی شما یافت نشد.</AlertDescription>
+                <AlertDescription>اطلاعات سربازی شما یافت نشد.</AlertDescription>
             </Alert>
         );
     }

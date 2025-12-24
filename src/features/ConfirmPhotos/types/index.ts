@@ -16,14 +16,14 @@ export interface ImageRequest {
   status: RequestStatus;
   created_at: string;
 
-  // ریلیشن با کارمند (برای نمایش نام و مشخصات)
+  // ریلیشن با سرباز (برای نمایش نام و مشخصات)
   employee: {
     id: number;
     first_name: string;
     last_name: string;
     personnel_code: string;
     // ✅ فیکس: اضافه کردن پوزیشن برای جلوگیری از خطای بیلد
-    position?: string | null; 
+    position?: string | null;
     // برای نمایش در جدول نیاز به نام سازمان و گروه داریم
     organization?: { id: number; name: string } | null;
     work_group?: { id: number; name: string } | null;

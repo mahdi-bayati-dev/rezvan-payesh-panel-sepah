@@ -1,5 +1,5 @@
 /* reports/components/Export/ExportModal.tsx */
-import  { Fragment, useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -66,7 +66,7 @@ const columnOptions = ALLOWED_EXPORT_COLUMN_KEYS.map((key) => ({
 
 const sortOptions: SelectOption[] = [
   { id: "timestamp", name: "زمان ثبت (پیش‌فرض)" },
-  { id: "employee_name", name: "نام کارمند" },
+  { id: "employee_name", name: "نام سرباز" },
 ];
 
 const eventTypeOptions: SelectOption[] = [

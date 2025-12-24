@@ -1,7 +1,7 @@
 // --- تایپ‌های مربوط به API گزارش‌ها (AttendanceLogs) ---
 
 /**
- * ساختار کارمند در پاسخ API گزارش‌ها (رابطه employee)
+ * ساختار سرباز در پاسخ API گزارش‌ها (رابطه employee)
  */
 
 export interface ApiEmployee {
@@ -12,11 +12,11 @@ export interface ApiEmployee {
   // [اصلاح استاندارد] اضافه کردن هر دو حالت نامگذاری برای پشتیبانی از سوکت و API
   avatarUrl?: string; // فرمت معمول در ریسورس‌های API
   avatar_url?: string; // فرمت معمول در دیتابیس/سوکت
-  
+
   // [اصلاح] فیلد employee_code به personnel_code تغییر کرد
   // تا با لاگ‌های واقعی API شما مطابقت داشته باشد
   personnel_code?: string;
-  images?: { url: string }[]; 
+  images?: { url: string }[];
 }
 
 /**
@@ -44,7 +44,7 @@ export interface ApiAttendanceLog {
   is_allowed?: boolean; // <-- [اصلاح ۱] این فیلد در JSON شما نبود، اختیاری شد
   created_at: string;
   updated_at: string;
-  employee?: ApiEmployee; // <-- [اصلاح ۲] کل آبجکت کارمند اختیاری شد
+  employee?: ApiEmployee; // <-- [اصلاح ۲] کل آبجکت سرباز اختیاری شد
   editor: ApiEditor | null;
 
   // [جدید] این فیلدها در مستندات /my/.. و /admin/.. وجود دارند
@@ -94,7 +94,7 @@ export interface ApiUserResource {
   user_name: string;
   email: string;
   roles: string[];
-  employee: ApiUserEmployeeProfile; // آبجکت کارمند
+  employee: ApiUserEmployeeProfile; // آبجکت سرباز
 }
 
 export interface ApiUserCollection {
@@ -168,8 +168,8 @@ export type AllowedExportColumn = (typeof ALLOWED_EXPORT_COLUMN_KEYS)[number];
 
 export const EXPORT_COLUMN_MAP: Record<AllowedExportColumn, string> = {
   id: "شناسه لاگ",
-  employee_id: "شناسه کارمند",
-  employee_name: "نام کارمند",
+  employee_id: "شناسه سرباز",
+  employee_name: "نام سرباز",
   employee_personnel_code: "کد پرسنلی",
   organization_name: "سازمان",
   timestamp: "زمان ثبت",

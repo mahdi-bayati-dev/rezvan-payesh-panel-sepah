@@ -15,7 +15,7 @@ import SelectBox, { type SelectOption } from '@/components/ui/SelectBox';
 import FormSection from '@/features/User/components/userPage/FormSection';
 
 const ROLE_OPTIONS: SelectOption[] = [
-    { id: USER_ROLES.USER, name: 'کارمند (User)' },
+    { id: USER_ROLES.USER, name: 'سرباز (User)' },
     { id: USER_ROLES.ORG_ADMIN_L3, name: 'ادمین واحد (L3)' },
     { id: USER_ROLES.ORG_ADMIN_L2, name: 'ادمین سازمان (L2)' },
 ];

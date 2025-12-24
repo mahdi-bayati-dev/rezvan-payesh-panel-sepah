@@ -270,7 +270,7 @@ export const CreateUserForm: React.FC<{ organizationId: number }> = ({ organizat
                         </Button>
                         <Button type="submit" variant="primary" className="flex-1 md:min-w-[180px] shadow-lg shadow-primaryL/20" disabled={createMutation.isPending}>
                             {createMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5 ml-2" />}
-                            ثبت نهایی کارمند
+                            ثبت نهایی سرباز
                         </Button>
                     </div>
                 </div>

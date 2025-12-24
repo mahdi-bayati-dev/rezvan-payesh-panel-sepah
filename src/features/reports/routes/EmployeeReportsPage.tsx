@@ -93,7 +93,7 @@ export default function EmployeeReportPage() {
             onEdit: () => { },
             onApprove: () => { },
         });
-        // حذف ستون‌های تکراری چون همه لاگ‌ها مال همین کارمند هستند
+        // حذف ستون‌های تکراری چون همه لاگ‌ها مال همین سرباز هستند
         return allColumns.filter((col) => col.id !== 'employee' && col.id !== 'actions');
     }, []);
 
@@ -130,7 +130,7 @@ export default function EmployeeReportPage() {
         return (
             <div className="p-4 max-w-7xl mx-auto">
                 <main className="p-6 rounded-3xl bg-backgroundL-500 dark:bg-backgroundD border border-borderL dark:border-borderD shadow-sm">
-                    <NotFoundCard message="هیچ گزارش فعالیتی برای این کارمند یافت نشد." onBack={handleGoBack} />
+                    <NotFoundCard message="هیچ گزارش فعالیتی برای این سرباز یافت نشد." onBack={handleGoBack} />
                 </main>
             </div>
         );

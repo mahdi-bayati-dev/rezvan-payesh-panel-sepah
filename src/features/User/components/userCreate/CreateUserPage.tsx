@@ -23,7 +23,7 @@ function CreateUserPage() {
         <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto" dir="rtl">
             <div className="flex justify-between items-center pb-4 border-b border-borderL dark:border-borderD">
                 <div>
-                    <h1 className="text-2xl font-bold dark:text-borderL">ایجاد کارمند جدید</h1>
+                    <h1 className="text-2xl font-bold dark:text-borderL">ایجاد سرباز جدید</h1>
                     <p className="text-muted-foregroundL dark:text-muted-foregroundD mt-1">
                         {isLoadingOrg ? <Loader2 className="h-4 w-4 animate-spin" /> : `در سازمان: ${organization?.name || `(ID: ${organizationId})`}`}
                     </p>

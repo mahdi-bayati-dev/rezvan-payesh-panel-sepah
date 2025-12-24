@@ -5,7 +5,7 @@ import { type WorkGroup } from "@/features/work-group/types/index";
 import Checkbox from "@/components/ui/Checkbox";
 import { toPersianDigits } from "@/features/work-pattern/utils/persianUtils";
 
-// --- ستون‌های مربوط به کارمندان ---
+// --- ستون‌های مربوط به سربازان ---
 export const employeeColumns: ColumnDef<User>[] = [
   {
     id: 'select',
@@ -27,12 +27,12 @@ export const employeeColumns: ColumnDef<User>[] = [
     ),
   },
   {
-    header: 'نام کارمند',
+    header: 'نام سرباز',
     accessorKey: 'employee.full_name',
     cell: ({ row }) => {
       const user = row.original;
       const employee = user.employee;
-      // کامنت: مدیریت نمایش نام (اگر نام کارمند خالی بود، نام کاربری نمایش داده شود)
+      // کامنت: مدیریت نمایش نام (اگر نام سرباز خالی بود، نام کاربری نمایش داده شود)
       const displayName = `${employee?.first_name || ''} ${employee?.last_name || ''}`.trim() || user.user_name;
       return (
         <div className="flex items-center gap-2">

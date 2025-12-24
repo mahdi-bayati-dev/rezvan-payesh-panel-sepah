@@ -208,7 +208,7 @@ export const useCreateUser = () => {
 };
 // --- ✅ اصلاح نهایی: هوک تخصیص الگوی کاری ---
 /**
- * هوک به‌روزرسانی (تخصیص) الگوی کاری کارمندان
+ * هوک به‌روزرسانی (تخصیص) الگوی کاری سربازان
  */
 export const useUpdateUserWorkPattern = () => {
   const queryClient = useQueryClient();
@@ -248,7 +248,7 @@ export const useUpdateUserWorkPattern = () => {
 };
 
 /**
- * ✅✅✅ هوک جدید: به‌روزرسانی (تخصیص) برنامه شیفتی کارمندان
+ * ✅✅✅ هوک جدید: به‌روزرسانی (تخصیص) برنامه شیفتی سربازان
  * این هوک برای صفحه مدیریت جدید لازم است
  */
 export const useUpdateUserShiftSchedule = () => {

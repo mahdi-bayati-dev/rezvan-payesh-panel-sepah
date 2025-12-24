@@ -16,7 +16,7 @@ export const getAssignedColumns = (
     isPending: boolean
 ): ColumnDef<User>[] => [
         {
-            header: "کارمند",
+            header: "سرباز",
             accessorFn: (row) => `${row.employee?.first_name ?? ""} ${row.employee?.last_name ?? ""}`,
             cell: ({ row }) => (
                 <div className="flex flex-col">
@@ -74,7 +74,7 @@ export const getAvailableColumns = (
     // currentPatternId: number
 ): ColumnDef<User>[] => [
         {
-            header: "کارمند",
+            header: "سرباز",
             accessorFn: (row) => `${row.employee?.first_name ?? ""} ${row.employee?.last_name ?? ""}`,
             cell: ({ row }) => {
                 // نمایش وضعیت فعلی کاربر (اگر به جای دیگری متصل است)

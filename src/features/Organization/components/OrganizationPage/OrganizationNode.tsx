@@ -159,7 +159,7 @@ const OrganizationNodeComponent = ({
                         </DropdownTrigger>
                         <DropdownContent className="w-52">
                             <DropdownItem icon={<Users className="h-4 w-4" />} onClick={handleNodeClickAction}>
-                                مشاهده کارمندان
+                                مشاهده سربازان
                             </DropdownItem>
 
                             {isSuperAdmin && (

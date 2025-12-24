@@ -36,7 +36,7 @@ export const WorkGroupActionsCell = ({ row }: { row: { original: WorkGroup } }) 
                         <div className="flex flex-col gap-1 text-right">
                             <span className="font-bold">امکان حذف وجود ندارد!</span>
                             <span className="leading-6">
-                                ابتدا باید کارمندان این گروه را مدیریت کنید و یا به گروه دیگری منتقل کنید تا بتوانید این گروه را پاک کنید.
+                                ابتدا باید سربازان این گروه را مدیریت کنید و یا به گروه دیگری منتقل کنید تا بتوانید این گروه را پاک کنید.
                             </span>
                         </div>
                     );

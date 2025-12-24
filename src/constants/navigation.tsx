@@ -21,7 +21,7 @@ export interface NavItem {
   href: string;
   icon: React.ReactNode;
   allowedRoles: string[];
-  requiresEmployee?: boolean; // ✅ پراپرتی جدید برای شرط داشتن کارمند
+  requiresEmployee?: boolean; // ✅ پراپرتی جدید برای شرط داشتن سرباز
 }
 
 export const mainNavItems: NavItem[] = [

@@ -102,7 +102,7 @@ export default function AvailableEmployeesTable({ groupId }: AvailableEmployeesT
         {
             accessorFn: (row) => `${row.employee?.first_name || ''} ${row.employee?.last_name || ''}`,
             id: "full_name",
-            header: "نام کارمند",
+            header: "نام سرباز",
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <Link to={`/organizations/users/${row.original.id}`} className="font-medium text-foregroundL dark:text-foregroundD hover:text-primaryL dark:hover:text-primaryD transition-colors">
@@ -111,7 +111,7 @@ export default function AvailableEmployeesTable({ groupId }: AvailableEmployeesT
                     {!row.original.employee && (
                         <span className="text-[10px] text-destructiveL-foreground flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
-                            فاقد پروفایل کارمندی
+                            فاقد پروفایل سربازی
                         </span>
                     )}
                 </div>
@@ -177,8 +177,8 @@ export default function AvailableEmployeesTable({ groupId }: AvailableEmployeesT
 
                 {selectedCount > 0 && (
                     <div className="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                         <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
-                            {selectedCount} کارمند انتخاب شده
+                        <span className="text-sm text-muted-foregroundL dark:text-muted-foregroundD">
+                            {selectedCount} سرباز انتخاب شده
                         </span>
                         <Button
                             variant="primary"
@@ -198,7 +198,7 @@ export default function AvailableEmployeesTable({ groupId }: AvailableEmployeesT
                 <Alert className="bg-secondaryL/10 border-none">
                     <AlertDescription className="flex items-center text-muted-foregroundL">
                         <AlertCircle className="h-4 w-4 ml-2" />
-                        هیچ کارمند آزادی یافت نشد. تمام کارمندان دارای پروفایل، هم‌اکنون عضو گروه‌های کاری هستند.
+                        هیچ سرباز آزادی یافت نشد. تمام سربازان دارای پروفایل، هم‌اکنون عضو گروه‌های کاری هستند.
                     </AlertDescription>
                 </Alert>
             )}
@@ -206,9 +206,9 @@ export default function AvailableEmployeesTable({ groupId }: AvailableEmployeesT
             <DataTable
                 table={table}
                 isLoading={isLoading}
-                notFoundMessage="کارمندی یافت نشد."
+                notFoundMessage="سربازی یافت نشد."
             />
-            
+
             {pageCount > 1 && <div className="mt-4"><DataTablePagination table={table} /></div>}
         </div>
     );

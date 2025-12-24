@@ -22,7 +22,7 @@ const roleLabelMap: Record<string, string> = {
     "super_admin": "ادمین کل",
     "org-admin-l2": "ادمین سازمان(L2)",
     "org-admin-l3": "ادمین واحد (L3)",
-    "user": "کارمند",
+    "user": "سرباز",
 };
 
 export const columns: ColumnDef<User>[] = [
@@ -33,7 +33,7 @@ export const columns: ColumnDef<User>[] = [
             const user = row.original;
             const firstName = user.employee?.first_name;
             const lastName = user.employee?.last_name;
-            
+
             const displayName = (firstName || lastName)
                 ? `${firstName || ''} ${lastName || ''}`.trim()
                 : user.user_name;
@@ -112,7 +112,7 @@ export const columns: ColumnDef<User>[] = [
             return (
                 <div className="flex flex-wrap gap-1">
                     {roles.map((role) => {
-                        const displayLabel = roleLabelMap[role] || "کارمند"; 
+                        const displayLabel = roleLabelMap[role] || "سرباز";
                         const variant = roleVariantMap[role] || "default";
                         return (
                             <Badge

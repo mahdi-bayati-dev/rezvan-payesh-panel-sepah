@@ -33,17 +33,17 @@ export default function AddToWorkPatternPage() {
       {/* --- ۱. هدر صفحه --- */}
       <div className="flex items-center justify-between border-b border-borderL dark:border-white/10 pb-4">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate('/work-patterns')} 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/work-patterns')}
             className="h-10 w-10 hover:bg-secondaryL/50 dark:hover:bg-white/5 dark:text-muted-foregroundD"
           >
             <ArrowRight className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foregroundL dark:text-foregroundD">تخصیص الگوی کاری</h1>
-            <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD/70 mt-1">مدیریت اتصال انبوه کارمندان یا گروه‌ها به الگوها</p>
+            <p className="text-sm text-muted-foregroundL dark:text-muted-foregroundD/70 mt-1">مدیریت اتصال انبوه سربازان یا گروه‌ها به الگوها</p>
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function AddToWorkPatternPage() {
             {activeTab === 'EMPLOYEES' ? (
               <>
                 <div className="flex-1 overflow-x-auto">
-                    <DataTable table={employeesTable} notFoundMessage="هیچ کارمندی یافت نشد." isLoading={isGlobalLoading} />
+                  <DataTable table={employeesTable} notFoundMessage="هیچ سربازی یافت نشد." isLoading={isGlobalLoading} />
                 </div>
                 <div className="p-2 border-t border-borderL dark:border-white/10 bg-secondaryL/5 dark:bg-white/[0.02]">
                   <DataTablePagination table={employeesTable} />
@@ -84,7 +84,7 @@ export default function AddToWorkPatternPage() {
             ) : (
               <>
                 <div className="flex-1 overflow-x-auto">
-                    <DataTable table={workGroupsTable} notFoundMessage="هیچ گروه کاری یافت نشد." isLoading={isGlobalLoading} />
+                  <DataTable table={workGroupsTable} notFoundMessage="هیچ گروه کاری یافت نشد." isLoading={isGlobalLoading} />
                 </div>
                 <div className="p-2 border-t border-borderL dark:border-white/10 bg-secondaryL/5 dark:bg-white/[0.02]">
                   <DataTablePagination table={workGroupsTable} />
@@ -106,9 +106,9 @@ export default function AddToWorkPatternPage() {
         </span>
 
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/work-patterns')} 
+          <Button
+            variant="outline"
+            onClick={() => navigate('/work-patterns')}
             disabled={isGlobalLoading}
             className="dark:border-white/20 dark:hover:bg-white/10 dark:text-white"
           >

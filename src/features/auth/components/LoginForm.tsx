@@ -18,8 +18,8 @@ import { useAppDispatch, useAppSelector } from '@/store/index';
 import { loginUser, resetAuthStatus } from '@/store/slices/authSlice';
 
 // ✅ استاندارد: ایمپورت لوگوها از assets
-import logoLight from "@/assets/images/img-header/logo-1.webp";
-import logoDark from "@/assets/images/img-header/logo-2.webp";
+import logoLight from "@/assets/images/img-header/logo-1.png";
+import logoDark from "@/assets/images/img-header/logo-2.png";
 const LoginForm = () => {
   const theme = useAppSelector((state) => state.ui.theme);
   const dispatch = useAppDispatch();

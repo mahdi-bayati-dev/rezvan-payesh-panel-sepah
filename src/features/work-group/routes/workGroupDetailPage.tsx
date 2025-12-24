@@ -116,7 +116,7 @@ function WorkGroupDetailPage() {
                                     className="shadow-sm"
                                 >
                                     <Users className="h-4 w-4 ml-2" />
-                                    مدیریت کارمندان
+                                    مدیریت سربازان
                                 </Button>
                                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                                     <Edit className="h-4 w-4 ml-2" />

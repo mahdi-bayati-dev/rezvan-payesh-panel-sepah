@@ -172,7 +172,7 @@ export async function fetchDashboardData(
 
     if (error.response && error.response.status === 404) {
       throw new Error(
-        "رکورد کارمند برای این کاربر یافت نشد. لطفاً با پشتیبانی تماس بگیرید."
+        "رکورد سرباز برای این کاربر یافت نشد. لطفاً با پشتیبانی تماس بگیرید."
       );
     }
     throw error;

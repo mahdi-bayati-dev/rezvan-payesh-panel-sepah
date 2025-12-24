@@ -37,7 +37,7 @@ const ActionsCell: React.FC<{ user: User }> = ({ user }) => {
                 </DropdownTrigger>
                 <DropdownContent className="w-48">
                     <DropdownItem icon={<Eye className="h-4 w-4" />} onClick={handleViewProfile}>
-                        پرونده الکترونیکی کارمند
+                        پرونده الکترونیکی سرباز
                     </DropdownItem>
                     <DropdownItem
                         icon={<Trash2 className="h-4 w-4" />}

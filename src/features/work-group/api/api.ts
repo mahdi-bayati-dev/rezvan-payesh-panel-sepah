@@ -71,7 +71,7 @@ export const fetchShiftSchedulesList = async (): Promise<BaseNestedItem[]> => {
 // --- ✅✅✅ توابع مدیریت اعضای گروه (دقیق طبق داکیومنت) ✅✅✅ ---
 
 /**
- * مدیریت تخصیص یا حذف کارمندان از گروه کاری
+ * مدیریت تخصیص یا حذف سربازان از گروه کاری
  * متد: PATCH
  * مسیر: /api/work-groups/{groupId}/employees
  */
@@ -84,7 +84,7 @@ export const updateGroupEmployees = async ({
 }): Promise<ManageGroupEmployeesResponse> => {
   // گارد: اگر لیست خالی است، درخواستی ارسال نکن (صرفه جویی در منابع)
   if (!payload.employee_ids.length) {
-    throw new Error("لیست کارمندان انتخاب شده نمی‌تواند خالی باشد.");
+    throw new Error("لیست سربازان انتخاب شده نمی‌تواند خالی باشد.");
   }
 
   const { data } = await axiosInstance.patch<ManageGroupEmployeesResponse>(

@@ -40,7 +40,7 @@ export const getAssignedGroupColumns = (
 ): ColumnDef<User>[] => [
         getSelectionColumn(),
         {
-            header: "کارمند",
+            header: "سرباز",
             accessorFn: (row) => `${row.employee?.first_name ?? ""} ${row.employee?.last_name ?? ""}`,
             cell: ({ row }) => (
                 <div className="flex flex-col">
@@ -94,7 +94,7 @@ export const getAvailableGroupColumns = (
 ): ColumnDef<User>[] => [
         getSelectionColumn(),
         {
-            header: "کارمند",
+            header: "سرباز",
             accessorFn: (row) => `${row.employee?.first_name ?? ""} ${row.employee?.last_name ?? ""}`,
             cell: ({ row }) => (
                 <div className="flex flex-col gap-1">

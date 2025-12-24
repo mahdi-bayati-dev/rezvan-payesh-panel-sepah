@@ -74,7 +74,7 @@ export const NewReportForm = ({
         <form onSubmit={handleSubmit(onFormSubmit)} noValidate>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
 
-                {/* --- Combobox کارمند --- */}
+                {/* --- Combobox سرباز --- */}
                 <div className="md:col-span-2">
                     <Controller
                         name="employee"
@@ -88,7 +88,7 @@ export const NewReportForm = ({
                                 disabled={isSubmitting}
                             >
                                 <Combobox.Label className="block text-sm font-medium mb-2 text-foregroundL dark:text-foregroundD">
-                                    کارمند (جستجو کنید...)
+                                    سرباز (جستجو کنید...)
                                 </Combobox.Label>
                                 <div className="relative">
                                     <Combobox.Input
@@ -100,7 +100,7 @@ export const NewReportForm = ({
                                         focus:outline-none focus:ring-2`}
                                         onChange={(event) => setEmployeeQuery(event.target.value)}
                                         displayValue={(employee: SelectOption) => employee?.name || ''}
-                                        placeholder={isLoadingEmployees ? "در حال جستجو..." : "شروع به تایپ نام کارمند..."}
+                                        placeholder={isLoadingEmployees ? "در حال جستجو..." : "شروع به تایپ نام سرباز..."}
                                         autoComplete="off"
                                     />
                                     <Combobox.Button className="absolute inset-y-0 left-0 flex items-center px-3 text-muted-foregroundL dark:text-muted-foregroundD">
@@ -122,7 +122,7 @@ export const NewReportForm = ({
                                     )}
                                     {filteredEmployees.length === 0 && employeeQuery.length > 1 && !isLoadingEmployees && (
                                         <div className="relative cursor-default select-none py-2 px-4 text-muted-foregroundL dark:text-muted-foregroundD">
-                                            کارمندی یافت نشد.
+                                            سربازی یافت نشد.
                                         </div>
                                     )}
                                     {filteredEmployees.length === 0 && employeeQuery.length === 0 && !isLoadingEmployees && (

@@ -201,7 +201,7 @@ export const createUser = async (
   formData.append("role", payload.role);
   formData.append("status", payload.status);
 
-  // 2. افزودن فیلدهای سطح کارمند (Employee Fields)
+  // 2. افزودن فیلدهای سطح سرباز (Employee Fields)
   if (payload.employee) {
     // 🔥 پچ امنیتی (Critical Fix):
     // خطای 500 نشان داد بکند به دنبال 'personnel_code' در ریشه می‌گردد.
@@ -361,5 +361,4 @@ export const downloadSampleExcel = () => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-
 };

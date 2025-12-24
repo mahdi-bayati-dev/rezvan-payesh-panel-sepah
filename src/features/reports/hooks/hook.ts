@@ -119,7 +119,7 @@ export const useMyLogDetails = (logId: string | number | undefined) => {
 
 // --- هوک‌های ادمین (بدون تغییر) ---
 
-// --- ۵. هوک واکشی *لیست کامل* کارمندان (برای فیلتر ادمین) ---
+// --- ۵. هوک واکشی *لیست کامل* سربازان (برای فیلتر ادمین) ---
 export const useEmployeeOptionsList = () => {
   return useQuery({
     queryKey: reportKeys.employeeList(),
@@ -129,7 +129,7 @@ export const useEmployeeOptionsList = () => {
   });
 };
 
-// --- ۶. هوک واکشی *جستجوی* کارمندان (برای فرم ادمین) ---
+// --- ۶. هوک واکشی *جستجوی* سربازان (برای فرم ادمین) ---
 export const useEmployeeOptionsSearch = (searchQuery: string) => {
   return useQuery({
     queryKey: reportKeys.employeeSearch(searchQuery),
@@ -220,7 +220,7 @@ export const useRequestExport = () => {
   });
 };
 
-// --- ۱۱. هوک گزارش‌های کارمند (ادمین) ---
+// --- ۱۱. هوک گزارش‌های سرباز (ادمین) ---
 export const useEmployeeLogs = (
   employeeApiId: string | undefined,
   pagination: PaginationState

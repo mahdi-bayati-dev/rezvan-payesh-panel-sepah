@@ -158,11 +158,11 @@ export const useAssignmentLogic = () => {
       return;
     }
 
-    // سناریوی ۱: تخصیص به کارمندان
+    // سناریوی ۱: تخصیص به سربازان
     if (activeTab === "EMPLOYEES") {
       const selectedRows = employeesTable.getSelectedRowModel().flatRows;
       if (selectedRows.length === 0)
-        return toast.warn("لطفا حداقل یک کارمند را انتخاب کنید.");
+        return toast.warn("لطفا حداقل یک سرباز را انتخاب کنید.");
 
       // ✅ اصلاح خطا: به جای استفاده از یک متغیر mutation مشترک که باعث خطای Union Type می‌شد،
       // منطق را جدا کردیم تا تایپ‌اسکریپت بتواند نوع payload را دقیق تشخیص دهد.
@@ -183,7 +183,7 @@ export const useAssignmentLogic = () => {
       });
 
       const results = await Promise.allSettled(promises);
-      handlePromiseResults(results, selectedRows.length, "کارمند");
+      handlePromiseResults(results, selectedRows.length, "سرباز");
     }
     // سناریوی ۲: تخصیص به گروه‌ها
     else {

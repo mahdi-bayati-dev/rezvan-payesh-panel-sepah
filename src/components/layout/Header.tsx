@@ -8,8 +8,8 @@ import { SyncedClock } from "@/features/system-check/components/SyncedClock";
 import { useOnboarding } from '@/features/Onboarding/useOnboarding';
 
 // استفاده از Alias برای فراخوانی دارایی‌های گرافیکی
-import logoLight from "@/assets/images/img-header/logo-1.webp";
-import logoDark from "@/assets/images/img-header/logo-2.webp";
+import logoLight from "@/assets/images/img-header/logo-1.png";
+import logoDark from "@/assets/images/img-header/logo-2.png";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -42,7 +42,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-borderL/40 bg-white/80 px-4 backdrop-blur-md transition-all duration-300 dark:border-borderD/40 dark:bg-gray-900/80">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-borderL/40 bg-white/80 px-4 backdrop-blur-md transition-all duration-300 dark:border-borderD dark:bg-backgroundD">
 
       {/* --- بخش راست: برندینگ و نقش کاربر (چیدمان مرتب) --- */}
       <div className="flex items-center gap-4">
@@ -56,7 +56,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
         {/* لوگو و نام تجاری */}
         <div className="flex items-center gap-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white  dark:bg-gray-800 dark:ring-borderD/50">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl">
             <img className="h-full w-full object-contain" src={logoSrc} alt="لوگو" />
           </div>
           <div className="hidden flex-col leading-tight md:flex">

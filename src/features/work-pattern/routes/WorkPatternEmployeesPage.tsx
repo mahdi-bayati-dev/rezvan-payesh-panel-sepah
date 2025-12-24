@@ -1,4 +1,4 @@
-import  { useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, ArrowRight, Search, UserPlus, ShieldCheck } from "lucide-react";
 import Input from "@/components/ui/Input";
@@ -53,7 +53,7 @@ export default function ManagePatternEmployeesPage() {
                         <div className="p-2 bg-primaryL/10 rounded-lg dark:bg-primaryD/10">
                             <Users className="h-6 w-6 text-primaryL dark:text-primaryD" />
                         </div>
-                        <h1 className="text-2xl font-bold text-foregroundL dark:text-foregroundD">مدیریت کارمندان الگو</h1>
+                        <h1 className="text-2xl font-bold text-foregroundL dark:text-foregroundD">مدیریت سربازان الگو</h1>
                     </div>
 
                     <div className="flex items-center gap-2 text-sm text-muted-foregroundL">
@@ -97,26 +97,26 @@ export default function ManagePatternEmployeesPage() {
             ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <EmployeeTableCard
-                        title="کارمندان متصل"
+                        title="سربازان متصل"
                         icon={<ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
                         count={assignedUsers.length}
                         description="لیست افرادی که هم‌اکنون از این الگو استفاده می‌کنند."
                         data={assignedUsers}
                         columns={assignedColumns}
                         isLoading={isLoading}
-                        emptyMessage="هیچ کارمندی به این الگو متصل نیست."
+                        emptyMessage="هیچ سربازی به این الگو متصل نیست."
                         headerClassName="bg-emerald-50/50 dark:bg-emerald-900/10 border-b border-emerald-100 dark:border-emerald-900/20"
                     />
 
                     <EmployeeTableCard
-                        title="سایر کارمندان"
+                        title="سایر سربازان"
                         icon={<UserPlus className="h-5 w-5 text-stone-600 dark:text-stone-400" />}
                         count={availableUsers.length}
                         description="برای افزودن، دکمه افزودن را بزنید."
                         data={availableUsers}
                         columns={availableColumns}
                         isLoading={isLoading}
-                        emptyMessage="کارمند دیگری یافت نشد."
+                        emptyMessage="سرباز دیگری یافت نشد."
                     />
                 </div>
             )}

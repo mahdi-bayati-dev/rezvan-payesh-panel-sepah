@@ -37,7 +37,7 @@ export function ActivityFilters({ onFilterChange }: ActivityFiltersProps) {
   };
 
   const employeeOptionsToShow = useMemo(() => {
-    const allOption: SelectOption = { id: 'all', name: 'همه کارمندان' };
+    const allOption: SelectOption = { id: 'all', name: 'همه سربازان' };
     if (employeeQuery === '' && !searchResults) return [allOption];
     return [allOption, ...(searchResults || [])];
   }, [searchResults, employeeQuery]);
@@ -58,7 +58,7 @@ export function ActivityFilters({ onFilterChange }: ActivityFiltersProps) {
 
       <div className="flex flex-col gap-4">
         <div className="w-full">
-          <label className="text-xs font-bold text-muted-foregroundL dark:text-muted-foregroundD mb-1.5 block px-1">کارمند</label>
+          <label className="text-xs font-bold text-muted-foregroundL dark:text-muted-foregroundD mb-1.5 block px-1">سرباز</label>
           <Combobox as="div" className="relative w-full" value={employee} onChange={setEmployee}>
             <div className="relative group w-full">
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -73,44 +73,44 @@ export function ActivityFilters({ onFilterChange }: ActivityFiltersProps) {
               />
             </div>
             <Combobox.Options className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-xl bg-backgroundL-500 dark:bg-backgroundD py-1 shadow-xl border border-borderL dark:border-borderD animate-in fade-in zoom-in-95 duration-100">
-                {employeeOptionsToShow.map((opt) => (
-                    <Combobox.Option
-                        key={opt.id}
-                        value={opt}
-                        className={({ active, selected }) =>
-                            `relative cursor-pointer select-none py-2.5 pl-9 pr-3 text-xs transition-colors
+              {employeeOptionsToShow.map((opt) => (
+                <Combobox.Option
+                  key={opt.id}
+                  value={opt}
+                  className={({ active, selected }) =>
+                    `relative cursor-pointer select-none py-2.5 pl-9 pr-3 text-xs transition-colors
                             ${active ? 'bg-primaryL/5 text-primaryL dark:bg-primaryD/10' : 'text-foregroundL dark:text-foregroundD'}
                             ${selected ? 'bg-primaryL/10 font-medium' : ''}`
-                        }
-                    >
-                        {({ selected }) => (
-                            <>
-                                <span className={`block truncate ${selected ? 'font-semibold' : 'font-normal'}`}>{opt.name}</span>
-                                {selected && (
-                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primaryL">
-                                        <Check className="h-4 w-4" />
-                                    </span>
-                                )}
-                            </>
-                        )}
-                    </Combobox.Option>
-                ))}
+                  }
+                >
+                  {({ selected }) => (
+                    <>
+                      <span className={`block truncate ${selected ? 'font-semibold' : 'font-normal'}`}>{opt.name}</span>
+                      {selected && (
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primaryL">
+                          <Check className="h-4 w-4" />
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Combobox.Option>
+              ))}
             </Combobox.Options>
           </Combobox>
         </div>
 
-        <PersianDatePickerInput 
-          value={dateFrom} 
-          onChange={setDateFrom} 
-          placeholder="از تاریخ..." 
-          label="تاریخ شروع" 
+        <PersianDatePickerInput
+          value={dateFrom}
+          onChange={setDateFrom}
+          placeholder="از تاریخ..."
+          label="تاریخ شروع"
           inputClassName="h-11"
         />
-        <PersianDatePickerInput 
-          value={dateTo} 
-          onChange={setDateTo} 
-          placeholder="تا تاریخ..." 
-          label="تاریخ پایان" 
+        <PersianDatePickerInput
+          value={dateTo}
+          onChange={setDateTo}
+          placeholder="تا تاریخ..."
+          label="تاریخ پایان"
           inputClassName="h-11"
         />
       </div>
@@ -141,16 +141,16 @@ export function ActivityFilters({ onFilterChange }: ActivityFiltersProps) {
 
       <Transition show={isOpen} as={Fragment}>
         <Dialog onClose={() => setIsOpen(false)} className="relative z-[60] md:hidden">
-            <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          </Transition.Child>
+          <div className="fixed inset-y-0 right-0 flex max-w-full">
+            <Transition.Child as={Fragment} enter="transform transition ease-out duration-300" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in duration-200" leaveFrom="translate-x-0" leaveTo="translate-x-full">
+              <Dialog.Panel className="w-screen max-w-xs bg-backgroundL-500 dark:bg-backgroundD p-5 shadow-2xl flex flex-col">
+                {renderFilterContent()}
+              </Dialog.Panel>
             </Transition.Child>
-            <div className="fixed inset-y-0 right-0 flex max-w-full">
-                <Transition.Child as={Fragment} enter="transform transition ease-out duration-300" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in duration-200" leaveFrom="translate-x-0" leaveTo="translate-x-full">
-                    <Dialog.Panel className="w-screen max-w-xs bg-backgroundL-500 dark:bg-backgroundD p-5 shadow-2xl flex flex-col">
-                        {renderFilterContent()}
-                    </Dialog.Panel>
-                </Transition.Child>
-            </div>
+          </div>
         </Dialog>
       </Transition>
     </>

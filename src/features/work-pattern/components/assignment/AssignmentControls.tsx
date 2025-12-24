@@ -49,7 +49,7 @@ export const AssignmentControls = ({
                     </div>
                     <div className="md:col-span-8">
                         <Input
-                            label={`۲. جستجو در ${activeTab === 'EMPLOYEES' ? 'کارمندان' : 'گروه‌های کاری'}`}
+                            label={`۲. جستجو در ${activeTab === 'EMPLOYEES' ? 'سربازان' : 'گروه‌های کاری'}`}
                             placeholder="نام، کد پرسنلی یا عنوان..."
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
@@ -67,7 +67,7 @@ export const AssignmentControls = ({
                     isActive={activeTab === 'EMPLOYEES'}
                     onClick={() => onTabChange('EMPLOYEES')}
                     icon={<Users className="h-4 w-4" />}
-                    label="کارمندان"
+                    label="سربازان"
                     count={employeesCount}
                 />
                 <TabButton
@@ -99,9 +99,9 @@ const TabButton = ({ isActive, onClick, icon, label, count }: any) => (
         {icon}
         <span>{label}</span>
         <span className={clsx(
-            "px-2 py-0.5 rounded-full text-[11px] font-bold min-w-[20px]", 
-            isActive 
-                ? "bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD" 
+            "px-2 py-0.5 rounded-full text-[11px] font-bold min-w-[20px]",
+            isActive
+                ? "bg-primaryL/10 text-primaryL dark:bg-primaryD/10 dark:text-primaryD"
                 : "bg-black/5 text-muted-foregroundL dark:bg-white/10 dark:text-muted-foregroundD"
         )}>
             {toPersianDigits(count)}

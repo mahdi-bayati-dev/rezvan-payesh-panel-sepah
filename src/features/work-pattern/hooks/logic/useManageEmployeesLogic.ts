@@ -113,7 +113,7 @@ export const useManageEmployeesLogic = () => {
         // ✅ اصلاح خطا: حذف پارامتر response بی‌استفاده
         onSuccess: () => {
           // Verification logic (Simplified for brevity)
-          toast.success("کارمند با موفقیت اضافه شد.");
+          toast.success("سرباز با موفقیت اضافه شد.");
           refetchUsers();
         },
         onError: (err) => toast.error((err as Error)?.message ?? "خطای نامشخص"),
@@ -140,7 +140,7 @@ export const useManageEmployeesLogic = () => {
       // @ts-ignore
       mutation.mutate(payload, {
         onSuccess: () => {
-          toast.success("کارمند با موفقیت حذف شد.");
+          toast.success("سرباز با موفقیت حذف شد.");
           refetchUsers();
         },
         onError: (err) => toast.error((err as Error)?.message ?? "خطای نامشخص"),

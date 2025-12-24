@@ -9,10 +9,10 @@ const selectOptionSchema = z.object({
 
 // تعریف اسکیمای اعتبارسنجی جدید دقیقاً بر اساس API
 export const newReportSchema = z.object({
-  // ۱. فیلد "انتخاب کارمند"
+  // ۱. فیلد "انتخاب سرباز"
   // API به employee_id نیاز دارد
   employee: selectOptionSchema.nullable().refine((val) => val !== null, {
-    message: "انتخاب کارمند الزامی است",
+    message: "انتخاب سرباز الزامی است",
   }),
 
   // ۲. [رفع خطا ۹] - فیلد "نوع رویداد"
