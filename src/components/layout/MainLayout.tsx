@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar, SidebarContent } from "./Sidebar";
 import { Header } from "./Header";
-import { useAppSelector } from "@/hook/reduxHooks";
-import { selectLicenseStatus } from "@/store/slices/licenseSlice";
+import { useAppSelector, useAppDispatch } from "@/hook/reduxHooks";
+import { fetchLicenseStatus, selectLicenseStatus } from "@/store/slices/licenseSlice";
 import { selectIsLicenseLocked, selectAuthCheckStatus } from "@/store/slices/authSlice";
 
 import { GlobalWebSocketHandler } from './GlobalWebSocketHandler';
@@ -18,6 +18,7 @@ import OnboardingSystem from '../../features/Onboarding/OnboardingModule';
 import { TimeSyncGuard } from "@/features/system-check/components/TimeSyncModal";
 
 export const MainLayout = () => {
+  const dispatch = useAppDispatch();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,12 +28,15 @@ export const MainLayout = () => {
   const isAuthLocked = useAppSelector(selectIsLicenseLocked);
   const authStatus = useAppSelector(selectAuthCheckStatus);
 
-  // فعال‌سازی سوکت‌های مربوط به اعلان تصاویر
-  useImageNotificationSocket();
-  useAdminImageSocket();
-
+  // ۱. اولویت بسیار بالا: دریافت وضعیت لایسنس به محض احراز هویت موفق
   useEffect(() => {
-    // مدیریت ریدایرکت‌های مربوط به لایسنس
+    if (authStatus === 'succeeded' && !licenseStatus) {
+      dispatch(fetchLicenseStatus());
+    }
+  }, [dispatch, authStatus, licenseStatus]);
+
+  // ۲. مدیریت ریدایرکت‌های لایسنس
+  useEffect(() => {
     const invalidLicenseStatuses = ['expired', 'tampered', 'trial_expired', 'license_expired'];
     const isLicenseInvalid = licenseStatus && invalidLicenseStatuses.includes(licenseStatus);
     const shouldRedirect = isAuthLocked || isLicenseInvalid;
@@ -42,31 +46,31 @@ export const MainLayout = () => {
     }
   }, [isAuthLocked, licenseStatus, isLicensePage, navigate]);
 
-  // ۱. اولویت اول: بررسی احراز هویت
+  useImageNotificationSocket();
+  useAdminImageSocket();
+
+  // اگر هنوز وضعیت احراز هویت مشخص نیست، اسکلتون نشان بده
   if (authStatus === 'loading' || authStatus === 'idle') {
     return <GlobalAppSkeleton />;
   }
 
   return (
-    // ۲. اولویت دوم: گارد زمان (اگر زمان سیستم غلط باشد، کل محتوای زیر بلاک می‌شود)
+    /* نکته کلیدی: TimeSyncGuard حالا هوشمند است. 
+       اگر لایسنس مشکل داشته باشد، این گارد غیرفعال می‌شود تا جلوی ریدایرکت به صفحه لایسنس را نگیرد.
+    */
     <TimeSyncGuard>
       <div className="flex h-screen flex-col bg-gray-100 text-gray-800 dark:bg-gray-900 transition-colors duration-300">
-        {/* هندلرهای سراسری وب‌سوکت */}
         <GlobalWebSocketHandler />
         <GlobalRequestSocketHandler />
         <GlobalNotificationHandler />
 
-        {/* کانتینر نمایش نوتیفیکیشن‌ها */}
         <ToastContainer position="bottom-right" autoClose={5000} theme="colored" rtl={true} />
 
-        {/* هدر سایت */}
         <Header onMenuClick={() => !isLicensePage && setSidebarOpen(true)} />
 
         <div className="flex flex-1 overflow-hidden relative">
-          {/* سایدبار دسکتاپ */}
           {!isLicensePage && <Sidebar />}
 
-          {/* سایدبار موبایل */}
           {!isLicensePage && (
             <>
               <div
@@ -84,10 +88,8 @@ export const MainLayout = () => {
             </>
           )}
 
-          {/* محتوای اصلی صفحات */}
           <main className="flex-1 overflow-y-auto p-3 md:p-4">
             <Outlet />
-            {/* سیستم Onboarding آموزشی */}
             <OnboardingSystem />
           </main>
         </div>

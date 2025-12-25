@@ -1,23 +1,40 @@
-import React, { useEffect } from "react";
-import { Clock, AlertTriangle, RefreshCw } from "lucide-react";
+import React, { useEffect, useMemo } from "react";
+import { Clock, RefreshCw } from "lucide-react";
 import { useTimeSync } from "../hooks/useTimeSync";
+import { useAppSelector } from "@/hook/reduxHooks";
+import { selectLicenseStatus } from "@/store/slices/licenseSlice";
+import { selectIsLicenseLocked } from "@/store/slices/authSlice";
 
 export const TimeSyncGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isTimeSynced, isChecking, checkTimeSync } = useTimeSync();
 
+    // دریافت وضعیت لایسنس برای تصمیم‌گیری در مورد نمایش گارد
+    const licenseStatus = useAppSelector(selectLicenseStatus);
+    const isAuthLocked = useAppSelector(selectIsLicenseLocked);
+
+    // تشخیص معتبر بودن لایسنس
+    const isLicenseInvalid = useMemo(() => {
+        const invalidStatuses = ['expired', 'tampered', 'trial_expired', 'license_expired'];
+        return isAuthLocked || (licenseStatus && invalidStatuses.includes(licenseStatus));
+    }, [licenseStatus, isAuthLocked]);
+
     useEffect(() => {
-        // اولین بررسی در هنگام لود برنامه
-        checkTimeSync();
+        // فقط اگر لایسنس مشکلی نداشت، بررسی زمان را شروع کن
+        if (!isLicenseInvalid) {
+            checkTimeSync();
+            const periodicCheck = setInterval(checkTimeSync, 30 * 60 * 1000);
+            return () => clearInterval(periodicCheck);
+        }
+    }, [checkTimeSync, isLicenseInvalid]);
 
-        // بهینه‌سازی: بررسی مجدد زمان هر ۳۰ دقیقه برای جلوگیری از Drift ساعت کلاینت
-        const periodicCheck = setInterval(checkTimeSync, 30 * 60 * 1000);
-
-        return () => clearInterval(periodicCheck);
-    }, [checkTimeSync]);
+    // اگر لایسنس نامعتبر است، گارد زمان را کاملاً نادیده بگیر (Pass-through)
+    // تا MainLayout بتواند کاربر را به صفحه لایسنس هدایت کند.
+    if (isLicenseInvalid) {
+        return <>{children}</>;
+    }
 
     if (isChecking && !isTimeSynced) {
-        // نمایش اسکلتون یا لودینگ در اولین بررسی اگر ساعت سینک نیست
-        return null;
+        return null; // یا نمایش اسکلتون
     }
 
     if (!isTimeSynced) {
@@ -30,22 +47,15 @@ export const TimeSyncGuard: React.FC<{ children: React.ReactNode }> = ({ childre
                         </div>
                         <h2 className="text-2xl font-black text-gray-900 dark:text-white">اختلاف زمانی شناسایی شد</h2>
                         <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                            ساعت سیستم شما با ساعت رسمی سرور هماهنگ نیست. برای امنیت تراکنش‌ها و ثبت دقیق حضور، لطفاً تنظیمات تاریخ و ساعت گوشی یا کامپیوتر خود را روی
-                            <span className="font-bold text-red-600 dark:text-red-400"> "تنظیم خودکار" </span>
-                            قرار دهید.
+                            ساعت سیستم شما با ساعت رسمی سرور هماهنگ نیست. برای عملکرد صحیح سیستم، لطفا ساعت خود را تنظیم کنید.
                         </p>
                     </div>
 
                     <div className="p-8">
-                        <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
-                            <AlertTriangle className="h-5 w-5 shrink-0" />
-                            <p>بدون اصلاح زمان، امکان دسترسی به بخش‌های حساس پنل وجود ندارد.</p>
-                        </div>
-
                         <button
                             onClick={() => checkTimeSync()}
                             disabled={isChecking}
-                            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-primaryL p-4 text-sm font-black text-white transition-all hover:bg-primaryL-600 active:scale-95 disabled:opacity-50 dark:bg-primaryD"
+                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primaryL p-4 text-sm font-black text-white transition-all hover:bg-primaryL-600 disabled:opacity-50 dark:bg-primaryD"
                         >
                             <RefreshCw className={`h-5 w-5 ${isChecking ? 'animate-spin' : ''}`} />
                             بررسی مجدد تنظیمات
