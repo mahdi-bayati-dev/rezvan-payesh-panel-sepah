@@ -1,13 +1,14 @@
 import { useState, useMemo, type ReactNode } from "react";
 import {
-  UserCheck,
-  Clock,
-  UserX,
-  Briefcase,
-  Users,
-  BarChart3,
+  ShieldCheck,
+  Timer,
+  ShieldX,
   LogOut,
-  FileSignature
+  Users,
+  Target,
+  ExternalLink,
+  FileCheck,
+  RefreshCw
 } from "lucide-react";
 
 import { useQuery } from '@tanstack/react-query';
@@ -37,7 +38,7 @@ type TimeFilter = "daily" | "weekly" | "monthly";
 // ====================================================================
 
 /**
- * تبدیل اعداد انگلیسی به فارسی برای نمایش در UI
+ * تبدیل اعداد به فارسی برای حفظ یکپارچگی بصری در گزارشات نظامی
  */
 const toPersianDigits = (num: number | string | undefined | null): string => {
   if (num === undefined || num === null) return "۰";
@@ -48,7 +49,7 @@ const toPersianDigits = (num: number | string | undefined | null): string => {
 };
 
 // ====================================================================
-// پیکربندی کارت‌های آماری
+// پیکربندی کارت‌های آماری با تم نظامی
 // ====================================================================
 
 interface StatConfig<T> {
@@ -60,17 +61,57 @@ interface StatConfig<T> {
 }
 
 const adminStatsConfig: StatConfig<AdminSummaryStats>[] = [
-  { key: "total_present", title: "حاضرین امروز", icon: <UserCheck size={20} className="text-green-600 dark:text-green-400" />, variant: 'success' },
-  { key: "total_lateness", title: "تاخیرها", icon: <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />, variant: 'warning' },
-  { key: "total_early_departure", title: "تعجیل خروج", icon: <Briefcase size={20} className="text-orange-600 dark:text-orange-400" />, variant: 'danger' },
-  { key: "total_absent", title: "غایبین / بدون شیفت", icon: <UserX size={20} className="text-red-600 dark:text-red-400" />, variant: 'danger' },
-  { key: "total_employees_scoped", title: "کل پرسنل", icon: <Users size={20} className="text-blue-600 dark:text-blue-400" />, variant: 'info' },
+  {
+    key: "total_present",
+    title: "نیروهای موجود (پای کار)",
+    icon: <ShieldCheck size={20} className="text-green-600 dark:text-green-400" />,
+    variant: 'success'
+  },
+  {
+    key: "total_lateness",
+    title: "تاخیر در الحاق",
+    icon: <Timer size={20} className="text-yellow-600 dark:text-yellow-400" />,
+    variant: 'warning'
+  },
+  {
+    key: "total_early_departure",
+    title: "تعجیل در ترخیص",
+    icon: <LogOut size={20} className="text-orange-600 dark:text-orange-400" />,
+    variant: 'danger'
+  },
+  {
+    key: "total_absent",
+    title: "خارج از رده / غایب",
+    icon: <ShieldX size={20} className="text-red-600 dark:text-red-400" />,
+    variant: 'danger'
+  },
+  {
+    key: "total_employees_scoped",
+    title: "آمار کل قوای انسانی",
+    icon: <Users size={20} className="text-blue-600 dark:text-blue-400" />,
+    variant: 'info'
+  },
 ];
 
 const userStatsConfig: StatConfig<UserDashboardData>[] = [
-  { key: "absences_count", title: "غیبت‌های ماه جاری", icon: <UserX size={20} className="text-red-500 dark:text-red-400" />, variant: 'danger' },
-  { key: "leaves_approved_count", title: "مرخصی‌های تایید شده", icon: <FileSignature size={20} className="text-green-500 dark:text-green-400" />, variant: 'success' },
-  { key: "early_exits_count", title: "دفعات تعجیل/خروج", icon: <LogOut size={20} className="text-orange-500 dark:text-orange-400" />, variant: 'warning' },
+  {
+    key: "absences_count",
+    title: "عدم حضور در پست (ماه)",
+    icon: <ShieldX size={20} className="text-red-500 dark:text-red-400" />,
+    variant: 'danger'
+  },
+  {
+    key: "leaves_approved_count",
+    title: "مرخصی‌های ابلاغ شده",
+    icon: <FileCheck size={20} className="text-green-500 dark:text-green-400" />,
+    variant: 'success'
+  },
+  {
+    key: "early_exits_count",
+    title: "ترخیص پیش از موعد",
+    icon: <ExternalLink size={20} className="text-orange-500 dark:text-orange-400" />,
+    variant: 'warning'
+  },
 ];
 
 const DashboardPage = () => {
@@ -102,15 +143,14 @@ const DashboardPage = () => {
   }, [data]);
 
   const headerLabel = useMemo(() => {
-    if (isAdmin) return "گزارش وضعیت امروز سازمان";
-    if (isUser) return "گزارش عملکرد ماه جاری";
-    return "داشبورد مدیریت";
+    if (isAdmin) return "گزارش وضعیت آماری رزم یگان";
+    if (isUser) return "کارنامه عملکرد انفرادی (ماه جاری)";
+    return "مرکز کنترل و فرماندهی";
   }, [isAdmin, isUser]);
 
   const renderContent = () => {
     if (isLoading) {
       return (
-        // در حالت لودینگ هم گرید را مشابه حالت نهایی تنظیم می‌کنیم تا پرش محتوا (CLS) نداشته باشیم
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-36 rounded-2xl border border-borderL p-5 bg-secondaryL/20 dark:border-borderD dark:bg-secondaryD/10 flex flex-col justify-between animate-pulse">
@@ -128,7 +168,7 @@ const DashboardPage = () => {
     if (isError) {
       return (
         <Alert variant="destructive" className="col-span-full my-4 w-full">
-          <AlertTitle>خطا در دریافت اطلاعات</AlertTitle>
+          <AlertTitle>خطا در برقراری ارتباط با مرکز داده</AlertTitle>
           <AlertDescription>{(error as Error).message}</AlertDescription>
         </Alert>
       );
@@ -137,10 +177,6 @@ const DashboardPage = () => {
     if (isAdmin && isAdminDashboard(data!)) {
       return (
         <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* FIX: تغییر گرید از 6 ستون به 5 ستون
-            قبلا xl:grid-cols-6 بود که چون 5 تا آیتم داشتیم، باعث میشد سمت چپ خالی بماند.
-            الان با xl:grid-cols-5 کارت‌ها کل عرض را پر می‌کنند.
-          */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
             {adminStatsConfig.map((stat) => (
               <StatCard
@@ -152,7 +188,7 @@ const DashboardPage = () => {
                 icon={stat.icon}
                 onLinkClick={
                   stat.linkText
-                    ? () => console.log(`Maps: ${stat.key}`)
+                    ? () => console.log(`Intelligence Detail: ${stat.key}`)
                     : undefined
                 }
               />
@@ -163,15 +199,16 @@ const DashboardPage = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <h3 className="text-xl font-bold text-foregroundL dark:text-foregroundD flex items-center gap-3">
                 <div className="p-2 bg-primaryL/10 dark:bg-primaryD/10 rounded-xl">
-                  <BarChart3 className="w-6 h-6 text-primaryL dark:text-primaryD" />
+                  <Target className="w-6 h-6 text-primaryL dark:text-primaryD" />
                 </div>
-                آمار لحظه‌ای سازمان‌ها
+                مانیتورینگ عملیاتی یگان‌های تابعه
               </h3>
               <button
                 onClick={() => refetch()}
-                className="text-xs sm:text-sm bg-secondaryL/80 hover:bg-secondaryL dark:bg-secondaryD dark:text-secondary-foregroundD px-4 py-2 rounded-xl transition-all hover:shadow-md active:scale-95"
+                className="flex items-center gap-2 text-xs sm:text-sm bg-secondaryL/80 hover:bg-secondaryL dark:bg-secondaryD dark:text-secondary-foregroundD px-4 py-2 rounded-xl transition-all hover:shadow-md active:scale-95"
               >
-                بروزرسانی نمودار
+                <RefreshCw size={14} />
+                به‌روزرسانی داده‌های رزم
               </button>
             </div>
             <AttendanceChart data={chartData} />
@@ -193,7 +230,7 @@ const DashboardPage = () => {
               icon={stat.icon}
               onLinkClick={
                 stat.linkText
-                  ? () => console.log(`Maps: ${stat.key}`)
+                  ? () => console.log(`Personal Log: ${stat.key}`)
                   : undefined
               }
             />
@@ -202,7 +239,7 @@ const DashboardPage = () => {
           <div className="col-span-full mt-2 p-5 bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl backdrop-blur-sm">
             <p className="text-sm md:text-base text-blue-800 dark:text-blue-300 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-              کاربر گرامی، آمار فوق مربوط به عملکرد شما در <strong>ماه جاری</strong> می‌باشد.
+              پرسنل گرامی، آمار فوق مربوط به انضباط خدمتی شما در <strong>ماه جاری</strong> می‌باشد.
             </p>
           </div>
         </div>

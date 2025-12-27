@@ -20,7 +20,7 @@ const PATTERN_OPTIONS: { id: PatternType; name: string; description: string; ico
     {
         id: 'SHIFT_SCHEDULE',
         name: 'برنامه شیفتی چرخشی',
-        description: 'مناسب برای نگهبانی، پرستاری و شیفت‌های ۱۲-۲۴ یا ۲۴-۴۸ و...',
+        description: 'مناسب برای نگهبانی،  و شیفت‌های ۱۲-۲۴ یا ۲۴-۴۸ و...',
         icon: <Repeat2 className="h-6 w-6" />
     },
 ];
