@@ -112,7 +112,7 @@ export const SidebarContent = () => {
     <div className="relative flex h-full w-full flex-col justify-between border-e border-borderL bg-backgroundL-500 transition-colors duration-300 dark:border-borderD dark:bg-backgroundD overflow-hidden">
 
       {/* 🎖️ وکتور پس‌زمینه سرباز - استفاده از رنگ foreground برای هماهنگی با تم */}
-      <div className="absolute bottom-12 left-0 w-full opacity-15 dark:opacity-[0.03] pointer-events-none select-none z-0 flex justify-center translate-y-4">
+      <div className="absolute bottom-12 left-0 w-full opacity-15 dark:opacity-15 pointer-events-none select-none z-0 flex justify-center translate-y-4">
         <svg
           className="fill-foregroundL dark:fill-foregroundD"
           height="800px"
