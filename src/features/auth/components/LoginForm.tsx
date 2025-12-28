@@ -78,7 +78,7 @@ const LoginForm = () => {
   }, [authStatus, authError]);
 
   return (
-    <div className="w-full max-w-sm rounded-t-3xl md:rounded-t-3xl md:rounded-b-0 bg-backgroundL-500/60 p-4 shadow-2xl backdrop-blur-md sm:p-8 dark:bg-backgroundD/60 animate-in fade-in zoom-in-95 duration-300 border border-white/20 dark:border-zinc-800">
+    <div className="w-full max-w-sm rounded-t-3xl md:rounded-t-3xl md:rounded-b-0 bg-backgroundL-500/40 p-4 shadow-2xl backdrop-blur-md sm:pb-4 sm:p-8 dark:bg-backgroundD/60 animate-in fade-in zoom-in-95 duration-300 border border-white/20 dark:border-zinc-800">
       <div className="text-center">
         <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">ورود</h2>
         <span className="my-2 flex items-center">
