@@ -5,34 +5,24 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
 import type { Id as ToastId } from 'react-toastify';
 
-// ✅ ایمپورت کامپوننت‌های UI
 import { Button } from "@/components/ui/Button";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import Input from "@/components/ui/Input";
 import { ThemeToggleBtn } from "@/components/ui/ThemeToggleBtn";
-// اضافه کردن کامپوننت‌های مدال
 import { Modal, ModalHeader, ModalBody } from "@/components/ui/Modal";
 
 import { loginSchema, type LoginFormData } from '../schema/loginSchema';
 import { useAppDispatch, useAppSelector } from '@/store/index';
 import { loginUser, resetAuthStatus } from '@/store/slices/authSlice';
 
-// ✅ استاندارد: ایمپورت لوگوها از assets
-import logoLight from "@/assets/images/img-header/logo-1.png";
-import logoDark from "@/assets/images/img-header/logo-2.png";
 const LoginForm = () => {
-  const theme = useAppSelector((state) => state.ui.theme);
   const dispatch = useAppDispatch();
 
   const authStatus = useAppSelector((state) => state.auth.loginStatus);
   const authError = useAppSelector((state) => state.auth.error);
   const isLoading = authStatus === 'loading';
 
-  // ✅ استیت برای مدیریت نمایش مدال ثبت نام
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-
-
-  const logoSrc = theme === "dark" ? logoDark : logoLight;
 
   const {
     register,
@@ -80,7 +70,8 @@ const LoginForm = () => {
   return (
     <div className="w-full max-w-sm rounded-t-3xl md:rounded-t-3xl md:rounded-b-0 bg-backgroundL-500/40 p-4 shadow-2xl backdrop-blur-md sm:pb-4 sm:p-8 dark:bg-backgroundD/60 animate-in fade-in zoom-in-95 duration-300 border border-white/20 dark:border-zinc-800">
       <div className="text-center">
-        <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">ورود</h2>
+        {/* ✅ حذف بخش لوگو از اینجا طبق درخواست شما */}
+        <h2 className="text-lg font-bold text-foregroundL dark:text-foregroundD">ورود به سامانه رضوان پایش</h2>
         <span className="my-2 flex items-center">
           <span className="h-px flex-1 bg-borderL/50 dark:bg-borderD/50"></span>
           <span className="shrink-0 px-2 text-sm text-muted-foregroundL sm:px-4 dark:text-muted-foregroundD">
@@ -88,20 +79,6 @@ const LoginForm = () => {
           </span>
           <span className="h-px flex-1 bg-borderL/50 dark:bg-borderD/50"></span>
         </span>
-        <div className="flex flex-col items-center justify-center sm:flex-row gap-2">
-          <div className="p-3 rounded-full bg-secondaryL/30 dark:bg-white/5 border border-white/10 shadow-inner">
-            <img
-              src={logoSrc}
-              alt="لوگوی رضوان پایش"
-              className="h-16 w-auto object-contain drop-shadow-sm"
-              width={64}
-              height={64}
-            />
-          </div>
-          <p className="text-xl font-bold text-foregroundL sm:text-2xl dark:text-foregroundD">
-            رضـــوان پایش
-          </p>
-        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
@@ -144,9 +121,7 @@ const LoginForm = () => {
             className="w-full shadow-lg bg-primaryL text-primary-foregroundL hover:bg-primaryL/90 dark:bg-primaryD dark:text-primary-foregroundD shadow-primaryL/25 dark:shadow-none"
             disabled={isLoading}
           >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isLoading ? 'در حال ورود...' : 'ورود'}
           </Button>
 
@@ -155,7 +130,6 @@ const LoginForm = () => {
             variant="outline"
             className="w-full border-primaryL/50 text-primaryL hover:bg-primaryL hover:text-white dark:border-primaryD/50 dark:text-primaryD dark:hover:bg-primaryD dark:hover:text-black"
             disabled={isLoading}
-            // ✅ باز کردن مدال راهنما به جای Toast
             onClick={() => setIsRegisterModalOpen(true)}
           >
             ثبت نام
@@ -171,12 +145,8 @@ const LoginForm = () => {
         <ThemeToggleBtn />
       </div>
 
-      {/* ✅ مدال راهنمای ثبت نام */}
-      <Modal
-        isOpen={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        size="md"
-      >
+      {/* مدال راهنمای ثبت نام */}
+      <Modal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} size="md">
         <ModalHeader onClose={() => setIsRegisterModalOpen(false)}>
           <div className="flex items-center gap-2 text-foregroundL dark:text-foregroundD">
             <UserPlus className="h-5 w-5 text-primaryL dark:text-primaryD" />
@@ -188,23 +158,10 @@ const LoginForm = () => {
             <div className="p-4 bg-secondaryL/50 rounded-full dark:bg-secondaryD/50">
               <Info className="h-10 w-10 text-primaryL dark:text-primaryD" />
             </div>
-
-            <h4 className="text-lg font-bold text-foregroundL dark:text-foregroundD">
-              نحوه دریافت نام کاربری
-            </h4>
-
+            <h4 className="text-lg font-bold text-foregroundL dark:text-foregroundD">نحوه دریافت نام کاربری</h4>
             <p className="text-sm leading-7 text-muted-foregroundL dark:text-muted-foregroundD">
-              در سامانه <strong className="text-foregroundL dark:text-foregroundD">رضوان پایش</strong>، حساب‌های کاربری به صورت متمرکز مدیریت می‌شوند.
-              <br />
-              برای ایجاد حساب جدید، لطفاً با <strong className="text-foregroundL dark:text-foregroundD">مدیر ارشد</strong> یا مسئول سیستم در سازمان خود تماس بگیرید.
+              برای ایجاد حساب جدید، لطفاً با مدیر ارشد سازمان خود تماس بگیرید.
             </p>
-
-            <div className="w-full rounded-lg bg-secondaryL/30 p-3 border border-borderL dark:bg-secondaryD/30 dark:border-borderD mt-2">
-              <p className="text-xs text-foregroundL dark:text-foregroundD font-medium">
-                نام کاربری و رمز عبور پس از تایید هویت، توسط مدیریت در اختیار شما قرار خواهد گرفت.
-              </p>
-            </div>
-
             <Button
               className="w-full mt-4 bg-primaryL text-primary-foregroundL hover:bg-primaryL/90 dark:bg-primaryD dark:text-primary-foregroundD"
               onClick={() => setIsRegisterModalOpen(false)}
@@ -214,7 +171,6 @@ const LoginForm = () => {
           </div>
         </ModalBody>
       </Modal>
-
     </div>
   );
 };
